@@ -1,0 +1,38 @@
+<html>
+
+<head>
+
+
+</head>
+
+<body>
+    <h1>Game Boy Emulator</h1>
+    <script src="gameboy/z80.js"></script>
+    <h2>DEBUG</h2>
+    <p id="debug">
+
+    </p>
+
+    <button onclick="window.cpu.step()">Next Instruction</button>
+    <button onclick="window.cpu.khz()">1 kHz Execute</button>
+    <button onclick="console.log(window.cpu.registers)">Dump Registers</button>
+</body>
+
+<!-- <canvas id="gameboy" width="320" height="288"></canvas> -->
+<script>
+    var c = document.getElementById("gameboy");
+    var ctx = c.getContext("2d");
+
+    ctx.beginPath();
+    ctx.rect(20, 20, 150, 100);
+    ctx.fillStyle = "red";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.rect(40, 40, 150, 100);
+    ctx.fillStyle = "blue";
+    ctx.fill(); 
+</script>
+
+
+</html>
