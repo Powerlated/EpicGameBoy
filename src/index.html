@@ -3,36 +3,141 @@
 <head>
 
 
+    <style>
+        #debug,
+        #gpudebug {
+            display: inline-block;
+            min-width: 30%;
+        }
+
+        canvas {
+            width: 320px;
+            height: 288px;
+
+            image-rendering: -moz-crisp-edges;
+            /* Firefox */
+            image-rendering: -webkit-crisp-edges;
+            /* Webkit (Safari) */
+            image-rendering: pixelated;
+            /* Chrome */
+
+            outline-style: solid;
+            outline-width: thick;
+            outline-color: black;
+
+        }
+    </style>
+
 </head>
 
 <body>
     <h1>Game Boy Emulator</h1>
-    <script src="gameboy/z80.js"></script>
+
+
     <h2>DEBUG</h2>
-    <p id="debug">
 
-    </p>
+    <div>
+        <p id="debug">
 
-    <button onclick="window.cpu.step()">Next Instruction</button>
-    <button onclick="window.cpu.khz()">1 kHz Execute</button>
-    <button onclick="console.log(window.cpu.registers)">Dump Registers</button>
+        </p>
+        <p id="gpudebug">
+
+        </p>
+
+        <canvas id="gameboy" width="160" height="144"></canvas>
+    </div>
+
+    <div>
+
+        <button onclick="window.cpu.step(); window.cpu.debug = true">Execute at PC</button>
+        <button onclick="window.cpu.khz()">Speed Execute</button>
+        <button onclick="window.cpu.khzStop()">Halt Execute</button>
+        <button onclick="window.cpu.gpu.vBlank()">VBLANK</button>
+        <button onclick="window.cpu.gpu.renderTiles()">Render Tiles</button>
+        <button onclick="console.log(window.cpu.registers)">Dump Registers</button>
+
+
+        <div>
+            <label for="bootromInput">Open Boot ROM</label>
+            <input id="bootromInput" type="file">
+        </div>
+
+        <div>
+            <label for="gameromInput">Open Game ROM</label>
+            <input id="gameromInput" type="file">
+        </div>
+
+        <div>
+            <label for="haltInput">Halt at 0x</label>
+            <input id="haltInput" pattern="[a-fA-F\d]+" />
+        </div>
+
+        <div>
+            <button onclick="downloadLog()">Download Log</button>
+        </div>
+    </div>
+
+
+
+
+    <script>
+
+        function download(filename, text) {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+
+            element.style.display = 'none';
+            document.body.appendChild(element);
+
+            element.click();
+
+            document.body.removeChild(element);
+        }
+
+        function downloadLog() {
+            download("EpicGameBoy.log", window.cpu.log.join('\n'));
+        }
+
+        document.querySelector('#haltInput').addEventListener('change', function (e) {
+
+            window.cpu.haltAt = parseInt(`0x${e.target.value}`);
+            console.log(`Set halt address to 0x${parseInt(window.cpu.haltAt).toString(16)}`)
+        }, false);
+
+        document.querySelector('#bootromInput').addEventListener('change', function () {
+            var reader = new FileReader();
+            reader.onload = function () {
+                var arrayBuffer = this.result;
+                var array = new Uint8Array(arrayBuffer);
+
+                array.forEach((v, i, a) => {
+                    window.cpu.bus.bootrom[i] = v;
+                });
+            }
+            reader.readAsArrayBuffer(this.files[0]);
+        }, false);
+
+        document.querySelector('#gameromInput').addEventListener('change', function () {
+            var reader = new FileReader();
+            reader.onload = function () {
+                var arrayBuffer = this.result;
+                var array = new Uint8Array(arrayBuffer);
+
+                array.forEach((v, i, a) => {
+                    window.cpu.bus.memory[i] = v;
+                });
+                window.cpu.khz()
+            }
+            reader.readAsArrayBuffer(this.files[0]);
+        }, false);
+    </script>
+
+    <script src="gameboy/memorybus.js"></script>
+    <script src="gameboy/gpu.js"></script>
+    <script src="gameboy/z80.js"></script>
 </body>
 
-<!-- <canvas id="gameboy" width="320" height="288"></canvas> -->
-<script>
-    var c = document.getElementById("gameboy");
-    var ctx = c.getContext("2d");
-
-    ctx.beginPath();
-    ctx.rect(20, 20, 150, 100);
-    ctx.fillStyle = "red";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.rect(40, 40, 150, 100);
-    ctx.fillStyle = "blue";
-    ctx.fill(); 
-</script>
 
 
 </html>
