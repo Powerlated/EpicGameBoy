@@ -62,10 +62,13 @@
             <input id="enableLogging" autocomplete="off" type="checkbox">
         </div>
 
-
         <div>
             <label for="bootromInput">Open Boot ROM</label>
             <input id="bootromInput" autocomplete="off" type="file">
+        </div>
+
+        <div>
+            <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
         </div>
 
         <div>
@@ -87,6 +90,23 @@
 
 
     <script>
+        function loadDefaultBootRom() {
+            const BOOTROM_BASE64 = `Mf7/ryH/nzLLfCD7ISb/DhE+gDLiDD7z4jI+d3c+/OBHEQQBIRCAGs2VAM2WABN7/jQg8xHYAAYIGhMiIwUg+T4Z6hCZIS+ZDgw9KAgyDSD5Lg8Y82c+ZFfgQj6R4EAEHgIODPBE/pAg+g0g9x0g8g4TJHweg/5iKAYewf5kIAZ74gw+h+LwQpDgQhUg0gUgTxYgGMtPBgTFyxEXwcsRFwUg9SIjIiPJzu1mZswNAAsDcwCDAAwADQAIER+IiQAO3Mxu5t3d2Zm7u2djbg7szN3cmZ+7uTM+PEK5pbmlQjwhBAERqAAaE74g/iN9/jQg9QYZeIYjBSD7hiD+PgHgUA==`
+            let raw = atob(BOOTROM_BASE64);
+            let rawLength = raw.length;
+
+            let array = new Uint8Array(new ArrayBuffer(256));
+
+            for (i = 0; i < rawLength; i++) {
+                array[i] = raw.charCodeAt(i);
+            }
+
+            array.forEach((v, i, a) => {
+                window.cpu.bus.bootrom[i] = v;
+            });
+
+            window.cpu.bootromLoaded = true;
+        }
 
         function download(filename, text) {
             var element = document.createElement('a');
@@ -102,12 +122,12 @@
         }
 
         function downloadLog() {
-            download("EpicGameBoy.log", window.cpu.log.join('\n'));
+            download("EpicGameBoy.log", window.cpu.fullLog.join('\n'));
         }
 
         document.querySelector('#enableLogging').addEventListener('change', function (e) {
 
-            window.cpu.logging = e.target.value;
+            window.cpu.logging = e.target.checked;
         }, false);
 
 
@@ -128,6 +148,7 @@
                 });
             }
             reader.readAsArrayBuffer(this.files[0]);
+            window.cpu.bootromLoaded = true;
         }, false);
 
         document.querySelector('#gameromInput').addEventListener('change', function () {
