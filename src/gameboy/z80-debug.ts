@@ -1,9 +1,9 @@
 
 function test() {
-    cpu._f.zero = true;
-    console.log(cpu._f.numerical);
-    cpu._f.numerical = cpu._f.numerical;
-    console.log(cpu._f.numerical);
+    cpu._r._f.zero = true;
+    console.log(cpu._r.f);
+    cpu._r.f = cpu._r.f;
+    console.log(cpu._r.f);
     console.log("Expect both answers 128.");
 
     cpu._r.a = 100;
@@ -18,7 +18,7 @@ function test() {
     cpu._r.b = 200;
     cpu.ADD_A_R8(T.B);
     console.log(cpu._r.a);
-    console.log(cpu._f.carry);
+    console.log(cpu._r._f.carry);
     console.log("Expect 144 and carry bit.");
 
     cpu = new CPU();
@@ -27,7 +27,7 @@ function test() {
     cpu._r.hl = 256;
     cpu.ADD_HL_R8(T.C);
     console.log(cpu._r.hl);
-    console.log(cpu._f.carry);
+    console.log(cpu._r._f.carry);
     console.log("ADDHL: Expect 456 and no carry bit.");
 
     cpu = new CPU();
@@ -105,10 +105,10 @@ if (!isNode()) {
     
     PC: ${hex(cpu.pc, 4)}
 
-    CARRY: ${cpu._f.carry}
-    HALF_CARRY: ${cpu._f.half_carry}
-    SUBTRACT: ${cpu._f.negative}
-    ZERO: ${cpu._f.zero}
+    CARRY: ${cpu._r._f.carry}
+    HALF_CARRY: ${cpu._r._f.half_carry}
+    SUBTRACT: ${cpu._r._f.negative}
+    ZERO: ${cpu._r._f.zero}
 
       SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)}
     [SP]: ${hex(cpu.bus.readMem16(cpu._r.sp), 4)}
@@ -143,6 +143,6 @@ if (!isNode()) {
 } else {
     console.log("Running in node, not updating DEBUG");
     // @ts-ignore
-    module.exports = { CPU, MemoryBus, GPU };
+    
 }
 
