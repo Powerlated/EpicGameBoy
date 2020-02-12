@@ -14,6 +14,8 @@ class MemoryBus {
     constructor() {
     }
 
+    serialOut = [];
+
     writeMem(addr: number, value: number) {
         if (value > 255) {
             alert(`
@@ -38,7 +40,8 @@ class MemoryBus {
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
                 case 0xFF01:
-                    console.info(`[PC: ${hex(this.cpu.pc, 4)}] SERIAL PORT WRITE: ` + value);
+                    console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
+                    this.serialOut.push(value);
                 case 0xFF40:
                     console.info(`LCD CONTROL CHANGE`);
                 case 0xFF41:
@@ -47,6 +50,8 @@ class MemoryBus {
                     this.gpu.scrollY = value;
                 case 0xFF43:
                     this.gpu.scrollX = value;
+                case 0xFF50:
+                    this.memory[addr] = value;
                 default:
                     return;
             }
@@ -84,6 +89,10 @@ class MemoryBus {
                     return this.gpu.scrollX;
                 case 0xFF44:
                     return this.gpu.lcdcY;
+                case 0xFF50:
+                    return this.memory[addr];
+                default:
+                    return 0x69;
             }
         }
 

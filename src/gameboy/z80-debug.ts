@@ -8,7 +8,7 @@ function test() {
 
     cpu._r.a = 100;
     cpu._r.b = 100;
-    cpu.ADD_A_R8(T.B);
+    cpu.ADD_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("Expect 200.");
 
@@ -16,7 +16,7 @@ function test() {
 
     cpu._r.a = 200;
     cpu._r.b = 200;
-    cpu.ADD_A_R8(T.B);
+    cpu.ADD_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log(cpu._r._f.carry);
     console.log("Expect 144 and carry bit.");
@@ -25,7 +25,7 @@ function test() {
 
     cpu._r.c = 200;
     cpu._r.hl = 256;
-    cpu.ADD_HL_R8(T.C);
+    cpu.ADD_HL_R8(R8.C);
     console.log(cpu._r.hl);
     console.log(cpu._r._f.carry);
     console.log("ADDHL: Expect 456 and no carry bit.");
@@ -38,52 +38,52 @@ function test() {
 
     cpu._r.a = 20;
     cpu._r.b = 16;
-    cpu.SUB_A_R8(T.B);
+    cpu.SUB_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("SUB 20 - 16: Expect 4.");
 
     cpu._r.a = 20;
     cpu._r.b = 160;
-    cpu.SUB_A_R8(T.B);
+    cpu.SUB_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("SUB 20 - 160: Expect 116.");
 
     cpu._r.a = 12;
     cpu._r.b = 25;
-    cpu.AND_R8(T.B);
+    cpu.AND_R8(R8.B);
     console.log(cpu._r.a);
     console.log("(DEC) 12 & 25: Expect (DEC) 8.");
 
     cpu._r.a = 12;
     cpu._r.b = 25;
-    cpu.OR_A_R8(T.B);
+    cpu.OR_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("(DEC) 12 | 25: Expect (DEC) 29.");
 
     cpu._r.a = 12;
     cpu._r.b = 25;
-    cpu.XOR_A_R8(T.B);
+    cpu.XOR_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("(DEC) 12 ^ 25: Expect (DEC) 21.");
 
     cpu._r.a = 12;
-    cpu.INC_R8(T.A);
+    cpu.INC_R8(R8.A);
     console.log(cpu._r.a);
     console.log("INC A: Expect 13.");
 
     cpu._r.a = 12;
-    cpu.DEC_R8(T.A);
+    cpu.DEC_R8(R8.A);
     console.log(cpu._r.a);
     console.log("DEC A: Expect 11.");
 
     cpu._r.a = 0b00001111;
     cpu._r.b = 0b00000001;
-    cpu.ADD_A_R8(T.B);
+    cpu.ADD_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("Expect half carry.");
 
     cpu._r.h = 0b00010000;
-    cpu.BIT(T.H, 7);
+    cpu.BIT(R8.H, 7);
     console.log("Expect zero.");
 
     cpu = new CPU();

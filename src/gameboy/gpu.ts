@@ -42,13 +42,13 @@ class GPU {
     step() {
         this.lcdcY++;
 
-        if (!isNode()) {
+        /* if (!isNode()) {
             this.clearScreen();
 
             for (let c = 0; c <= 160; c++) {
                 this.drawPixel(c, this.lcdcY, 255, 0, 0);
             }
-        }
+        } */
     }
 
     renderTiles() {
