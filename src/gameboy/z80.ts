@@ -1012,13 +1012,15 @@ class CPU {
         if (cc == CC.C && !this._f.carry) return;
         if (cc == CC.NC && this._f.carry) return;
 
-        let pcUpperByte = this.pc >> 8;
-        let pcLowerByte = this.pc & 0b11111111;
+        let pcUpperByte = CPU.o16b(this.pc + 3) >> 8;
+        let pcLowerByte = CPU.o16b(this.pc + 3) >> 8;
 
         // console.info(`Calling 0x${u16.toString(16)} from 0x${this.pc.toString(16)}`);
 
-        this.bus.writeMem(CPU.o16b(--this._r.sp), pcUpperByte);
-        this.bus.writeMem(CPU.o16b(--this._r.sp), pcLowerByte);
+        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this.bus.writeMem(CPU.o16b(this._r.sp), pcUpperByte);
+        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this.bus.writeMem(CPU.o16b(this._r.sp), pcLowerByte);
 
         this.pc = u16 - 3;
     }
