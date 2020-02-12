@@ -1,6 +1,10 @@
 console.log("Hello Z80!");
 
 
+function mod(n, m) {
+    return ((n % m) + m) % m;
+}
+
 class Registers {
     cpu: CPU;
 
@@ -175,13 +179,13 @@ class Registers {
 
 class FlagsRegister {
     zero: boolean;
-    subtract: boolean;
+    negative: boolean;
     half_carry: boolean;
     carry: boolean;
 
     constructor() {
         this.zero = false;
-        this.subtract = false;
+        this.negative = false;
         this.half_carry = false;
         this.carry = false;
     }
@@ -191,7 +195,7 @@ class FlagsRegister {
         if (this.zero) {
             flagN = flagN | 0b10000000;
         }
-        if (this.subtract) {
+        if (this.negative) {
             flagN = flagN | 0b01000000;
         }
         if (this.half_carry) {
@@ -205,7 +209,7 @@ class FlagsRegister {
 
     set numerical(i: number) {
         this.zero = (i & (1 << 7)) != 0;
-        this.subtract = (i & (1 << 6)) != 0;
+        this.negative = (i & (1 << 6)) != 0;
         this.half_carry = (i & (1 << 5)) != 0;
         this.carry = (i & (1 << 4)) != 0;
     }
@@ -227,12 +231,11 @@ enum CC {
     NC = "NC"
 }
 
+type OperandType = T | TT | CC | number;
 
 interface Op {
-    op: Function, type?, type2?, length?, timing?, operand?;
+    op: Function, type?: OperandType, type2?: OperandType, length: number;
 };
-
-
 
 enum Operand {
     b16, b8
@@ -251,7 +254,10 @@ function r_pad(n, width, z) {
 }
 
 class CPU {
+    logging = false;
+
     log = [];
+    fullLog = [];
 
     constructor() {
         console.log("CPU Bootstrap!");
@@ -294,13 +300,14 @@ class CPU {
     gpu = new GPU(this.bus);
 
     haltAt = 0xFFFF;
+    haltWhen = 0xFFFFFFFF;
 
     lastSerialOut = 0;
 
     step() {
         if (this.pc == 0x100) {
             this._f.zero = true;
-            this._f.subtract = false;
+            this._f.negative = false;
             this._f.half_carry = true;
             this._f.carry = true;
 
@@ -330,12 +337,12 @@ class CPU {
             alert(`[${ins.op.name}] Op has no length specified.`);
         }
 
-        if (ins.op.length == 0 && (ins.type || ins.type2)) {
-            alert(`Implementation error: ${ins.op.name} 0x${this.bus.readMem8(this.pc).toString(16)}`);
-        }
-        if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
-            alert(`Implementation error: ${ins.op.name} 0x${this.bus.readMem8(this.pc).toString(16)}`);
-        }
+        // if ((ins.op.length == 1 && (!ins.type)) || (ins.op.length == 2 && (!ins.type || !ins.type2))) {
+        //     alert(`[Arg length 1 || 2] Implementation error: ${ins.op.name} 0x${this.bus.readMem8(this.pc).toString(16)}`);
+        // }
+        // if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
+        //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.bus.readMem8(this.pc).toString(16)}`);
+        // }
 
         this.currentIns = `${ins.op.name} ${ins.type == undefined ? "" : ins.type}${ins.type2 == undefined ? "" : ins.type2}`;
 
@@ -347,20 +354,26 @@ class CPU {
             console.log(`${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.bus.readMem8(this.pc).toString(16), 2, '0'));
 
         let insDebug = "";
+        let operandDebug = "";
 
-        if (true) {
+        if (this.logging) {
             if (ins.length == 3) {
                 insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 2), 2)}`;
+                operandDebug = `${hex(this.bus.readMem16(this.pc + 1), 4)}`;
             } else if (ins.length == 2) {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)}`;
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} xx`;
+                operandDebug = `${hex(this.bus.readMem8(this.pc + 1), 2)}`;
             } else {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)}`;
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} xx xx`;
             }
 
-            let flags = `${this._f.zero ? 'Z' : '-'}${this._f.subtract ? 'N' : '-'}${this._f.half_carry ? 'H' : '-'}${this._f.carry ? 'C' : '-'}`;
+            let flags = `${this._f.zero ? 'Z' : '-'}${this._f.negative ? 'N' : '-'}${this._f.half_carry ? 'H' : '-'}${this._f.carry ? 'C' : '-'}`;
 
-            if (this.pc >= 0x100)
-                this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN_LC(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)} SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.totalI}) ppu:+0 |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns}`);
+            if (this.pc >= 0x100) {
+                this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)} SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
+                this.fullLog.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)} SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
+            }
+
         }
 
 
@@ -379,16 +392,16 @@ class CPU {
             } else if (ins.length == 2) {
                 ins.op(this.bus.readMem8(this.pc + 1));
             } else {
-                ins.op(ins.type, ins.type2);
+                ins.op();
             }
         }
 
         // These instructions set the program counter on their own, no need to increment
 
         if (!isCB) {
-            this.pc = CPU.o16b(this.pc + ins.length)[0];
+            this.pc = CPU.o16b(this.pc + ins.length);
         } else {
-            this.pc = CPU.o16b(this.pc + 1)[0];
+            this.pc = CPU.o16b(this.pc + 1);
         }
 
 
@@ -403,11 +416,13 @@ class CPU {
 
     }
 
+    setHalt = false;
+
     khzInterval = 0;
 
     khzStop() {
         clearInterval(this.khzInterval);
-        this.haltAt = this.pc;
+        this.setHalt = true;
     }
 
     khz() {
@@ -416,18 +431,23 @@ class CPU {
         this.khzInterval = setInterval(() => {
             let i = 0;
             let max = 4194;
-            if (this.haltAt == this.pc) {
+            if (this.haltAt == this.pc || this.haltWhen == this.totalI || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
-            while (i < max && this.haltAt != this.pc) {
+            while (i < max && this.haltAt != this.pc && !this.setHalt && this.haltWhen != this.totalI) {
                 this.step();
                 i++;
             }
+            if (this.setHalt) this.setHalt = false;
         }, 1);
 
     }
 
     private getReg(t: T | TT) {
+        if (t == undefined) {
+            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.bus.readMem8(this.pc), 2)}] Implementation error: getReg(undefined)`);
+        }
+
         switch (t) {
             case T.A:
                 return this._r.a;
@@ -455,6 +475,13 @@ class CPU {
 
 
     private setReg(t: T | TT, i: number) {
+        if (t == undefined) {
+            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.bus.readMem8(this.pc), 2)}] Implementation error: setReg(undefined, [any])`);
+        }
+        if (i == undefined) {
+            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.bus.readMem8(this.pc), 2)}] Implementation error: setReg([any], undefined)`);
+        }
+
         switch (t) {
             case T.A:
                 this._r.a = i;
@@ -512,9 +539,9 @@ class CPU {
             case 0xAD:
                 return { op: this.XOR_A, type: T.L, length: 1 };
             case 0xAE:
-                return { op: this.XOR_A_HL };
+                return { op: this.XOR_A_iHL, length: 1 };
             case 0x21:
-                return { op: this.LD_R16_N16, type: TT.HL, length: 3, timing: 12 };
+                return { op: this.LD_R16_N16, type: TT.HL, length: 3 };
             case 0x32:
                 return { op: this.LD_HL_SUB_A, length: 1 };
             case 0x0E:
@@ -526,7 +553,7 @@ class CPU {
             case 0x0C:
                 return { op: this.INC_R8, type: T.C, length: 1 };
             case 0x77:
-                return { op: this.LD_R16_A, length: 1 };
+                return { op: this.LD_R16_A, type: TT.HL, length: 1 };
             case 0xE0:
                 return { op: this.LD_FF00_N8_A, length: 2 };
             case 0x11:
@@ -537,12 +564,12 @@ class CPU {
                 return { op: this.CALL_N16, type: CC.UNCONDITIONAL, length: 3 };
             case 0x00:
                 return { op: this.NOP, length: 1 };
-            case 0xC5:
-                return { op: this.PUSH_R16, length: 1 };
+            case 0xC5: // PUSH B
+                return { op: this.PUSH_R16, type: TT.BC, length: 1 };
             case 0x17:
                 return { op: this.RLA, length: 1 };
-            case 0xC1:
-                return { op: this.POP_R16, length: 1 };
+            case 0xC1: // POP BC
+                return { op: this.POP_R16, type: TT.BC, length: 1 };
             case 0x05:
                 return { op: this.DEC_R8, type: T.B, length: 1 };
             case 0x22:
@@ -592,7 +619,7 @@ class CPU {
             case 0x7C: // LD A, H
                 return { op: this.LD_R8_R8, type: T.A, type2: T.H, length: 1 };
             case 0x90: // SUB A, B
-                return { op: this.SUB_R8, type: T.B, length: 1 };
+                return { op: this.SUB_A_R8, type: T.B, length: 1 };
             case 0x15: // DEC D
                 return { op: this.DEC_R8, type: T.D, length: 1 };
             case 0x16: // LD D, n8
@@ -606,7 +633,7 @@ class CPU {
             case 0x86: // ADD A, [HL]
                 return { op: this.ADD__HL_, length: 1 };
             case 0xc3: // JP n16
-                return { op: this.JP_iN16, length: 3 };
+                return { op: this.JP_N16, length: 3 };
             case 0xF3: // DI - 0xF3 Disable interrupts?
                 return { op: this.DI, length: 1 };
             case 0x36:
@@ -618,7 +645,7 @@ class CPU {
             case 0x0B:
                 return { op: this.DEC_R16, type: TT.BC, length: 1 };
             case 0xB1: // OR C
-                return { op: this.OR_R8, type: T.C, length: 1 };
+                return { op: this.OR_A_R8, type: T.C, length: 1 };
             case 0xFB: // DI - 0xFB Enable interrupts
                 return { op: this.EI, length: 1 };
             case 0x2F: // CPL
@@ -628,7 +655,7 @@ class CPU {
             case 0x47:
                 return { op: this.LD_R8_R8, type: T.B, type2: T.A, length: 1 };
             case 0xB0:
-                return { op: this.OR_R8, type: T.B, length: 1 };
+                return { op: this.OR_A_R8, type: T.B, length: 1 };
             case 0xA1:
                 return { op: this.AND_R8, type: T.C, length: 1 };
             case 0x79:
@@ -638,13 +665,13 @@ class CPU {
             case 0x87:
                 return { op: this.ADD_A_R8, type: T.A, length: 1 };
             case 0xE1:
-                return { op: this.POP_R16, type: TT.HL, length: 1 };
+                return { op: this.POP_HL, length: 1 };
             case 0x19:
                 return { op: this.ADD_HL_R8, type: TT.DE, length: 1 };
             case 0x5E:
-                return { op: this.LD_R8__HL_, type: T.E, length: 1 };
+                return { op: this.LD_R8_iHL, type: T.E, length: 1 };
             case 0x56:
-                return { op: this.LD_R8__HL_, type: T.D, length: 1 };
+                return { op: this.LD_R8_iHL, type: T.D, length: 1 };
             case 0xD5:
                 return { op: this.PUSH_R16, type: TT.DE, length: 1 };
             case 0xE9: // JP [HL]
@@ -660,7 +687,7 @@ class CPU {
             case 0x14: // INC D
                 return { op: this.INC_R8, type: T.D, length: 1 };
             case 0xE5: // PUSH HL
-                return { op: this.PUSH_R16, type: TT.HL, length: 1 };
+                return { op: this.PUSH_HL, length: 1 };
             case 0xF5: // PUSH AF 
                 return { op: this.PUSH_R16, type: TT.AF, length: 1 };
             case 0xF1: // POP AF 
@@ -668,7 +695,7 @@ class CPU {
             case 0x03: // INC BC
                 return { op: this.INC_R16, type: TT.BC, length: 1 };
             case 0xFA: // LD A, [N16]
-                return { op: this.LD_A__N16_, length: 3 };
+                return { op: this.LD_A_N16, length: 3 };
             case 0xC4: // CALL NZ, N16
                 return { op: this.CALL_N16, type: CC.NZ, length: 3 };
             case 0x2C: // INC L
@@ -676,11 +703,31 @@ class CPU {
             case 0x69: // LD L, C
                 return { op: this.LD_R8_R8, type: T.L, type2: T.C, length: 1 };
             case 0x91: // SUB C
-                return { op: this.SUB_R8, type: T.C, length: 1 };
+                return { op: this.SUB_A_R8, type: T.C, length: 1 };
             case 0x38: // JR C, E8
                 return { op: this.JR, type: CC.C, length: 2 };
+            case 0x08: // LD [N16], SP
+                return { op: this.LD_iN16_SP, length: 3 };
+            case 0xC6: // ADD A, N8
+                return { op: this.ADD_A_N8, length: 2 };
+            case 0xD6: // SUB A, N8
+                return { op: this.SUB_A_R8, length: 2 };
+            case 0xB7: // OR A,A
+                return { op: this.OR_A_R8, type: T.A, length: 1 };
+            case 0xC2: // JP NZ, N16
+                return { op: this.JP_N16, type: CC.NZ, length: 1 };
+            case 0x46: // LD B, (HL)
+                return { op: this.LD_R8_iHL, type: T.B, length: 1 };
+            case 0x2D: // DEC L
+                return { op: this.DEC_R8, type: T.L, length: 1 };
+            case 0x4E: // LD C,(HL)
+                return { op: this.LD_R8_iHL, type: T.C, length: 1 };
+            case 0x26: // LD H, N8
+                return { op: this.LD_R8_N8, type: T.H, length: 2 };
+            case 0xF7: // RST 30h
+                return { op: this.RST, type: 0x30, length: 1 };
             default:
-                alert(`[PC 0x${this.pc.toString(16)}] Unknown Opcode in Lookup Table: 0x` + pad(id.toString(16).toString(16), 2, '0'));
+                alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
                 clearInterval(this.khzInterval);
                 break;
 
@@ -688,35 +735,101 @@ class CPU {
     }
 
     cbOpcode(id): Op {
-        switch (id) {
-            case 0x31:
-                return { op: this.LD_SP };
-            case 0x47:
-                return { op: this.BIT, type: T.A, length: 1 };
-            case 0x40:
-                return { op: this.BIT, type: T.B, length: 1 };
-            case 0x41:
-                return { op: this.BIT, type: T.C, length: 1 };
-            case 0x42:
-                return { op: this.BIT, type: T.D, length: 1 };
-            case 0x43:
-                return { op: this.BIT, type: T.E, length: 1 };
-            case 0x7C:
-                return { op: this.BIT, type: T.H, type2: 7, length: 1 };
-            case 0x45:
-                return { op: this.BIT, type: T.L, length: 1 };
-            case 0x46:
-                return { op: this.BIT_HL, type: 0, length: 1 };
-            case 0x11:
-                return { op: this.RL, type: T.C, length: 1 };
-            case 0x37:
-                return { op: this.SWAP_R8, type: T.A, length: 1 };
-            default:
-                alert(`[PC 0x${this.pc.toString(16)}] [0xCB Prefix] Unknown Opcode in Lookup Table: 0x` + pad(id.toString(16), 2, '0'));
-                clearInterval(this.khzInterval);
-                break;
+        let upperNybble = id >> 4;
+        let lowerNybble = id & 0b1111;
 
+        let type: OperandType;
+        let op: Function;
+
+        switch (lowerNybble & 0b111) {
+            case 0x0:
+                type = T.B;
+                break;
+            case 0x1:
+                type = T.C;
+                break;
+            case 0x2:
+                type = T.D;
+                break;
+            case 0x3:
+                type = T.E;
+                break;
+            case 0x4:
+                type = T.H;
+                break;
+            case 0x5:
+                type = T.L;
+                break;
+            // (HL)
+            case 0x6:
+                type = TT.HL;
+                break;
+            case 0x7:
+                type = T.A;
+                break;
         }
+
+        // 0x00 - 0x30
+        if (upperNybble < 0x4) {
+            // 0x0 - 0x3
+            if (lowerNybble < 0x4) {
+                switch (upperNybble) {
+                    case 0x0:
+                        op = this.RLC;
+                        break;
+                    case 0x1:
+                        op = this.RL;
+                        break;
+                    case 0x2:
+                        op = this.SLA;
+                        break;
+                    case 0x3:
+                        op = this.SWAP;
+                        break;
+                }
+            } else {
+                switch (upperNybble) {
+                    case 0x0:
+                        op = this.RRC;
+                        break;
+                    case 0x1:
+                        op = this.RR;
+                        break;
+                    case 0x2:
+                        op = this.SRA;
+                        break;
+                    case 0x3:
+                        op = this.SRL;
+                        break;
+                }
+            }
+
+            // 0x40 - 0xF0
+        } else {
+            switch (upperNybble) {
+                case 0x4:
+                case 0x5:
+                case 0x6:
+                case 0x7:
+                    op = this.BIT;
+                    break;
+                case 0x8:
+                case 0x9:
+                case 0xA:
+                case 0xB:
+                    op = this.RES;
+                    break;
+                case 0xC:
+                case 0xD:
+                case 0xE:
+                case 0xF:
+                    op = this.SET;
+                    break;
+            }
+        }
+
+
+        return { op: op, type: type, length: 1 };
     }
 
     unTwo8b(n: number): number {
@@ -735,13 +848,30 @@ class CPU {
         }
     }
 
-    static o8b(i: number): [number, boolean] {
-        return [i & 0xFF, i >= 0xFF];
+    static o4b(i: number): number {
+        return mod(i, 0xF);
     }
 
-    static o16b(i: number): [number, boolean] {
-        return [i & 0xFFFF, i >= 0xFFFF];
+    static o8b(i: number): number {
+        return mod(i, 0xFF);
     }
+
+    static o16b(i: number): number {
+        return mod(i, 0xFFFF);
+    }
+
+    static do4b(i: number): boolean {
+        return i >= 0xF;
+    }
+
+    static do8b(i: number): boolean {
+        return i >= 0xFF;
+    }
+
+    static do16b(i: number): boolean {
+        return i >= 0xFFFF;
+    }
+
 
     // NOP - 0x00
     NOP() {
@@ -758,6 +888,15 @@ class CPU {
 
     }
 
+    // Load SP into index
+    LD_iN16_SP(in16: number) {
+        let spUpperByte = this._r.sp >> 8;
+        let spLowerByte = this._r.sp & 0b11111111;
+
+        this.bus.writeMem(in16 + 0, spLowerByte);
+        this.bus.writeMem(in16 + 1, CPU.o16b(spUpperByte));
+    }
+
 
     RST(vector: number) {
         this.pc = vector - 1;
@@ -766,21 +905,21 @@ class CPU {
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
-        this.bus.writeMem(CPU.o16b(--this._r.sp)[0], upperByte);
-        this.bus.writeMem(CPU.o16b(--this._r.sp)[0], lowerByte);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), upperByte);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), lowerByte);
     }
 
-    LD_A__N16_(n16: number) {
+    LD_A_N16(n16: number) {
         this._r.a = this.bus.readMem8(n16);
     }
 
-    LD_R8__HL_(r8: T) {
+    LD_R8_iHL(r8: T) {
         this.setReg(r8, this.bus.readMem8(this._r.hl));
     }
 
     LD_A__HL_INC_() {
         this._r.a = this.bus.readMem8(this._r.hl);
-        this._r.hl = CPU.o16b(this._r.hl + 1)[0];
+        this._r.hl = CPU.o16b(this._r.hl + 1);
     }
 
     LD__HL__N8(n8: number) {
@@ -788,19 +927,19 @@ class CPU {
     }
 
     ADD__HL_() {
-        this._r.a = CPU.o8b(this._r.a + this.bus.readMem8(this._r.hl))[0];
+        this._r.a = CPU.o8b(this._r.a + this.bus.readMem8(this._r.hl));
     }
 
     CP_A__HL_() {
         let u8 = this.bus.readMem8(this.getReg(TT.HL));
         this._f.zero = this._r.a - u8 == 0;
-        this._f.subtract = true;
+        this._f.negative = true;
         this._f.half_carry = (this._r.a & 0xF) + (u8 & 0xF) > 0xF;
         this._f.carry = u8 > this._r.a;
     }
 
     LD_A__FF00_n8_(n8: number) {
-        this.setReg(T.A, this.bus.readMem8(CPU.o16b(0xFF00 + n8)[0]));
+        this.setReg(T.A, this.bus.readMem8(CPU.o16b(0xFF00 + n8)));
     }
 
     LD__R16__A(r16: TT) {
@@ -819,20 +958,31 @@ class CPU {
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
-        this.bus.writeMem(CPU.o16b(--this._r.sp)[0], upperByte);
-        this.bus.writeMem(CPU.o16b(--this._r.sp)[0], lowerByte);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), upperByte);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), lowerByte);
+    }
+
+    // Push HL onto the stack
+    PUSH_HL() {
+        this.bus.writeMem(CPU.o16b(--this._r.sp), this._r.h);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), this._r.l);
     }
 
 
     /*  PUSH r16 - 0xC1
         Pop off the stack into r16. */
     POP_R16(r16: TT) {
-        let lowerByte = this.bus.readMem8(CPU.o16b(this._r.sp++)[0]);
-        let upperByte = this.bus.readMem8(CPU.o16b(this._r.sp++)[0]);
+        let lowerByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
+        let upperByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
 
         this.setReg(r16, (upperByte << 8) | lowerByte);
     }
 
+    // Pop off the stack into HL
+    POP_HL() {
+        this._r.l = this.bus.readMem8(CPU.o16b(this._r.sp++));
+        this._r.h = this.bus.readMem8(CPU.o16b(this._r.sp++));
+    }
 
     // CALL n16 - 0xCD
     CALL_N16(cc: CC, u16: number) {
@@ -846,13 +996,18 @@ class CPU {
 
         // console.info(`Calling 0x${u16.toString(16)} from 0x${this.pc.toString(16)}`);
 
-        this.bus.writeMem(CPU.o16b(--this._r.sp)[0], pcUpperByte);
-        this.bus.writeMem(CPU.o16b(--this._r.sp)[0], pcLowerByte);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), pcUpperByte);
+        this.bus.writeMem(CPU.o16b(--this._r.sp), pcLowerByte);
 
         this.pc = u16 - 3;
     }
 
-    JP_iN16(n16: number) {
+    JP_N16(n16: number, cc: CC) {
+        if (cc == CC.Z && !this._f.zero) return;
+        if (cc == CC.NZ && this._f.zero) return;
+        if (cc == CC.C && !this._f.zero) return;
+        if (cc == CC.NC && this._f.zero) return;
+
         this.pc = n16 - 3;
     }
 
@@ -862,10 +1017,10 @@ class CPU {
 
 
     RET() {
-        let pcLowerByte = this.bus.readMem8(CPU.o16b(this._r.sp++)[0]);
-        let pcUpperByte = this.bus.readMem8(CPU.o16b(this._r.sp++)[0]);
+        let stackLowerByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
+        let stackUpperByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
 
-        let returnAddress = CPU.o16b(((pcUpperByte << 8) | pcLowerByte) + 2)[0];
+        let returnAddress = CPU.o16b(((stackUpperByte << 8) | stackLowerByte) + 2);
         // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
         this.pc = returnAddress;
@@ -883,14 +1038,14 @@ class CPU {
     // LD [$FF00+u8],A
     LD_FF00_N8_A(u8: number) {
         let value = this._r.a;
-        this.bus.writeMem(CPU.o16b(0xFF00 + u8)[0], value);
+        this.bus.writeMem(CPU.o16b(0xFF00 + u8), value);
         // console.log(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A
     LD_FF00_C_A() {
         let value = this._r.a;
-        this.bus.writeMem(CPU.o16b(0xFF00 + this._r.c)[0], value);
+        this.bus.writeMem(CPU.o16b(0xFF00 + this._r.c), value);
     }
 
     LD_R8_N8(r8: T, n8: number) {
@@ -910,12 +1065,12 @@ class CPU {
     // LD [HL+],A | Store value in register A into byte pointed by HL and post-increment HL.  
     LD_HL_INC_A() {
         this.bus.writeMem(this._r.hl, this._r.a);
-        this._r.hl = CPU.o16b(this._r.hl + 1)[0];
+        this._r.hl = CPU.o16b(this._r.hl + 1);
     }
     // LD [HL-],A | Store value in register A into byte pointed by HL and post-decrement HL. 
     LD_HL_SUB_A() {
         this.bus.writeMem(this._r.hl, this._r.a);
-        this._r.hl = CPU.o16b(this._r.hl - 1)[0];
+        this._r.hl = CPU.o16b(this._r.hl - 1);
     }
 
 
@@ -945,9 +1100,8 @@ class CPU {
         let value = this.getReg(t);
         this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
-        let values = CPU.o8b(value + this._r.a);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(value + this._r.a);
+        let didOverflow = CPU.do8b(value + this._r.a);
 
         // Set register values
         this._r.a = newValue;
@@ -955,7 +1109,24 @@ class CPU {
         // Set flags
         this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
+    }
+
+    // ADD A, N8
+    ADD_A_N8(t: T, n8: number) {
+        let value = n8;
+        this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+
+        let newValue = CPU.o8b(value + this._r.a);
+        let didOverflow = CPU.do8b(value + this._r.a);
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+        this._f.carry = didOverflow;
+        this._f.zero = newValue == 0;
+        this._f.negative = false;
 
     }
 
@@ -965,9 +1136,8 @@ class CPU {
         this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
         // Add the carry flag as well for ADC
-        let values = CPU.o8b(value + this._r.a + (this._f.carry ? 1 : 0));
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(value + this._r.a + (this._f.carry ? 1 : 0));
+        let didOverflow = CPU.do8b(value + this._r.a + (this._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -975,16 +1145,15 @@ class CPU {
         // Set flags
         this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
 
     }
 
     ADD_HL_R8(t: T) {
         let value = this.getReg(t);
 
-        let values = CPU.o16b(value + this._r.hl);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o16b(value + this._r.hl);
+        let didOverflow = CPU.do16b(value + this._r.hl);
 
         // Set register values
         this._r.hl = newValue;
@@ -992,16 +1161,15 @@ class CPU {
         // Set flags
         this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
     }
 
     ADD_HL_R16(r16: TT) {
         let value = this.getReg(r16);
 
-        let values = CPU.o16b(value + this._r.hl);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o16b(value + this._r.hl);
+        let didOverflow = CPU.do16b(value + this._r.hl);
 
         // Set register values
         this._r.hl = newValue;
@@ -1009,16 +1177,15 @@ class CPU {
         // Set flags
         this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
     }
 
-    SUB_R8(t: T) {
+    SUB_A_R8(t: T) {
         let value = this.getReg(t);
 
-        let values = CPU.o8b(this._r.a - value);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(this._r.a - value);
+        let didOverflow = CPU.do8b(this._r.a - value);
 
         // Set register values
         this._r.a = newValue;
@@ -1026,16 +1193,30 @@ class CPU {
         // Set flags
         this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = true;
+        this._f.negative = true;
+    }
+
+    SUB_A_N8(n8: number) {
+        let value = n8;
+
+        let newValue = CPU.o8b(this._r.a - value);
+        let didOverflow = CPU.do8b(this._r.a - value);
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+        this._f.carry = didOverflow;
+        this._f.zero = newValue == 0;
+        this._f.negative = true;
     }
 
     SBC_A_R8(t: T) {
         let value = this.getReg(t);
 
         // Also subtract the carry flag for SBC
-        let values = CPU.o8b(this._r.a - value - (this._f.carry ? 1 : 0));
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(this._r.a - value - (this._f.carry ? 1 : 0));
+        let didOverflow = CPU.do8b(this._r.a - value - (this._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -1043,7 +1224,7 @@ class CPU {
         // Set flags
         this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = true;
+        this._f.negative = true;
     }
 
     AND_R8(t: T) {
@@ -1060,11 +1241,16 @@ class CPU {
         this._r.a = final;
     }
 
-    OR_R8(t: T) {
+    OR_A_R8(t: T) {
         let value = this.getReg(t);
 
         let final = value | this._r.a;
         this._r.a = final;
+
+        this._f.zero = final == 0;
+        this._f.negative = false;
+        this._f.half_carry = false;
+        this._f.carry = false;
     }
 
     XOR_A(t: T) {
@@ -1075,100 +1261,100 @@ class CPU {
         this._f.zero = final == 0;
     }
 
-    XOR_A_HL() {
+    XOR_A_iHL() {
         let value = this.bus.readMem8(this._r.hl);
 
         let final = value ^ this._r.a;
         this._r.a = final;
+
         this._f.zero = final == 0;
+        this._f.negative = false;
+        this._f.half_carry = false;
+        this._f.carry = false;
     }
 
     // CP A,r8
     CP_A(t: T) {
         let r8 = this.getReg(t);
 
-        let values = CPU.o8b(this._r.a - r8);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(this._r.a - r8);
+        let didOverflow = CPU.do8b(this._r.a - r8);
 
         // DO not set register values for CP
 
         // Set flags
         this._f.carry = r8 > this._r.a;
         this._f.zero = newValue == 0;
-        this._f.subtract = true;
+        this._f.negative = true;
         this._f.half_carry = (this._r.a & 0xF) + (r8 & 0xF) > 0xF;
     }
 
     CP_A_N8(n8: number) {
 
-        let values = CPU.o8b(this._r.a - n8);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(this._r.a - n8);
+        let didOverflow = CPU.do8b(this._r.a - n8);
 
         // DO not set register values for CP
 
         // Set flags
         this._f.carry = n8 > this._r.a;
         this._f.zero = newValue == 0;
-        this._f.subtract = true;
+        this._f.negative = true;
         this._f.half_carry = (this._r.a & 0xF) + (n8 & 0xF) > 0xF;
     }
 
     INC_R8(t: T) {
-        let value = this.getReg(t);
+        let target = this.getReg(t);
 
-        let values = CPU.o8b(value + 1);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(target + 1);
+        let didOverflow = CPU.do8b(target + 1);
 
         this.setReg(t, newValue);
 
         // UNMODIFIED this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
-        this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+        this._f.negative = false;
+        this._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
     }
 
 
     // Increment in register r16
     INC_R16(r16: TT) {
-        this.setReg(r16, CPU.o16b(this.getReg(r16) + 1)[0]);
+        this.setReg(r16, CPU.o16b(this.getReg(r16) + 1));
     }
 
 
     INC_HL() {
-        this._r.hl = CPU.o16b(this._r.hl + 1)[0];
+        this._r.hl = CPU.o16b(this._r.hl + 1);
     }
 
 
     DEC_R8(t: T) {
-        let value = this.getReg(t);
+        let target = this.getReg(t);
 
-        let values = CPU.o8b(value - 1);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(target - 1);
+        let didOverflow = CPU.do8b(target - 1);
 
         this.setReg(t, newValue);
 
-        this._f.carry = didOverflow;
+        // UNMODIFIED this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
-        this._f.subtract = true;
-        this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+        this._f.negative = true;
+        this._f.half_carry = (target & 0xF) - (1 & 0xF) < 0;
     }
 
     DEC_R16(tt: TT) {
-        this.setReg(tt, CPU.o16b(this.getReg(tt))[0]);
+        this.setReg(tt, CPU.o16b(this.getReg(tt)));
     }
 
     CCF() {
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = !this._f.carry;
     }
 
     SCF() {
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = true;
     }
@@ -1176,17 +1362,16 @@ class CPU {
     // Rotate A right through carry
     RRA() {
         let carryMask = (this._f.numerical & 0b00010000) << 3;
-        let values = CPU.o8b((this._r.a >> 1) | carryMask);
 
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this._r.a >> 1) | carryMask);
+        let didOverflow = CPU.do8b((this._r.a >> 1) | carryMask);
 
         this._f.carry = (this._r.a & 0b00000001) == 0b1;
 
         this._r.a = newValue;
 
         this._f.zero = false;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
 
     }
@@ -1194,17 +1379,16 @@ class CPU {
     // Rotate A left through carry
     RLA() {
         let carryMask = (this._f.numerical & 0b00010000) >> 4;
-        let values = CPU.o8b((this._r.a << 1) | carryMask);
 
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this._r.a << 1) | carryMask);
+        let didOverflow = CPU.do8b((this._r.a << 1) | carryMask);
 
         this._f.carry = (this._r.a & 0b10000000) >> 7 == 0b1;
 
         this._r.a = newValue;
 
         this._f.zero = false;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
     }
 
@@ -1212,14 +1396,13 @@ class CPU {
     RRCA() {
         let rightmostBit = (this._r.a & 0b00000001) << 7;
 
-        let values = CPU.o8b((this._r.a >> 1) | rightmostBit);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this._r.a >> 1) | rightmostBit);
+        let didOverflow = CPU.do8b((this._r.a >> 1) | rightmostBit);
 
         this._r.a = newValue;
 
         this._f.zero = false;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
@@ -1228,14 +1411,13 @@ class CPU {
     RRLA() {
         let leftmostBit = (this._r.a & 0b10000000) >> 7;
 
-        let values = CPU.o8b((this._r.a << 1) | leftmostBit);
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this._r.a << 1) | leftmostBit);
+        let didOverflow = CPU.do8b((this._r.a << 1) | leftmostBit);
 
         this._r.a = newValue;
 
         this._f.zero = false;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
@@ -1249,7 +1431,7 @@ class CPU {
         let mask = 0b1 << selectedBit;
 
         this._f.zero = (value & mask) == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = true;
     }
 
@@ -1259,7 +1441,7 @@ class CPU {
         let mask = 0b1 << selectedBit;
 
         this._f.zero = (value & mask) == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = true;
     }
 
@@ -1281,7 +1463,7 @@ class CPU {
         this.setReg(t, final);
     }
 
-    SRL(t: T) {
+    SRL_R8(t: T) {
         let value = this.getReg(t);
         this.setReg(t, value >> 1);
     }
@@ -1289,15 +1471,14 @@ class CPU {
     // Rotate TARGET right through carry
     RR(t: T) {
         let carryMask = (this._f.numerical & 0b00010000) << 3;
-        let values = CPU.o8b((this.getReg(t) >> 1) | carryMask);
 
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this.getReg(t) >> 1) | carryMask);
+        let didOverflow = CPU.do8b((this.getReg(t) >> 1) | carryMask);
 
         this.setReg(t, newValue);
 
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
@@ -1305,15 +1486,14 @@ class CPU {
     // Rotate TARGET left through carry
     RL(t: T) {
         let carryMask = (this._f.numerical & 0b00010000) >> 4;
-        let values = CPU.o8b((this.getReg(t) << 1) | carryMask);
 
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this.getReg(t) << 1) | carryMask);
+        let didOverflow = CPU.do8b((this.getReg(t) << 1) | carryMask);
 
         this.setReg(t, newValue);
 
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
@@ -1322,15 +1502,13 @@ class CPU {
     RRC(t: T) {
         let rightmostBit = (this._r.a & 0b00000001) << 7;
 
-        let values = CPU.o8b((this._r.a >> 1) | rightmostBit);
-
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this._r.a >> 1) | rightmostBit);
+        let didOverflow = CPU.do8b((this._r.a >> 1) | rightmostBit);
 
         this.setReg(t, newValue);
 
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
@@ -1339,51 +1517,58 @@ class CPU {
     RLC(t: T) {
         let leftmostBit = (this._r.a & 0b10000000) >> 7;
 
-        let values = CPU.o8b((this._r.a << 1) | leftmostBit);
-
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b((this._r.a << 1) | leftmostBit);
+        let didOverflow = CPU.do8b((this._r.a << 1) | leftmostBit);
 
         this.setReg(t, newValue);
 
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
 
     // Shift TARGET right
     SRA(t: T) {
-        let values = CPU.o8b(this.getReg(t) >> 1);
-
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(this.getReg(t) >> 1);
+        let didOverflow = CPU.do8b(this.getReg(t) >> 1);
 
         this.setReg(t, newValue);
 
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
 
     // Shift TARGET left 
     SLA(t: T) {
-        let values = CPU.o8b(this.getReg(t) << 1);
-
-        let newValue = values[0];
-        let didOverflow = values[1];
+        let newValue = CPU.o8b(this.getReg(t) << 1);
+        let didOverflow = CPU.do8b(this.getReg(t) << 1);
 
         this.setReg(t, newValue);
 
         this._f.zero = newValue == 0;
-        this._f.subtract = false;
+        this._f.negative = false;
+        this._f.half_carry = false;
+        this._f.carry = didOverflow;
+    }
+
+    // Shift right logic register
+    SRL(t: T) {
+        let newValue = CPU.o8b(this.getReg(t) >> 1);
+        let didOverflow = CPU.do8b(this.getReg(t) >> 1);
+
+        this.setReg(t, newValue);
+
+        this._f.zero = newValue == 0;
+        this._f.negative = false;
         this._f.half_carry = false;
         this._f.carry = didOverflow;
     }
 
     // SWAP 
-    SWAP_R8(r8: T) {
+    SWAP(r8: T) {
         let original = this.getReg(r8);
         let lowerNybble = original & 0b00001111;
         let upperNybble = (original >> 4) & 0b00001111;
@@ -1436,13 +1621,13 @@ function test() {
 
     cpu._r.a = 20;
     cpu._r.b = 16;
-    cpu.SUB_R8(T.B);
+    cpu.SUB_A_R8(T.B);
     console.log(cpu._r.a);
     console.log("SUB 20 - 16: Expect 4.");
 
     cpu._r.a = 20;
     cpu._r.b = 160;
-    cpu.SUB_R8(T.B);
+    cpu.SUB_A_R8(T.B);
     console.log(cpu._r.a);
     console.log("SUB 20 - 160: Expect 116.");
 
@@ -1454,7 +1639,7 @@ function test() {
 
     cpu._r.a = 12;
     cpu._r.b = 25;
-    cpu.OR_R8(T.B);
+    cpu.OR_A_R8(T.B);
     console.log(cpu._r.a);
     console.log("(DEC) 12 | 25: Expect (DEC) 29.");
 
@@ -1518,7 +1703,7 @@ if (!isNode()) {
 
     CARRY: ${cpu._f.carry}
     HALF_CARRY: ${cpu._f.half_carry}
-    SUBTRACT: ${cpu._f.subtract}
+    SUBTRACT: ${cpu._f.negative}
     ZERO: ${cpu._f.zero}
 
     SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)}
@@ -1551,8 +1736,8 @@ if (!isNode()) {
     }, 10);
 
 } else {
-    console.log("Running in node, not updating DEBUG")
+    console.log("Running in node, not updating DEBUG");
     // @ts-ignore
-    module.exports = {CPU, MemoryBus, GPU}
+    module.exports = { CPU, MemoryBus, GPU };
 }
 
