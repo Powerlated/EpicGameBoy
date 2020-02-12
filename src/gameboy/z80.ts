@@ -1,8 +1,8 @@
 console.log("Hello Z80!");
 
-
-function mod(n, m) {
-    return ((n % m) + m) % m;
+function mod(a: number, b: number): number {
+    let r = a % b;
+    return r < 0 ? r + b : r;
 }
 
 class Registers {
@@ -361,10 +361,10 @@ class CPU {
                 insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 2), 2)}`;
                 operandDebug = `${hex(this.bus.readMem16(this.pc + 1), 4)}`;
             } else if (ins.length == 2) {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} xx`;
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ..`;
                 operandDebug = `${hex(this.bus.readMem8(this.pc + 1), 2)}`;
             } else {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} xx xx`;
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} .. ..`;
             }
 
             let flags = `${this._f.zero ? 'Z' : '-'}${this._f.negative ? 'N' : '-'}${this._f.half_carry ? 'H' : '-'}${this._f.carry ? 'C' : '-'}`;
@@ -525,19 +525,19 @@ class CPU {
             case 0x28:
                 return { op: this.JR, type: CC.Z, length: 2 };
             case 0xAF:
-                return { op: this.XOR_A, type: T.A, length: 1 };
+                return { op: this.XOR_A_R8, type: T.A, length: 1 };
             case 0xA8:
-                return { op: this.XOR_A, type: T.B, length: 1 };
+                return { op: this.XOR_A_R8, type: T.B, length: 1 };
             case 0xA9:
-                return { op: this.XOR_A, type: T.C, length: 1 };
+                return { op: this.XOR_A_R8, type: T.C, length: 1 };
             case 0xAA:
-                return { op: this.XOR_A, type: T.D, length: 1 };
+                return { op: this.XOR_A_R8, type: T.D, length: 1 };
             case 0xAB:
-                return { op: this.XOR_A, type: T.E, length: 1 };
+                return { op: this.XOR_A_R8, type: T.E, length: 1 };
             case 0xAC:
-                return { op: this.XOR_A, type: T.H, length: 1 };
+                return { op: this.XOR_A_R8, type: T.H, length: 1 };
             case 0xAD:
-                return { op: this.XOR_A, type: T.L, length: 1 };
+                return { op: this.XOR_A_R8, type: T.L, length: 1 };
             case 0xAE:
                 return { op: this.XOR_A_iHL, length: 1 };
             case 0x21:
@@ -549,13 +549,13 @@ class CPU {
             case 0x3E:
                 return { op: this.LD_R8_N8, type: T.A, length: 2 };
             case 0xE2:
-                return { op: this.LD_FF00_C_A, length: 1 };
+                return { op: this.LD_FF00plusC_A, length: 1 };
             case 0x0C:
                 return { op: this.INC_R8, type: T.C, length: 1 };
             case 0x77:
                 return { op: this.LD_R16_A, type: TT.HL, length: 1 };
             case 0xE0:
-                return { op: this.LD_FF00_N8_A, length: 2 };
+                return { op: this.LD_FF00plusN8_A, length: 2 };
             case 0x11:
                 return { op: this.LD_R16_N16, type: TT.DE, length: 3 };
             case 0x1A:
@@ -609,9 +609,9 @@ class CPU {
             case 0x1E: // LD E, n8
                 return { op: this.LD_R8_N8, type: T.E, length: 2 };
             case 0x02: // LD (BC),A
-                return { op: this.LD__R16__A, type: TT.BC, length: 1 };
+                return { op: this.LD_iR16_A, type: TT.BC, length: 1 };
             case 0xF0: // LD A,[$FF00+n8]
-                return { op: this.LD_A__FF00_n8_, length: 2 };
+                return { op: this.LD_A_iFF00plusN8, length: 2 };
             case 0x1D: // DEC E
                 return { op: this.DEC_R8, type: T.E, length: 1 };
             case 0x24: // INC H
@@ -625,21 +625,21 @@ class CPU {
             case 0x16: // LD D, n8
                 return { op: this.LD_R8_N8, type: T.D, length: 2 };
             case 0xBE: // CP A, [HL]
-                return { op: this.CP_A__HL_, length: 1 };
+                return { op: this.CP_A_iHL, length: 1 };
             case 0x7D: // LD A, L
                 return { op: this.LD_R8_R8, type: T.A, type2: T.L, length: 1 };
             case 0x78: // LD A, B
                 return { op: this.LD_R8_R8, type: T.A, type2: T.B, length: 1 };
             case 0x86: // ADD A, [HL]
-                return { op: this.ADD__HL_, length: 1 };
+                return { op: this.ADD_iHL, length: 1 };
             case 0xc3: // JP n16
                 return { op: this.JP_N16, length: 3 };
             case 0xF3: // DI - 0xF3 Disable interrupts?
                 return { op: this.DI, length: 1 };
             case 0x36:
-                return { op: this.LD__HL__N8, length: 2 };
+                return { op: this.LD_iHL_N8, length: 2 };
             case 0x2A:
-                return { op: this.LD_A__HL_INC_, length: 1 };
+                return { op: this.LD_A_iHL_INC, length: 1 };
             case 0x01:
                 return { op: this.LD_R16_N16, type: TT.BC, length: 3 };
             case 0x0B:
@@ -664,8 +664,8 @@ class CPU {
                 return { op: this.RST, type: 0x28, length: 1 };
             case 0x87:
                 return { op: this.ADD_A_R8, type: T.A, length: 1 };
-            case 0xE1:
-                return { op: this.POP_HL, length: 1 };
+            case 0xE1: // POP HL
+                return { op: this.POP_R16, type: TT.HL, length: 1 };
             case 0x19:
                 return { op: this.ADD_HL_R8, type: TT.DE, length: 1 };
             case 0x5E:
@@ -681,13 +681,13 @@ class CPU {
             case 0xC7: // RST 00h
                 return { op: this.RST, type: 0x00, length: 1 };
             case 0x12: // LD [DE],A
-                return { op: this.LD__R16__A, type: TT.DE, length: 1 };
+                return { op: this.LD_iR16_A, type: TT.DE, length: 1 };
             case 0x1C: // INC E
                 return { op: this.INC_R8, type: T.E, length: 1 };
             case 0x14: // INC D
                 return { op: this.INC_R8, type: T.D, length: 1 };
             case 0xE5: // PUSH HL
-                return { op: this.PUSH_HL, length: 1 };
+                return { op: this.PUSH_R16, type: TT.HL, length: 1 };
             case 0xF5: // PUSH AF 
                 return { op: this.PUSH_R16, type: TT.AF, length: 1 };
             case 0xF1: // POP AF 
@@ -726,6 +726,32 @@ class CPU {
                 return { op: this.LD_R8_N8, type: T.H, length: 2 };
             case 0xF7: // RST 30h
                 return { op: this.RST, type: 0x30, length: 1 };
+            case 0x1F: // RRA
+                return { op: this.RRA, length: 1 };
+            case 0x30: // JR NC, E8
+                return { op: this.JR, type: CC.NC, length: 2 };
+            case 0x25: // DEC H
+                return { op: this.DEC_R8, type: T.H, length: 1 };
+            case 0x72: // LD (HL), D
+                return { op: this.LD_iHL_R8, type: T.D, length: 1 };
+            case 0x71: // LD (HL), C
+                return { op: this.LD_iHL_R8, type: T.C, length: 1 };
+            case 0x70: // LD (HL), B
+                return { op: this.LD_iHL_R8, type: T.B, length: 1 };
+            case 0xD1: // POP DE
+                return { op: this.POP_R16, type: TT.DE, length: 1 };
+            case 0xCC: // CALL Z, N16
+                return { op: this.CALL_N16, type: CC.Z, length: 3 };
+            case 0xCE: // ADC A, N8
+                return { op: this.ADC_N8, length: 2 };
+            case 0xD0: // RET NC
+                return { op: this.RET, type: CC.NC, length: 1 };
+            case 0xC8: // RET Z
+                return { op: this.RET, type: CC.Z, length: 1 };
+            case 0xEE: // XOR A, N8
+                return { op: this.XOR_A_R8, length: 2 };
+            case 0x7A: // LD A, D
+                return { op: this.LD_R8_R8, type: T.A, type2: T.D, length: 1 };
             default:
                 alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
                 clearInterval(this.khzInterval);
@@ -849,15 +875,15 @@ class CPU {
     }
 
     static o4b(i: number): number {
-        return mod(i, 0xF);
+        return mod(i, 0xF + 1);
     }
 
     static o8b(i: number): number {
-        return mod(i, 0xFF);
+        return mod(i, 0xFF + 1);
     }
 
     static o16b(i: number): number {
-        return mod(i, 0xFFFF);
+        return mod(i, 0xFFFF + 1);
     }
 
     static do4b(i: number): boolean {
@@ -917,20 +943,24 @@ class CPU {
         this.setReg(r8, this.bus.readMem8(this._r.hl));
     }
 
-    LD_A__HL_INC_() {
+    LD_A_iHL_INC() {
         this._r.a = this.bus.readMem8(this._r.hl);
         this._r.hl = CPU.o16b(this._r.hl + 1);
     }
 
-    LD__HL__N8(n8: number) {
+    LD_iHL_N8(n8: number) {
         this.bus.writeMem(this._r.hl, n8);
     }
 
-    ADD__HL_() {
+    LD_iHL_R8(r8: T) {
+        this.bus.writeMem(this._r.hl, this.getReg(r8));
+    }
+
+    ADD_iHL() {
         this._r.a = CPU.o8b(this._r.a + this.bus.readMem8(this._r.hl));
     }
 
-    CP_A__HL_() {
+    CP_A_iHL() {
         let u8 = this.bus.readMem8(this.getReg(TT.HL));
         this._f.zero = this._r.a - u8 == 0;
         this._f.negative = true;
@@ -938,11 +968,11 @@ class CPU {
         this._f.carry = u8 > this._r.a;
     }
 
-    LD_A__FF00_n8_(n8: number) {
+    LD_A_iFF00plusN8(n8: number) {
         this.setReg(T.A, this.bus.readMem8(CPU.o16b(0xFF00 + n8)));
     }
 
-    LD__R16__A(r16: TT) {
+    LD_iR16_A(r16: TT) {
         this.bus.writeMem(this.getReg(r16), this._r.a);
     }
 
@@ -958,38 +988,29 @@ class CPU {
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
-        this.bus.writeMem(CPU.o16b(--this._r.sp), upperByte);
-        this.bus.writeMem(CPU.o16b(--this._r.sp), lowerByte);
+        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this.bus.writeMem(this._r.sp, upperByte);
+        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this.bus.writeMem(this._r.sp, lowerByte);
     }
-
-    // Push HL onto the stack
-    PUSH_HL() {
-        this.bus.writeMem(CPU.o16b(--this._r.sp), this._r.h);
-        this.bus.writeMem(CPU.o16b(--this._r.sp), this._r.l);
-    }
-
 
     /*  PUSH r16 - 0xC1
         Pop off the stack into r16. */
     POP_R16(r16: TT) {
-        let lowerByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
-        let upperByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
+        let lowerByte = this.bus.readMem8(this._r.sp);
+        this._r.sp = CPU.o16b(this._r.sp + 1);
+        let upperByte = this.bus.readMem8(this._r.sp);
+        this._r.sp = CPU.o16b(this._r.sp + 1);
 
         this.setReg(r16, (upperByte << 8) | lowerByte);
-    }
-
-    // Pop off the stack into HL
-    POP_HL() {
-        this._r.l = this.bus.readMem8(CPU.o16b(this._r.sp++));
-        this._r.h = this.bus.readMem8(CPU.o16b(this._r.sp++));
     }
 
     // CALL n16 - 0xCD
     CALL_N16(cc: CC, u16: number) {
         if (cc == CC.Z && !this._f.zero) return;
         if (cc == CC.NZ && this._f.zero) return;
-        if (cc == CC.C && !this._f.zero) return;
-        if (cc == CC.NC && this._f.zero) return;
+        if (cc == CC.C && !this._f.carry) return;
+        if (cc == CC.NC && this._f.carry) return;
 
         let pcUpperByte = this.pc >> 8;
         let pcLowerByte = this.pc & 0b11111111;
@@ -1005,8 +1026,8 @@ class CPU {
     JP_N16(n16: number, cc: CC) {
         if (cc == CC.Z && !this._f.zero) return;
         if (cc == CC.NZ && this._f.zero) return;
-        if (cc == CC.C && !this._f.zero) return;
-        if (cc == CC.NC && this._f.zero) return;
+        if (cc == CC.C && !this._f.carry) return;
+        if (cc == CC.NC && this._f.carry) return;
 
         this.pc = n16 - 3;
     }
@@ -1016,7 +1037,12 @@ class CPU {
     }
 
 
-    RET() {
+    RET(cc: CC) {
+        if (cc == CC.Z && !this._f.zero) return;
+        if (cc == CC.NZ && this._f.zero) return;
+        if (cc == CC.C && !this._f.carry) return;
+        if (cc == CC.NC && this._f.carry) return;
+
         let stackLowerByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
         let stackUpperByte = this.bus.readMem8(CPU.o16b(this._r.sp++));
 
@@ -1036,14 +1062,14 @@ class CPU {
     }
 
     // LD [$FF00+u8],A
-    LD_FF00_N8_A(u8: number) {
+    LD_FF00plusN8_A(u8: number) {
         let value = this._r.a;
         this.bus.writeMem(CPU.o16b(0xFF00 + u8), value);
         // console.log(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A
-    LD_FF00_C_A() {
+    LD_FF00plusC_A() {
         let value = this._r.a;
         this.bus.writeMem(CPU.o16b(0xFF00 + this._r.c), value);
     }
@@ -1078,8 +1104,8 @@ class CPU {
     JR(cc: CC, n8: number) {
         if (cc == CC.Z && !this._f.zero) return;
         if (cc == CC.NZ && this._f.zero) return;
-        if (cc == CC.C && !this._f.zero) return;
-        if (cc == CC.NC && this._f.zero) return;
+        if (cc == CC.C && !this._f.carry) return;
+        if (cc == CC.NC && this._f.carry) return;
 
         this.pc += this.unTwo8b(n8);
     }
@@ -1131,7 +1157,7 @@ class CPU {
     }
 
     // ADC A, r8
-    ADC(t: T) {
+    ADC_N8(t: T) {
         let value = this.getReg(t);
         this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
@@ -1253,8 +1279,16 @@ class CPU {
         this._f.carry = false;
     }
 
-    XOR_A(t: T) {
+    XOR_A_R8(t: T) {
         let value = this.getReg(t);
+
+        let final = value ^ this._r.a;
+        this._r.a = final;
+        this._f.zero = final == 0;
+    }
+
+    XOR_A_N8(n8: number) {
+        let value = n8;
 
         let final = value ^ this._r.a;
         this._r.a = final;
@@ -1645,7 +1679,7 @@ function test() {
 
     cpu._r.a = 12;
     cpu._r.b = 25;
-    cpu.XOR_A(T.B);
+    cpu.XOR_A_R8(T.B);
     console.log(cpu._r.a);
     console.log("(DEC) 12 ^ 25: Expect (DEC) 21.");
 

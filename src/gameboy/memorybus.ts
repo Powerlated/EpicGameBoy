@@ -38,7 +38,7 @@ class MemoryBus {
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
                 case 0xFF01:
-                    console.info(`SERIAL PORT WRITE: ` + value);
+                    console.info(`[PC: ${hex(this.cpu.pc, 4)}] SERIAL PORT WRITE: ` + value);
                 case 0xFF40:
                     console.info(`LCD CONTROL CHANGE`);
                 case 0xFF41:
