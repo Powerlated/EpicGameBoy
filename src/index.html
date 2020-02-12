@@ -58,18 +58,24 @@
 
 
         <div>
+            <label for="enableLogging">Enable Logging</label>
+            <input id="enableLogging" autocomplete="off" type="checkbox">
+        </div>
+
+
+        <div>
             <label for="bootromInput">Open Boot ROM</label>
-            <input id="bootromInput" type="file">
+            <input id="bootromInput" autocomplete="off" type="file">
         </div>
 
         <div>
             <label for="gameromInput">Open Game ROM</label>
-            <input id="gameromInput" type="file">
+            <input id="gameromInput" autocomplete="off" type="file">
         </div>
 
         <div>
             <label for="haltInput">Halt at 0x</label>
-            <input id="haltInput" pattern="[a-fA-F\d]+" />
+            <input id="haltInput" autocomplete="off" pattern="[a-fA-F\d]+" />
         </div>
 
         <div>
@@ -98,6 +104,12 @@
         function downloadLog() {
             download("EpicGameBoy.log", window.cpu.log.join('\n'));
         }
+
+        document.querySelector('#enableLogging').addEventListener('change', function (e) {
+
+            window.cpu.logging = e.target.value;
+        }, false);
+
 
         document.querySelector('#haltInput').addEventListener('change', function (e) {
 
