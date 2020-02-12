@@ -1,4 +1,3 @@
-
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
 

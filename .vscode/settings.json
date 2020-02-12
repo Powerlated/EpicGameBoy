@@ -1,6 +1,7 @@
 {
     "files.exclude": {
-        "**/*.js": true,
-        "**/*.js.map": true
-    }
+        "src/**/*.js": true,
+        "src/**/*.js.map": true
+    },
+    "debug.node.autoAttach": "on"
 }

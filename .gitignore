@@ -1,2 +1,6 @@
 src/gameboy/**/*.js
 src/gameboy/**/*.map
+node_modules
+*.gb
+*.gbc
+*.bin

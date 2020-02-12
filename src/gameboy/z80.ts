@@ -333,7 +333,7 @@ class CPU {
         if (ins.op.length == 0 && (ins.type || ins.type2)) {
             alert(`Implementation error: ${ins.op.name} 0x${this.bus.readMem8(this.pc).toString(16)}`);
         }
-        if (ins.op.length != 0 && (!ins.type || ins.type2) && length == 1) {
+        if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
             alert(`Implementation error: ${ins.op.name} 0x${this.bus.readMem8(this.pc).toString(16)}`);
         }
 
@@ -357,7 +357,7 @@ class CPU {
                 insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)}`;
             }
 
-            let flags = `${this._f.zero ? 'Z': '-'}${this._f.subtract ? 'N': '-'}${this._f.half_carry ? 'H': '-'}${this._f.carry ? 'C': '-'}`
+            let flags = `${this._f.zero ? 'Z' : '-'}${this._f.subtract ? 'N' : '-'}${this._f.half_carry ? 'H' : '-'}${this._f.carry ? 'C' : '-'}`;
 
             if (this.pc >= 0x100)
                 this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN_LC(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)} SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.totalI}) ppu:+0 |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns}`);
@@ -1124,7 +1124,7 @@ class CPU {
 
         this.setReg(t, newValue);
 
-        this._f.carry = didOverflow;
+        // UNMODIFIED this._f.carry = didOverflow;
         this._f.zero = newValue == 0;
         this._f.subtract = false;
         this._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
@@ -1499,12 +1499,17 @@ function hexN_LC(i: number, digits: number) {
     return pad(i.toString(16), digits, '0');
 }
 
+function isNode(): boolean {
+    // @ts-ignore
+    return (typeof process !== 'undefined') && (process.release.name === 'node');
+}
 
-setInterval(() => {
-    try {
-        (window as any).cpu = cpu;
-        let debugP = document.getElementById('debug');
-        debugP.innerText = `
+if (!isNode()) {
+    setInterval(() => {
+        try {
+            (window as any).cpu = cpu;
+            let debugP = document.getElementById('debug');
+            debugP.innerText = `
     Last Instruction: ${cpu.currentIns}
 
     Total Instructions Executed: ${cpu.totalI}
@@ -1530,8 +1535,8 @@ setInterval(() => {
     DE: ${hex(cpu._r.de, 4)} ${cpu._r.de} ${cpu._r.de.toString(2)}
     HL: ${hex(cpu._r.hl, 4)} ${cpu._r.hl} ${cpu._r.hl.toString(2)}
     `;
-    } catch (e) {
-        alert(`
+        } catch (e) {
+            alert(`
         Error occurred in display, probably caused by error in CPU.
         
         PC: 0x${cpu.pc.toString(16)}
@@ -1540,7 +1545,14 @@ setInterval(() => {
 
         `);
 
-        console.error(e);
-        cpu.khzStop();
-    }
-}, 10);
+            console.error(e);
+            cpu.khzStop();
+        }
+    }, 10);
+
+} else {
+    console.log("Running in node, not updating DEBUG")
+    // @ts-ignore
+    module.exports = {CPU, MemoryBus, GPU}
+}
+

@@ -1,0 +1,6 @@
+{
+    "main": "./test.js",
+    "dependencies": {
+        "source-map-support": "^0.5.16"
+    }
+}

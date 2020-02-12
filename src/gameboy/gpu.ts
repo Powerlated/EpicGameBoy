@@ -41,10 +41,13 @@ class GPU {
 
     step() {
         this.lcdcY++;
-        this.clearScreen();
 
-        for (let c = 0; c <= 160; c++) {
-            this.drawPixel(c, this.lcdcY, 255, 0, 0);
+        if (!isNode()) {
+            this.clearScreen();
+
+            for (let c = 0; c <= 160; c++) {
+                this.drawPixel(c, this.lcdcY, 255, 0, 0);
+            }
         }
     }
 
@@ -60,14 +63,15 @@ class GPU {
     }
 
     constructor(bus) {
-        this.c = document.getElementById("gameboy") as HTMLCanvasElement;
-        this.ctx = this.c.getContext("2d");
-
         this.bus = bus;
 
-        setInterval(() => {
-            let debugP = document.getElementById('gpudebug');
-            debugP.innerText = `
+        if (!isNode()) {
+            this.c = document.getElementById("gameboy") as HTMLCanvasElement;
+            this.ctx = this.c.getContext("2d");
+
+            setInterval(() => {
+                let debugP = document.getElementById('gpudebug');
+                debugP.innerText = `
             Scroll Y: ${this.scrollY}
             Scroll X: ${this.scrollX}
 
@@ -77,7 +81,8 @@ class GPU {
             Last row written: 0x${this.lastRow.toString(16)}
             Last pixel written: 0x${this.lastPixel.toString(16)}
             `;
-        }, 10);
+            }, 10);
+        }
     }
 
     vBlank() {
