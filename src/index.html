@@ -72,6 +72,13 @@
             <input id="haltInput" pattern="[a-fA-F\d]+" />
         </div>
 
+
+        <div>
+            <label for="halt2Input">Halt when executed</label>
+            <input id="halt2Input" type="number" />
+        </div>
+
+
         <div>
             <button onclick="downloadLog()">Download Log</button>
         </div>
@@ -100,9 +107,12 @@
         }
 
         document.querySelector('#haltInput').addEventListener('change', function (e) {
-
             window.cpu.haltAt = parseInt(`0x${e.target.value}`);
             console.log(`Set halt address to 0x${parseInt(window.cpu.haltAt).toString(16)}`)
+        }, false);
+        document.querySelector('#halt2Input').addEventListener('change', function (e) {
+            window.cpu.haltWhen = parseInt(`${e.target.value}`);
+            console.log(`Set halt instructions executed to ${parseInt(window.cpu.haltWhen).toString(10)}`)
         }, false);
 
         document.querySelector('#bootromInput').addEventListener('change', function () {
