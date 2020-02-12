@@ -3,5 +3,5 @@
         "src/**/*.js": true,
         "src/**/*.js.map": true
     },
-    "debug.node.autoAttach": "on"
+    "debug.node.autoAttach": "off"
 }
