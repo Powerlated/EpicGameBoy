@@ -765,6 +765,7 @@ class CPU {
         let lowerNybble = id & 0b1111;
 
         let type: OperandType;
+        let bit: number;
         let op: Function;
 
         switch (lowerNybble & 0b111) {
@@ -852,10 +853,18 @@ class CPU {
                     op = this.SET;
                     break;
             }
+
+            // 0x0 - 0x7
+            if (lowerNybble < 0x8) {
+                bit = (upperNybble & 0b11) * 2;
+            // 0x8 - 0xF
+            } else {
+                bit = ((upperNybble & 0b11) * 2) + 1;
+            }
         }
 
 
-        return { op: op, type: type, length: 1 };
+        return { op: op, type: type, type2: bit, length: 1 };
     }
 
     unTwo8b(n: number): number {
