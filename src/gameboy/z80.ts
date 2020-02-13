@@ -776,7 +776,14 @@ class CPU {
                 return { op: this.DEC_R16, type: R16.SP, length: 3 };
             case 0x39: // ADD HL, SP
                 return { op: this.ADD_HL_R16, type: R16.SP, length: 3 };
-
+            case 0x0A: // LD A, [BC]
+                return { op: this.LD_A_iR16, type: R16.BC, length: 3 };
+            case 0x3A: // LD A, [HL-]
+                return { op: this.LD_A_iHLdec, length: 1 };
+            case 0x27: // DAA
+                return { op: this.DA_A, length: 1 };
+            case 0xF2: // LD A, [FF00+C]
+                return { op: this.LD_A_iFF00plusC, length: 1 };
         }
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
@@ -1178,6 +1185,51 @@ class CPU {
 
     }
 
+    // wtf is a DAA?
+    // Decimal adjust A
+    DA_A() {
+        if (!this._r._f.negative) {
+            // After addition
+
+            if (this._r._f.carry || this._r.a > 0x99) {
+                let val = this._r._f.negative ? 0x60 : -0x60;
+
+                this._r.a = CPU.o8b(this._r.a + val);
+                this._r._f.carry = CPU.do8b(this._r.a + val);
+            }
+
+            if (this._r._f.half_carry || (this._r.a & 0xF) > 9) {
+                let val = this._r._f.negative ? 0x6 : -0x6;
+
+                this._r.a = CPU.o8b(this._r.a + val);
+            }
+
+        } else {
+            // After subtraction
+
+            if (this._r._f.carry) {
+                let val = this._r._f.negative ? 0x60 : -0x60;
+
+                this._r.a = CPU.o8b(this._r.a + val);
+                this._r._f.carry = CPU.do8b(this._r.a + val);
+            }
+
+            if (this._r._f.half_carry) {
+                let val = this._r._f.negative ? 0x6 : -0x6;
+
+                this._r.a = CPU.o8b(this._r.a + val);
+            }
+        }
+
+        // Preserve N
+
+        // Always clear H
+        this._r._f.half_carry = false;
+
+        // Set Z the usual way
+        this._r._f.zero = this._r.a == 0;
+    }
+
     // Load SP into index
     LD_iN16_SP(in16: number) {
         let spUpperByte = this._r.sp >> 8;
@@ -1233,7 +1285,11 @@ class CPU {
     }
 
     LD_A_iFF00plusN8(n8: number) {
-        this.setReg(R8.A, this.fetchMem8(CPU.o16b(0xFF00 + n8)));
+        this._r.a = this.fetchMem8(CPU.o16b(0xFF00 + n8));
+    }
+
+    LD_A_iFF00plusC(n8: number) {
+        this._r.a = this.fetchMem8(CPU.o16b(0xFF00 + this._r.c));
     }
 
     LD_iR16_A(r16: R16) {
@@ -1385,6 +1441,17 @@ class CPU {
     // LD [HL-],A | Store value in register A into byte pointed by HL and post-decrement HL. 
     LD_iHLdec_A() {
         this.writeMem8(this._r.hl, this._r.a);
+        this._r.hl = CPU.o16b(this._r.hl - 1);
+    }
+
+    // LD A,[HL+] | Store value in byte pointed by HL into A, then post-increment HL.
+    LD_A_iHLinc() {
+        this._r.a = this.fetchMem8(this._r.hl);
+        this._r.hl = CPU.o16b(this._r.hl + 1);
+    }
+    // LD A,[HL-] | Store value in byte pointed by HL into A, then post-decrement HL.
+    LD_A_iHLdec() {
+        this._r.a = this.fetchMem8(this._r.hl);
         this._r.hl = CPU.o16b(this._r.hl - 1);
     }
 
