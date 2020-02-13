@@ -59,7 +59,7 @@ class GPU {
                 if (this.modeClock >= 43) {
                     this.modeClock = 0;
                     this.mode = 0;
-                    
+
                     // Write a scanline to the framebuffer
                     if (!isNode()) {
                         this.renderScanline();
@@ -74,8 +74,12 @@ class GPU {
                     this.modeClock = 0;
                     this.lcdcY++;
 
-                    if (this.lcdcY == 143) {
+                    if (this.lcdcY == 144) {
                         this.mode = 1;
+
+                        // Fire the Vblank interrupt
+                        if (this.bus.interruptEnableFlag.vBlank)
+                            this.bus.cpu.interruptVblank();
                     }
                     else {
                         this.mode = 2;
@@ -211,10 +215,6 @@ class GPU {
             `;
             }, 100);
         }
-    }
-
-    vBlank() {
-        this.lcdcY = 0x90;
     }
 
     read(index: number): number {

@@ -4,12 +4,53 @@ const VRAM_END = 0x9FFF;
 const HWIO_BEGIN = 0xFF00;
 const HWIO_END = 0xFF7F;
 
+class InterruptFlag {
+    vBlank = false;
+    lcdStat = false;
+    timer = false;
+    serial = false;
+    joypad = false;
+
+
+    setNumerical(i: number) {
+        this.vBlank = (i & (1 << 0)) != 0;
+        this.lcdStat = (i & (1 << 1)) != 0;
+        this.timer = (i & (1 << 2)) != 0;
+        this.serial = (i & (1 << 3)) != 0;
+        this.joypad = (i & (1 << 4)) != 0;
+        return;
+    }
+
+    getNumerical(): number {
+        let flagN = 0;
+        if (this.vBlank) {
+            flagN = flagN | 0b00000001;
+        }
+        if (this.lcdStat) {
+            flagN = flagN | 0b00000010;
+        }
+        if (this.timer) {
+            flagN = flagN | 0b00000100;
+        }
+        if (this.serial) {
+            flagN = flagN | 0b00001000;
+        }
+        if (this.joypad) {
+            flagN = flagN | 0b00010000;
+        }
+        return flagN;
+    }
+}
+
 class MemoryBus {
     cpu: CPU;
     gpu: GPU;
 
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
+
+    interruptEnableFlag = new InterruptFlag();
+    interruptHappenFlag = new InterruptFlag();
 
     constructor() {
     }
@@ -26,6 +67,11 @@ class MemoryBus {
         Op: ${this.cpu.rgOpcode(this.readMem8(this.cpu.pc)).op.name}
 
         `);
+        }
+
+        // SET Interrupt enable flags
+        if (addr == 0xFFFF) {
+
         }
 
         // Write to VRAM
@@ -68,13 +114,17 @@ class MemoryBus {
             this.memory[addr] = value;
             return;
         }
-
     }
 
     readMem8(addr: number): number {
         // Return from VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
             return this.gpu.read(addr - VRAM_BEGIN);
+        }
+
+        // GET Interrupt enable flags
+        if (addr == 0xFFFF) {
+            return this.interruptEnableFlag.getNumerical();
         }
 
         // Hardware I/O registers

@@ -96,6 +96,8 @@ class Registers {
 
     _f = new FlagsRegister();
 
+    interruptsEnabled = false;
+
     get f() {
         let flagN = 0;
         if (this._f.zero) {
@@ -315,7 +317,7 @@ class CPU {
             this._r._f.half_carry = true;
             this._r._f.carry = true;
 
-            this._r.a = 0x11;
+            this._r.a = 0x01;
             this._r.bc = 0x0013;
             this._r.de = 0x00d8;
             this._r.hl = 0x014d;
@@ -329,10 +331,8 @@ class CPU {
         if (this.debug)
             console.log("STEP");
 
-        // Divide CPU clock by 4 and send to GPU
-        if (this.time % 4 == 0) {
-            this.bus.gpu.step();
-        }
+        // Divide CPU clock and send to GPU
+        this.bus.gpu.step();
 
         let isCB = this.bus.readMem8(this.pc) == 0xCB;
 
@@ -479,6 +479,26 @@ class CPU {
             }
             if (this.setHalt) this.setHalt = false;
         }, 10);
+
+    }
+
+    interruptVblank() {
+        console.log("VBLANK");
+    }
+
+    interruptLCDstat() {
+
+    }
+
+    interruptTimer() {
+
+    }
+
+    interruptSerial() {
+
+    }
+
+    interruptJoypad() {
 
     }
 
@@ -784,6 +804,10 @@ class CPU {
                 return { op: this.DA_A, length: 1 };
             case 0xF2: // LD A, [FF00+C]
                 return { op: this.LD_A_iFF00plusC, length: 1 };
+            case 0x0F: // RRCA
+                return { op: this.RRCA, length: 1 };
+            case 0xE8: // AP SP, E8
+                return { op: this.ADD_SP_E8, length: 1 };
         }
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
@@ -1172,12 +1196,12 @@ class CPU {
 
     // DI - 0xF3
     DI() {
-
+        this._r.interruptsEnabled = false;
     }
 
     // EI - 0xFB
     EI() {
-
+        this._r.interruptsEnabled = true;
     }
 
     // HALT - 0x76
@@ -1188,46 +1212,37 @@ class CPU {
     // wtf is a DAA?
     // Decimal adjust A
     DA_A() {
-        if (!this._r._f.negative) {
-            // After addition
+        let a = this._r.a;
 
-            if (this._r._f.carry || this._r.a > 0x99) {
-                let val = this._r._f.negative ? 0x60 : -0x60;
+        let FLAG_H = this._r._f.half_carry ? 1 : 0;
+        let FLAG_C = this._r._f.carry ? 1 : 0;
+        let FLAG_N = this._r._f.negative ? 1 : 0;
+        let FLAG_Z = this._r._f.zero ? 1 : 0;
 
-                this._r.a = CPU.o8b(this._r.a + val);
-                this._r._f.carry = CPU.do8b(this._r.a + val);
-            }
-
-            if (this._r._f.half_carry || (this._r.a & 0xF) > 9) {
-                let val = this._r._f.negative ? 0x6 : -0x6;
-
-                this._r.a = CPU.o8b(this._r.a + val);
-            }
-
-        } else {
-            // After subtraction
-
-            if (this._r._f.carry) {
-                let val = this._r._f.negative ? 0x60 : -0x60;
-
-                this._r.a = CPU.o8b(this._r.a + val);
-                this._r._f.carry = CPU.do8b(this._r.a + val);
-            }
-
-            if (this._r._f.half_carry) {
-                let val = this._r._f.negative ? 0x6 : -0x6;
-
-                this._r.a = CPU.o8b(this._r.a + val);
-            }
+        if (!(this._r.f & FLAG_N)) {
+            if ((this._r.f & FLAG_H) || (a & 0xF) > 9)
+                a += 0x06;
+            if ((this._r.f & FLAG_C) || a > 0x9F)
+                a += 0x60;
+        }
+        else {
+            if (this._r.f & FLAG_H)
+                a = (a - 6) & 0xFF;
+            if (this._r.f & FLAG_C)
+                a -= 0x60;
         }
 
-        // Preserve N
+        this._r.f &= ~(FLAG_H | FLAG_Z);
 
-        // Always clear H
-        this._r._f.half_carry = false;
+        if ((a & 0x100) == 0x100)
+            this._r.f |= FLAG_C;
 
-        // Set Z the usual way
-        this._r._f.zero = this._r.a == 0;
+        a &= 0xFF;
+
+        if (a == 0)
+            this._r.f |= FLAG_Z;
+
+        this._r.a = CPU.o8b(a);
     }
 
     // Load SP into index
@@ -1455,6 +1470,16 @@ class CPU {
         this._r.hl = CPU.o16b(this._r.hl - 1);
     }
 
+    // ADD SP, e8
+    ADD_SP_E8(n8: number) {
+        let value = this.unTwo8b(n8);
+        this._r.sp += value;
+
+        this._r._f.zero = this._r.sp == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = ((0xF) + (0xF)) > 0xF;
+        this._r._f.carry = ((value & 0xFF) + (this._r.sp & 0xFF)) > 0xFF;
+    }
 
     // JR
     JR(cc: CC, n8: number) {
