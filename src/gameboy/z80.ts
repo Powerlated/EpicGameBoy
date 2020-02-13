@@ -392,13 +392,19 @@ class CPU {
         if (this.debug)
             console.log("STEP");
 
-        if (this.time % 50 == 0) {
+        // Divide CPU clock by 4 and send to GPU
+        if (this.time % 4 == 0) {
             this.bus.gpu.step();
         }
 
         let isCB = this.bus.readMem8(this.pc) == 0xCB;
 
         let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
+
+        if (!ins.op) {
+            alert(`Implementation error: ${hex(this.bus.readMem8(this.pc), 2)} is a null op`);
+        }
+
         let opcode = isCB ? this.bus.readMem8(this.pc + 1) : this.bus.readMem8(this.pc);
 
         if (opcode == this.lastOpcode) {
@@ -524,7 +530,7 @@ class CPU {
         this.debug = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
-            let max = 4194;
+            let max = 41940;
             if (this.haltAt == this.pc || this.haltWhen == this.totalI || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
@@ -533,7 +539,7 @@ class CPU {
                 i++;
             }
             if (this.setHalt) this.setHalt = false;
-        }, 1);
+        }, 10);
 
     }
 
@@ -617,6 +623,9 @@ class CPU {
     }
 
     rgOpcode(id): Op {
+        let upperNybble = id >> 4;
+        let lowerNybble = id & 0b1111;
+
         switch (id) {
             case 0x31:
                 return { op: this.LD_SP, length: 3 };
@@ -624,22 +633,6 @@ class CPU {
                 return { op: this.JR, type: CC.NZ, length: 2 };
             case 0x28:
                 return { op: this.JR, type: CC.Z, length: 2 };
-            case 0xAF:
-                return { op: this.XOR_A_R8, type: R8.A, length: 1 };
-            case 0xA8:
-                return { op: this.XOR_A_R8, type: R8.B, length: 1 };
-            case 0xA9:
-                return { op: this.XOR_A_R8, type: R8.C, length: 1 };
-            case 0xAA:
-                return { op: this.XOR_A_R8, type: R8.D, length: 1 };
-            case 0xAB:
-                return { op: this.XOR_A_R8, type: R8.E, length: 1 };
-            case 0xAC:
-                return { op: this.XOR_A_R8, type: R8.H, length: 1 };
-            case 0xAD:
-                return { op: this.XOR_A_R8, type: R8.L, length: 1 };
-            case 0xAE:
-                return { op: this.XOR_A_iHL, length: 1 };
             case 0x21:
                 return { op: this.LD_R16_N16, type: R16.HL, length: 3 };
             case 0x32:
@@ -704,16 +697,10 @@ class CPU {
                 return { op: this.DEC_R8, type: R8.E, length: 1 };
             case 0x24: // INC H
                 return { op: this.INC_R8, type: R8.H, length: 1 };
-            case 0x90: // SUB A, B
-                return { op: this.SUB_A_R8, type: R8.B, length: 1 };
             case 0x15: // DEC D
                 return { op: this.DEC_R8, type: R8.D, length: 1 };
             case 0x16: // LD D, n8
                 return { op: this.LD_R8_N8, type: R8.D, length: 2 };
-            case 0xBE: // CP A, [HL]
-                return { op: this.CP_A_iHL, length: 1 };
-            case 0x86: // ADD A, [HL]
-                return { op: this.ADD_iHL, length: 1 };
             case 0xc3: // JP n16
                 return { op: this.JP_N16, type: CC.UNCONDITIONAL, length: 3 };
             case 0xF3: // DI - 0xF3 Disable interrupts?
@@ -726,22 +713,14 @@ class CPU {
                 return { op: this.LD_R16_N16, type: R16.BC, length: 3 };
             case 0x0B:
                 return { op: this.DEC_R16, type: R16.BC, length: 1 };
-            case 0xB1: // OR C
-                return { op: this.OR_A_R8, type: R8.C, length: 1 };
             case 0xFB: // DI - 0xFB Enable interrupts
                 return { op: this.EI, length: 1 };
             case 0x2F: // CPL
                 return { op: this.CPL, length: 1 };
             case 0xE6: // AND A, u8
                 return { op: this.AND_N8, length: 2 };
-            case 0xB0:
-                return { op: this.OR_A_R8, type: R8.B, length: 1 };
-            case 0xA1:
-                return { op: this.AND_R8, type: R8.C, length: 1 };
             case 0xEF: // RST 28h
                 return { op: this.RST, type: 0x28, length: 1 };
-            case 0x87:
-                return { op: this.ADD_A_R8, type: R8.A, length: 1 };
             case 0xE1: // POP HL
                 return { op: this.POP_R16, type: R16.HL, length: 1 };
             case 0x19:
@@ -750,8 +729,6 @@ class CPU {
                 return { op: this.PUSH_R16, type: R16.DE, length: 1 };
             case 0xE9: // JP [HL]
                 return { op: this.JP_iR16, type: R16.HL, length: 1 };
-            case 0x9F: // SBC A,A
-                return { op: this.SBC_A_R8, type: R8.A, length: 1 };
             case 0xC7: // RST 00h
                 return { op: this.RST, type: 0x00, length: 1 };
             case 0x12: // LD [DE],A
@@ -774,8 +751,6 @@ class CPU {
                 return { op: this.CALL_N16, type: CC.NZ, length: 3 };
             case 0x2C: // INC L
                 return { op: this.INC_R8, type: R8.L, length: 1 };
-            case 0x91: // SUB C
-                return { op: this.SUB_A_R8, type: R8.C, length: 1 };
             case 0x38: // JR C, E8
                 return { op: this.JR, type: CC.C, length: 2 };
             case 0x08: // LD [N16], SP
@@ -784,8 +759,6 @@ class CPU {
                 return { op: this.ADD_A_N8, length: 2 };
             case 0xD6: // SUB A, N8
                 return { op: this.SUB_A_N8, length: 2 };
-            case 0xB7: // OR A,A
-                return { op: this.OR_A_R8, type: R8.A, length: 1 };
             case 0xC2: // JP NZ, N16
                 return { op: this.JP_N16, type: CC.NZ, length: 3 };
             case 0x2D: // DEC L
@@ -812,20 +785,14 @@ class CPU {
                 return { op: this.RET, type: CC.Z, length: 1 };
             case 0xEE: // XOR A, N8
                 return { op: this.XOR_A_N8, length: 2 };
-            case 0x93: // LD SUB A, E
-                return { op: this.SUB_A_R8, type: R8.E, length: 1 };
             case 0xC0: // RET NZ
                 return { op: this.RET, type: CC.NZ, length: 1 };
-            case 0xB6: // OR A, [HL]
-                return { op: this.OR_A_iHL, length: 1 };
             case 0x35: // DEC [HL]
                 return { op: this.DEC_R16, type: R16.HL, length: 1 };
             case 0x29: // ADD HL, HL
                 return { op: this.ADD_HL_R16, type: R16.HL, length: 1 };
             case 0x3C: // INC A
                 return { op: this.INC_R8, type: R8.A, length: 1 };
-            case 0xBB: // CP A, E  
-                return { op: this.CP_A_N8, type: R8.E, length: 1 };
             case 0xD8: // RET C
                 return { op: this.RET, type: CC.C, length: 1 };
             case 0xF8: // LD HL, SP+e8
@@ -834,140 +801,265 @@ class CPU {
                 return { op: this.RLC, type: R8.A, length: 1 };
             case 0x10: // STOP
                 return { op: this.NOP, length: 2 };
-            case 0x40: // LD B, B
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.B, length: 1 };
-            case 0x41: // LD B, C
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.C, length: 1 };
-            case 0x42: // LD B, D
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.D, length: 1 };
-            case 0x43: // LD B, E
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.E, length: 1 };
-            case 0x44: // LD B, H
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.H, length: 1 };
-            case 0x45: // LD B, L
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.L, length: 1 };
-            case 0x46: // LD B, (HL)
-                return { op: this.LD_R8_iHL, type: R8.B, length: 1 };
-            case 0x47: // LD B, A
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.A, length: 1 };
-            case 0x48: // LD C, B
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.B, length: 1 };
-            case 0x49: // LD C, C
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.C, length: 1 };
-            case 0x4A: // LD C, D
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.D, length: 1 };
-            case 0x4B: // LD C, E
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.E, length: 1 };
-            case 0x4C: // LD C, H
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.H, length: 1 };
-            case 0x4D: // LD C, L
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.L, length: 1 };
-            case 0x4E: // LD C, (HL)
-                return { op: this.LD_R8_iHL, type: R8.C, length: 1 };
-            case 0x4F: // LD C, A
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.A, length: 1 };
-            case 0x50: // LD D, B
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.B, length: 1 };
-            case 0x51: // LD D, C
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.C, length: 1 };
-            case 0x52: // LD D, D
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.D, length: 1 };
-            case 0x53: // LD D, E
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.E, length: 1 };
-            case 0x54: // LD D, H
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.H, length: 1 };
-            case 0x55: // LD D, L
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.L, length: 1 };
-            case 0x56: // LD D, (HL)
-                return { op: this.LD_R8_iHL, type: R8.D, length: 1 };
-            case 0x57: // LD D, A
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.A, length: 1 };
-            case 0x58: // LD E, B
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.B, length: 1 };
-            case 0x59: // LD E, C
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.C, length: 1 };
-            case 0x5A: // LD E, D
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.D, length: 1 };
-            case 0x5B: // LD E, E
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.E, length: 1 };
-            case 0x5C: // LD E, H
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.H, length: 1 };
-            case 0x5D: // LD E, L
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.L, length: 1 };
-            case 0x5E: // LD E, (HL)
-                return { op: this.LD_R8_iHL, type: R8.E, length: 1 };
-            case 0x5F: // LD E, A
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.A, length: 1 };
-            case 0x60: // LD H, B
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.B, length: 1 };
-            case 0x61: // LD H, C
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.C, length: 1 };
-            case 0x62: // LD H, D
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.D, length: 1 };
-            case 0x63: // LD H, E
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.E, length: 1 };
-            case 0x64: // LD H, H
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.H, length: 1 };
-            case 0x65: // LD H, L
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.L, length: 1 };
-            case 0x66: // LD H, (HL)
-                return { op: this.LD_R8_iHL, type: R8.H, length: 1 };
-            case 0x67: // LD H, A
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.A, length: 1 };
-            case 0x68: // LD L, B
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.B, length: 1 };
-            case 0x69: // LD L, C
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.C, length: 1 };
-            case 0x6A: // LD L, D
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.D, length: 1 };
-            case 0x6B: // LD L, E
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.E, length: 1 };
-            case 0x6C: // LD L, H
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.H, length: 1 };
-            case 0x6D: // LD L, L
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.L, length: 1 };
-            case 0x6E: // LD L, (HL)
-                return { op: this.LD_R8_iHL, type: R8.L, length: 1 };
-            case 0x6F: // LD L, A
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.A, length: 1 };
-            case 0x70: // LD D, B
-                return { op: this.LD_iHL_R8, type: R8.B, length: 1 };
-            case 0x71: // LD D, C
-                return { op: this.LD_iHL_R8, type: R8.C, length: 1 };
-            case 0x72: // LD D, D
-                return { op: this.LD_iHL_R8, type: R8.D, length: 1 };
-            case 0x73: // LD D, E
-                return { op: this.LD_iHL_R8, type: R8.E, length: 1 };
-            case 0x74: // LD D, H
-                return { op: this.LD_iHL_R8, type: R8.H, length: 1 };
-            case 0x75: // LD D, L
-                return { op: this.LD_iHL_R8, type: R8.L, length: 1 };
+            // #endregion
             case 0x76: // HALT
                 return { op: this.NOP, length: 1 };
-            case 0x77: // LD D, A
-                return { op: this.LD_iHL_R8, type: R8.A, length: 1 };
-            case 0x78: // LD A, B
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.B, length: 1 };
-            case 0x79: // LD A, C
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.C, length: 1 };
-            case 0x7A: // LD A, D
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.D, length: 1 };
-            case 0x7B: // LD A, E
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.E, length: 1 };
-            case 0x7C: // LD A, H
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.H, length: 1 };
-            case 0x7D: // LD A, L
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.L, length: 1 };
-            case 0x7E: // LD A, (HL)
-                return { op: this.LD_R8_iHL, type: R8.A, length: 1 };
-            case 0x7F: // LD A, A
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.A, length: 1 };
-            default:
-                alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
-                clearInterval(this.khzInterval);
-                break;
+            case 0x37: // SCF
+                return { op: this.SCF, length: 1 };
+            case 0x3F: // CCF
+                return { op: this.CCF, length: 1 };
+            case 0x1B: // DEC DE 
+                return { op: this.DEC_R16, type: R16.DE, length: 1 };
+            case 0xF9: // LD SP, HL
+                return { op: this.LD_SP_HL, length: 1 };
+            case 0xCA: // JP Z, N16
+                return { op: this.JP_N16, type: CC.Z, length: 3 };
+            case 0xD2: // JP NC, N16
+                return { op: this.JP_N16, type: CC.NC, length: 3 };
+            case 0xDA: // JP C, N16
+                return { op: this.JP_N16, type: CC.C, length: 3 };
+            case 0xC4: // JP NZ, N16
+                return { op: this.JP_N16, type: CC.NZ, length: 3 };
+            case 0xD4: // CALL NC, N16
+                return { op: this.CALL_N16, type: CC.NC, length: 3 };
+            case 0xDC: // CALL C, N16
+                return { op: this.CALL_N16, type: CC.C, length: 3 };
+            case 0xD9: // RETI
+                return { op: this.RETI, type: CC.NZ, length: 3 };
+            case 0x34: // INC [HL]
+                return { op: this.INC_R16, type: R16.HL, length: 3 };
+        }
+
+        // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
+        if (upperNybble >= 0x8 && upperNybble <= 0xB) {
+            let type: OperandType;
+            let op: Function;
+            switch (lowerNybble & 0b111) {
+                case 0x0:
+                    type = R8.B;
+                    break;
+                case 0x1:
+                    type = R8.C;
+                    break;
+                case 0x2:
+                    type = R8.D;
+                    break;
+                case 0x3:
+                    type = R8.E;
+                    break;
+                case 0x4:
+                    type = R8.H;
+                    break;
+                case 0x5:
+                    type = R8.L;
+                    break;
+                // (HL)
+                case 0x6:
+                    type = R16.HL;
+                    break;
+                case 0x7:
+                    type = R8.A;
+                    break;
+            }
+
+            const OPDEC = upperNybble & 0b111;
+            // Check for [HL]
+            if (lowerNybble == 0x6 || lowerNybble == 0xE) {
+                if (lowerNybble < 0x8) {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.ADD_A_iHL;
+                            break;
+                        case 0x1:
+                            op = this.SUB_A_iHL;
+                            break;
+                        case 0x2:
+                            op = this.AND_A_iHL;
+                            break;
+                        case 0x3:
+                            op = this.OR_A_iHL;
+                            break;
+                    }
+                } else {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.ADC_A_iHL;
+                            break;
+                        case 0x1:
+                            op = this.SBC_A_iHL;
+                            break;
+                        case 0x2:
+                            op = this.XOR_A_iHL;
+                            break;
+                        case 0x3:
+                            op = this.CP_A_iHL;
+                            break;
+                    }
+                }
+                // Not [HL]
+            } else {
+                if (lowerNybble < 0x8) {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.ADD_A_R8;
+                            break;
+                        case 0x1:
+                            op = this.SUB_A_R8;
+                            break;
+                        case 0x2:
+                            op = this.AND_A_R8;
+                            break;
+                        case 0x3:
+                            op = this.OR_A_R8;
+                            break;
+                    }
+                } else {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.ADC_A_R8;
+                            break;
+                        case 0x1:
+                            op = this.SBC_A_R8;
+                            break;
+                        case 0x2:
+                            op = this.XOR_A_R8;
+                            break;
+                        case 0x3:
+                            op = this.CP_A_R8;
+                            break;
+                    }
+                }
+            }
+
+            return { op: op, type: type, length: 1 };
 
         }
+        // #endregion
+
+        // #region Algorithm decoding LD 0x40-0x7F
+        if (upperNybble >= 0x4 && upperNybble <= 0x7) {
+            let type: OperandType;
+            let type2: OperandType;
+            let op: Function;
+            switch (lowerNybble & 0b111) {
+                case 0x0:
+                    type2 = R8.B;
+                    break;
+                case 0x1:
+                    type2 = R8.C;
+                    break;
+                case 0x2:
+                    type2 = R8.D;
+                    break;
+                case 0x3:
+                    type2 = R8.E;
+                    break;
+                case 0x4:
+                    type2 = R8.H;
+                    break;
+                case 0x5:
+                    type2 = R8.L;
+                    break;
+                // (HL)
+                case 0x6:
+                    break;
+                case 0x7:
+                    type2 = R8.A;
+                    break;
+            }
+
+            const OPDEC = upperNybble & 0b11;
+            // Check for [HL] at column 0x6 and 0xE
+            if (lowerNybble == 0x6 || lowerNybble == 0xE) {
+                if (lowerNybble < 0x8) {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.LD_R8_iHL;
+                            type = R8.B;
+                            break;
+                        case 0x1:
+                            op = this.LD_R8_iHL;
+                            type = R8.D;
+                            break;
+                        case 0x2:
+                            op = this.LD_R8_iHL;
+                            type = R8.H;
+                            break;
+                        case 0x3:
+                            op = this.HALT;
+                            break;
+                    }
+                } else {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.LD_R8_iHL;
+                            type = R8.C;
+                            break;
+                        case 0x1:
+                            op = this.LD_R8_iHL;
+                            type = R8.E;
+                            break;
+                        case 0x2:
+                            op = this.LD_R8_iHL;
+                            type = R8.L;
+                            break;
+                        case 0x3:
+                            op = this.LD_R8_iHL;
+                            type = R8.A;
+                            break;
+                    }
+                }
+                // Not [HL]
+            } else {
+                if (lowerNybble < 0x8) {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.LD_R8_R8;
+                            type = R8.B;
+                            break;
+                        case 0x1:
+                            op = this.LD_R8_R8;
+                            type = R8.D;
+                            break;
+                        case 0x2:
+                            op = this.LD_R8_R8;
+                            type = R8.H;
+                            break;
+                        case 0x3:
+                            op = this.LD_iHL_R8;
+                            type = type2;
+                            type2 = null;
+                            break;
+                    }
+                } else {
+                    switch (OPDEC) {
+                        case 0x0:
+                            op = this.LD_R8_R8;
+                            type = R8.C;
+                            break;
+                        case 0x1:
+                            op = this.LD_R8_R8;
+                            type = R8.E;
+                            break;
+                        case 0x2:
+                            op = this.LD_R8_R8;
+                            type = R8.L;
+                            break;
+                        case 0x3:
+                            op = this.LD_R8_R8;
+                            type = R8.A;
+                            break;
+                    }
+                }
+            }
+
+            return { op: op, type: type, type2: type2, length: 1 };
+
+        }
+
+
+        alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
+        clearInterval(this.khzInterval);
     }
 
     cbOpcode(id): Op {
@@ -1006,7 +1098,6 @@ class CPU {
                 break;
         }
 
-        // 0x00 - 0x30
         if (upperNybble < 0x4) {
             // 0x0 - 0x3
             if (lowerNybble < 0x4) {
@@ -1040,7 +1131,6 @@ class CPU {
                         break;
                 }
             }
-
             // 0x40 - 0xF0
         } else {
             switch (upperNybble) {
@@ -1072,6 +1162,7 @@ class CPU {
                 bit = ((upperNybble & 0b11) * 2) + 1;
             }
         }
+        // #endregion
 
 
         return { op: op, type: type, type2: bit, length: 1 };
@@ -1130,6 +1221,11 @@ class CPU {
 
     // EI - 0xFB
     EI() {
+
+    }
+
+    // HALT - 0x76
+    HALT() {
 
     }
 
@@ -1281,6 +1377,11 @@ class CPU {
         return 4;
     }
 
+    RETI() {
+        this.RET(CC.UNCONDITIONAL);
+        this.EI();
+    }
+
     // LD A,(R16)
     LD_A_iR16(r16: R16) {
         this.setReg(R8.A, this.fetchMem8(this.getReg(r16)));
@@ -1356,6 +1457,10 @@ class CPU {
         this._r.sp = n16;
     }
 
+    LD_SP_HL(n16: number) {
+        this._r.sp = this._r.hl;
+    }
+
     // ADD A, r8
     ADD_A_R8(t: R8) {
         let value = this.getReg(t);
@@ -1372,6 +1477,24 @@ class CPU {
         this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
     }
+
+    // ADD A, [HL]
+    ADD_A_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+
+        let newValue = CPU.o8b(value + this._r.a);
+        let didOverflow = CPU.do8b(value + this._r.a);
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+        this._r._f.carry = didOverflow;
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+    }
+
 
     // ADD A, N8
     ADD_A_N8(n8: number) {
@@ -1392,7 +1515,7 @@ class CPU {
     }
 
     // ADC A, r8
-    ADC_R8(t: R8) {
+    ADC_A_R8(t: R8) {
         let value = this.getReg(t);
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
@@ -1407,13 +1530,29 @@ class CPU {
         this._r._f.carry = didOverflow;
         this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
+    }
 
+    // ADC A, [HL]
+    ADC_A_iHL(t: R8) {
+        let value = this.fetchMem8(this._r.hl);
+        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+
+        // Add the carry flag as well for ADC
+        let newValue = CPU.o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let didOverflow = CPU.do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+        this._r._f.carry = didOverflow;
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
     }
 
     // ADC A, n8
     ADC_N8(n8: number) {
         let value = n8;
-
 
         // Add the carry flag as well for ADC
         let newValue = CPU.o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
@@ -1427,8 +1566,6 @@ class CPU {
 
         // Set register values
         this._r.a = newValue;
-
-
     }
 
     ADD_HL_R8(t: R8) {
@@ -1479,6 +1616,22 @@ class CPU {
         this._r._f.half_carry = (value & 0xF) - (1 & 0xF) < 0;
     }
 
+    SUB_A_iHL(t: R8) {
+        let value = this.fetchMem8(this._r.hl);
+
+        let newValue = CPU.o8b(this._r.a - value);
+        let didOverflow = CPU.do8b(this._r.a - value);
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+        this._r._f.carry = didOverflow;
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = true;
+        this._r._f.half_carry = (value & 0xF) - (1 & 0xF) < 0;
+    }
+
     SUB_A_N8(n8: number) {
         let newValue = CPU.o8b(this._r.a - n8);
         let didOverflow = CPU.do8b(this._r.a - n8);
@@ -1509,8 +1662,32 @@ class CPU {
         this._r._f.negative = true;
     }
 
-    AND_R8(t: R8) {
+    SBC_A_iHL(t: R8) {
+        let value = this.fetchMem8(this._r.hl);
+
+        // Also subtract the carry flag for SBC
+        let newValue = CPU.o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let didOverflow = CPU.do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+        this._r._f.carry = didOverflow;
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = true;
+    }
+
+
+    AND_A_R8(t: R8) {
         let value = this.getReg(t);
+
+        let final = value & this._r.a;
+        this._r.a = final;
+    }
+
+    AND_A_iHL(t: R8) {
+        let value = this.fetchMem8(this._r.hl);
 
         let final = value & this._r.a;
         this._r.a = final;
@@ -1589,7 +1766,7 @@ class CPU {
     }
 
     // CP A,r8
-    CP_A(t: R8) {
+    CP_A_R8(t: R8) {
         let r8 = this.getReg(t);
 
         let newValue = CPU.o8b(this._r.a - r8);
