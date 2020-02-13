@@ -50,7 +50,7 @@ function test() {
 
     cpu._r.a = 12;
     cpu._r.b = 25;
-    cpu.AND_R8(R8.B);
+    cpu.AND_A_R8(R8.B);
     console.log(cpu._r.a);
     console.log("(DEC) 12 & 25: Expect (DEC) 8.");
 
