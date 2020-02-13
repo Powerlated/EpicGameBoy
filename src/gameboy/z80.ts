@@ -305,14 +305,8 @@ class CPU {
 
     }
 
-    totalI = 0;
-    time = 0;
-
-    debug = true;
 
     _r = new Registers();
-
-
     _pc: number = 0x0000;
 
     get pc(): number {
@@ -335,11 +329,14 @@ class CPU {
     bus = new MemoryBus();
     gpu = new GPU(this.bus);
 
+    // #region
+
+    cycles = 0;
+
     haltAt = 0xFFFFF;
     haltWhen = 0xFFFFFFFFF;
 
     lastSerialOut = 0;
-    cycles = 0;
     lastInstructionDebug = "";
     lastOperandDebug = "";
     lastInstructionCycles = 0;
@@ -347,6 +344,13 @@ class CPU {
 
     lastOpcode = 0;
     lastOpcodeReps = 0;
+
+    totalI = 0;
+    time = 0;
+
+    debug = true;
+
+    // #endregion
 
     fetchMem8(addr: number): number {
         this.cycles += 4;
@@ -648,8 +652,6 @@ class CPU {
                 return { op: this.LD_FF00plusC_A, length: 1 };
             case 0x0C:
                 return { op: this.INC_R8, type: R8.C, length: 1 };
-            case 0x77:
-                return { op: this.LD_iR16_A, type: R16.HL, length: 1 };
             case 0xE0:
                 return { op: this.LD_FF00plusN8_A, length: 2 };
             case 0x11:
@@ -674,14 +676,10 @@ class CPU {
                 return { op: this.INC_R16, type: R16.HL, length: 1 };
             case 0xC9:
                 return { op: this.RET, type: CC.UNCONDITIONAL, length: 1 };
-            case 0x4F:
-                return { op: this.LD_R8_R8, type: R8.C, type2: R8.A, length: 1 };
             case 0x06:
                 return { op: this.LD_R8_N8, type: R8.B, length: 2 };
             case 0x13:
                 return { op: this.INC_R16, type: R16.DE, length: 1 };
-            case 0x7B:
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.E, length: 1 };
             case 0xFE:
                 return { op: this.CP_A_N8, length: 2 };
             case 0xEA:
@@ -694,12 +692,6 @@ class CPU {
                 return { op: this.LD_R8_N8, type: R8.L, length: 2 };
             case 0x18: // JR e8
                 return { op: this.JR, type: CC.UNCONDITIONAL, length: 2 };
-            case 0x67: // LD H, A
-                return { op: this.LD_R8_R8, type: R8.H, type2: R8.A, length: 1 };
-            case 0x57: // LD D, A
-                return { op: this.LD_R8_R8, type: R8.D, type2: R8.A, length: 1 };
-            case 0x5F: // LD E, A
-                return { op: this.LD_R8_R8, type: R8.E, type2: R8.A, length: 1 };
             case 0x04: // INC B
                 return { op: this.INC_R8, type: R8.B, length: 1 };
             case 0x1E: // LD E, n8
@@ -712,8 +704,6 @@ class CPU {
                 return { op: this.DEC_R8, type: R8.E, length: 1 };
             case 0x24: // INC H
                 return { op: this.INC_R8, type: R8.H, length: 1 };
-            case 0x7C: // LD A, H
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.H, length: 1 };
             case 0x90: // SUB A, B
                 return { op: this.SUB_A_R8, type: R8.B, length: 1 };
             case 0x15: // DEC D
@@ -722,10 +712,6 @@ class CPU {
                 return { op: this.LD_R8_N8, type: R8.D, length: 2 };
             case 0xBE: // CP A, [HL]
                 return { op: this.CP_A_iHL, length: 1 };
-            case 0x7D: // LD A, L
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.L, length: 1 };
-            case 0x78: // LD A, B
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.B, length: 1 };
             case 0x86: // ADD A, [HL]
                 return { op: this.ADD_iHL, length: 1 };
             case 0xc3: // JP n16
@@ -748,14 +734,10 @@ class CPU {
                 return { op: this.CPL, length: 1 };
             case 0xE6: // AND A, u8
                 return { op: this.AND_N8, length: 2 };
-            case 0x47:
-                return { op: this.LD_R8_R8, type: R8.B, type2: R8.A, length: 1 };
             case 0xB0:
                 return { op: this.OR_A_R8, type: R8.B, length: 1 };
             case 0xA1:
                 return { op: this.AND_R8, type: R8.C, length: 1 };
-            case 0x79:
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.C, length: 1 };
             case 0xEF: // RST 28h
                 return { op: this.RST, type: 0x28, length: 1 };
             case 0x87:
@@ -764,10 +746,6 @@ class CPU {
                 return { op: this.POP_R16, type: R16.HL, length: 1 };
             case 0x19:
                 return { op: this.ADD_HL_R8, type: R16.DE, length: 1 };
-            case 0x5E:
-                return { op: this.LD_R8_iHL, type: R8.E, length: 1 };
-            case 0x56:
-                return { op: this.LD_R8_iHL, type: R8.D, length: 1 };
             case 0xD5:
                 return { op: this.PUSH_R16, type: R16.DE, length: 1 };
             case 0xE9: // JP [HL]
@@ -796,8 +774,6 @@ class CPU {
                 return { op: this.CALL_N16, type: CC.NZ, length: 3 };
             case 0x2C: // INC L
                 return { op: this.INC_R8, type: R8.L, length: 1 };
-            case 0x69: // LD L, C
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.C, length: 1 };
             case 0x91: // SUB C
                 return { op: this.SUB_A_R8, type: R8.C, length: 1 };
             case 0x38: // JR C, E8
@@ -812,12 +788,8 @@ class CPU {
                 return { op: this.OR_A_R8, type: R8.A, length: 1 };
             case 0xC2: // JP NZ, N16
                 return { op: this.JP_N16, type: CC.NZ, length: 3 };
-            case 0x46: // LD B, (HL)
-                return { op: this.LD_R8_iHL, type: R8.B, length: 1 };
             case 0x2D: // DEC L
                 return { op: this.DEC_R8, type: R8.L, length: 1 };
-            case 0x4E: // LD C,(HL)
-                return { op: this.LD_R8_iHL, type: R8.C, length: 1 };
             case 0x26: // LD H, N8
                 return { op: this.LD_R8_N8, type: R8.H, length: 2 };
             case 0xF7: // RST 30h
@@ -828,12 +800,6 @@ class CPU {
                 return { op: this.JR, type: CC.NC, length: 2 };
             case 0x25: // DEC H
                 return { op: this.DEC_R8, type: R8.H, length: 1 };
-            case 0x72: // LD (HL), D
-                return { op: this.LD_iHL_R8, type: R8.D, length: 1 };
-            case 0x71: // LD (HL), C
-                return { op: this.LD_iHL_R8, type: R8.C, length: 1 };
-            case 0x70: // LD (HL), B
-                return { op: this.LD_iHL_R8, type: R8.B, length: 1 };
             case 0xD1: // POP DE
                 return { op: this.POP_R16, type: R16.DE, length: 1 };
             case 0xCC: // CALL Z, N16
@@ -846,8 +812,6 @@ class CPU {
                 return { op: this.RET, type: CC.Z, length: 1 };
             case 0xEE: // XOR A, N8
                 return { op: this.XOR_A_N8, length: 2 };
-            case 0x7A: // LD A, D
-                return { op: this.LD_R8_R8, type: R8.A, type2: R8.D, length: 1 };
             case 0x93: // LD SUB A, E
                 return { op: this.SUB_A_R8, type: R8.E, length: 1 };
             case 0xC0: // RET NZ
@@ -856,24 +820,148 @@ class CPU {
                 return { op: this.OR_A_iHL, length: 1 };
             case 0x35: // DEC [HL]
                 return { op: this.DEC_R16, type: R16.HL, length: 1 };
-            case 0x5E: // LD E, [HL]
-                return { op: this.LD_R8_iHL, type: R8.E, length: 1 };
-            case 0x6C: // LD L, H
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.H, length: 1 };
-            case 0x6E: // LD L, [HL]
-                return { op: this.LD_R8_iHL, type: R8.L, length: 1 };
-            case 0x6F: // LD L, A
-                return { op: this.LD_R8_R8, type: R8.L, type2: R8.A, length: 1 };
             case 0x29: // ADD HL, HL
                 return { op: this.ADD_HL_R16, type: R16.HL, length: 1 };
             case 0x3C: // INC A
                 return { op: this.INC_R8, type: R8.A, length: 1 };
             case 0xBB: // CP A, E  
                 return { op: this.CP_A_N8, type: R8.E, length: 1 };
-            case 0x7E: // LD A, [HL]
-                return { op: this.LD_A_iR16, type: R16.HL, length: 1 };
             case 0xD8: // RET C
-                return { op: this.RET, type: CC.C, length: 1}
+                return { op: this.RET, type: CC.C, length: 1 };
+            case 0xF8: // LD HL, SP+e8
+                return { op: this.LD_HL_SPaddE8, length: 2 };
+            case 0x07: // RLC A
+                return { op: this.RLC, type: R8.A, length: 1 };
+            case 0x10: // STOP
+                return { op: this.NOP, length: 2 };
+            case 0x40: // LD B, B
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.B, length: 1 };
+            case 0x41: // LD B, C
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.C, length: 1 };
+            case 0x42: // LD B, D
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.D, length: 1 };
+            case 0x43: // LD B, E
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.E, length: 1 };
+            case 0x44: // LD B, H
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.H, length: 1 };
+            case 0x45: // LD B, L
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.L, length: 1 };
+            case 0x46: // LD B, (HL)
+                return { op: this.LD_R8_iHL, type: R8.B, length: 1 };
+            case 0x47: // LD B, A
+                return { op: this.LD_R8_R8, type: R8.B, type2: R8.A, length: 1 };
+            case 0x48: // LD C, B
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.B, length: 1 };
+            case 0x49: // LD C, C
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.C, length: 1 };
+            case 0x4A: // LD C, D
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.D, length: 1 };
+            case 0x4B: // LD C, E
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.E, length: 1 };
+            case 0x4C: // LD C, H
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.H, length: 1 };
+            case 0x4D: // LD C, L
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.L, length: 1 };
+            case 0x4E: // LD C, (HL)
+                return { op: this.LD_R8_iHL, type: R8.C, length: 1 };
+            case 0x4F: // LD C, A
+                return { op: this.LD_R8_R8, type: R8.C, type2: R8.A, length: 1 };
+            case 0x50: // LD D, B
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.B, length: 1 };
+            case 0x51: // LD D, C
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.C, length: 1 };
+            case 0x52: // LD D, D
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.D, length: 1 };
+            case 0x53: // LD D, E
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.E, length: 1 };
+            case 0x54: // LD D, H
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.H, length: 1 };
+            case 0x55: // LD D, L
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.L, length: 1 };
+            case 0x56: // LD D, (HL)
+                return { op: this.LD_R8_iHL, type: R8.D, length: 1 };
+            case 0x57: // LD D, A
+                return { op: this.LD_R8_R8, type: R8.D, type2: R8.A, length: 1 };
+            case 0x58: // LD E, B
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.B, length: 1 };
+            case 0x59: // LD E, C
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.C, length: 1 };
+            case 0x5A: // LD E, D
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.D, length: 1 };
+            case 0x5B: // LD E, E
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.E, length: 1 };
+            case 0x5C: // LD E, H
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.H, length: 1 };
+            case 0x5D: // LD E, L
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.L, length: 1 };
+            case 0x5E: // LD E, (HL)
+                return { op: this.LD_R8_iHL, type: R8.E, length: 1 };
+            case 0x5F: // LD E, A
+                return { op: this.LD_R8_R8, type: R8.E, type2: R8.A, length: 1 };
+            case 0x60: // LD H, B
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.B, length: 1 };
+            case 0x61: // LD H, C
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.C, length: 1 };
+            case 0x62: // LD H, D
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.D, length: 1 };
+            case 0x63: // LD H, E
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.E, length: 1 };
+            case 0x64: // LD H, H
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.H, length: 1 };
+            case 0x65: // LD H, L
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.L, length: 1 };
+            case 0x66: // LD H, (HL)
+                return { op: this.LD_R8_iHL, type: R8.H, length: 1 };
+            case 0x67: // LD H, A
+                return { op: this.LD_R8_R8, type: R8.H, type2: R8.A, length: 1 };
+            case 0x68: // LD L, B
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.B, length: 1 };
+            case 0x69: // LD L, C
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.C, length: 1 };
+            case 0x6A: // LD L, D
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.D, length: 1 };
+            case 0x6B: // LD L, E
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.E, length: 1 };
+            case 0x6C: // LD L, H
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.H, length: 1 };
+            case 0x6D: // LD L, L
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.L, length: 1 };
+            case 0x6E: // LD L, (HL)
+                return { op: this.LD_R8_iHL, type: R8.L, length: 1 };
+            case 0x6F: // LD L, A
+                return { op: this.LD_R8_R8, type: R8.L, type2: R8.A, length: 1 };
+            case 0x70: // LD D, B
+                return { op: this.LD_iHL_R8, type: R8.B, length: 1 };
+            case 0x71: // LD D, C
+                return { op: this.LD_iHL_R8, type: R8.C, length: 1 };
+            case 0x72: // LD D, D
+                return { op: this.LD_iHL_R8, type: R8.D, length: 1 };
+            case 0x73: // LD D, E
+                return { op: this.LD_iHL_R8, type: R8.E, length: 1 };
+            case 0x74: // LD D, H
+                return { op: this.LD_iHL_R8, type: R8.H, length: 1 };
+            case 0x75: // LD D, L
+                return { op: this.LD_iHL_R8, type: R8.L, length: 1 };
+            case 0x76: // HALT
+                return { op: this.NOP, length: 1 };
+            case 0x77: // LD D, A
+                return { op: this.LD_iHL_R8, type: R8.A, length: 1 };
+            case 0x78: // LD A, B
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.B, length: 1 };
+            case 0x79: // LD A, C
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.C, length: 1 };
+            case 0x7A: // LD A, D
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.D, length: 1 };
+            case 0x7B: // LD A, E
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.E, length: 1 };
+            case 0x7C: // LD A, H
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.H, length: 1 };
+            case 0x7D: // LD A, L
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.L, length: 1 };
+            case 0x7E: // LD A, (HL)
+                return { op: this.LD_R8_iHL, type: R8.A, length: 1 };
+            case 0x7F: // LD A, A
+                return { op: this.LD_R8_R8, type: R8.A, type2: R8.A, length: 1 };
             default:
                 alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
                 clearInterval(this.khzInterval);
@@ -1200,6 +1288,15 @@ class CPU {
 
     LD_R16_A(t: R8) {
         this.writeMem8(this.fetchMem8(this.getReg(t)), this._r.a);
+    }
+
+    LD_HL_SPaddE8(e8: number) {
+        this._r._f.zero = false;
+        this._r._f.negative = false;
+        this._r._f.half_carry = (this._r.a & 0b111) + (this._r.sp & 0b111) > 0b111;
+        this._r._f.carry = (this._r.a & 0b1111111) + (this._r.sp & 0b1111111) > 0b1111111;
+
+        this._r.hl = CPU.o16b(e8 + this._r.sp);
     }
 
     // LD [$FF00+u8],A
@@ -1582,13 +1679,11 @@ class CPU {
         let didOverflow = CPU.do8b((this._r.a >> 1) | carryMask);
 
         this._r._f.carry = (this._r.a & 0b00000001) == 0b1;
-
-        this._r.a = newValue;
-
         this._r._f.zero = false;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
 
+        this._r.a = newValue;
     }
 
     // Rotate A left through carry
