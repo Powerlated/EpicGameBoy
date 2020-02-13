@@ -138,7 +138,7 @@ if (!isNode()) {
             console.error(e);
             cpu.khzStop();
         }
-    }, 10);
+    }, 100);
 
 } else {
     console.log("Running in node, not updating DEBUG");

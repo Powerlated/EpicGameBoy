@@ -39,7 +39,7 @@ setTimeout(() => {
       console.log(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 1000 instructions, exiting.`)
       cleanUp();
     }
-    if (cpu.totalI > 1000000 || cpu.pc == 0xFFFF) {
+    if (cpu.totalI > 500000 || cpu.pc == 0xFFFF) {
       cleanUp();
     }
   }, 10);

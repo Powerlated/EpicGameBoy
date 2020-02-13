@@ -42,16 +42,22 @@ class MemoryBus {
                 case 0xFF01:
                     console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);
+                    break;
                 case 0xFF40:
                     console.info(`LCD CONTROL CHANGE`);
+                    break;
                 case 0xFF41:
                     console.info(`LCDC STATUS CHANGE`);
+                    break;
                 case 0xFF42:
                     this.gpu.scrollY = value;
+                    break;
                 case 0xFF43:
                     this.gpu.scrollX = value;
+                    break;
                 case 0xFF50:
                     this.memory[addr] = value;
+                    break;
                 default:
                     return;
             }

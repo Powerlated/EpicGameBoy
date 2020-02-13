@@ -256,7 +256,7 @@ enum R8 {
 }
 
 enum R16 {
-    AF = "AF", BC = "BC", DE = "DE", HL = "HL"
+    AF = "AF", BC = "BC", DE = "DE", HL = "HL", SP = "SP"
 }
 
 enum CC {
@@ -571,11 +571,11 @@ class CPU {
                 return this._r.de;
             case R16.HL:
                 return this._r.hl;
+            case R16.SP:
+                return this._r.sp;
 
         }
     }
-
-
 
     private setReg(t: R8 | R16, i: number) {
         if (t == undefined) {
@@ -618,6 +618,9 @@ class CPU {
                 break;
             case R16.HL:
                 this._r.hl = i;
+                break;
+            case R16.SP:
+                this._r.sp = i;
                 break;
         }
     }
@@ -828,6 +831,13 @@ class CPU {
                 return { op: this.RETI, type: CC.NZ, length: 3 };
             case 0x34: // INC [HL]
                 return { op: this.INC_R16, type: R16.HL, length: 3 };
+            case 0x33: // INC SP
+                return { op: this.INC_R16, type: R16.SP, length: 3 };
+            case 0x3B: // DEC SP
+                return { op: this.DEC_R16, type: R16.SP, length: 3 };
+            case 0x39: // ADD HL, SP
+                return { op: this.ADD_HL_R16, type: R16.SP, length: 3 };
+
         }
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF

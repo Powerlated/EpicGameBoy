@@ -51,9 +51,9 @@
 
         <button onclick="window.cpu.step(); window.cpu.debug = true">Execute at PC</button>
         <button onclick="window.cpu.khz()">Speed Execute</button>
-        <button onclick="window.cpu.khzStop()">Halt Execute</button>
-        <button onclick="window.cpu.gpu.vBlank()">VBLANK</button>
-        <button onclick="window.cpu.gpu.renderTiles()">Render Tiles</button>
+        <button onclick="window.cpu.bus.gpu.frameExecute()">Frame Execute</button>
+        <button onclick="window.cpu.khzStop(); window.cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
+        <button onclick="window.cpu.gpu.renderSingleFrame()">Render Frame</button>
         <button onclick="console.log(window.cpu.registers)">Dump Registers</button>
 
 
@@ -63,13 +63,15 @@
         </div>
 
         <div>
+            <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
+        </div>
+
+
+        <div>
             <label for="bootromInput">Open Boot ROM</label>
             <input id="bootromInput" autocomplete="off" type="file">
         </div>
 
-        <div>
-            <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
-        </div>
 
         <div>
             <label for="gameromInput">Open Game ROM</label>
@@ -168,7 +170,8 @@
                 array.forEach((v, i, a) => {
                     window.cpu.bus.memory[i] = v;
                 });
-                window.cpu.khz()
+                // window.cpu.khz()
+                window.cpu.bus.gpu.frameExecute();
             }
             reader.readAsArrayBuffer(this.files[0]);
         }, false);

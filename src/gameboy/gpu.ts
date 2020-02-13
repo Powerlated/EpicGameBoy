@@ -59,8 +59,11 @@ class GPU {
                 if (this.modeClock >= 43) {
                     this.modeClock = 0;
                     this.mode = 0;
+                    
                     // Write a scanline to the framebuffer
-                    this.renderScanline();
+                    if (!isNode) {
+                        this.renderScanline();
+                    }
                 }
                 break;
 
@@ -89,18 +92,30 @@ class GPU {
                     if (this.lcdcY > 153) {
                         this.mode = 2;
                         this.lcdcY = 0;
+
+                        this.runningTheCPU = false;
+
+                        if (!isNode) {
+                            this.drawToCanvas();
+                        }
                     }
                 }
-                this.runningTheCPU = false;
                 break;
         }
 
     }
 
+    imageData = new Uint8ClampedArray(160 * 144 * 4);
+
+    drawToCanvas() {
+        let iData = new ImageData(this.imageData, 160, 144);
+        this.ctx.putImageData(iData, 0, 0);
+    }
+
     renderScanline() {
         // console.log("Rendering a scanline @ Y:" + this.lcdcY);
 
-        let scrollX = 0;
+        let scrollX = this.scrollX;
         let scrollY = this.scrollY;
 
         let y = (this.lcdcY + scrollY) & 7; // CORRECT
@@ -112,14 +127,19 @@ class GPU {
 
         let tile = this.vram[mapoffs];
 
+        let canvasIndex = 160 * 4 * (this.lcdcY);
+
         // Loop through every single pixel 
         for (let i = 0; i < 160; i++) {
             // Re-map the tile pixel through the palette
             let c = this.palette(this.tileset[tile][y][x]);
 
             // Plot the pixel to canvas
-            this.drawPixel(i, this.lcdcY, c, c, c);
-
+            this.imageData[canvasIndex + 0] = c;
+            this.imageData[canvasIndex + 1] = c;
+            this.imageData[canvasIndex + 2] = c;
+            this.imageData[canvasIndex + 3] = 255;
+            canvasIndex += 4;
 
             // When this tile ends, read another
             x++;
@@ -135,10 +155,22 @@ class GPU {
     runningTheCPU = false;
     renderSingleFrame() {
         this.runningTheCPU = true;
+        cpu.debug = false;
         while (this.runningTheCPU) {
             cpu.step();
         }
     }
+
+    frameExecuteInterval = 0;
+
+    frameExecute() {
+        this.frameExecuteInterval = setInterval(() => { this.renderSingleFrame(); }, 16);
+    }
+
+    stopFrameExecute() {
+        clearInterval(this.frameExecuteInterval);
+    }
+
 
     palette(i: number) {
         return PaletteBasic[i];
@@ -176,12 +208,8 @@ class GPU {
             Scroll X: ${this.scrollX}
 
             LCDC Y-Coordinate: ${this.lcdcY}
-
-            Last tile written: 0x${this.lastTile.toString(16)}
-            Last row written: 0x${this.lastRow.toString(16)}
-            Last pixel written: 0x${this.lastPixel.toString(16)}
             `;
-            }, 10);
+            }, 100);
         }
     }
 
@@ -208,11 +236,6 @@ class GPU {
             for (var x = 0; x < 8; x++) {
                 // Find bit index for this pixel
                 sx = 1 << (7 - x);
-
-                this.lastTile = tile;
-                this.lastRow = y;
-                this.lastPixel = x;
-
 
                 // Update tile set
                 this.tileset[tile][y][x] =
@@ -242,8 +265,4 @@ class GPU {
             tilemapArr[x][y] = value;
         }
     }
-
-    lastTile = 0;
-    lastRow = 0;
-    lastPixel = 0;
 }
