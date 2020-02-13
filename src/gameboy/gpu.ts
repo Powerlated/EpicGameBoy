@@ -61,7 +61,7 @@ class GPU {
                     this.mode = 0;
                     
                     // Write a scanline to the framebuffer
-                    if (!isNode) {
+                    if (!isNode()) {
                         this.renderScanline();
                     }
                 }
@@ -95,7 +95,7 @@ class GPU {
 
                         this.runningTheCPU = false;
 
-                        if (!isNode) {
+                        if (!isNode()) {
                             this.drawToCanvas();
                         }
                     }

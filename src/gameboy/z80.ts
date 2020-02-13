@@ -5,6 +5,92 @@ function mod(a: number, b: number): number {
     return r < 0 ? r + b : r;
 }
 
+function undefErr(cpu, name) {
+    alert(`
+    ${name} undefined
+    
+    Total Instructions: #${cpu.totalI}
+    PC: 0x${cpu.pc.toString(16)}
+    Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
+    Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+    `);
+}
+
+function overflow8bErr(cpu, name, overflow) {
+    alert(`
+    ${name} was set out of 0-255 (${overflow})
+    
+    Total Instructions: #${cpu.totalI}
+    PC: 0x${cpu.pc.toString(16)}
+    Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
+    Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+    `);
+}
+
+function overflow16bErr(cpu, name, overflow) {
+    alert(`
+    ${name} was set out of 0-65535 (${overflow})
+    
+    Total Instructions: #${cpu.totalI}
+    PC: 0x${cpu.pc.toString(16)}
+    Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
+    Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+    `);
+}
+
+function check(cpu: CPU) {
+    if (cpu._r.a < 0 || cpu._r.a > 255)
+        overflow8bErr(cpu, "A", cpu._r.a);
+    if (cpu._r.b < 0 || cpu._r.b > 255)
+        overflow8bErr(cpu, "B", cpu._r.b);
+    if (cpu._r.c < 0 || cpu._r.c > 255)
+        overflow8bErr(cpu, "C", cpu._r.c);
+    if (cpu._r.d < 0 || cpu._r.d > 255)
+        overflow8bErr(cpu, "D", cpu._r.d);
+    if (cpu._r.e < 0 || cpu._r.e > 255)
+        overflow8bErr(cpu, "E", cpu._r.e);
+    if (cpu._r.f < 0 || cpu._r.f > 255)
+        overflow8bErr(cpu, "F", cpu._r.f);
+    if (cpu._r.h < 0 || cpu._r.h > 255)
+        overflow8bErr(cpu, "H", cpu._r.h);
+    if (cpu._r.l < 0 || cpu._r.l > 255)
+        overflow8bErr(cpu, "L", cpu._r.l);
+    if (cpu._r.af < 0 || cpu._r.af > 65535)
+        overflow8bErr(cpu, "AF", cpu._r.af);
+    if (cpu._r.bc < 0 || cpu._r.bc > 65535)
+        overflow8bErr(cpu, "BC", cpu._r.bc);
+    if (cpu._r.de < 0 || cpu._r.de > 65535)
+        overflow8bErr(cpu, "DE", cpu._r.de);
+    if (cpu._r.hl < 0 || cpu._r.hl > 65535)
+        overflow8bErr(cpu, "HL", cpu._r.hl);
+
+    if (isNaN(cpu._r.a))
+        undefErr(cpu, "A");
+    if (isNaN(cpu._r.b))
+        undefErr(cpu, "B");
+    if (isNaN(cpu._r.c))
+        undefErr(cpu, "C");
+    if (isNaN(cpu._r.d))
+        undefErr(cpu, "D");
+    if (isNaN(cpu._r.e))
+        undefErr(cpu, "E");
+    if (isNaN(cpu._r.f))
+        undefErr(cpu, "F");
+    if (isNaN(cpu._r.h))
+        undefErr(cpu, "H");
+    if (isNaN(cpu._r.l))
+        undefErr(cpu, "L");
+    if (isNaN(cpu._r.af))
+        undefErr(cpu, "AF");
+    if (isNaN(cpu._r.bc))
+        undefErr(cpu, "BC");
+    if (isNaN(cpu._r.de))
+        undefErr(cpu, "DE");
+    if (isNaN(cpu._r.hl))
+        undefErr(cpu, "HL");
+
+}
+
 class Registers {
     cpu: CPU;
 
@@ -34,49 +120,16 @@ class Registers {
         this._f.carry = (i & (1 << 4)) != 0;
     }
 
-    _a: number;
-    _b: number;
-    _c: number;
-    _d: number;
-    _e: number;
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+    e: number;
 
-    _h: number;
-    _l: number;
+    h: number;
+    l: number;
 
     sp: number;
-
-    undefErr(name) {
-        alert(`
-        ${name} undefined
-        
-        Total Instructions: #${cpu.totalI}
-        PC: 0x${cpu.pc.toString(16)}
-        Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-        Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
-        `);
-    }
-
-    overflow8bErr(name, overflow) {
-        alert(`
-        ${name} was set greater than 255 (${overflow})
-        
-        Total Instructions: #${cpu.totalI}
-        PC: 0x${cpu.pc.toString(16)}
-        Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-        Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
-        `);
-    }
-
-    overflow16bErr(name, overflow) {
-        alert(`
-        ${name} was set greater than 65535 (${overflow})
-        
-        Total Instructions: #${cpu.totalI}
-        PC: 0x${cpu.pc.toString(16)}
-        Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-        Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
-        `);
-    }
 
     get af() {
         return this.a << 8 | this.f;
@@ -91,135 +144,19 @@ class Registers {
         return this.h << 8 | this.l;
     }
 
-    get a(): number {
-        return this._a;
-    }
-    set a(i: number) {
-        if (isNaN(i))
-            this.undefErr('A');
-
-        if (i > 255)
-            this.overflow8bErr('A', i);
-
-        this._a = i;
-    }
-
-    get b(): number {
-        return this._b;
-    }
-    set b(i: number) {
-        if (isNaN(i))
-            this.undefErr('B');
-
-        if (i > 255)
-            this.overflow8bErr('B', i);
-
-        this._b = i;
-    }
-
-    get c(): number {
-        return this._c;
-    }
-    set c(i: number) {
-        if (isNaN(i))
-            this.undefErr('C');
-
-        if (i > 255)
-            this.overflow8bErr('C', i);
-
-        this._c = i;
-    }
-
-
-    get d(): number {
-        return this._d;
-    }
-    set d(i: number) {
-        if (isNaN(i))
-            this.undefErr('D');
-
-        if (i > 255)
-            this.overflow8bErr('D', i);
-
-        this._d = i;
-    }
-
-    get e(): number {
-        return this._e;
-    }
-    set e(i: number) {
-        if (isNaN(i))
-            this.undefErr('E');
-
-        if (i > 255)
-            this.overflow8bErr('E', i);
-
-        this._e = i;
-    }
-
-    get h(): number {
-        return this._h;
-    }
-    set h(i: number) {
-        if (isNaN(i))
-            this.undefErr('H');
-
-        if (i > 255)
-            this.overflow8bErr('H', i);
-
-        this._h = i;
-    }
-
-    get l(): number {
-        return this._l;
-    }
-    set l(i: number) {
-        if (isNaN(i))
-            this.undefErr('L');
-
-        if (i > 255)
-            this.overflow8bErr('L', i);
-
-        this._l = i;
-    }
-
     set af(i: number) {
-        if (isNaN(i))
-            this.undefErr('AF');
-
-        if (i > 65535)
-            this.overflow8bErr('L', i);
-
         this.a = (i & 0xFF00) >> 8;
         this.f = i & 0xFF;
     }
     set bc(i: number) {
-        if (isNaN(i))
-            this.undefErr('BC');
-
-        if (i > 65535)
-            this.overflow16bErr('DE', i);
-
         this.b = (i & 0xFF00) >> 8;
         this.c = i & 0xFF;
     }
     set de(i: number) {
-        if (isNaN(i))
-            this.undefErr('DE');
-
-        if (i > 65535)
-            this.overflow16bErr('DE', i);
-
         this.d = (i & 0xFF00) >> 8;
         this.e = i & 0xFF;
     }
     set hl(i: number) {
-        if (isNaN(i))
-            this.undefErr('HL');
-
-        if (i > 65535)
-            this.overflow16bErr('DE', i);
-
         this.h = (i & 0xFF00) >> 8;
         this.l = i & 0xFF;
     }
@@ -500,6 +437,8 @@ class CPU {
         if (!isNaN(additionalCycles)) {
             this.cycles += additionalCycles;
         }
+
+        check(this);
 
         // These instructions set the program counter on their own, no need to increment
 
@@ -872,7 +811,7 @@ class CPU {
                     break;
             }
 
-            const OPDEC = upperNybble & 0b111;
+            const OPDEC = upperNybble & 0b11;
             // Check for [HL]
             if (lowerNybble == 0x6 || lowerNybble == 0xE) {
                 if (lowerNybble < 0x8) {
@@ -1955,7 +1894,7 @@ class CPU {
         let value = this.getReg(t);
         let mask = 0b1 << selectedBit;
 
-        let final = value | ~(mask);
+        let final = value |= mask;
 
         this.setReg(t, final);
     }
