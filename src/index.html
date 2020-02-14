@@ -45,17 +45,21 @@
         <p class="panel" id="gpudebug" style="display: none">
 
         </p>
-        <p class="panel" id="disassembly"
-            style='font-family: "Lucida Console", Monaco, monospace; outline: thin, 1px, black'>
-            <b>Disassembly</b>
-        </p>
+        <!-- <b>Disassembly</b>  -->
+        <span class="panel" id="disassembly-output" style='
+            font-family: "Lucida Console", Monaco, monospace;
+            outline: thin, 1px, black;
+            vertical-align: top;
+            '>
+
+        </span>
 
         <canvas id="gameboy" width="160" height="144"></canvas>
     </div>
 
 
     <div class="interactive">
-        <button onclick="window.cpu.step(); window.cpu.debug = true">Execute at PC</button>
+        <button onclick="window.cpu.step(); window.cpu.debugging = true">Execute at PC</button>
         <button onclick="window.cpu.khz()">Speed Execute</button>
         <button onclick="window.cpu.bus.gpu.frameExecute()">Frame Execute</button>
         <button onclick="window.cpu.khzStop(); window.cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
@@ -102,6 +106,13 @@
 
 
     <script src="gameboy/gameboy.js"></script>
+    <script>
+        cpu = new CPU();
+        window.cpu = cpu;
+
+        startDebugging();
+    </script>
+
 
     <script>
         function loadDefaultBootRom() {

@@ -1,5 +1,7 @@
 
 function test() {
+    let cpu;
+
     cpu._r._f.zero = true;
     console.log(cpu._r.f);
     cpu._r.f = cpu._r.f;
@@ -89,13 +91,14 @@ function test() {
     cpu = new CPU();
 }
 
-// @ts-check
-if (!isNode()) {
-    setInterval(() => {
-        try {
-
-            let debugP = document.getElementById('debug');
-            debugP.innerText = `
+function startDebugging() {
+    // @ts-check
+    if (!isNode()) {
+        setInterval(() => {
+            let cpu = (window as any).cpu;
+            try {
+                let debugP = document.getElementById('debug');
+                debugP.innerText = `
     Last Instruction: [${cpu.lastInstructionDebug}] ${cpu.currentIns} (${cpu.lastOperandDebug})
     Last Instruction Cycles: ${cpu.lastInstructionCycles}
 
@@ -125,8 +128,8 @@ if (!isNode()) {
     DE: ${hex(cpu._r.de, 4)} ${cpu._r.de} ${cpu._r.de.toString(2)}
     HL: ${hex(cpu._r.hl, 4)} ${cpu._r.hl} ${cpu._r.hl.toString(2)}
     `;
-        } catch (e) {
-            alert(`
+            } catch (e) {
+                alert(`
         Error occurred in display, probably caused by error in CPU.
         
         PC: 0x${cpu.pc.toString(16)}
@@ -135,14 +138,19 @@ if (!isNode()) {
 
         `);
 
-            console.error(e);
-            cpu.khzStop();
-        }
-    }, 100);
+                console.error(e);
+                cpu.khzStop();
+            }
+        }, 100);
 
-} else {
-    console.log("Running in node, not updating DEBUG");
-    // @ts-ignore
-    
+
+
+        let disassemblyP = document.getElementById('disassembly-output');
+        setInterval(() => {
+            let cpu: CPU = (window as any).cpu;
+            disassemblyP.innerHTML = cpu.disassembly;
+        }, 10);
+    } else {
+        console.log("Running in node, not updating DEBUG");
+    }
 }
-

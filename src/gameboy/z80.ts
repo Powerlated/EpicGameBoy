@@ -214,13 +214,13 @@ enum Operand {
     b16, b8
 }
 
-function pad(n, width, z) {
+function pad(n: string, width: number, z: string) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
 
-function r_pad(n, width, z) {
+function r_pad(n: string, width: number, z: string) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : n + new Array(width - n.length + 1).join(z);
@@ -235,12 +235,10 @@ class CPU {
     fullLog = [];
 
     constructor() {
+        console.log("CPU Bootstrap!");
         this.bus.cpu = this;
         this.bus.gpu = this.gpu;
         this._r.cpu = this;
-
-        if (!isNode())
-            (window as any).cpu = this;
     }
 
 
@@ -286,7 +284,7 @@ class CPU {
     totalI = 0;
     time = 0;
 
-    debug = true;
+    debugging = true;
 
     // #endregion
 
@@ -330,82 +328,17 @@ class CPU {
         if (this.time % 4 == 0)
             this.bus.gpu.step();
 
-
-        // #region DEBUG
-
-        if (this.debug)
-            console.log("STEP");
+        // Run the debug information collector
+        this.stepDebug();
 
         let isCB = this.bus.readMem8(this.pc) == 0xCB;
 
+        // Use decoder based on prefix
         let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
 
         if (!ins.op) {
             alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.bus.readMem8(this.pc + 1)), 4) : hex(this.bus.readMem8(this.pc), 2)} is a null op`);
         }
-
-        let opcode = isCB ? this.bus.readMem8(this.pc + 1) : this.bus.readMem8(this.pc);
-
-        if (opcode == this.lastOpcode) {
-            this.lastOpcodeReps++;
-        } else {
-            this.lastOpcodeReps = 0;
-        }
-        this.lastOpcode = opcode;
-
-        if (!ins) {
-            console.error("Reading error at: 0x" + this.pc.toString(16));
-        }
-
-        if (!ins.length) {
-            alert(`[${ins.op.name}] Op has no length specified.`);
-        }
-
-        // if ((ins.op.length == 1 && (!ins.type)) || (ins.op.length == 2 && (!ins.type || !ins.type2))) {
-        //     alert(`[Arg length 1 || 2] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
-        // }
-        // if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
-        //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
-        // }
-
-        let insDebug = "";
-        let operandDebug = "";
-
-
-        if (this.debug) {
-            console.debug(`PC: ${this.pc}`);
-            console.log(`[OPcode: ${hex(this.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.bus.readMem8(this.pc).toString(16), 2, '0'));
-
-            console.log("Instruction length: " + ins.length);
-        }
-
-        if (this.debug || this.logging) {
-            if (ins.length == 3) {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 2), 2)}`;
-                operandDebug = `${hex(this.bus.readMem16(this.pc + 1), 4)}`;
-            } else if (ins.length == 2) {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ..`;
-                operandDebug = `${hex(this.bus.readMem8(this.pc + 1), 2)}`;
-            } else {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} .. ..`;
-            }
-            this.currentIns = `${ins.op.name} ${ins.type == undefined ? "" : ins.type}${ins.type2 == undefined ? "" : ins.type2}`;
-        }
-
-        if (this.logging) {
-
-            let flags = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
-
-            // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
-            // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
-
-            this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
-                } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
-            this.fullLog.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
-                } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
-        }
-
-        // #endregion
 
         /** **** ALL STEPPER LOGIC IS BELOW HERE **** */
 
@@ -436,25 +369,165 @@ class CPU {
             }
         }
 
+        // Roll back PC for CB so it can naturally increment later with proper length
+        if (isCB) this.pc = o16b(this.pc - 1);
+
         if (!isNaN(additionalCycles)) {
             this.cycles += additionalCycles;
         }
 
+        this.pc = o16b(this.pc + ins.length);
+
         check(this);
-
-        // These instructions set the program counter on their own, no need to increment
-
-        if (!isCB) {
-            this.pc = CPU.o16b(this.pc + ins.length);
-        } else {
-            this.pc = CPU.o16b(this.pc + 1);
-        }
 
         this.totalI++;
 
         this.lastInstructionCycles = this.cycles - c;
+
+        if (this.debugging) this.disassemble();
+    }
+
+    stepDebug() {
+        // #region DEBUG
+        if (this.debugging) {
+            console.log("STEP");
+        }
+
+        let isCB = this.bus.readMem8(this.pc) == 0xCB;
+
+        let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
+
+        if (!ins.op) {
+            alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.bus.readMem8(this.pc + 1)), 4) : hex(this.bus.readMem8(this.pc), 2)} is a null op`);
+        }
+
+        let opcode = isCB ? this.bus.readMem8(this.pc + 1) : this.bus.readMem8(this.pc);
+
+        if (opcode == this.lastOpcode) {
+            this.lastOpcodeReps++;
+        } else {
+            this.lastOpcodeReps = 0;
+        }
+        this.lastOpcode = opcode;
+
+        if (!ins) {
+            console.error("Reading error at: 0x" + this.pc.toString(16));
+        }
+
+        if (!ins.length) {
+            alert(`[${ins.op.name}] Op has no length specified.`);
+        }
+
+        // if ((ins.op.length == 1 && (!ins.type)) || (ins.op.length == 2 && (!ins.type || !ins.type2))) {
+        //     alert(`[Arg length 1 || 2] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
+        // }
+        // if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
+        //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
+        // }
+
+        let insDebug = "";
+        let operandDebug = "";
+
+
+        if (this.debugging) {
+            console.debug(`PC: ${this.pc}`);
+            console.log(`[OPcode: ${hex(this.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.bus.readMem8(this.pc).toString(16), 2, '0'));
+
+            console.log("Instruction length: " + ins.length);
+        }
+
+        if (this.debugging || this.logging) {
+            if (ins.length == 3) {
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 2), 2)}`;
+                operandDebug = `${hex(this.bus.readMem16(this.pc + 1), 4)}`;
+            } else if (ins.length == 2) {
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ..`;
+                operandDebug = `${hex(this.bus.readMem8(this.pc + 1), 2)}`;
+            } else {
+                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} .. ..`;
+            }
+            this.currentIns = `${ins.op.name} ${ins.type == undefined ? "" : ins.type}${ins.type2 == undefined ? "" : ins.type2}`;
+        }
+
+        if (this.logging) {
+
+            let flags = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
+
+            // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
+            // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
+
+            this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
+                } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
+            this.fullLog.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
+                } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
+        }
+
         this.lastOperandDebug = operandDebug;
         this.lastInstructionDebug = insDebug;
+
+        // #endregion
+    }
+
+    disassembly = "[No disassembly]";
+    disassembledLines = new Array(65536);
+
+    disassemble() {
+        const LOGBACK_INSTRUCTIONS = 16;
+        const READAHEAD_INSTRUCTIONS = 16;
+
+        this.disassembly = "";
+
+        let disasmPc = this.pc;
+        for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
+            let isCB = this.bus.readMem8(disasmPc) == 0xCB;
+            let pcTriplet = [this.bus.readMem8(disasmPc), this.bus.readMem8(disasmPc + 1), this.bus.readMem8(disasmPc + 2)];
+
+            // Pre-increment PC for 0xCB prefix
+            let ins = isCB ? this.cbOpcode(this.bus.readMem8(disasmPc + 1)) : this.rgOpcode(this.bus.readMem8(disasmPc));
+
+            function decodeHex(pcTriplet: Array<number>, ins: Op) {
+                let i0 = hexN_LC(pcTriplet[0], 2);
+                let i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
+                let i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
+
+                return pad(`${i0} ${i1} ${i2}`, 8, ' ');
+            }
+
+            let hexDecoded = decodeHex(pcTriplet, ins);
+
+            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${ins.op.name} ${ins.type ? ins.type : ""} ${ins.type2 ? ins.type2 : ""}`;
+
+            this.disassembledLines[disasmPc] = disasmLine;
+            if (ins.length >= 2) this.disassembledLines[disasmPc + 1] = null;
+            if (ins.length >= 3) this.disassembledLines[disasmPc + 2] = null;
+
+            // Build the HTML line
+            let disAsmLineHtml = `<span ${i == 0 ? "style='background-color: lime'" : ""}>${disasmLine}</span><br/>`;
+
+            this.disassembly = this.disassembly + disAsmLineHtml;
+            disasmPc = o16b(disasmPc + ins.length);
+        }
+
+        const BLANK_LINE = '<span>------- -- -- -- --------</span><br/>';
+
+        let logIndex = this.pc;
+        let skippedLines = 0;
+        for (let i = 0; i < LOGBACK_INSTRUCTIONS; i++) {
+            if (this.disassembledLines[logIndex] != null && logIndex != this.pc) {
+                this.disassembly = `<span>${this.disassembledLines[logIndex]}</span><br/>` + this.disassembly;
+            }
+            if (this.disassembledLines[logIndex] === null) {
+                skippedLines++;
+            }
+            if (this.disassembledLines[logIndex] === undefined) {
+                this.disassembly = BLANK_LINE + this.disassembly;
+            }
+
+            logIndex = o16b(logIndex - 1);
+        }
+        for (let i = 0; i < skippedLines; i++) {
+            this.disassembly = BLANK_LINE + this.disassembly;
+        }
     }
 
     setHalt = false;
@@ -467,7 +540,7 @@ class CPU {
     }
 
     khz() {
-        this.debug = false;
+        this.debugging = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
             let max = 41940;
@@ -727,9 +800,9 @@ class CPU {
             case 0x07: // RLC A
                 return { op: this.RLC_R8, type: R8.A, length: 1 };
             case 0x10: // STOP
-                return { op: this.NOP, length: 2 };
+                return { op: this.STOP, length: 2 };
             case 0x76: // HALT
-                return { op: this.NOP, length: 1 };
+                return { op: this.HALT, length: 1 };
             case 0x37: // SCF
                 return { op: this.SCF, length: 1 };
             case 0x3F: // CCF
@@ -974,49 +1047,14 @@ class CPU {
 
 
 
-        return { op: op, type: type, type2: bit, length: 1 };
+        return { op: op, type: type, type2: bit, length: 2 };
     }
 
-    unTwo8b(n: number): number {
-        if ((n & 0b10000000) != 0) {
-            return n - 256;
-        } else {
-            return n;
-        }
-    }
 
-    unTwo16b(n: number): number {
-        if ((n & 0b1000000000000000) != 0) {
-            return n - 65536;
-        } else {
-            return n;
-        }
-    }
 
-    static o4b(i: number): number {
-        return mod(i, 0xF + 1);
-    }
 
-    static o8b(i: number): number {
-        return mod(i, 0xFF + 1);
-    }
 
-    static o16b(i: number): number {
-        return mod(i, 0xFFFF + 1);
-    }
-
-    static do4b(i: number): boolean {
-        return i >= 0xF || i < 0;
-    }
-
-    static do8b(i: number): boolean {
-        return i >= 0xFF || i < 0;
-    }
-
-    static do16b(i: number): boolean {
-        return i >= 0xFFFF || i < 0;
-    }
-
+    // #region INSTRUCTIONS
 
     // NOP - 0x00
     NOP() {
@@ -1042,25 +1080,29 @@ class CPU {
 
     }
 
+    STOP() {
+
+    }
+
     // wtf is a DAA?
     // Decimal adjust A
     DA_A() {
         if (!this._r._f.negative) {
             if (this._r._f.carry || this._r.a > 0x99) {
-                this._r.a = CPU.o8b(this._r.a + 0x60);
+                this._r.a = o8b(this._r.a + 0x60);
                 this._r._f.carry = true;
             }
             if (this._r._f.half_carry || (this._r.a & 0x0f) > 0x09) {
-                this._r.a = CPU.o8b(this._r.a + 0x6);
+                this._r.a = o8b(this._r.a + 0x6);
             }
         }
         else {
             if (this._r._f.carry) {
-                this._r.a = CPU.o8b(this._r.a - 0x60);
+                this._r.a = o8b(this._r.a - 0x60);
                 this._r._f.carry = true;
             }
             if (this._r._f.half_carry) {
-                this._r.a = CPU.o8b(this._r.a - 0x6);
+                this._r.a = o8b(this._r.a - 0x6);
             }
         }
 
@@ -1074,7 +1116,7 @@ class CPU {
         let spLowerByte = this._r.sp & 0b11111111;
 
         this.writeMem8(in16 + 0, spLowerByte);
-        this.writeMem8(in16 + 1, CPU.o16b(spUpperByte));
+        this.writeMem8(in16 + 1, o16b(spUpperByte));
     }
 
 
@@ -1085,8 +1127,8 @@ class CPU {
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
-        this.writeMem8(CPU.o16b(--this._r.sp), upperByte);
-        this.writeMem8(CPU.o16b(--this._r.sp), lowerByte);
+        this.writeMem8(o16b(--this._r.sp), upperByte);
+        this.writeMem8(o16b(--this._r.sp), lowerByte);
     }
 
     LD_A_N16(n16: number) {
@@ -1099,7 +1141,7 @@ class CPU {
 
     LD_A_iHL_INC() {
         this._r.a = this.fetchMem8(this._r.hl);
-        this._r.hl = CPU.o16b(this._r.hl + 1);
+        this._r.hl = o16b(this._r.hl + 1);
     }
 
     LD_iHL_N8(n8: number) {
@@ -1111,7 +1153,7 @@ class CPU {
     }
 
     ADD_iHL() {
-        this._r.a = CPU.o8b(this._r.a + this.fetchMem8(this._r.hl));
+        this._r.a = o8b(this._r.a + this.fetchMem8(this._r.hl));
     }
 
     CP_A_iHL() {
@@ -1123,11 +1165,11 @@ class CPU {
     }
 
     LD_A_iFF00plusN8(n8: number) {
-        this._r.a = this.fetchMem8(CPU.o16b(0xFF00 + n8));
+        this._r.a = this.fetchMem8(o16b(0xFF00 + n8));
     }
 
     LD_A_iFF00plusC() {
-        this._r.a = this.fetchMem8(CPU.o16b(0xFF00 + this._r.c));
+        this._r.a = this.fetchMem8(o16b(0xFF00 + this._r.c));
     }
 
     LD_iR16_A(r16: R16) {
@@ -1146,9 +1188,9 @@ class CPU {
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
-        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, upperByte);
-        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, lowerByte);
 
         return 4;
@@ -1158,9 +1200,9 @@ class CPU {
         Pop off the stack into r16. */
     POP_R16(r16: R16) {
         let lowerByte = this.fetchMem8(this._r.sp);
-        this._r.sp = CPU.o16b(this._r.sp + 1);
+        this._r.sp = o16b(this._r.sp + 1);
         let upperByte = this.fetchMem8(this._r.sp);
-        this._r.sp = CPU.o16b(this._r.sp + 1);
+        this._r.sp = o16b(this._r.sp + 1);
 
         this.setReg(r16, (upperByte << 8) | lowerByte);
     }
@@ -1172,14 +1214,14 @@ class CPU {
         if (cc == CC.C && !this._r._f.carry) return;
         if (cc == CC.NC && this._r._f.carry) return;
 
-        let pcUpperByte = CPU.o16b(this.pc + 3) >> 8;
-        let pcLowerByte = CPU.o16b(this.pc + 3) & 0xFF;
+        let pcUpperByte = o16b(this.pc + 3) >> 8;
+        let pcLowerByte = o16b(this.pc + 3) & 0xFF;
 
         // console.info(`Calling 0x${u16.toString(16)} from 0x${this.pc.toString(16)}`);
 
-        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, pcUpperByte);
-        this._r.sp = CPU.o16b(this._r.sp - 1);
+        this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, pcLowerByte);
 
         this.pc = u16 - 3;
@@ -1209,10 +1251,10 @@ class CPU {
         if (cc == CC.C && !this._r._f.carry) return;
         if (cc == CC.NC && this._r._f.carry) return;
 
-        let stackLowerByte = this.fetchMem8(CPU.o16b(this._r.sp++));
-        let stackUpperByte = this.fetchMem8(CPU.o16b(this._r.sp++));
+        let stackLowerByte = this.fetchMem8(o16b(this._r.sp++));
+        let stackUpperByte = this.fetchMem8(o16b(this._r.sp++));
 
-        let returnAddress = CPU.o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
+        let returnAddress = o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
         // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
         this.pc = returnAddress;
@@ -1240,20 +1282,20 @@ class CPU {
         this._r._f.half_carry = (this._r.a & 0b111) + (this._r.sp & 0b111) > 0b111;
         this._r._f.carry = (this._r.a & 0b1111111) + (this._r.sp & 0b1111111) > 0b1111111;
 
-        this._r.hl = CPU.o16b(e8 + this._r.sp);
+        this._r.hl = o16b(e8 + this._r.sp);
     }
 
     // LD [$FF00+u8],A
     LD_FF00plusN8_A(u8: number) {
         let value = this._r.a;
-        this.writeMem8(CPU.o16b(0xFF00 + u8), value);
+        this.writeMem8(o16b(0xFF00 + u8), value);
         // console.log(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A
     LD_FF00plusC_A() {
         let value = this._r.a;
-        this.writeMem8(CPU.o16b(0xFF00 + this._r.c), value);
+        this.writeMem8(o16b(0xFF00 + this._r.c), value);
     }
 
     LD_R8_N8(r8: R8, n8: number) {
@@ -1274,28 +1316,28 @@ class CPU {
     // LD [HL+],A | Store value in register A into byte pointed by HL and post-increment HL.  
     LD_iHLinc_A() {
         this.writeMem8(this._r.hl, this._r.a);
-        this._r.hl = CPU.o16b(this._r.hl + 1);
+        this._r.hl = o16b(this._r.hl + 1);
     }
     // LD [HL-],A | Store value in register A into byte pointed by HL and post-decrement HL. 
     LD_iHLdec_A() {
         this.writeMem8(this._r.hl, this._r.a);
-        this._r.hl = CPU.o16b(this._r.hl - 1);
+        this._r.hl = o16b(this._r.hl - 1);
     }
 
     // LD A,[HL+] | Store value in byte pointed by HL into A, then post-increment HL.
     LD_A_iHLinc() {
         this._r.a = this.fetchMem8(this._r.hl);
-        this._r.hl = CPU.o16b(this._r.hl + 1);
+        this._r.hl = o16b(this._r.hl + 1);
     }
     // LD A,[HL-] | Store value in byte pointed by HL into A, then post-decrement HL.
     LD_A_iHLdec() {
         this._r.a = this.fetchMem8(this._r.hl);
-        this._r.hl = CPU.o16b(this._r.hl - 1);
+        this._r.hl = o16b(this._r.hl - 1);
     }
 
     // ADD SP, e8
     ADD_SP_E8(n8: number) {
-        let value = this.unTwo8b(n8);
+        let value = unTwo8b(n8);
         this._r.sp += value;
 
         this._r._f.zero = this._r.sp == 0;
@@ -1311,7 +1353,7 @@ class CPU {
         if (cc == CC.C && !this._r._f.carry) return;
         if (cc == CC.NC && this._r._f.carry) return;
 
-        this.pc += this.unTwo8b(n8);
+        this.pc += unTwo8b(n8);
 
         return 4;
     }
@@ -1330,8 +1372,8 @@ class CPU {
         let value = this.getReg(t);
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
-        let newValue = CPU.o8b(value + this._r.a);
-        let didOverflow = CPU.do8b(value + this._r.a);
+        let newValue = o8b(value + this._r.a);
+        let didOverflow = do8b(value + this._r.a);
 
         // Set register values
         this._r.a = newValue;
@@ -1347,8 +1389,8 @@ class CPU {
         let value = this.fetchMem8(this._r.hl);
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
-        let newValue = CPU.o8b(value + this._r.a);
-        let didOverflow = CPU.do8b(value + this._r.a);
+        let newValue = o8b(value + this._r.a);
+        let didOverflow = do8b(value + this._r.a);
 
         // Set register values
         this._r.a = newValue;
@@ -1365,8 +1407,8 @@ class CPU {
         let value = n8;
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
-        let newValue = CPU.o8b(value + this._r.a);
-        let didOverflow = CPU.do8b(value + this._r.a);
+        let newValue = o8b(value + this._r.a);
+        let didOverflow = do8b(value + this._r.a);
 
         // Set register values
         this._r.a = newValue;
@@ -1384,8 +1426,8 @@ class CPU {
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
         // Add the carry flag as well for ADC
-        let newValue = CPU.o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-        let didOverflow = CPU.do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -1402,8 +1444,8 @@ class CPU {
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
         // Add the carry flag as well for ADC
-        let newValue = CPU.o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-        let didOverflow = CPU.do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -1419,8 +1461,8 @@ class CPU {
         let value = n8;
 
         // Add the carry flag as well for ADC
-        let newValue = CPU.o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-        let didOverflow = CPU.do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
 
         // Set flags
         this._r._f.carry = (this._r.a & 0b1111111) + (value & 0b1111111) + (this._r._f.carry ? 1 : 0) > 0b1111111;
@@ -1435,8 +1477,8 @@ class CPU {
     ADD_HL_R8(t: R8) {
         let value = this.getReg(t);
 
-        let newValue = CPU.o16b(value + this._r.hl);
-        let didOverflow = CPU.do16b(value + this._r.hl);
+        let newValue = o16b(value + this._r.hl);
+        let didOverflow = do16b(value + this._r.hl);
 
         // Set register values
         this._r.hl = newValue;
@@ -1451,8 +1493,8 @@ class CPU {
     ADD_HL_R16(r16: R16) {
         let value = this.getReg(r16);
 
-        let newValue = CPU.o16b(value + this._r.hl);
-        let didOverflow = CPU.do16b(value + this._r.hl);
+        let newValue = o16b(value + this._r.hl);
+        let didOverflow = do16b(value + this._r.hl);
 
         // Set register values
         this._r.hl = newValue;
@@ -1467,8 +1509,8 @@ class CPU {
     SUB_A_R8(t: R8) {
         let value = this.getReg(t);
 
-        let newValue = CPU.o8b(this._r.a - value);
-        let didOverflow = CPU.do8b(this._r.a - value);
+        let newValue = o8b(this._r.a - value);
+        let didOverflow = do8b(this._r.a - value);
 
         // Set register values
         this._r.a = newValue;
@@ -1483,8 +1525,8 @@ class CPU {
     SUB_A_iHL(t: R8) {
         let value = this.fetchMem8(this._r.hl);
 
-        let newValue = CPU.o8b(this._r.a - value);
-        let didOverflow = CPU.do8b(this._r.a - value);
+        let newValue = o8b(this._r.a - value);
+        let didOverflow = do8b(this._r.a - value);
 
         // Set register values
         this._r.a = newValue;
@@ -1497,8 +1539,8 @@ class CPU {
     }
 
     SUB_A_N8(n8: number) {
-        let newValue = CPU.o8b(this._r.a - n8);
-        let didOverflow = CPU.do8b(this._r.a - n8);
+        let newValue = o8b(this._r.a - n8);
+        let didOverflow = do8b(this._r.a - n8);
 
         // Set flags
         this._r._f.half_carry = (this._r.a & 0xF) - (n8 & 0xF) < 0;
@@ -1514,8 +1556,8 @@ class CPU {
         let value = this.getReg(t);
 
         // Also subtract the carry flag for SBC
-        let newValue = CPU.o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-        let didOverflow = CPU.do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let newValue = o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -1530,8 +1572,8 @@ class CPU {
         let value = n8;
 
         // Also subtract the carry flag for SBC
-        let newValue = CPU.o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-        let didOverflow = CPU.do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let newValue = o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -1547,8 +1589,8 @@ class CPU {
         let value = this.fetchMem8(this._r.hl);
 
         // Also subtract the carry flag for SBC
-        let newValue = CPU.o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-        let didOverflow = CPU.do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let newValue = o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
 
         // Set register values
         this._r.a = newValue;
@@ -1668,8 +1710,8 @@ class CPU {
     CP_A_R8(t: R8) {
         let r8 = this.getReg(t);
 
-        let newValue = CPU.o8b(this._r.a - r8);
-        let didOverflow = CPU.do8b(this._r.a - r8);
+        let newValue = o8b(this._r.a - r8);
+        let didOverflow = do8b(this._r.a - r8);
 
         // DO not set register values for CP
 
@@ -1684,8 +1726,8 @@ class CPU {
     CP_A_N8(n8: number) {
         let value = n8;
 
-        let newValue = CPU.o8b(this._r.a - value);
-        let didOverflow = CPU.do8b(this._r.a - value);
+        let newValue = o8b(this._r.a - value);
+        let didOverflow = do8b(this._r.a - value);
 
 
         // Set flags
@@ -1698,8 +1740,8 @@ class CPU {
     INC_R8(t: R8) {
         let target = this.getReg(t);
 
-        let newValue = CPU.o8b(target + 1);
-        let didOverflow = CPU.do8b(target + 1);
+        let newValue = o8b(target + 1);
+        let didOverflow = do8b(target + 1);
 
         this.setReg(t, newValue);
 
@@ -1712,7 +1754,7 @@ class CPU {
 
     // Increment in register r16
     INC_R16(r16: R16) {
-        this.setReg(r16, CPU.o16b(this.getReg(r16) + 1));
+        this.setReg(r16, o16b(this.getReg(r16) + 1));
 
         return 4;
     }
@@ -1720,8 +1762,8 @@ class CPU {
     DEC_R8(t: R8) {
         let target = this.getReg(t);
 
-        let newValue = CPU.o8b(target - 1);
-        let didOverflow = CPU.do8b(target - 1);
+        let newValue = o8b(target - 1);
+        let didOverflow = do8b(target - 1);
 
         this.setReg(t, newValue);
 
@@ -1732,11 +1774,11 @@ class CPU {
     }
 
     DEC_R16(tt: R16) {
-        this.setReg(tt, CPU.o16b(this.getReg(tt) - 1));
+        this.setReg(tt, o16b(this.getReg(tt) - 1));
     }
 
     DEC_iHL() {
-        this.writeMem8(this._r.hl, CPU.o8b(this.fetchMem8(this._r.hl)));
+        this.writeMem8(this._r.hl, o8b(this.fetchMem8(this._r.hl)));
     }
 
 
@@ -1756,8 +1798,8 @@ class CPU {
     RRA() {
         let carryMask = (this._r.f & 0b00010000) << 3;
 
-        let newValue = CPU.o8b((this._r.a >> 1) | carryMask);
-        let didOverflow = CPU.do8b((this._r.a >> 1) | carryMask);
+        let newValue = o8b((this._r.a >> 1) | carryMask);
+        let didOverflow = do8b((this._r.a >> 1) | carryMask);
 
         this._r._f.carry = (this._r.a & 0b00000001) == 0b1;
         this._r._f.zero = false;
@@ -1771,8 +1813,8 @@ class CPU {
     RLA() {
         let carryMask = (this._r.f & 0b00010000) >> 4;
 
-        let newValue = CPU.o8b((this._r.a << 1) | carryMask);
-        let didOverflow = CPU.do8b((this._r.a << 1) | carryMask);
+        let newValue = o8b((this._r.a << 1) | carryMask);
+        let didOverflow = do8b((this._r.a << 1) | carryMask);
 
         this._r._f.carry = (this._r.a & 0b10000000) >> 7 == 0b1;
 
@@ -1787,8 +1829,8 @@ class CPU {
     RRCA() {
         let rightmostBit = (this._r.a & 0b00000001) << 7;
 
-        let newValue = CPU.o8b((this._r.a >> 1) | rightmostBit);
-        let didOverflow = CPU.do8b((this._r.a >> 1) | rightmostBit);
+        let newValue = o8b((this._r.a >> 1) | rightmostBit);
+        let didOverflow = do8b((this._r.a >> 1) | rightmostBit);
 
         this._r.a = newValue;
 
@@ -1802,8 +1844,8 @@ class CPU {
     RRLA() {
         let leftmostBit = (this._r.a & 0b10000000) >> 7;
 
-        let newValue = CPU.o8b((this._r.a << 1) | leftmostBit);
-        let didOverflow = CPU.do8b((this._r.a << 1) | leftmostBit);
+        let newValue = o8b((this._r.a << 1) | leftmostBit);
+        let didOverflow = do8b((this._r.a << 1) | leftmostBit);
 
         this._r.a = newValue;
 
@@ -1852,7 +1894,7 @@ class CPU {
 
         let carryMask = (this._r.f & 0b00010000) << 3;
 
-        let newValue = CPU.o8b((value >> 1) | carryMask);
+        let newValue = o8b((value >> 1) | carryMask);
 
         this.setReg(t, newValue);
 
@@ -1866,8 +1908,8 @@ class CPU {
     RL_R8(t: R8) {
         let carryMask = (this._r.f & 0b00010000) >> 4;
 
-        let newValue = CPU.o8b((this.getReg(t) << 1) | carryMask);
-        let didOverflow = CPU.do8b((this.getReg(t) << 1) | carryMask);
+        let newValue = o8b((this.getReg(t) << 1) | carryMask);
+        let didOverflow = do8b((this.getReg(t) << 1) | carryMask);
 
         this.setReg(t, newValue);
 
@@ -1881,8 +1923,8 @@ class CPU {
     RRC_R8(t: R8) {
         let rightmostBit = (this._r.a & 0b00000001) << 7;
 
-        let newValue = CPU.o8b((this._r.a >> 1) | rightmostBit);
-        let didOverflow = CPU.do8b((this._r.a >> 1) | rightmostBit);
+        let newValue = o8b((this._r.a >> 1) | rightmostBit);
+        let didOverflow = do8b((this._r.a >> 1) | rightmostBit);
 
         this.setReg(t, newValue);
 
@@ -1896,8 +1938,8 @@ class CPU {
     RLC_R8(t: R8) {
         let leftmostBit = (this._r.a & 0b10000000) >> 7;
 
-        let newValue = CPU.o8b((this._r.a << 1) | leftmostBit);
-        let didOverflow = CPU.do8b((this._r.a << 1) | leftmostBit);
+        let newValue = o8b((this._r.a << 1) | leftmostBit);
+        let didOverflow = do8b((this._r.a << 1) | leftmostBit);
 
         this.setReg(t, newValue);
 
@@ -1909,8 +1951,8 @@ class CPU {
 
     // Shift TARGET right
     SRA_R8(t: R8) {
-        let newValue = CPU.o8b(this.getReg(t) >> 1);
-        let didOverflow = CPU.do8b(this.getReg(t) >> 1);
+        let newValue = o8b(this.getReg(t) >> 1);
+        let didOverflow = do8b(this.getReg(t) >> 1);
 
         this.setReg(t, newValue);
 
@@ -1922,8 +1964,8 @@ class CPU {
 
     // Shift TARGET left 
     SLA_R8(t: R8) {
-        let newValue = CPU.o8b(this.getReg(t) << 1);
-        let didOverflow = CPU.do8b(this.getReg(t) << 1);
+        let newValue = o8b(this.getReg(t) << 1);
+        let didOverflow = do8b(this.getReg(t) << 1);
 
         this.setReg(t, newValue);
 
@@ -1937,7 +1979,7 @@ class CPU {
     SRL_R8(t: R8) {
         let value = this.getReg(t);
 
-        let newValue = CPU.o8b(value >> 1);
+        let newValue = o8b(value >> 1);
 
         this.setReg(t, newValue);
 
@@ -1991,7 +2033,7 @@ class CPU {
 
         let carryMask = (this._r.f & 0b00010000) << 3;
 
-        let newValue = CPU.o8b((value >> 1) | carryMask);
+        let newValue = o8b((value >> 1) | carryMask);
 
         this.writeMem8(this._r.hl, newValue);
 
@@ -2007,8 +2049,8 @@ class CPU {
 
         let carryMask = (this._r.f & 0b00010000) >> 4;
 
-        let newValue = CPU.o8b((value << 1) | carryMask);
-        let didOverflow = CPU.do8b((value << 1) | carryMask);
+        let newValue = o8b((value << 1) | carryMask);
+        let didOverflow = do8b((value << 1) | carryMask);
 
         this.writeMem8(this._r.hl, newValue);
 
@@ -2024,8 +2066,8 @@ class CPU {
 
         let rightmostBit = (value & 0b00000001) << 7;
 
-        let newValue = CPU.o8b((value >> 1) | rightmostBit);
-        let didOverflow = CPU.do8b((value >> 1) | rightmostBit);
+        let newValue = o8b((value >> 1) | rightmostBit);
+        let didOverflow = do8b((value >> 1) | rightmostBit);
 
         this.writeMem8(this._r.hl, newValue);
 
@@ -2041,8 +2083,8 @@ class CPU {
 
         let leftmostBit = (value & 0b10000000) >> 7;
 
-        let newValue = CPU.o8b((value << 1) | leftmostBit);
-        let didOverflow = CPU.do8b((value << 1) | leftmostBit);
+        let newValue = o8b((value << 1) | leftmostBit);
+        let didOverflow = do8b((value << 1) | leftmostBit);
 
         this.writeMem8(value, newValue);
 
@@ -2056,8 +2098,8 @@ class CPU {
     SRA_iHL() {
         let value = this.fetchMem8(this._r.hl);
 
-        let newValue = CPU.o8b(value >> 1);
-        let didOverflow = CPU.do8b(value >> 1);
+        let newValue = o8b(value >> 1);
+        let didOverflow = do8b(value >> 1);
 
         this.writeMem8(value, newValue);
 
@@ -2071,8 +2113,8 @@ class CPU {
     SLA_iHL() {
         let value = this.fetchMem8(this._r.hl);
 
-        let newValue = CPU.o8b(value << 1);
-        let didOverflow = CPU.do8b(value << 1);
+        let newValue = o8b(value << 1);
+        let didOverflow = do8b(value << 1);
 
         this.writeMem8(this._r.hl, newValue);
 
@@ -2086,7 +2128,7 @@ class CPU {
     SRL_iHL() {
         let value = this.fetchMem8(this._r.hl);
 
-        let newValue = CPU.o8b(value >> 1);
+        let newValue = o8b(value >> 1);
 
         this.writeMem8(this._r.hl, newValue);
 
@@ -2112,9 +2154,49 @@ class CPU {
 
     // #endregion
 
+    //
 }
 
-let cpu = new CPU();
+
+function unTwo8b(n: number): number {
+    if ((n & 0b10000000) != 0) {
+        return n - 256;
+    } else {
+        return n;
+    }
+}
+
+function unTwo16b(n: number): number {
+    if ((n & 0b1000000000000000) != 0) {
+        return n - 65536;
+    } else {
+        return n;
+    }
+}
+
+function o4b(i: number): number {
+    return mod(i, 0xF + 1);
+}
+
+function o8b(i: number): number {
+    return mod(i, 0xFF + 1);
+}
+
+function o16b(i: number): number {
+    return mod(i, 0xFFFF + 1);
+}
+
+function do4b(i: number): boolean {
+    return i >= 0xF || i < 0;
+}
+
+function do8b(i: number): boolean {
+    return i >= 0xFF || i < 0;
+}
+
+function do16b(i: number): boolean {
+    return i >= 0xFFFF || i < 0;
+}
 
 function hex(i: number, digits: number) {
     return `0x${pad(i.toString(16), digits, '0').toUpperCase()}`;
