@@ -159,9 +159,9 @@ class GPU {
     runningTheCPU = false;
     renderSingleFrame() {
         this.runningTheCPU = true;
-        cpu.debug = false;
+        this.bus.cpu.debugging = false;
         while (this.runningTheCPU) {
-            cpu.step();
+            this.bus.cpu.step();
         }
     }
 
@@ -171,9 +171,9 @@ class GPU {
         this.frameExecuteInterval = setInterval(() => { this.renderSingleFrame(); }, 16);
     }
     vblankExecute() {
-        cpu.debug = false;
+        this.bus.cpu.debugging = false;
         while (this.lcdcY != 144) {
-            cpu.step();
+            this.bus.cpu.step();
         }
     }
 
