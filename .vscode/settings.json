@@ -1,7 +1,7 @@
 {
     "files.exclude": {
-        "src/**/*.js": true,
-        "src/**/*.js.map": true
+        "src/gameboy/*.js": true,
+        "src/gameboy/*.js.map": true
     },
     "debug.node.autoAttach": "off"
 }

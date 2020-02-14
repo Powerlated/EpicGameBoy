@@ -1,5 +1,3 @@
-console.log("Hello Z80!");
-
 function mod(a: number, b: number): number {
     let r = a % b;
     return r < 0 ? r + b : r;
@@ -237,7 +235,6 @@ class CPU {
     fullLog = [];
 
     constructor() {
-        console.log("CPU Bootstrap!");
         this.bus.cpu = this;
         this.bus.gpu = this.gpu;
         this._r.cpu = this;
@@ -319,7 +316,7 @@ class CPU {
             this._r._f.half_carry = true;
             this._r._f.carry = true;
 
-            this._r.a = 0x01;
+            this._r.a = 0x11;
             this._r.bc = 0x0013;
             this._r.de = 0x00d8;
             this._r.hl = 0x014d;
@@ -659,6 +656,8 @@ class CPU {
                 return { op: this.JP_R16, type: R16.HL, length: 1 };
             case 0xC7: // RST 00h
                 return { op: this.RST, type: 0x00, length: 1 };
+            case 0xFF: // RST 38h
+                return { op: this.RST, type: 0x38, length: 1 };
             case 0x12: // LD [DE],A
                 return { op: this.LD_iR16_A, type: R16.DE, length: 1 };
             case 0x1C: // INC E
@@ -716,7 +715,7 @@ class CPU {
             case 0xC0: // RET NZ
                 return { op: this.RET, type: CC.NZ, length: 1 };
             case 0x35: // DEC [HL]
-                return { op: this.DEC_R16, type: R16.HL, length: 1 };
+                return { op: this.DEC_iHL, length: 1 };
             case 0x29: // ADD HL, HL
                 return { op: this.ADD_HL_R16, type: R16.HL, length: 1 };
             case 0x3C: // INC A
@@ -1566,6 +1565,12 @@ class CPU {
 
         let final = value & this._r.a;
         this._r.a = final;
+
+        // Set flags
+        this._r._f.zero = this._r.a == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = true;
+        this._r._f.carry = false;
     }
 
     AND_A_iHL(t: R8) {
@@ -1727,8 +1732,13 @@ class CPU {
     }
 
     DEC_R16(tt: R16) {
-        this.setReg(tt, CPU.o16b(this.getReg(tt)));
+        this.setReg(tt, CPU.o16b(this.getReg(tt) - 1));
     }
+
+    DEC_iHL() {
+        this.writeMem8(this._r.hl, CPU.o8b(this.fetchMem8(this._r.hl)));
+    }
+
 
     CCF() {
         this._r._f.negative = false;

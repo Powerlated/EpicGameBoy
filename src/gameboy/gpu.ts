@@ -170,6 +170,12 @@ class GPU {
     frameExecute() {
         this.frameExecuteInterval = setInterval(() => { this.renderSingleFrame(); }, 16);
     }
+    vblankExecute() {
+        cpu.debug = false;
+        while (this.lcdcY != 144) {
+            cpu.step();
+        }
+    }
 
     stopFrameExecute() {
         clearInterval(this.frameExecuteInterval);

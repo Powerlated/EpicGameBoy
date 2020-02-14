@@ -12,7 +12,7 @@ console.log("Loading ROM " + process.argv[2]);
 let buffer = fs.readFileSync(`${process.argv[2]}`);
 
 let cpu = new gameboy.CPU();
-// cpu.logging = true;
+cpu.logging = true;
 
 buffer.forEach((v, i, a) => {
   cpu.bus.memory[i] = v;
@@ -35,8 +35,14 @@ setTimeout(() => {
   cpu.khz();
   setInterval(() => {
     console.log(cpu.totalI);
-    if (cpu.lastOpcodeReps > 1000) {
-      console.log(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 1000 instructions, exiting.`)
+    if (cpu.lastOpcodeReps > 10000) {
+      console.log(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 10000 instructions, exiting.`)
+      cleanUp();
+    }
+
+    const EXIT_AT = 50000;
+    if (cpu.totalI > EXIT_AT) {
+      console.log(`Hit ${EXIT_AT} instructions, exiting.`);
       cleanUp();
     }
   }, 10);

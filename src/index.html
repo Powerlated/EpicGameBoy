@@ -4,10 +4,14 @@
 
 
     <style>
-        #debug,
-        #gpudebug {
+        .panel {
             display: inline-block;
             min-width: 30%;
+        }
+
+        .interactive {
+            position: absolute;
+            bottom: 20;
         }
 
         canvas {
@@ -28,46 +32,47 @@
         }
     </style>
 
+
 </head>
 
 <body>
-    <h1>Game Boy Emulator</h1>
-
-
-    <h2>DEBUG</h2>
+    <h1 style="margin-bottom: 0">Game Boy Emulator</h1>
 
     <div>
-        <p id="debug">
+        <p class="panel" id="debug">
 
         </p>
-        <p id="gpudebug">
+        <p class="panel" id="gpudebug" style="display: none">
 
+        </p>
+        <p class="panel" id="disassembly"
+            style='font-family: "Lucida Console", Monaco, monospace; outline: thin, 1px, black'>
+            <b>Disassembly</b>
         </p>
 
         <canvas id="gameboy" width="160" height="144"></canvas>
     </div>
 
-    <div>
 
+    <div class="interactive">
         <button onclick="window.cpu.step(); window.cpu.debug = true">Execute at PC</button>
         <button onclick="window.cpu.khz()">Speed Execute</button>
         <button onclick="window.cpu.bus.gpu.frameExecute()">Frame Execute</button>
         <button onclick="window.cpu.khzStop(); window.cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
         <button onclick="window.cpu.gpu.renderSingleFrame()">Render Frame</button>
+        <button onclick="window.cpu.gpu.vblankExecute()">Execute until vblank</button>
         <button onclick="console.log(window.cpu.registers)">Dump Registers</button>
-
 
         <div>
             <label for="enableLogging">Enable Logging</label>
             <input id="enableLogging" autocomplete="off" type="checkbox">
         </div>
 
-        <div>
+        <div style="display: none">
             <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
         </div>
 
-
-        <div>
+        <div style="display: none">
             <label for="bootromInput">Open Boot ROM</label>
             <input id="bootromInput" autocomplete="off" type="file">
         </div>
@@ -95,6 +100,8 @@
         </div>
     </div>
 
+
+    <script src="gameboy/gameboy.js"></script>
 
     <script>
         function loadDefaultBootRom() {
@@ -162,6 +169,7 @@
         }, false);
 
         document.querySelector('#gameromInput').addEventListener('change', function () {
+            loadDefaultBootRom();
             var reader = new FileReader();
             reader.onload = function () {
                 var arrayBuffer = this.result;
@@ -170,14 +178,12 @@
                 array.forEach((v, i, a) => {
                     window.cpu.bus.memory[i] = v;
                 });
-                // window.cpu.khz()
-                window.cpu.bus.gpu.frameExecute();
+                window.cpu.khz()
+                // window.cpu.bus.gpu.frameExecute();
             }
             reader.readAsArrayBuffer(this.files[0]);
         }, false);
     </script>
-
-    <script src="gameboy/gameboy.js"></script>
 </body>
 
 
