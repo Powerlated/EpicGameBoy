@@ -49,6 +49,8 @@ class MemoryBus {
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
 
+    bootromEnabled = true;
+
     interruptEnableFlag = new InterruptFlag();
     interruptHappenFlag = new InterruptFlag();
 
@@ -102,7 +104,8 @@ class MemoryBus {
                     this.gpu.scrollX = value;
                     break;
                 case 0xFF50:
-                    this.memory[addr] = value;
+                    console.log("Disabled bootrom by write to 0xFF50")
+                    this.bootromEnabled = false;
                     break;
                 default:
                     return;
@@ -146,14 +149,14 @@ class MemoryBus {
                 case 0xFF44:
                     return this.gpu.lcdcY;
                 case 0xFF50:
-                    return this.memory[addr];
+                    return 0xFF;
                 default:
                     return 0x69;
             }
         }
 
         // Check if bootrom is disabled (0xFF50)
-        if (addr > 0xFF || this.readMem8(0xFF50) == 1) {
+        if (addr > 0xFF || !this.bootromEnabled) {
             return this.memory[addr];
         } else {
             return this.bootrom[addr];

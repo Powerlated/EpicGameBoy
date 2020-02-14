@@ -83,7 +83,7 @@ function test() {
     console.log("Expect half carry.");
 
     cpu._r.h = 0b00010000;
-    cpu.BIT(R8.H, 7);
+    cpu.BIT_R8(R8.H, 7);
     console.log("Expect zero.");
 
     cpu = new CPU();
@@ -93,7 +93,7 @@ function test() {
 if (!isNode()) {
     setInterval(() => {
         try {
-            (window as any).cpu = cpu;
+
             let debugP = document.getElementById('debug');
             debugP.innerText = `
     Last Instruction: [${cpu.lastInstructionDebug}] ${cpu.currentIns} (${cpu.lastOperandDebug})

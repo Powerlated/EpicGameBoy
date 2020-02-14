@@ -186,7 +186,7 @@ class GPU {
             v1.forEach((v2, i2) => {
                 v2.forEach((pixel, i3) => {
                     if (pixel == undefined) return;
-                    if (i1 > 32) return;
+                    if (i1 > 360) return;
 
                     let x = ((i1 * 8) + i3) % 160;
                     let row = Math.floor(((i1 * 8) + i3) / 160);

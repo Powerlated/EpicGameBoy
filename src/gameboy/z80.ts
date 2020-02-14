@@ -242,6 +242,8 @@ class CPU {
         this.bus.gpu = this.gpu;
         this._r.cpu = this;
 
+        if (!isNode())
+            (window as any).cpu = this;
     }
 
 
@@ -309,7 +311,7 @@ class CPU {
     step() {
         let c = this.cycles;
 
-        if (this.bootromLoaded == false && this.pc == 0 && this.bus.readMem8(0xFF50) == 0) {
+        if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
             this._r._f.zero = true;
@@ -323,23 +325,26 @@ class CPU {
             this._r.hl = 0x014d;
             this._r.sp = 0xfffe;
 
+            // Make a write to disable the bootrom
             this.bus.writeMem(0xFF50, 1);
         }
+
+        // Divide CPU clock and send to GPU
+        if (this.time % 4 == 0)
+            this.bus.gpu.step();
+
 
         // #region DEBUG
 
         if (this.debug)
             console.log("STEP");
 
-        // Divide CPU clock and send to GPU
-        this.bus.gpu.step();
-
         let isCB = this.bus.readMem8(this.pc) == 0xCB;
 
         let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
 
         if (!ins.op) {
-            alert(`Implementation error: ${hex(this.bus.readMem8(this.pc), 2)} is a null op`);
+            alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.bus.readMem8(this.pc + 1)), 4) : hex(this.bus.readMem8(this.pc), 2)} is a null op`);
         }
 
         let opcode = isCB ? this.bus.readMem8(this.pc + 1) : this.bus.readMem8(this.pc);
@@ -465,7 +470,6 @@ class CPU {
     }
 
     khz() {
-
         this.debug = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
@@ -479,7 +483,6 @@ class CPU {
             }
             if (this.setHalt) this.setHalt = false;
         }, 10);
-
     }
 
     interruptVblank() {
@@ -508,31 +511,18 @@ class CPU {
         }
 
         switch (t) {
-            case R8.A:
-                return this._r.a;
-            case R8.B:
-                return this._r.b;
-            case R8.C:
-                return this._r.c;
-            case R8.D:
-                return this._r.d;
-            case R8.E:
-                return this._r.e;
-            case R8.H:
-                return this._r.h;
-            case R8.L:
-                return this._r.l;
-            case R16.AF:
-                return this._r.af;
-            case R16.BC:
-                return this._r.bc;
-            case R16.DE:
-                return this._r.de;
-            case R16.HL:
-                return this._r.hl;
-            case R16.SP:
-                return this._r.sp;
-
+            case R8.A: return this._r.a;
+            case R8.B: return this._r.b;
+            case R8.C: return this._r.c;
+            case R8.D: return this._r.d;
+            case R8.E: return this._r.e;
+            case R8.H: return this._r.h;
+            case R8.L: return this._r.l;
+            case R16.AF: return this._r.af;
+            case R16.BC: return this._r.bc;
+            case R16.DE: return this._r.de;
+            case R16.HL: return this._r.hl;
+            case R16.SP: return this._r.sp;
         }
     }
 
@@ -545,42 +535,18 @@ class CPU {
         }
 
         switch (t) {
-            case R8.A:
-                this._r.a = i;
-                break;
-            case R8.B:
-                this._r.b = i;
-                break;
-            case R8.C:
-                this._r.c = i;
-                break;
-            case R8.D:
-                this._r.d = i;
-                break;
-            case R8.E:
-                this._r.e = i;
-                break;
-            case R8.H:
-                this._r.h = i;
-                break;
-            case R8.L:
-                this._r.l = i;
-                break;
-            case R16.AF:
-                this._r.af = i;
-                break;
-            case R16.BC:
-                this._r.bc = i;
-                break;
-            case R16.DE:
-                this._r.de = i;
-                break;
-            case R16.HL:
-                this._r.hl = i;
-                break;
-            case R16.SP:
-                this._r.sp = i;
-                break;
+            case R8.A: this._r.a = i; break;
+            case R8.B: this._r.b = i; break;
+            case R8.C: this._r.c = i; break;
+            case R8.D: this._r.d = i; break;
+            case R8.E: this._r.e = i; break;
+            case R8.H: this._r.h = i; break;
+            case R8.L: this._r.l = i; break;
+            case R16.AF: this._r.af = i; break;
+            case R16.BC: this._r.bc = i; break;
+            case R16.DE: this._r.de = i; break;
+            case R16.HL: this._r.hl = i; break;
+            case R16.SP: this._r.sp = i; break;
         }
     }
 
@@ -689,8 +655,8 @@ class CPU {
                 return { op: this.ADD_HL_R8, type: R16.DE, length: 1 };
             case 0xD5:
                 return { op: this.PUSH_R16, type: R16.DE, length: 1 };
-            case 0xE9: // JP [HL]
-                return { op: this.JP_iR16, type: R16.HL, length: 1 };
+            case 0xE9: // JP HL
+                return { op: this.JP_R16, type: R16.HL, length: 1 };
             case 0xC7: // RST 00h
                 return { op: this.RST, type: 0x00, length: 1 };
             case 0x12: // LD [DE],A
@@ -760,10 +726,9 @@ class CPU {
             case 0xF8: // LD HL, SP+e8
                 return { op: this.LD_HL_SPaddE8, length: 2 };
             case 0x07: // RLC A
-                return { op: this.RLC, type: R8.A, length: 1 };
+                return { op: this.RLC_R8, type: R8.A, length: 1 };
             case 0x10: // STOP
                 return { op: this.NOP, length: 2 };
-            // #endregion
             case 0x76: // HALT
                 return { op: this.NOP, length: 1 };
             case 0x37: // SCF
@@ -808,105 +773,58 @@ class CPU {
                 return { op: this.RRCA, length: 1 };
             case 0xE8: // AP SP, E8
                 return { op: this.ADD_SP_E8, length: 1 };
+            case 0xF6: // OR A, N8
+                return { op: this.OR_A_N8, length: 2 };
+            case 0xDE: // SBC A, N8
+                return { op: this.SBC_A_N8, length: 2 };
+            case 0x2B: // DEC HL
+                return { op: this.DEC_R16, type: R16.HL, length: 1 };
+            case 0x09: // ADD HL, BC
+                return { op: this.ADD_HL_R16, type: R16.BC, length: 1 };
         }
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
         if (upperNybble >= 0x8 && upperNybble <= 0xB) {
             let type: OperandType;
             let op: Function;
-            switch (lowerNybble & 0b111) {
-                case 0x0:
-                    type = R8.B;
-                    break;
-                case 0x1:
-                    type = R8.C;
-                    break;
-                case 0x2:
-                    type = R8.D;
-                    break;
-                case 0x3:
-                    type = R8.E;
-                    break;
-                case 0x4:
-                    type = R8.H;
-                    break;
-                case 0x5:
-                    type = R8.L;
-                    break;
-                // (HL)
-                case 0x6:
-                    type = R16.HL;
-                    break;
-                case 0x7:
-                    type = R8.A;
-                    break;
-            }
+
+            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, null, R8.A];
+
+            type = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
             // Check for [HL]
             if (lowerNybble == 0x6 || lowerNybble == 0xE) {
                 if (lowerNybble < 0x8) {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.ADD_A_iHL;
-                            break;
-                        case 0x1:
-                            op = this.SUB_A_iHL;
-                            break;
-                        case 0x2:
-                            op = this.AND_A_iHL;
-                            break;
-                        case 0x3:
-                            op = this.OR_A_iHL;
-                            break;
+                        case 0x0: op = this.ADD_A_iHL; break;
+                        case 0x1: op = this.SUB_A_iHL; break;
+                        case 0x2: op = this.AND_A_iHL; break;
+                        case 0x3: op = this.OR_A_iHL; break;
                     }
                 } else {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.ADC_A_iHL;
-                            break;
-                        case 0x1:
-                            op = this.SBC_A_iHL;
-                            break;
-                        case 0x2:
-                            op = this.XOR_A_iHL;
-                            break;
-                        case 0x3:
-                            op = this.CP_A_iHL;
-                            break;
+                        case 0x0: op = this.ADC_A_iHL; break;
+                        case 0x1: op = this.SBC_A_iHL; break;
+                        case 0x2: op = this.XOR_A_iHL; break;
+                        case 0x3: op = this.CP_A_iHL; break;
                     }
                 }
                 // Not [HL]
             } else {
                 if (lowerNybble < 0x8) {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.ADD_A_R8;
-                            break;
-                        case 0x1:
-                            op = this.SUB_A_R8;
-                            break;
-                        case 0x2:
-                            op = this.AND_A_R8;
-                            break;
-                        case 0x3:
-                            op = this.OR_A_R8;
-                            break;
+                        case 0x0: op = this.ADD_A_R8; break;
+                        case 0x1: op = this.SUB_A_R8; break;
+                        case 0x2: op = this.AND_A_R8; break;
+                        case 0x3: op = this.OR_A_R8; break;
                     }
                 } else {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.ADC_A_R8;
-                            break;
-                        case 0x1:
-                            op = this.SBC_A_R8;
-                            break;
-                        case 0x2:
-                            op = this.XOR_A_R8;
-                            break;
-                        case 0x3:
-                            op = this.CP_A_R8;
-                            break;
+                        case 0x0: op = this.ADC_A_R8; break;
+                        case 0x1: op = this.SBC_A_R8; break;
+                        case 0x2: op = this.XOR_A_R8; break;
+                        case 0x3: op = this.CP_A_R8; break;
                     }
                 }
             }
@@ -921,114 +839,44 @@ class CPU {
             let type: OperandType;
             let type2: OperandType;
             let op: Function;
-            switch (lowerNybble & 0b111) {
-                case 0x0:
-                    type2 = R8.B;
-                    break;
-                case 0x1:
-                    type2 = R8.C;
-                    break;
-                case 0x2:
-                    type2 = R8.D;
-                    break;
-                case 0x3:
-                    type2 = R8.E;
-                    break;
-                case 0x4:
-                    type2 = R8.H;
-                    break;
-                case 0x5:
-                    type2 = R8.L;
-                    break;
-                // (HL)
-                case 0x6:
-                    break;
-                case 0x7:
-                    type2 = R8.A;
-                    break;
-            }
+
+            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, null, R8.A];
+
+            type2 = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
             // Check for [HL] at column 0x6 and 0xE
             if (lowerNybble == 0x6 || lowerNybble == 0xE) {
                 if (lowerNybble < 0x8) {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.LD_R8_iHL;
-                            type = R8.B;
-                            break;
-                        case 0x1:
-                            op = this.LD_R8_iHL;
-                            type = R8.D;
-                            break;
-                        case 0x2:
-                            op = this.LD_R8_iHL;
-                            type = R8.H;
-                            break;
-                        case 0x3:
-                            op = this.HALT;
-                            break;
+                        case 0x0: op = this.LD_R8_iHL; type = R8.B; break;
+                        case 0x1: op = this.LD_R8_iHL; type = R8.D; break;
+                        case 0x2: op = this.LD_R8_iHL; type = R8.H; break;
+                        case 0x3: op = this.HALT; break;
                     }
                 } else {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.LD_R8_iHL;
-                            type = R8.C;
-                            break;
-                        case 0x1:
-                            op = this.LD_R8_iHL;
-                            type = R8.E;
-                            break;
-                        case 0x2:
-                            op = this.LD_R8_iHL;
-                            type = R8.L;
-                            break;
-                        case 0x3:
-                            op = this.LD_R8_iHL;
-                            type = R8.A;
-                            break;
+                        case 0x0: op = this.LD_R8_iHL; type = R8.C; break;
+                        case 0x1: op = this.LD_R8_iHL; type = R8.E; break;
+                        case 0x2: op = this.LD_R8_iHL; type = R8.L; break;
+                        case 0x3: op = this.LD_R8_iHL; type = R8.A; break;
                     }
                 }
                 // Not [HL]
             } else {
                 if (lowerNybble < 0x8) {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.LD_R8_R8;
-                            type = R8.B;
-                            break;
-                        case 0x1:
-                            op = this.LD_R8_R8;
-                            type = R8.D;
-                            break;
-                        case 0x2:
-                            op = this.LD_R8_R8;
-                            type = R8.H;
-                            break;
-                        case 0x3:
-                            op = this.LD_iHL_R8;
-                            type = type2;
-                            type2 = null;
-                            break;
+                        case 0x0: op = this.LD_R8_R8; type = R8.B; break;
+                        case 0x1: op = this.LD_R8_R8; type = R8.D; break;
+                        case 0x2: op = this.LD_R8_R8; type = R8.H; break;
+                        case 0x3: op = this.LD_iHL_R8; type = type2; type2 = null; break;
                     }
                 } else {
                     switch (OPDEC) {
-                        case 0x0:
-                            op = this.LD_R8_R8;
-                            type = R8.C;
-                            break;
-                        case 0x1:
-                            op = this.LD_R8_R8;
-                            type = R8.E;
-                            break;
-                        case 0x2:
-                            op = this.LD_R8_R8;
-                            type = R8.L;
-                            break;
-                        case 0x3:
-                            op = this.LD_R8_R8;
-                            type = R8.A;
-                            break;
+                        case 0x0: op = this.LD_R8_R8; type = R8.C; break;
+                        case 0x1: op = this.LD_R8_R8; type = R8.E; break;
+                        case 0x2: op = this.LD_R8_R8; type = R8.L; break;
+                        case 0x3: op = this.LD_R8_R8; type = R8.A; break;
                     }
                 }
             }
@@ -1050,99 +898,81 @@ class CPU {
         let bit: number;
         let op: Function;
 
-        switch (lowerNybble & 0b111) {
-            case 0x0:
-                type = R8.B;
-                break;
-            case 0x1:
-                type = R8.C;
-                break;
-            case 0x2:
-                type = R8.D;
-                break;
-            case 0x3:
-                type = R8.E;
-                break;
-            case 0x4:
-                type = R8.H;
-                break;
-            case 0x5:
-                type = R8.L;
-                break;
-            // (HL)
-            case 0x6:
-                type = R16.HL;
-                break;
-            case 0x7:
-                type = R8.A;
-                break;
-        }
-
-        if (upperNybble < 0x4) {
-            // 0x0 - 0x3
-            if (lowerNybble < 0x4) {
-                switch (upperNybble) {
-                    case 0x0:
-                        op = this.RLC;
-                        break;
-                    case 0x1:
-                        op = this.RL;
-                        break;
-                    case 0x2:
-                        op = this.SLA;
-                        break;
-                    case 0x3:
-                        op = this.SWAP;
-                        break;
-                }
-            } else {
-                switch (upperNybble) {
-                    case 0x0:
-                        op = this.RRC;
-                        break;
-                    case 0x1:
-                        op = this.RR;
-                        break;
-                    case 0x2:
-                        op = this.SRA;
-                        break;
-                    case 0x3:
-                        op = this.SRL;
-                        break;
-                }
-            }
-            // 0x40 - 0xF0
+        // 0x0 - 0x7
+        if (lowerNybble < 0x8) {
+            bit = (upperNybble & 0b11) * 2;
+            // 0x8 - 0xF
         } else {
-            switch (upperNybble) {
-                case 0x4:
-                case 0x5:
-                case 0x6:
-                case 0x7:
-                    op = this.BIT;
-                    break;
-                case 0x8:
-                case 0x9:
-                case 0xA:
-                case 0xB:
-                    op = this.RES;
-                    break;
-                case 0xC:
-                case 0xD:
-                case 0xE:
-                case 0xF:
-                    op = this.SET;
-                    break;
+            bit = ((upperNybble & 0b11) * 2) + 1;
+        }
+
+
+        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R16.HL, R8.A];
+
+        type = typeTable[lowerNybble & 0b111];
+
+        // Check for [HL]
+        if (type == R16.HL) {
+            // #region [HL]
+            if (upperNybble < 0x4) {
+                // 0x0 - 0x3
+                if (lowerNybble < 0x4) {
+                    switch (upperNybble) {
+                        case 0x0: op = this.RLC_iHL; break;
+                        case 0x1: op = this.RL_iHL; break;
+                        case 0x2: op = this.SLA_iHL; break;
+                        case 0x3: op = this.SWAP_iHL; break;
+                    }
+                } else {
+                    switch (upperNybble) {
+                        case 0x0: op = this.RRC_iHL; break;
+                        case 0x1: op = this.RR_iHL; break;
+                        case 0x2: op = this.SRA_iHL; break;
+                        case 0x3: op = this.SRL_iHL; break;
+                    }
+                }
+                // 0x40 - 0xF0
+            } else {
+                switch (upperNybble >> 2) {
+                    case 0x1: op = this.BIT_iHL; break;
+                    case 0x2: op = this.RES_iHL; break;
+                    case 0x3: op = this.SET_iHL; break;
+                }
             }
 
-            // 0x0 - 0x7
-            if (lowerNybble < 0x8) {
-                bit = (upperNybble & 0b11) * 2;
-                // 0x8 - 0xF
+            type = bit;
+            bit = null;
+            // #endregion
+        } else {
+            // #region NON-[HL]
+            if (upperNybble < 0x4) {
+                // 0x0 - 0x3
+                if (lowerNybble < 0x4) {
+                    switch (upperNybble) {
+                        case 0x0: op = this.RLC_R8; break;
+                        case 0x1: op = this.RL_R8; break;
+                        case 0x2: op = this.SLA_R8; break;
+                        case 0x3: op = this.SWAP_R8; break;
+                    }
+                } else {
+                    switch (upperNybble) {
+                        case 0x0: op = this.RRC_R8; break;
+                        case 0x1: op = this.RR_R8; break;
+                        case 0x2: op = this.SRA_R8; break;
+                        case 0x3: op = this.SRL_R8; break;
+                    }
+                }
+                // 0x40 - 0xF0
             } else {
-                bit = ((upperNybble & 0b11) * 2) + 1;
+                switch (upperNybble >> 2) {
+                    case 0x1: op = this.BIT_R8; break;
+                    case 0x2: op = this.RES_R8; break;
+                    case 0x3: op = this.SET_R8; break;
+                }
             }
+            // #endregion
         }
-        // #endregion
+
 
 
         return { op: op, type: type, type2: bit, length: 1 };
@@ -1197,11 +1027,15 @@ class CPU {
     // DI - 0xF3
     DI() {
         this._r.interruptsEnabled = false;
+
+        console.log("Disabled interrupts");
     }
 
     // EI - 0xFB
     EI() {
         this._r.interruptsEnabled = true;
+
+        console.log("Enabled interrupts");
     }
 
     // HALT - 0x76
@@ -1212,37 +1046,27 @@ class CPU {
     // wtf is a DAA?
     // Decimal adjust A
     DA_A() {
-        let a = this._r.a;
-
-        let FLAG_H = this._r._f.half_carry ? 1 : 0;
-        let FLAG_C = this._r._f.carry ? 1 : 0;
-        let FLAG_N = this._r._f.negative ? 1 : 0;
-        let FLAG_Z = this._r._f.zero ? 1 : 0;
-
-        if (!(this._r.f & FLAG_N)) {
-            if ((this._r.f & FLAG_H) || (a & 0xF) > 9)
-                a += 0x06;
-            if ((this._r.f & FLAG_C) || a > 0x9F)
-                a += 0x60;
+        if (!this._r._f.negative) {
+            if (this._r._f.carry || this._r.a > 0x99) {
+                this._r.a = CPU.o8b(this._r.a + 0x60);
+                this._r._f.carry = true;
+            }
+            if (this._r._f.half_carry || (this._r.a & 0x0f) > 0x09) {
+                this._r.a = CPU.o8b(this._r.a + 0x6);
+            }
         }
         else {
-            if (this._r.f & FLAG_H)
-                a = (a - 6) & 0xFF;
-            if (this._r.f & FLAG_C)
-                a -= 0x60;
+            if (this._r._f.carry) {
+                this._r.a = CPU.o8b(this._r.a - 0x60);
+                this._r._f.carry = true;
+            }
+            if (this._r._f.half_carry) {
+                this._r.a = CPU.o8b(this._r.a - 0x6);
+            }
         }
 
-        this._r.f &= ~(FLAG_H | FLAG_Z);
-
-        if ((a & 0x100) == 0x100)
-            this._r.f |= FLAG_C;
-
-        a &= 0xFF;
-
-        if (a == 0)
-            this._r.f |= FLAG_Z;
-
-        this._r.a = CPU.o8b(a);
+        this._r._f.zero = this._r.a == 0;
+        this._r._f.half_carry = false;
     }
 
     // Load SP into index
@@ -1303,7 +1127,7 @@ class CPU {
         this._r.a = this.fetchMem8(CPU.o16b(0xFF00 + n8));
     }
 
-    LD_A_iFF00plusC(n8: number) {
+    LD_A_iFF00plusC() {
         this._r.a = this.fetchMem8(CPU.o16b(0xFF00 + this._r.c));
     }
 
@@ -1375,7 +1199,7 @@ class CPU {
         return 4;
     }
 
-    JP_iR16(r16: R16) {
+    JP_R16(r16: R16) {
         this.pc = this.getReg(r16) - 1;
     }
 
@@ -1703,6 +1527,23 @@ class CPU {
         this._r._f.negative = true;
     }
 
+    SBC_A_N8(n8: number) {
+        let value = n8;
+
+        // Also subtract the carry flag for SBC
+        let newValue = CPU.o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+        let didOverflow = CPU.do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+
+        // Set register values
+        this._r.a = newValue;
+
+        // Set flags
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = true;
+        this._r._f.carry = didOverflow;
+    }
+
     SBC_A_iHL(t: R8) {
         let value = this.fetchMem8(this._r.hl);
 
@@ -1748,6 +1589,18 @@ class CPU {
 
     OR_A_R8(t: R8) {
         let value = this.getReg(t);
+
+        let final = value | this._r.a;
+        this._r.a = final;
+
+        this._r._f.zero = final == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = false;
+    }
+
+    OR_A_N8(n8: number) {
+        let value = n8;
 
         let final = value | this._r.a;
         this._r.a = final;
@@ -1819,7 +1672,7 @@ class CPU {
         this._r._f.carry = r8 > this._r.a;
         this._r._f.zero = newValue == 0;
         this._r._f.negative = true;
-        this._r._f.half_carry = (this._r.a & 0xF) + (r8 & 0xF) > 0xF;
+        this._r._f.half_carry = (this._r.a & 0xF) - (r8 & 0xF) < 0;
     }
 
 
@@ -1831,7 +1684,7 @@ class CPU {
 
 
         // Set flags
-        this._r._f.carry = didOverflow;
+        this._r._f.carry = value > this._r.a;
         this._r._f.zero = newValue == 0;
         this._r._f.negative = true;
         this._r._f.half_carry = (this._r.a & 0xF) - (n8 & 0xF) < 0;
@@ -1954,7 +1807,9 @@ class CPU {
         this._r.a = this._r.a ^ 0b11111111;
     }
 
-    BIT(t: R8, selectedBit) {
+    // #region 0xCB Opcodes
+
+    BIT_R8(t: R8, selectedBit) {
         let value = this.getReg(t);
         let mask = 0b1 << selectedBit;
 
@@ -1963,17 +1818,7 @@ class CPU {
         this._r._f.half_carry = true;
     }
 
-    BIT_HL(t: R8, selectedBit) {
-        let value = this.fetchMem8(this._r.hl);
-
-        let mask = 0b1 << selectedBit;
-
-        this._r._f.zero = (value & mask) == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = true;
-    }
-
-    RES(t: R8, selectedBit) {
+    RES_R8(t: R8, selectedBit) {
         let value = this.getReg(t);
         let mask = 0b1 << selectedBit;
 
@@ -1982,7 +1827,7 @@ class CPU {
         this.setReg(t, final);
     }
 
-    SET(t: R8, selectedBit) {
+    SET_R8(t: R8, selectedBit) {
         let value = this.getReg(t);
         let mask = 0b1 << selectedBit;
 
@@ -1991,13 +1836,8 @@ class CPU {
         this.setReg(t, final);
     }
 
-    SRL_R8(t: R8) {
-        let value = this.getReg(t);
-        this.setReg(t, value >> 1);
-    }
-
     // Rotate TARGET right through carry
-    RR(t: R8) {
+    RR_R8(t: R8) {
         let value = this.getReg(t);
 
         let carryMask = (this._r.f & 0b00010000) << 3;
@@ -2013,7 +1853,7 @@ class CPU {
     }
 
     // Rotate TARGET left through carry
-    RL(t: R8) {
+    RL_R8(t: R8) {
         let carryMask = (this._r.f & 0b00010000) >> 4;
 
         let newValue = CPU.o8b((this.getReg(t) << 1) | carryMask);
@@ -2028,7 +1868,7 @@ class CPU {
     }
 
     // Rotate TARGET right
-    RRC(t: R8) {
+    RRC_R8(t: R8) {
         let rightmostBit = (this._r.a & 0b00000001) << 7;
 
         let newValue = CPU.o8b((this._r.a >> 1) | rightmostBit);
@@ -2043,7 +1883,7 @@ class CPU {
     }
 
     // Rotate TARGET left
-    RLC(t: R8) {
+    RLC_R8(t: R8) {
         let leftmostBit = (this._r.a & 0b10000000) >> 7;
 
         let newValue = CPU.o8b((this._r.a << 1) | leftmostBit);
@@ -2058,7 +1898,7 @@ class CPU {
     }
 
     // Shift TARGET right
-    SRA(t: R8) {
+    SRA_R8(t: R8) {
         let newValue = CPU.o8b(this.getReg(t) >> 1);
         let didOverflow = CPU.do8b(this.getReg(t) >> 1);
 
@@ -2071,7 +1911,7 @@ class CPU {
     }
 
     // Shift TARGET left 
-    SLA(t: R8) {
+    SLA_R8(t: R8) {
         let newValue = CPU.o8b(this.getReg(t) << 1);
         let didOverflow = CPU.do8b(this.getReg(t) << 1);
 
@@ -2084,7 +1924,7 @@ class CPU {
     }
 
     // Shift right logic register
-    SRL(t: R8) {
+    SRL_R8(t: R8) {
         let value = this.getReg(t);
 
         let newValue = CPU.o8b(value >> 1);
@@ -2098,7 +1938,7 @@ class CPU {
     }
 
     // SWAP 
-    SWAP(r8: R8) {
+    SWAP_R8(r8: R8) {
         let original = this.getReg(r8);
         let lowerNybble = original & 0b00001111;
         let upperNybble = (original >> 4) & 0b00001111;
@@ -2107,6 +1947,160 @@ class CPU {
 
         this._r._f.zero = this.getReg(r8) == 0;
     }
+
+    BIT_iHL(selectedBit) {
+        let value = this.fetchMem8(this._r.hl);
+        let mask = 0b1 << selectedBit;
+
+        this._r._f.zero = (value & mask) == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = true;
+    }
+
+    RES_iHL(selectedBit) {
+        let value = this.fetchMem8(this._r.hl);
+        let mask = 0b1 << selectedBit;
+
+        let final = value & ~(mask);
+
+        this.writeMem8(this._r.hl, final);
+    }
+
+    SET_iHL(selectedBit) {
+        let value = this.fetchMem8(this._r.hl);
+        let mask = 0b1 << selectedBit;
+
+        let final = value |= mask;
+
+        this.writeMem8(this._r.hl, final);
+    }
+
+    // Rotate [HL] right through carry
+    RR_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let carryMask = (this._r.f & 0b00010000) << 3;
+
+        let newValue = CPU.o8b((value >> 1) | carryMask);
+
+        this.writeMem8(this._r.hl, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = !!(value & 1);
+    }
+
+    // Rotate [HL] left through carry
+    RL_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let carryMask = (this._r.f & 0b00010000) >> 4;
+
+        let newValue = CPU.o8b((value << 1) | carryMask);
+        let didOverflow = CPU.do8b((value << 1) | carryMask);
+
+        this.writeMem8(this._r.hl, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = didOverflow;
+    }
+
+    // Rotate [HL] right
+    RRC_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let rightmostBit = (value & 0b00000001) << 7;
+
+        let newValue = CPU.o8b((value >> 1) | rightmostBit);
+        let didOverflow = CPU.do8b((value >> 1) | rightmostBit);
+
+        this.writeMem8(this._r.hl, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = didOverflow;
+    }
+
+    // Rotate [HL] left
+    RLC_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let leftmostBit = (value & 0b10000000) >> 7;
+
+        let newValue = CPU.o8b((value << 1) | leftmostBit);
+        let didOverflow = CPU.do8b((value << 1) | leftmostBit);
+
+        this.writeMem8(value, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = didOverflow;
+    }
+
+    // Shift [HL] right
+    SRA_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let newValue = CPU.o8b(value >> 1);
+        let didOverflow = CPU.do8b(value >> 1);
+
+        this.writeMem8(value, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = didOverflow;
+    }
+
+    // Shift [HL] left 
+    SLA_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let newValue = CPU.o8b(value << 1);
+        let didOverflow = CPU.do8b(value << 1);
+
+        this.writeMem8(this._r.hl, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = didOverflow;
+    }
+
+    // Shift right [HL]
+    SRL_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let newValue = CPU.o8b(value >> 1);
+
+        this.writeMem8(this._r.hl, newValue);
+
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = !!(value & 1);
+    }
+
+    // SWAP [HL]
+    SWAP_iHL() {
+        let value = this.fetchMem8(this._r.hl);
+
+        let lowerNybble = value & 0b00001111;
+        let upperNybble = (value >> 4) & 0b00001111;
+
+        let newValue = (lowerNybble << 4) | upperNybble;
+
+        this.writeMem8(this._r.hl, newValue);
+
+        this._r._f.zero = newValue == 0;
+    }
+
+    // #endregion
 
 }
 
