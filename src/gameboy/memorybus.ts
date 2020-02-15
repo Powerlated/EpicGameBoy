@@ -50,12 +50,11 @@ class MemoryBus {
     bootrom = new Uint8Array(0xFF + 1).fill(0);
     rom = new Uint8Array(0xFFFFFF + 1).fill(0xFF);
 
-    interruptController = new InterruptController();
+    interrupts = new InterruptController();
 
     bootromEnabled = true;
 
-    interruptEnableFlag = new InterruptFlag();
-    interruptHappenFlag = new InterruptFlag();
+
 
     constructor() {
     }
@@ -130,7 +129,7 @@ class MemoryBus {
 
         // GET Interrupt enable flags
         if (addr == 0xFFFF) {
-            return this.interruptEnableFlag.getNumerical();
+            return this.interrupts.interruptEnableFlag.getNumerical();
         }
 
         // Hardware I/O registers

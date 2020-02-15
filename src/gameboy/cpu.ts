@@ -25,6 +25,32 @@ function overflow8bErr(cpu, name, overflow) {
     `);
 }
 
+const willJump = (ins: Op, cpu: CPU) => {
+    if (ins.type == CC.C) return cpu._r._f.carry;
+    if (ins.type == CC.NC) return !cpu._r._f.carry;
+    if (ins.type == CC.Z) return cpu._r._f.zero;
+    if (ins.type == CC.NZ) return !cpu._r._f.zero;
+    if (ins.type == CC.UNCONDITIONAL) return true;
+};
+
+const willJumpTo = (ins: Op, cpu: CPU, pcTriplet, disasmPc): number => {
+    switch (ins.op) {
+        case cpu.JP_N16:
+        case cpu.CALL_N16:
+            return pcTriplet[0] | pcTriplet[1] << 8;
+        case cpu.JP_HL:
+            return cpu._r.hl;
+        case cpu.RET:
+            let stackLowerByte = cpu.bus.readMem8(o16b(cpu._r.sp));
+            let stackUpperByte = cpu.bus.readMem8(o16b(cpu._r.sp + 1));
+            return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
+        case cpu.JR_E8:
+            // Offset 2 for the length of JR instruction
+            return disasmPc + unTwo8b(pcTriplet[1]) + 2;
+        default: return null;
+    }
+};
+
 function overflow16bErr(cpu, name, overflow) {
     alert(`
     ${name} was set out of 0-65535 (${overflow})
@@ -301,6 +327,11 @@ class CPU {
     }
 
     step() {
+        if (this.breakpoints.has(this.pc)) {
+            this.khzStop();
+            return;
+        };
+
         let c = this.cycles;
 
         // if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
@@ -332,6 +363,10 @@ class CPU {
 
         // Use decoder based on prefix
         let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
+
+        if (ins.op == this.INVALID_OPCODE) {
+
+        }
 
         if (!ins.op) {
             alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.bus.readMem8(this.pc + 1)), 4) : hex(this.bus.readMem8(this.pc), 2)} is a null op`);
@@ -404,7 +439,7 @@ class CPU {
             console.error("Reading error at: 0x" + this.pc.toString(16));
         }
 
-        if (!ins.length) {
+        if (ins.length === undefined) {
             alert(`[${ins.op.name}] Op has no length specified.`);
         }
 
@@ -474,63 +509,67 @@ class CPU {
 
     disassembledLines = new Array(65536);
 
+    disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number) => {
+        const HARDCODE_DECODE = (ins, pcTriplet) => {
+            switch (ins.op) {
+                case this.LD_iHLdec_A: return ["LD", "(HL-),A"];
+                case this.LD_iHLinc_A: return ["LD", "(HL+),A"];
+                case this.LD_SP: return ["LD", "SP"];
+                case this.LD_FF00plusC_A: return ["LD", "($FF00+C),A"];
+                case this.LD_FF00plusN8_A: return ["LD", `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
+                case this.RST: return ["RST", `${hexN(ins.type, 2)}h`];
+                case this.LD_R8_R8: return ["LD", `${ins.type},${ins.type2}`];
+                case this.LD_A_iR16: return ["LD", `A,(${ins.type})`];
+                case this.CP_A_N8: return ["CP", `$${hexN(pcTriplet[1], 2)}`];
+                default: return null;
+            }
+        };
+
+        let isCB = pcTriplet[0] == 0xCB;
+        let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
+        // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
+        let block = hardDecoded ? true : false;
+
+        let operandAndType = "";
+
+        // Detect bottom 3/4 of 0xCB table
+        if (isCB && pcTriplet[1] > 0x30) {
+            operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
+        } else if (!block) {
+            // Regular operations, block if hardcode decoded
+            operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
+        }
+
+        // Instructions with type 2
+        if (isNaN(ins.type2 as any) && !block) {
+            if (ins.length == 2) {
+                if (ins.op != this.JR_E8) {
+                    // Regular operation
+                    operandAndType += "$" + hexN(this.bus.readMem8(disasmPc + 1), 2);
+                } else {
+                    // For JR operation, reverse two's complement instead of hex
+                    operandAndType += "" + unTwo8b(this.bus.readMem8(disasmPc + 1));
+                }
+            } else if (ins.length == 3) {
+                // 16 bit
+                operandAndType += "$" + hexN(this.bus.readMem16(disasmPc + 1), 4);
+            }
+        }
+
+        let name;
+        // Check if instruction name is hardcoded
+        if (hardDecoded != null) {
+            name = hardDecoded[0] + " ";
+            name += hardDecoded[1];
+        } else {
+            name = ins.op.name.split('_')[0];
+        };
+        return name + " " + operandAndType;
+    };
+
     disassemble(): string {
         let disassembly = [];
         let nextOpWillJumpTo = 0xFFFFFF;
-
-        let disassembleOp = (ins: Op, pcTriplet: Array<number>) => {
-            const HARDCODE_DECODE = (ins, pcTriplet) => {
-                switch (ins.op) {
-                    case this.LD_iHLdec_A: return ["LD", "(HL-),A"];
-                    case this.LD_iHLinc_A: return ["LD", "(HL+),A"];
-                    case this.LD_SP: return ["LD", "SP"];
-                    case this.LD_FF00plusC_A: return ["LD", "($FF00+C),A"];
-                    case this.LD_FF00plusN8_A: return ["LD", `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
-                    default: return null;
-                }
-            };
-
-            let isCB = pcTriplet[0] == 0xCB;
-            let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
-            // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
-            let block = hardDecoded ? true : false;
-
-            let operandAndType = "";
-
-            // Detect bottom 3/4 of 0xCB table
-            if (isCB && pcTriplet[1] > 0x30) {
-                operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
-            } else if (!block) {
-                // Regular operations, block if hardcode decoded
-                operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
-            }
-
-            // Instructions with type 2
-            if (isNaN(ins.type2 as any) && !block) {
-                if (ins.length == 2) {
-                    if (ins.op != this.JR_E8) {
-                        // Regular operation
-                        operandAndType += "$" + hexN(this.bus.readMem8(disasmPc + 1), 2);
-                    } else {
-                        // For JR operation, reverse two's complement instead of hex
-                        operandAndType += "" + unTwo8b(this.bus.readMem8(disasmPc + 1));
-                    }
-                } else if (ins.length == 3) {
-                    // 16 bit
-                    operandAndType += "$" + hexN(this.bus.readMem16(disasmPc + 1), 4);
-                }
-            }
-
-            let name;
-            // Check if instruction name is hardcoded
-            if (hardDecoded != null) {
-                name = hardDecoded[0] + " ";
-                name += hardDecoded[1];
-            } else {
-                name = ins.op.name.split('_')[0];
-            };
-            return name + " " + operandAndType;
-        };
 
         const buildLine = line => {
             // This assumes that CPU and disassemblyP are in the global context, terrible assumption but it works for now
@@ -571,37 +610,14 @@ class CPU {
 
             let hexDecoded = decodeHex(pcTriplet);
 
-            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${disassembleOp(ins, pcTriplet)}`;
+            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${this.disassembleOp(ins, pcTriplet, disasmPc)}`;
 
 
-            const willJump = (ins: Op, cpu: CPU) => {
-                if (ins.type == CC.C) return cpu._r._f.carry;
-                if (ins.type == CC.NC) return !cpu._r._f.carry;
-                if (ins.type == CC.Z) return cpu._r._f.zero;
-                if (ins.type == CC.NZ) return !cpu._r._f.zero;
-                if (ins.type == CC.UNCONDITIONAL) return true;
-            };
 
-            const willJumpTo = (ins: Op, cpu: CPU, pcTriplet): number => {
-                switch (ins.op) {
-                    case cpu.JP_N16:
-                    case cpu.CALL_N16:
-                        return pcTriplet[0] | pcTriplet[1] << 8;
-                    case cpu.JP_HL:
-                        return cpu._r.hl;
-                    case cpu.RET:
-                        let stackLowerByte = cpu.bus.readMem8(o16b(cpu._r.sp));
-                        let stackUpperByte = cpu.bus.readMem8(o16b(cpu._r.sp + 1));
-                        return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
-                    case cpu.JR_E8:
-                        // Offset 2 for the length of JR instruction
-                        return disasmPc + unTwo8b(pcTriplet[1]) + 2;
-                    default: return null;
-                }
-            };
+
 
             if (i == 0 && willJump(ins, this)) {
-                nextOpWillJumpTo = willJumpTo(ins, this, pcTriplet);
+                nextOpWillJumpTo = willJumpTo(ins, this, pcTriplet, disasmPc);
             }
 
             this.disassembledLines[disasmPc] = disasmLine;
@@ -615,13 +631,13 @@ class CPU {
                 ${BREAKPOINT_GENERATE()}
             >
                 ${disasmLine}
-            </span><br/>`);
+            </span>`);
 
             disassembly.push(disAsmLineHtml);
             disasmPc = o16b(disasmPc + ins.length);
         }
 
-        const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span><br/>';
+        const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span>';
 
         disasmPc = this.pc;
         let skippedLines = 0;
@@ -634,7 +650,7 @@ class CPU {
                     ${BREAKPOINT_GENERATE()}
                 >
                     ${this.disassembledLines[disasmPc]}
-                </span><br/>`);
+                </span>`);
                 disassembly.unshift(disAsmLineHtml);
             }
             if (this.disassembledLines[disasmPc] === null) {
@@ -659,7 +675,7 @@ class CPU {
         disassembly = disassembly.map((v, i, a) => {
             return `<span
             ${v == BLANK_LINE ? "" : HOVER_BG}
-            >${v}</span>`;
+            >${v}</span><br/>`;
         });
 
         return disassembly.join('');
@@ -970,6 +986,18 @@ class CPU {
                 return { op: this.DEC_R16, type: R16.HL, length: 1 };
             case 0x09: // ADD HL, BC
                 return { op: this.ADD_HL_R16, type: R16.BC, length: 1 };
+            case 0xD3:
+            case 0xDB:
+            case 0xDD:
+            case 0xE3:
+            case 0xE4:
+            case 0xEB:
+            case 0xEC:
+            case 0xED:
+            case 0xF4:
+            case 0xFC:
+            case 0xFD:
+                return { op: this.INVALID_OPCODE, length: 1 };
         }
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
@@ -1099,6 +1127,10 @@ class CPU {
 
 
 
+
+    INVALID_OPCODE() {
+        this.pc--;
+    }
 
     // #region INSTRUCTIONS
 
