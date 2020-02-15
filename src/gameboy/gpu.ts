@@ -137,9 +137,8 @@ class GPU {
 
     modeClock: number = 0;
 
-    c: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-
+    ctxGameboy: CanvasRenderingContext2D;
+    ctxTileset: CanvasRenderingContext2D;
 
     clearScreen() {
         var c = document.getElementById("gameboy");
@@ -147,8 +146,6 @@ class GPU {
 
         ctx.clearRect(0, 0, (c as any).width, (c as any).height);
     }
-
-    paintToCanvas = true;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -211,8 +208,8 @@ class GPU {
                         this.lcdStatus.mode = 2;
                         this.lcdcY = 0;
 
-                        if (!IS_NODE && this.paintToCanvas) {
-                            this.drawToCanvas();
+                        if (!IS_NODE) {
+                            this.drawToCanvasGameboy();
                         }
                     }
                 }
@@ -222,11 +219,34 @@ class GPU {
     
     }
 
-    imageData = new Uint8ClampedArray(160 * 144 * 4);
+    imageDataGameboy = new Uint8ClampedArray(160 * 144 * 4);
+    imageDataTileset = new Uint8ClampedArray(256 * 144 * 4);
 
-    drawToCanvas() {
-        let iData = new ImageData(this.imageData, 160, 144);
-        this.ctx.putImageData(iData, 0, 0);
+    drawToCanvasGameboy() {
+        let iData = new ImageData(this.imageDataGameboy, 160, 144);
+        this.ctxGameboy.putImageData(iData, 0, 0);
+    }
+
+    drawToCanvasTileset() {
+        let iData = new ImageData(this.imageDataTileset, 256, 144);
+        
+        this.ctxTileset.putImageData(iData, 0, 0);
+
+        this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)'
+        // 0: Bottom half used, 1: Top half used
+        // Draw over unused with transparent yellow
+        if (this.lcdControl.bgWindowTiledataSelect__4) {
+            this.ctxTileset.fillRect(0, 72, 256, 71);
+        } else {
+            this.ctxTileset.fillRect(0, 0, 256, 71);
+        }
+
+        this.ctxTileset.setLineDash([2]);
+        this.ctxTileset.strokeStyle = '#ff0000';
+        this.ctxTileset.strokeRect(0, 0, 256, 71);
+        this.ctxTileset.strokeStyle = '#0000ff';
+        this.ctxTileset.strokeRect(0, 72, 256, 71);
+        
     }
 
     renderScanline() {
@@ -262,10 +282,10 @@ class GPU {
             }
 
             // Plot the pixel to canvas
-            this.imageData[canvasIndex + 0] = (c >> 0) & 0xFF;
-            this.imageData[canvasIndex + 1] = (c >> 8) & 0xFF;
-            this.imageData[canvasIndex + 2] = (c >> 16) & 0xFF;
-            this.imageData[canvasIndex + 3] = 255;
+            this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
+            this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
+            this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
+            this.imageDataGameboy[canvasIndex + 3] = 255;
             canvasIndex += 4;
 
             // When this tile ends, read another
@@ -294,16 +314,18 @@ class GPU {
                     if (pixel == undefined) return;
                     if (i1 > 360) return;
 
-                    let x = ((i1 * 8) + i3) % 160;
-                    let row = Math.floor(((i1 * 8) + i3) / 160);
+                    const WIDTH = 256;
+
+                    let x = ((i1 * 8) + i3) % WIDTH;
+                    let row = Math.floor(((i1 * 8) + i3) / WIDTH);
                     let y = i2 + (row * 8);
 
                     let c = transformColor(this.bgPaletteData.lookup(pixel));
 
-                    this.imageData[4 * ((y * 160) + x) + 0] = (c >> 0) & 0xFF;
-                    this.imageData[4 * ((y * 160) + x) + 1] = (c >> 8) & 0xFF;
-                    this.imageData[4 * ((y * 160) + x) + 2] = (c >> 16) & 0xFF;
-                    this.imageData[4 * ((y * 160) + x) + 3] = 0xFF; // 100% alpha
+                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 0] = (c >> 0) & 0xFF;
+                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 1] = (c >> 8) & 0xFF;
+                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 2] = (c >> 16) & 0xFF;
+                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
         });
@@ -313,8 +335,10 @@ class GPU {
         this.bus = bus;
 
         if (!IS_NODE) {
-            this.c = document.getElementById("gameboy") as HTMLCanvasElement;
-            this.ctx = this.c.getContext("2d");
+            let cTileset= document.getElementById("tileset") as HTMLCanvasElement;
+            let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
+            this.ctxTileset = cTileset.getContext("2d");
+            this.ctxGameboy = cGameboy.getContext("2d");
         }
     }
 
@@ -343,8 +367,10 @@ class GPU {
                 // Find bit index for this pixel
                 sx = 0b1 << (7 - x);
 
+                let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 0;
+                
                 // Update tile set
-                this.tileset[tile][y][x] =
+                this.tileset[tile + tileOffset][y][x] =
                     ((this.vram[index] & sx) ? 1 : 0) +
                     ((this.vram[index + 1] & sx) ? 2 : 0);
             }

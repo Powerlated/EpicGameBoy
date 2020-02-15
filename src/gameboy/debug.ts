@@ -109,22 +109,19 @@ function startDebugging() {
         setInterval(() => {
             let lastDebugText = "";
             let cpu = ((window as any).cpu as CPU);
-            let h = cpu.bus.interrupts.requestedInterrupts;
+            let r = cpu.bus.interrupts.requestedInterrupts;
             let e = cpu.bus.interrupts.enabledInterrupts;
             let debugText = `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
 
-                Interrupts Master Enabled: ${cpu.bus.interrupts.masterEnabled}
-                Interrupts Happened: ${h.vblank ? "V" : "-"}${h.lcdStat ? "L" : "-"}${h.timer ? "T" : "-"}${h.serial ? "S" : "-"}${h.joypad ? "J" : "-"} (${hex(h.numerical, 2)})
-                Interrupts Enabled: ${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})
+                IME/E/R: ${cpu.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
             
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}
         
-                SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)}
-                [SP]: ${hex(cpu.bus.readMem16(cpu._r.sp), 4)}
+                SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)} [${hex(cpu.bus.readMem16(cpu._r.sp), 4)}]
             
                 <span class="code">
                 A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}

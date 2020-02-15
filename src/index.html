@@ -23,7 +23,7 @@
 
         #panels>* {
             display: inline-block;
-            min-width: 30%;
+            min-width: 25%;
         }
 
         .palette-container {
@@ -45,7 +45,7 @@
             bottom: 20;
         }
 
-        canvas {
+        #gameboy {
             width: 320px;
             height: 288px;
 
@@ -59,7 +59,22 @@
             outline-style: solid;
             outline-width: thick;
             outline-color: black;
+        }
 
+        #tileset {
+            width: 512px;
+            height: 288px;
+
+            image-rendering: -moz-crisp-edges;
+            /* Firefox */
+            image-rendering: -webkit-crisp-edges;
+            /* Webkit (Safari) */
+            image-rendering: pixelated;
+            /* Chrome */
+
+            outline-style: solid;
+            outline-width: thick;
+            outline-color: black;
         }
     </style>
 
@@ -78,14 +93,22 @@
 
         </span>
 
-        <div>
-            <label>Palette</label>
-            <div class="palette-container">
-                <span class="palette-square" id="palette0"></span>
-                <span class="palette-square" id="palette1"></span>
-                <span class="palette-square" id="palette2"></span>
-                <span class="palette-square" id="palette3"></span>
+        <div class="panel">
+            <span class="code" id="breakpoints"></span>
+
+
+            <canvas id="tileset" width="256" height="144"></canvas>
+            <div>
+                <label>Palette</label>
+                <div class="palette-container">
+                    <span class="palette-square" id="palette0"></span>
+                    <span class="palette-square" id="palette1"></span>
+                    <span class="palette-square" id="palette2"></span>
+                    <span class="palette-square" id="palette3"></span>
+                </div>
             </div>
+
+
 
             <canvas id="gameboy" width="160" height="144"></canvas>
         </div>
@@ -97,9 +120,9 @@
         <button onclick="executeAtPc()">Execute at PC</button>
         <button onclick="executeAtPc(); cpu.khz()">Speed Execute</button>
         <button onclick="cpu.khzStop();">Halt Execute</button>
-        <button onclick="cpu.bus.gpu.renderSingleFrame()">Render Frame</button>
+        <button onclick="cpu.renderSingleFrame()">Render Frame</button>
         <button onclick="cpu.bus.gpu.executeUntilVblank()">Execute until vblank</button>
-        <button onclick="console.log(cpu.registers)">Dump Registers</button>
+        <button onclick="cpu.bus.reset()">Reset</button>
 
         <div style="display: none">
             <label for="enableLogging">Enable Logging</label>
@@ -108,7 +131,7 @@
 
         <div>
             <label for="drawTileset">Draw Tileset</label>
-            <input id="drawTileset" autocomplete="off" type="checkbox">
+            <input id="drawTileset" autocomplete="off" type="checkbox" checked>
         </div>
 
         <div style="display: none">
@@ -178,7 +201,7 @@
             }
         }
 
-        setInterval(disassemble, 1);
+        setInterval(disassemble, 10);
 
         function executeAtPc() {
             let cpu = window.cpu;
@@ -191,7 +214,7 @@
             } else {
                 cpu.step();
             }
-            
+
 
             disassemble();
         }
@@ -220,17 +243,24 @@
         let drawTilesetInterval = 0;
         document.querySelector('#drawTileset').addEventListener('change', function (e) {
             if (e.target.checked) {
-                drawTilesetInterval = setInterval(() => {
-                    cpu.bus.gpu.renderTiles();
-                    cpu.bus.gpu.drawToCanvas();
-                    cpu.bus.gpu.paintToCanvas = false;
-                }, 10);
+                startDrawingTiles()
             } else {
-                cpu.bus.gpu.paintToCanvas = true;
-                clearInterval(drawTilesetInterval);
+                stopDrawingTiles();
             }
 
         }, false);
+
+        // Draw tileset by default
+        startDrawingTiles()
+        function startDrawingTiles() {
+            drawTilesetInterval = setInterval(() => {
+                cpu.bus.gpu.renderTiles();
+                cpu.bus.gpu.drawToCanvasTileset();
+            }, 10);
+        }
+        function stopDrawingTiles() {
+            clearInterval(drawTilesetInterval);
+        }
 
 
         document.querySelector('#haltInput').addEventListener('change', function (e) {

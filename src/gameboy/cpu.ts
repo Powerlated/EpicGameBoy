@@ -63,20 +63,25 @@ const willJumpTo = (ins: Op, cpu: CPU, pcTriplet, disasmPc): number => {
 
 const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU) => {
     const HARDCODE_DECODE = (ins, pcTriplet) => {
+        const LD = "LD";
+        const RST = "RST";
+        const CP = "CP"
+        const ADC = "ADC";
         switch (ins.op) {
-            case cpu.LD_iHLdec_A: return ["LD", "(HL-),A"];
-            case cpu.LD_iHLinc_A: return ["LD", "(HL+),A"];
-            case cpu.LD_SP: return ["LD", "SP"];
-            case cpu.LD_iFF00plusC_A: return ["LD", "($FF00+C),A"];
-            case cpu.LD_iFF00plusN8_A: return ["LD", `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
-            case cpu.LD_A_iFF00plusC: return ["LD", "A,($FF00+C)"];
-            case cpu.LD_A_iFF00plusN8: return ["LD", `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
-            case cpu.RST: return ["RST", `${hexN(ins.type, 2)}h`];
-            case cpu.LD_R8_R8: return ["LD", `${ins.type},${ins.type2}`];
-            case cpu.LD_A_iR16: return ["LD", `A,(${ins.type})`];
-            case cpu.CP_A_N8: return ["CP", `$${hexN(pcTriplet[1], 2)}`];
-            case cpu.ADC_N8: return ["ADC", `A,$${hexN(pcTriplet[1], 2)}`];
-            case cpu.LD_iN16_SP: return ["LD", "(u16),SP"];
+            case cpu.LD_iHLdec_A: return [LD, "(HL-),A"];
+            case cpu.LD_iHLinc_A: return [LD, "(HL+),A"];
+            case cpu.LD_SP: return [LD, "SP"];
+            case cpu.LD_iFF00plusC_A: return [LD, "($FF00+C),A"];
+            case cpu.LD_iFF00plusN8_A: return [LD, `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
+            case cpu.LD_A_iFF00plusC: return [LD, "A,($FF00+C)"];
+            case cpu.LD_A_iFF00plusN8: return [LD, `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
+            case cpu.RST: return [RST, `${hexN(ins.type, 2)}h`];
+            case cpu.LD_R8_R8: return [LD, `${ins.type},${ins.type2}`];
+            case cpu.LD_A_iR16: return [LD, `A,(${ins.type})`];
+            case cpu.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
+            case cpu.ADC_N8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
+            case cpu.LD_iN16_SP: return [LD, "(u16),SP"];
+            case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"]
             default: return null;
         }
     };
@@ -511,33 +516,33 @@ class CPU {
 
         this.lastInstructionCycles = this.cycles - c;
 
-        // Handle interrupts
+        // Service interrupts
         let happened = this.bus.interrupts.requestedInterrupts;
         if (this.bus.interrupts.masterEnabled) {
-            // If any interrupt has happened, disable master flag
+            // If servicing any interrupt, disable the master flag
             if (this.bus.interrupts.requestedInterrupts.numerical > 0) {
                 this.bus.interrupts.masterEnabled = false;
             }
 
             if (happened.vblank && this.bus.interrupts.enabledInterrupts.vblank) {
                 console.log("CPU: Handling vblank");
-                this.bus.interrupts.requestedInterrupts.vblank = false;
+                this.bus.interrupts.enabledInterrupts.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && this.bus.interrupts.enabledInterrupts.lcdStat) {
                 console.log("CPU: Handling lcd status");
-                this.bus.interrupts.requestedInterrupts.lcdStat = false;
+                this.bus.interrupts.enabledInterrupts.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && this.bus.interrupts.enabledInterrupts.timer) {
                 console.log("CPU: Handling timer");
-                this.bus.interrupts.requestedInterrupts.timer = false;
+                this.bus.interrupts.enabledInterrupts.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && this.bus.interrupts.enabledInterrupts.serial) {
                 console.log("CPU: Handling serial");
-                this.bus.interrupts.requestedInterrupts.serial = false;
+                this.bus.interrupts.enabledInterrupts.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && this.bus.interrupts.enabledInterrupts.joypad) {
                 console.log("CPU: Handling joypad");
-                this.bus.interrupts.requestedInterrupts.joypad = false;
+                this.bus.interrupts.enabledInterrupts.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
@@ -776,7 +781,8 @@ class CPU {
         this.debugging = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
-            let max = 70224; // Full frame GPU timing
+            // const max = 70224; // Full frame GPU timing
+            const max = 70224 * 2; // Full frame GPU timing, double speed
             if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
@@ -786,6 +792,10 @@ class CPU {
             }
             if (this.setHalt) this.setHalt = false;
         }, 16);
+    }
+
+    singleFrame() {
+
     }
 
     private getReg(t: R8 | R16) {
