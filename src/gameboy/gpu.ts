@@ -79,7 +79,7 @@ class GPU {
 
                         // Fire the Vblank interrupt
                         if (this.bus.interruptEnableFlag.vBlank)
-                            this.bus.cpu.interruptVblank();
+                            this.bus.interruptController.interruptVblank();
                     }
                     else {
                         this.mode = 2;

@@ -142,14 +142,6 @@ function startDebugging() {
                 cpu.khzStop();
             }
         }, 100);
-
-
-
-        let disassemblyP = document.getElementById('disassembly-output');
-        setInterval(() => {
-            let cpu: CPU = (window as any).cpu;
-            disassemblyP.innerHTML = cpu.disassembly;
-        }, 10);
     } else {
         console.log("Running in node, not updating DEBUG");
     }

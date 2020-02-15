@@ -59,13 +59,13 @@
 
 
     <div class="interactive">
-        <button onclick="window.cpu.step(); window.cpu.debugging = true">Execute at PC</button>
-        <button onclick="window.cpu.khz()">Speed Execute</button>
-        <button onclick="window.cpu.bus.gpu.frameExecute()">Frame Execute</button>
-        <button onclick="window.cpu.khzStop(); window.cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
-        <button onclick="window.cpu.gpu.renderSingleFrame()">Render Frame</button>
-        <button onclick="window.cpu.gpu.vblankExecute()">Execute until vblank</button>
-        <button onclick="console.log(window.cpu.registers)">Dump Registers</button>
+        <button onclick="executeAtPc()">Execute at PC</button>
+        <button onclick="cpu.khz()">Speed Execute</button>
+        <button onclick="cpu.bus.gpu.frameExecute()">Frame Execute</button>
+        <button onclick="cpu.khzStop(); cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
+        <button onclick="cpu.gpu.renderSingleFrame()">Render Frame</button>
+        <button onclick="cpu.gpu.vblankExecute()">Execute until vblank</button>
+        <button onclick="console.log(cpu.registers)">Dump Registers</button>
 
         <div>
             <label for="enableLogging">Enable Logging</label>
@@ -105,13 +105,7 @@
     </div>
 
 
-    <script src="gameboy/gameboy.js"></script>
-    <script>
-        cpu = new CPU();
-        window.cpu = cpu;
 
-        startDebugging();
-    </script>
 
 
     <script>
@@ -127,10 +121,31 @@
             }
 
             array.forEach((v, i, a) => {
-                window.cpu.bus.bootrom[i] = v;
+                cpu.bus.bootrom[i] = v;
             });
 
-            window.cpu.bootromLoaded = true;
+            cpu.bootromLoaded = true;
+            cpu.disassemble()
+        }
+
+        let disassemblyP = document.getElementById('disassembly-output');
+        let lastDisassembly = "";
+
+        function disassemble() {
+            let disassembly = cpu.disassemble();
+            if (lastDisassembly != disassembly) {
+                disassemblyP.innerHTML = disassembly;
+                lastDisassembly = disassembly;
+            }
+        }
+
+        setInterval(disassemble, 10);
+
+        function executeAtPc() {
+            let cpu = window.cpu;
+            cpu.step();
+
+            disassemble();
         }
 
         function download(filename, text) {
@@ -147,22 +162,22 @@
         }
 
         function downloadLog() {
-            download("EpicGameBoy.log", window.cpu.fullLog.join('\n'));
+            download("EpicGameBoy.log", cpu.fullLog.join('\n'));
         }
 
         document.querySelector('#enableLogging').addEventListener('change', function (e) {
 
-            window.cpu.logging = e.target.checked;
+            cpu.logging = e.target.checked;
         }, false);
 
 
         document.querySelector('#haltInput').addEventListener('change', function (e) {
-            window.cpu.haltAt = parseInt(`0x${e.target.value}`);
-            console.log(`Set halt address to 0x${parseInt(window.cpu.haltAt).toString(16)}`)
+            cpu.haltAt = parseInt(`0x${e.target.value}`);
+            console.log(`Set halt address to 0x${parseInt(cpu.haltAt).toString(16)}`)
         }, false);
         document.querySelector('#halt2Input').addEventListener('change', function (e) {
-            window.cpu.haltWhen = parseInt(`${e.target.value}`);
-            console.log(`Set halt instructions executed to ${parseInt(window.cpu.haltWhen).toString(10)}`)
+            cpu.haltWhen = parseInt(`${e.target.value}`);
+            console.log(`Set halt instructions executed to ${parseInt(cpu.haltWhen).toString(10)}`)
         }, false);
 
         document.querySelector('#bootromInput').addEventListener('change', function () {
@@ -172,11 +187,11 @@
                 var array = new Uint8Array(arrayBuffer);
 
                 array.forEach((v, i, a) => {
-                    window.cpu.bus.bootrom[i] = v;
+                    cpu.bus.bootrom[i] = v;
                 });
             }
             reader.readAsArrayBuffer(this.files[0]);
-            window.cpu.bootromLoaded = true;
+            cpu.bootromLoaded = true;
         }, false);
 
         document.querySelector('#gameromInput').addEventListener('change', function () {
@@ -187,13 +202,21 @@
                 var array = new Uint8Array(arrayBuffer);
 
                 array.forEach((v, i, a) => {
-                    window.cpu.bus.memory[i] = v;
+                    cpu.bus.rom[i] = v;
                 });
-                window.cpu.khz()
-                // window.cpu.bus.gpu.frameExecute();
+                // cpu.khz()
+                // cpu.bus.gpu.frameExecute();
             }
             reader.readAsArrayBuffer(this.files[0]);
         }, false);
+    </script>
+    <script src="gameboy/gameboy.js"></script>
+    <script>
+        cpu = new CPU();
+        window.cpu = cpu;
+
+        loadDefaultBootRom()
+        startDebugging();
     </script>
 </body>
 

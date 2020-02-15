@@ -48,6 +48,9 @@ class MemoryBus {
 
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
+    rom = new Uint8Array(0xFFFFFF + 1).fill(0xFF);
+
+    interruptController = new InterruptController();
 
     bootromEnabled = true;
 
@@ -155,12 +158,15 @@ class MemoryBus {
             }
         }
 
-        // Check if bootrom is disabled (0xFF50)
-        if (addr > 0xFF || !this.bootromEnabled) {
-            return this.memory[addr];
-        } else {
-            return this.bootrom[addr];
+        // Read from ROM area
+        if (addr < 0x8000) {
+            if (addr < 0x100 && this.bootromEnabled) {
+                return this.bootrom[addr];
+            }
+            return this.rom[addr];
         }
+
+        return this.memory[addr];
     }
 
     readMem16(addr: number) {

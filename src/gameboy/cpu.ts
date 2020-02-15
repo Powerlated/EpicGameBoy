@@ -189,7 +189,7 @@ class FlagsRegister {
 }
 
 enum R8 {
-    A = "A", B = "B", C = "C", D = "D", E = "E", H = "H", L = "L"
+    A = "A", B = "B", C = "C", D = "D", E = "E", H = "H", L = "L", iHL = "(HL)"
 }
 
 enum R16 {
@@ -269,9 +269,6 @@ class CPU {
 
     cycles = 0;
 
-    haltAt = 0xFFFFF;
-    haltWhen = 0xFFFFFFFFF;
-
     lastSerialOut = 0;
     lastInstructionDebug = "";
     lastOperandDebug = "";
@@ -306,23 +303,23 @@ class CPU {
     step() {
         let c = this.cycles;
 
-        if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
-            console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
-            this.pc = 0x100;
-            this._r._f.zero = true;
-            this._r._f.negative = false;
-            this._r._f.half_carry = true;
-            this._r._f.carry = true;
+        // if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
+        //     console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
+        //     this.pc = 0x100;
+        //     this._r._f.zero = true;
+        //     this._r._f.negative = false;
+        //     this._r._f.half_carry = true;
+        //     this._r._f.carry = true;
 
-            this._r.a = 0x11;
-            this._r.bc = 0x0013;
-            this._r.de = 0x00d8;
-            this._r.hl = 0x014d;
-            this._r.sp = 0xfffe;
+        //     this._r.a = 0x11;
+        //     this._r.bc = 0x0013;
+        //     this._r.de = 0x00d8;
+        //     this._r.hl = 0x014d;
+        //     this._r.sp = 0xfffe;
 
-            // Make a write to disable the bootrom
-            this.bus.writeMem(0xFF50, 1);
-        }
+        //     // Make a write to disable the bootrom
+        //     this.bus.writeMem(0xFF50, 1);
+        // }
 
         // Divide CPU clock and send to GPU
         if (this.time % 4 == 0)
@@ -383,16 +380,9 @@ class CPU {
         this.totalI++;
 
         this.lastInstructionCycles = this.cycles - c;
-
-        if (this.debugging) this.disassemble();
     }
 
     stepDebug() {
-        // #region DEBUG
-        if (this.debugging) {
-            console.log("STEP");
-        }
-
         let isCB = this.bus.readMem8(this.pc) == 0xCB;
 
         let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
@@ -468,16 +458,100 @@ class CPU {
         // #endregion
     }
 
-    disassembly = "[No disassembly]";
+
+    breakpoints = new Set<number>();
+
+    toggleBreakpoint(point: number) {
+        if (!this.breakpoints.has(point)) {
+            console.log("Set breakpoint at " + hex(point, 4));
+            this.breakpoints.add(point);
+        } else {
+            console.log("Cleared breakpoint at " + hex(point, 4));
+            this.breakpoints.delete(point);
+        }
+    }
+
+
     disassembledLines = new Array(65536);
 
-    disassemble() {
-        const LOGBACK_INSTRUCTIONS = 16;
-        const READAHEAD_INSTRUCTIONS = 16;
+    disassemble(): string {
+        let disassembly = [];
+        let nextOpWillJumpTo = 0xFFFFFF;
 
-        this.disassembly = "";
+        let disassembleOp = (ins: Op, pcTriplet: Array<number>) => {
+            const HARDCODE_DECODE = (ins, pcTriplet) => {
+                switch (ins.op) {
+                    case this.LD_iHLdec_A: return ["LD", "(HL-),A"];
+                    case this.LD_iHLinc_A: return ["LD", "(HL+),A"];
+                    case this.LD_SP: return ["LD", "SP"];
+                    case this.LD_FF00plusC_A: return ["LD", "($FF00+C),A"];
+                    case this.LD_FF00plusN8_A: return ["LD", `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
+                    default: return null;
+                }
+            };
+
+            let isCB = pcTriplet[0] == 0xCB;
+            let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
+            // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
+            let block = hardDecoded ? true : false;
+
+            let operandAndType = "";
+
+            // Detect bottom 3/4 of 0xCB table
+            if (isCB && pcTriplet[1] > 0x30) {
+                operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
+            } else if (!block) {
+                // Regular operations, block if hardcode decoded
+                operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
+            }
+
+            // Instructions with type 2
+            if (isNaN(ins.type2 as any) && !block) {
+                if (ins.length == 2) {
+                    if (ins.op != this.JR_E8) {
+                        // Regular operation
+                        operandAndType += "$" + hexN(this.bus.readMem8(disasmPc + 1), 2);
+                    } else {
+                        // For JR operation, reverse two's complement instead of hex
+                        operandAndType += "" + unTwo8b(this.bus.readMem8(disasmPc + 1));
+                    }
+                } else if (ins.length == 3) {
+                    // 16 bit
+                    operandAndType += "$" + hexN(this.bus.readMem16(disasmPc + 1), 4);
+                }
+            }
+
+            let name;
+            // Check if instruction name is hardcoded
+            if (hardDecoded != null) {
+                name = hardDecoded[0] + " ";
+                name += hardDecoded[1];
+            } else {
+                name = ins.op.name.split('_')[0];
+            };
+            return name + " " + operandAndType;
+        };
+
+        const buildLine = line => {
+            // This assumes that CPU and disassemblyP are in the global context, terrible assumption but it works for now
+            return `
+            <span 
+                onclick="cpu.toggleBreakpoint(${disasmPc}); disassemblyP.innerHTML = cpu.disassemble();"
+            >${line}</span>`;
+        };
+
+        const CURRENT_LINE_COLOR = "lime";
+        const JUMP_TO_COLOR = "cyan";
+        const BREAKPOINT_COLOR = "indianred";
+
+        const BREAKPOINT_CODE = `style='background-color: ${BREAKPOINT_COLOR}'`;
+        const BREAKPOINT_GENERATE = () => this.breakpoints.has(disasmPc) ? BREAKPOINT_CODE : "";
+
+        const LOGBACK_INSTRUCTIONS = 16;
+        const READAHEAD_INSTRUCTIONS = 32;
 
         let disasmPc = this.pc;
+
         for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
             let isCB = this.bus.readMem8(disasmPc) == 0xCB;
             let pcTriplet = [this.bus.readMem8(disasmPc), this.bus.readMem8(disasmPc + 1), this.bus.readMem8(disasmPc + 2)];
@@ -485,7 +559,8 @@ class CPU {
             // Pre-increment PC for 0xCB prefix
             let ins = isCB ? this.cbOpcode(this.bus.readMem8(disasmPc + 1)) : this.rgOpcode(this.bus.readMem8(disasmPc));
 
-            function decodeHex(pcTriplet: Array<number>, ins: Op) {
+            // Decode hexadecimal triplet 
+            function decodeHex(pcTriplet: Array<number>) {
                 let i0 = hexN_LC(pcTriplet[0], 2);
                 let i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
                 let i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
@@ -493,41 +568,101 @@ class CPU {
                 return pad(`${i0} ${i1} ${i2}`, 8, ' ');
             }
 
-            let hexDecoded = decodeHex(pcTriplet, ins);
 
-            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${ins.op.name} ${ins.type ? ins.type : ""} ${ins.type2 ? ins.type2 : ""}`;
+            let hexDecoded = decodeHex(pcTriplet);
+
+            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${disassembleOp(ins, pcTriplet)}`;
+
+
+            const willJump = (ins: Op, cpu: CPU) => {
+                if (ins.type == CC.C) return cpu._r._f.carry;
+                if (ins.type == CC.NC) return !cpu._r._f.carry;
+                if (ins.type == CC.Z) return cpu._r._f.zero;
+                if (ins.type == CC.NZ) return !cpu._r._f.zero;
+                if (ins.type == CC.UNCONDITIONAL) return true;
+            };
+
+            const willJumpTo = (ins: Op, cpu: CPU, pcTriplet): number => {
+                switch (ins.op) {
+                    case cpu.JP_N16:
+                    case cpu.CALL_N16:
+                        return pcTriplet[0] | pcTriplet[1] << 8;
+                    case cpu.JP_HL:
+                        return cpu._r.hl;
+                    case cpu.RET:
+                        let stackLowerByte = cpu.bus.readMem8(o16b(cpu._r.sp));
+                        let stackUpperByte = cpu.bus.readMem8(o16b(cpu._r.sp + 1));
+                        return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
+                    case cpu.JR_E8:
+                        // Offset 2 for the length of JR instruction
+                        return disasmPc + unTwo8b(pcTriplet[1]) + 2;
+                    default: return null;
+                }
+            };
+
+            if (i == 0 && willJump(ins, this)) {
+                nextOpWillJumpTo = willJumpTo(ins, this, pcTriplet);
+            }
 
             this.disassembledLines[disasmPc] = disasmLine;
             if (ins.length >= 2) this.disassembledLines[disasmPc + 1] = null;
             if (ins.length >= 3) this.disassembledLines[disasmPc + 2] = null;
 
             // Build the HTML line
-            let disAsmLineHtml = `<span ${i == 0 ? "style='background-color: lime'" : ""}>${disasmLine}</span><br/>`;
+            let disAsmLineHtml = buildLine(`
+            <span
+                ${i == 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
+                ${BREAKPOINT_GENERATE()}
+            >
+                ${disasmLine}
+            </span><br/>`);
 
-            this.disassembly = this.disassembly + disAsmLineHtml;
+            disassembly.push(disAsmLineHtml);
             disasmPc = o16b(disasmPc + ins.length);
         }
 
-        const BLANK_LINE = '<span>------- -- -- -- --------</span><br/>';
+        const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span><br/>';
 
-        let logIndex = this.pc;
+        disasmPc = this.pc;
         let skippedLines = 0;
         for (let i = 0; i < LOGBACK_INSTRUCTIONS; i++) {
-            if (this.disassembledLines[logIndex] != null && logIndex != this.pc) {
-                this.disassembly = `<span>${this.disassembledLines[logIndex]}</span><br/>` + this.disassembly;
+            if (this.disassembledLines[disasmPc] != null && disasmPc != this.pc) {
+                // Color the line background cyan if the next operation will jump there
+                let disAsmLineHtml = buildLine(`
+                <span 
+                    ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
+                    ${BREAKPOINT_GENERATE()}
+                >
+                    ${this.disassembledLines[disasmPc]}
+                </span><br/>`);
+                disassembly.unshift(disAsmLineHtml);
             }
-            if (this.disassembledLines[logIndex] === null) {
+            if (this.disassembledLines[disasmPc] === null) {
                 skippedLines++;
             }
-            if (this.disassembledLines[logIndex] === undefined) {
-                this.disassembly = BLANK_LINE + this.disassembly;
+            // If there is no log at position, just add a blank line
+            if (this.disassembledLines[disasmPc] === undefined) {
+                disassembly.unshift(BLANK_LINE);
             }
 
-            logIndex = o16b(logIndex - 1);
+            disasmPc = o16b(disasmPc - 1);
         }
+
+        // Prepend the skipped lines to the log
         for (let i = 0; i < skippedLines; i++) {
-            this.disassembly = BLANK_LINE + this.disassembly;
+            disassembly.unshift(BLANK_LINE);
         }
+
+        const HOVER_BG = `onMouseOver="this.style.backgroundColor='#AAA'" onMouseOut="this.style.backgroundColor='rgba(0, 0, 0, 0)'"`;
+
+        // Add wrapper to each one
+        disassembly = disassembly.map((v, i, a) => {
+            return `<span
+            ${v == BLANK_LINE ? "" : HOVER_BG}
+            >${v}</span>`;
+        });
+
+        return disassembly.join('');
     }
 
     setHalt = false;
@@ -543,36 +678,16 @@ class CPU {
         this.debugging = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
-            let max = 41940;
-            if (this.haltAt == this.pc || this.haltWhen == this.totalI || this.setHalt) {
+            let max = 4194;
+            if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
-            while (i < max && this.haltAt != this.pc && !this.setHalt && this.haltWhen != this.totalI) {
+            while (i < max && !this.breakpoints.has(this.pc) && !this.setHalt) {
                 this.step();
                 i++;
             }
             if (this.setHalt) this.setHalt = false;
         }, 10);
-    }
-
-    interruptVblank() {
-        console.log("VBLANK");
-    }
-
-    interruptLCDstat() {
-
-    }
-
-    interruptTimer() {
-
-    }
-
-    interruptSerial() {
-
-    }
-
-    interruptJoypad() {
-
     }
 
     private getReg(t: R8 | R16) {
@@ -593,6 +708,7 @@ class CPU {
             case R16.DE: return this._r.de;
             case R16.HL: return this._r.hl;
             case R16.SP: return this._r.sp;
+            case R8.iHL: return this.fetchMem8(this._r.hl);
         }
     }
 
@@ -617,6 +733,7 @@ class CPU {
             case R16.DE: this._r.de = i; break;
             case R16.HL: this._r.hl = i; break;
             case R16.SP: this._r.sp = i; break;
+            case R8.iHL: return this.writeMem8(this._r.hl, i);
         }
     }
 
@@ -628,9 +745,9 @@ class CPU {
             case 0x31:
                 return { op: this.LD_SP, length: 3 };
             case 0x20:
-                return { op: this.JR, type: CC.NZ, length: 2 };
+                return { op: this.JR_E8, type: CC.NZ, length: 2 };
             case 0x28:
-                return { op: this.JR, type: CC.Z, length: 2 };
+                return { op: this.JR_E8, type: CC.Z, length: 2 };
             case 0x21:
                 return { op: this.LD_R16_N16, type: R16.HL, length: 3 };
             case 0x32:
@@ -682,7 +799,7 @@ class CPU {
             case 0x2E:
                 return { op: this.LD_R8_N8, type: R8.L, length: 2 };
             case 0x18: // JR e8
-                return { op: this.JR, type: CC.UNCONDITIONAL, length: 2 };
+                return { op: this.JR_E8, type: CC.UNCONDITIONAL, length: 2 };
             case 0x04: // INC B
                 return { op: this.INC_R8, type: R8.B, length: 1 };
             case 0x1E: // LD E, n8
@@ -726,7 +843,7 @@ class CPU {
             case 0xD5:
                 return { op: this.PUSH_R16, type: R16.DE, length: 1 };
             case 0xE9: // JP HL
-                return { op: this.JP_R16, type: R16.HL, length: 1 };
+                return { op: this.JP_HL, type: R16.HL, length: 1 };
             case 0xC7: // RST 00h
                 return { op: this.RST, type: 0x00, length: 1 };
             case 0xFF: // RST 38h
@@ -752,7 +869,7 @@ class CPU {
             case 0x2C: // INC L
                 return { op: this.INC_R8, type: R8.L, length: 1 };
             case 0x38: // JR C, E8
-                return { op: this.JR, type: CC.C, length: 2 };
+                return { op: this.JR_E8, type: CC.C, length: 2 };
             case 0x08: // LD [N16], SP
                 return { op: this.LD_iN16_SP, length: 3 };
             case 0xC6: // ADD A, N8
@@ -770,7 +887,7 @@ class CPU {
             case 0x1F: // RRA
                 return { op: this.RRA, length: 1 };
             case 0x30: // JR NC, E8
-                return { op: this.JR, type: CC.NC, length: 2 };
+                return { op: this.JR_E8, type: CC.NC, length: 2 };
             case 0x25: // DEC H
                 return { op: this.DEC_R8, type: R8.H, length: 1 };
             case 0xD1: // POP DE
@@ -860,44 +977,24 @@ class CPU {
             let type: OperandType;
             let op: Function;
 
-            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, null, R8.A];
+            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
             type = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
-            // Check for [HL]
-            if (lowerNybble == 0x6 || lowerNybble == 0xE) {
-                if (lowerNybble < 0x8) {
-                    switch (OPDEC) {
-                        case 0x0: op = this.ADD_A_iHL; break;
-                        case 0x1: op = this.SUB_A_iHL; break;
-                        case 0x2: op = this.AND_A_iHL; break;
-                        case 0x3: op = this.OR_A_iHL; break;
-                    }
-                } else {
-                    switch (OPDEC) {
-                        case 0x0: op = this.ADC_A_iHL; break;
-                        case 0x1: op = this.SBC_A_iHL; break;
-                        case 0x2: op = this.XOR_A_iHL; break;
-                        case 0x3: op = this.CP_A_iHL; break;
-                    }
+            if (lowerNybble < 0x8) {
+                switch (OPDEC) {
+                    case 0x0: op = this.ADD_A_R8; break;
+                    case 0x1: op = this.SUB_A_R8; break;
+                    case 0x2: op = this.AND_A_R8; break;
+                    case 0x3: op = this.OR_A_R8; break;
                 }
-                // Not [HL]
             } else {
-                if (lowerNybble < 0x8) {
-                    switch (OPDEC) {
-                        case 0x0: op = this.ADD_A_R8; break;
-                        case 0x1: op = this.SUB_A_R8; break;
-                        case 0x2: op = this.AND_A_R8; break;
-                        case 0x3: op = this.OR_A_R8; break;
-                    }
-                } else {
-                    switch (OPDEC) {
-                        case 0x0: op = this.ADC_A_R8; break;
-                        case 0x1: op = this.SBC_A_R8; break;
-                        case 0x2: op = this.XOR_A_R8; break;
-                        case 0x3: op = this.CP_A_R8; break;
-                    }
+                switch (OPDEC) {
+                    case 0x0: op = this.ADC_A_R8; break;
+                    case 0x1: op = this.SBC_A_R8; break;
+                    case 0x2: op = this.XOR_A_R8; break;
+                    case 0x3: op = this.CP_A_R8; break;
                 }
             }
 
@@ -912,46 +1009,29 @@ class CPU {
             let type2: OperandType;
             let op: Function;
 
-            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, null, R8.A];
+            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
             type2 = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
-            // Check for [HL] at column 0x6 and 0xE
-            if (lowerNybble == 0x6 || lowerNybble == 0xE) {
-                if (lowerNybble < 0x8) {
-                    switch (OPDEC) {
-                        case 0x0: op = this.LD_R8_iHL; type = R8.B; break;
-                        case 0x1: op = this.LD_R8_iHL; type = R8.D; break;
-                        case 0x2: op = this.LD_R8_iHL; type = R8.H; break;
-                        case 0x3: op = this.HALT; break;
-                    }
-                } else {
-                    switch (OPDEC) {
-                        case 0x0: op = this.LD_R8_iHL; type = R8.C; break;
-                        case 0x1: op = this.LD_R8_iHL; type = R8.E; break;
-                        case 0x2: op = this.LD_R8_iHL; type = R8.L; break;
-                        case 0x3: op = this.LD_R8_iHL; type = R8.A; break;
-                    }
+            if (lowerNybble < 0x8) {
+                // Left side of table
+                switch (OPDEC) {
+                    case 0x0: op = this.LD_R8_R8; type = R8.B; break;
+                    case 0x1: op = this.LD_R8_R8; type = R8.D; break;
+                    case 0x2: op = this.LD_R8_R8; type = R8.H; break;
+                    case 0x3: op = this.LD_R8_R8; type = R8.iHL;
                 }
-                // Not [HL]
             } else {
-                if (lowerNybble < 0x8) {
-                    switch (OPDEC) {
-                        case 0x0: op = this.LD_R8_R8; type = R8.B; break;
-                        case 0x1: op = this.LD_R8_R8; type = R8.D; break;
-                        case 0x2: op = this.LD_R8_R8; type = R8.H; break;
-                        case 0x3: op = this.LD_iHL_R8; type = type2; type2 = null; break;
-                    }
-                } else {
-                    switch (OPDEC) {
-                        case 0x0: op = this.LD_R8_R8; type = R8.C; break;
-                        case 0x1: op = this.LD_R8_R8; type = R8.E; break;
-                        case 0x2: op = this.LD_R8_R8; type = R8.L; break;
-                        case 0x3: op = this.LD_R8_R8; type = R8.A; break;
-                    }
+                // Right side of table
+                switch (OPDEC) {
+                    case 0x0: op = this.LD_R8_R8; type = R8.C; break;
+                    case 0x1: op = this.LD_R8_R8; type = R8.E; break;
+                    case 0x2: op = this.LD_R8_R8; type = R8.L; break;
+                    case 0x3: op = this.LD_R8_R8; type = R8.A; break;
                 }
             }
+
 
             return { op: op, type: type, type2: type2, length: 1 };
 
@@ -979,71 +1059,37 @@ class CPU {
         }
 
 
-        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R16.HL, R8.A];
+        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
         type = typeTable[lowerNybble & 0b111];
 
-        // Check for [HL]
-        if (type == R16.HL) {
-            // #region [HL]
-            if (upperNybble < 0x4) {
-                // 0x0 - 0x3
-                if (lowerNybble < 0x4) {
-                    switch (upperNybble) {
-                        case 0x0: op = this.RLC_iHL; break;
-                        case 0x1: op = this.RL_iHL; break;
-                        case 0x2: op = this.SLA_iHL; break;
-                        case 0x3: op = this.SWAP_iHL; break;
-                    }
-                } else {
-                    switch (upperNybble) {
-                        case 0x0: op = this.RRC_iHL; break;
-                        case 0x1: op = this.RR_iHL; break;
-                        case 0x2: op = this.SRA_iHL; break;
-                        case 0x3: op = this.SRL_iHL; break;
-                    }
+        if (upperNybble < 0x4) {
+            // 0x0 - 0x3
+            if (lowerNybble < 0x4) {
+                switch (upperNybble) {
+                    case 0x0: op = this.RLC_R8; break;
+                    case 0x1: op = this.RL_R8; break;
+                    case 0x2: op = this.SLA_R8; break;
+                    case 0x3: op = this.SWAP_R8; break;
                 }
-                // 0x40 - 0xF0
             } else {
-                switch (upperNybble >> 2) {
-                    case 0x1: op = this.BIT_iHL; break;
-                    case 0x2: op = this.RES_iHL; break;
-                    case 0x3: op = this.SET_iHL; break;
+                switch (upperNybble) {
+                    case 0x0: op = this.RRC_R8; break;
+                    case 0x1: op = this.RR_R8; break;
+                    case 0x2: op = this.SRA_R8; break;
+                    case 0x3: op = this.SRL_R8; break;
                 }
             }
-
-            type = bit;
-            bit = null;
-            // #endregion
+            // 0x40 - 0xF0
         } else {
-            // #region NON-[HL]
-            if (upperNybble < 0x4) {
-                // 0x0 - 0x3
-                if (lowerNybble < 0x4) {
-                    switch (upperNybble) {
-                        case 0x0: op = this.RLC_R8; break;
-                        case 0x1: op = this.RL_R8; break;
-                        case 0x2: op = this.SLA_R8; break;
-                        case 0x3: op = this.SWAP_R8; break;
-                    }
-                } else {
-                    switch (upperNybble) {
-                        case 0x0: op = this.RRC_R8; break;
-                        case 0x1: op = this.RR_R8; break;
-                        case 0x2: op = this.SRA_R8; break;
-                        case 0x3: op = this.SRL_R8; break;
-                    }
-                }
-                // 0x40 - 0xF0
-            } else {
-                switch (upperNybble >> 2) {
-                    case 0x1: op = this.BIT_R8; break;
-                    case 0x2: op = this.RES_R8; break;
-                    case 0x3: op = this.SET_R8; break;
-                }
+            switch (upperNybble >> 2) {
+                case 0x1: op = this.BIT_R8; break;
+                case 0x2: op = this.RES_R8; break;
+                case 0x3: op = this.SET_R8; break;
             }
-            // #endregion
         }
+        // #endregion
+
 
 
 
@@ -1077,7 +1123,7 @@ class CPU {
 
     // HALT - 0x76
     HALT() {
-
+        alert(`[PC: ${hex(this.pc, 4)}] CPU has been halted`);
     }
 
     STOP() {
@@ -1133,10 +1179,6 @@ class CPU {
 
     LD_A_N16(n16: number) {
         this._r.a = this.fetchMem8(n16);
-    }
-
-    LD_R8_iHL(r8: R8) {
-        this.setReg(r8, this.fetchMem8(this._r.hl));
     }
 
     LD_A_iHL_INC() {
@@ -1240,7 +1282,7 @@ class CPU {
         return 4;
     }
 
-    JP_R16(r16: R16) {
+    JP_HL(r16: R16) {
         this.pc = this.getReg(r16) - 1;
     }
 
@@ -1347,7 +1389,7 @@ class CPU {
     }
 
     // JR
-    JR(cc: CC, n8: number) {
+    JR_E8(cc: CC, n8: number) {
         if (cc == CC.Z && !this._r._f.zero) return;
         if (cc == CC.NZ && this._r._f.zero) return;
         if (cc == CC.C && !this._r._f.carry) return;
@@ -1384,24 +1426,6 @@ class CPU {
         this._r._f.negative = false;
     }
 
-    // ADD A, [HL]
-    ADD_A_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
-
-        let newValue = o8b(value + this._r.a);
-        let didOverflow = do8b(value + this._r.a);
-
-        // Set register values
-        this._r.a = newValue;
-
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-    }
-
-
     // ADD A, N8
     ADD_A_N8(n8: number) {
         let value = n8;
@@ -1423,24 +1447,6 @@ class CPU {
     // ADC A, r8
     ADC_A_R8(t: R8) {
         let value = this.getReg(t);
-        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
-
-        // Add the carry flag as well for ADC
-        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-
-        // Set register values
-        this._r.a = newValue;
-
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-    }
-
-    // ADC A, [HL]
-    ADC_A_iHL(t: R8) {
-        let value = this.fetchMem8(this._r.hl);
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
         // Add the carry flag as well for ADC
@@ -1522,21 +1528,6 @@ class CPU {
         this._r._f.half_carry = (value & 0xF) - (1 & 0xF) < 0;
     }
 
-    SUB_A_iHL(t: R8) {
-        let value = this.fetchMem8(this._r.hl);
-
-        let newValue = o8b(this._r.a - value);
-        let didOverflow = do8b(this._r.a - value);
-
-        // Set register values
-        this._r.a = newValue;
-
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = true;
-        this._r._f.half_carry = (value & 0xF) - (1 & 0xF) < 0;
-    }
 
     SUB_A_N8(n8: number) {
         let newValue = o8b(this._r.a - n8);
@@ -1585,22 +1576,6 @@ class CPU {
         this._r._f.carry = didOverflow;
     }
 
-    SBC_A_iHL(t: R8) {
-        let value = this.fetchMem8(this._r.hl);
-
-        // Also subtract the carry flag for SBC
-        let newValue = o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-        let didOverflow = do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-
-        // Set register values
-        this._r.a = newValue;
-
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = true;
-    }
-
 
     AND_A_R8(t: R8) {
         let value = this.getReg(t);
@@ -1613,13 +1588,6 @@ class CPU {
         this._r._f.negative = false;
         this._r._f.half_carry = true;
         this._r._f.carry = false;
-    }
-
-    AND_A_iHL(t: R8) {
-        let value = this.fetchMem8(this._r.hl);
-
-        let final = value & this._r.a;
-        this._r.a = final;
     }
 
     AND_N8(n8: number) {
@@ -1658,18 +1626,6 @@ class CPU {
         this._r._f.carry = false;
     }
 
-    OR_A_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let final = value | this._r.a;
-        this._r.a = final;
-
-        this._r._f.zero = final == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = false;
-    }
-
     XOR_A_R8(t: R8) {
         let value = this.getReg(t);
 
@@ -1684,18 +1640,6 @@ class CPU {
 
     XOR_A_N8(n8: number) {
         let value = n8;
-
-        let final = value ^ this._r.a;
-        this._r.a = final;
-
-        this._r._f.zero = final == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = false;
-    }
-
-    XOR_A_iHL() {
-        let value = this.fetchMem8(this._r.hl);
 
         let final = value ^ this._r.a;
         this._r.a = final;
@@ -1999,162 +1943,6 @@ class CPU {
 
         this._r._f.zero = this.getReg(r8) == 0;
     }
-
-    BIT_iHL(selectedBit) {
-        let value = this.fetchMem8(this._r.hl);
-        let mask = 0b1 << selectedBit;
-
-        this._r._f.zero = (value & mask) == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = true;
-    }
-
-    RES_iHL(selectedBit) {
-        let value = this.fetchMem8(this._r.hl);
-        let mask = 0b1 << selectedBit;
-
-        let final = value & ~(mask);
-
-        this.writeMem8(this._r.hl, final);
-    }
-
-    SET_iHL(selectedBit) {
-        let value = this.fetchMem8(this._r.hl);
-        let mask = 0b1 << selectedBit;
-
-        let final = value |= mask;
-
-        this.writeMem8(this._r.hl, final);
-    }
-
-    // Rotate [HL] right through carry
-    RR_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let carryMask = (this._r.f & 0b00010000) << 3;
-
-        let newValue = o8b((value >> 1) | carryMask);
-
-        this.writeMem8(this._r.hl, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = !!(value & 1);
-    }
-
-    // Rotate [HL] left through carry
-    RL_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let carryMask = (this._r.f & 0b00010000) >> 4;
-
-        let newValue = o8b((value << 1) | carryMask);
-        let didOverflow = do8b((value << 1) | carryMask);
-
-        this.writeMem8(this._r.hl, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
-
-    // Rotate [HL] right
-    RRC_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let rightmostBit = (value & 0b00000001) << 7;
-
-        let newValue = o8b((value >> 1) | rightmostBit);
-        let didOverflow = do8b((value >> 1) | rightmostBit);
-
-        this.writeMem8(this._r.hl, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
-
-    // Rotate [HL] left
-    RLC_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let leftmostBit = (value & 0b10000000) >> 7;
-
-        let newValue = o8b((value << 1) | leftmostBit);
-        let didOverflow = do8b((value << 1) | leftmostBit);
-
-        this.writeMem8(value, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
-
-    // Shift [HL] right
-    SRA_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let newValue = o8b(value >> 1);
-        let didOverflow = do8b(value >> 1);
-
-        this.writeMem8(value, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
-
-    // Shift [HL] left 
-    SLA_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let newValue = o8b(value << 1);
-        let didOverflow = do8b(value << 1);
-
-        this.writeMem8(this._r.hl, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
-
-    // Shift right [HL]
-    SRL_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let newValue = o8b(value >> 1);
-
-        this.writeMem8(this._r.hl, newValue);
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = !!(value & 1);
-    }
-
-    // SWAP [HL]
-    SWAP_iHL() {
-        let value = this.fetchMem8(this._r.hl);
-
-        let lowerNybble = value & 0b00001111;
-        let upperNybble = (value >> 4) & 0b00001111;
-
-        let newValue = (lowerNybble << 4) | upperNybble;
-
-        this.writeMem8(this._r.hl, newValue);
-
-        this._r._f.zero = newValue == 0;
-    }
-
-    // #endregion
-
-    //
 }
 
 
