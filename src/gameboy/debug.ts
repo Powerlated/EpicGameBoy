@@ -91,43 +91,51 @@ function test() {
     cpu = new CPU();
 }
 
+
+
+
 function startDebugging() {
+    let debugP = document.getElementById('debug');
     // @ts-check
     if (!isNode()) {
         setInterval(() => {
+            let lastDebugText = "";
             let cpu = (window as any).cpu;
             try {
-                let debugP = document.getElementById('debug');
-                debugP.innerText = `
-    Last Instruction: [${cpu.lastInstructionDebug}] ${cpu.currentIns} (${cpu.lastOperandDebug})
-    Last Instruction Cycles: ${cpu.lastInstructionCycles}
-
-    Total Instructions Executed: ${cpu.totalI}
-    Total Cycles: ${cpu.cycles}
-    
-    
-    PC: ${hex(cpu.pc, 4)}
-
-    CARRY: ${cpu._r._f.carry}
-    HALF_CARRY: ${cpu._r._f.half_carry}
-    SUBTRACT: ${cpu._r._f.negative}
-    ZERO: ${cpu._r._f.zero}
-
-      SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)}
-    [SP]: ${hex(cpu.bus.readMem16(cpu._r.sp), 4)}
-
-    A: ${hex(cpu._r.a, 2)} ${cpu._r.a} ${cpu._r.a.toString(2)}
-    B: ${hex(cpu._r.b, 2)} ${cpu._r.b} ${cpu._r.b.toString(2)}
-    C: ${hex(cpu._r.c, 2)} ${cpu._r.c} ${cpu._r.c.toString(2)}
-    D: ${hex(cpu._r.d, 2)} ${cpu._r.d} ${cpu._r.d.toString(2)}
-    E: ${hex(cpu._r.e, 2)} ${cpu._r.e} ${cpu._r.e.toString(2)}
-    H: ${hex(cpu._r.h, 2)} ${cpu._r.h} ${cpu._r.h.toString(2)}
-    L: ${hex(cpu._r.l, 2)} ${cpu._r.l} ${cpu._r.l.toString(2)}
-
-    BC: ${hex(cpu._r.bc, 4)} ${cpu._r.bc} ${cpu._r.bc.toString(2)}
-    DE: ${hex(cpu._r.de, 4)} ${cpu._r.de} ${cpu._r.de.toString(2)}
-    HL: ${hex(cpu._r.hl, 4)} ${cpu._r.hl} ${cpu._r.hl.toString(2)}
-    `;
+                let debugText = `
+                Last Instruction: [${cpu.lastInstructionDebug}] ${cpu.currentIns} (${cpu.lastOperandDebug})
+                Last Instruction Cycles: ${cpu.lastInstructionCycles}
+            
+                Total Instructions Executed: ${cpu.totalI}
+                Total Cycles: ${cpu.cycles}
+                
+                
+                PC: ${hex(cpu.pc, 4)}
+            
+                CARRY: ${cpu._r._f.carry}
+                HALF_CARRY: ${cpu._r._f.half_carry}
+                SUBTRACT: ${cpu._r._f.negative}
+                ZERO: ${cpu._r._f.zero}
+            
+                  SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)}
+                [SP]: ${hex(cpu.bus.readMem16(cpu._r.sp), 4)}
+            
+                A: ${hex(cpu._r.a, 2)} ${cpu._r.a} ${cpu._r.a.toString(2)}
+                B: ${hex(cpu._r.b, 2)} ${cpu._r.b} ${cpu._r.b.toString(2)}
+                C: ${hex(cpu._r.c, 2)} ${cpu._r.c} ${cpu._r.c.toString(2)}
+                D: ${hex(cpu._r.d, 2)} ${cpu._r.d} ${cpu._r.d.toString(2)}
+                E: ${hex(cpu._r.e, 2)} ${cpu._r.e} ${cpu._r.e.toString(2)}
+                H: ${hex(cpu._r.h, 2)} ${cpu._r.h} ${cpu._r.h.toString(2)}
+                L: ${hex(cpu._r.l, 2)} ${cpu._r.l} ${cpu._r.l.toString(2)}
+            
+                BC: ${hex(cpu._r.bc, 4)} ${cpu._r.bc} ${cpu._r.bc.toString(2)}
+                DE: ${hex(cpu._r.de, 4)} ${cpu._r.de} ${cpu._r.de.toString(2)}
+                HL: ${hex(cpu._r.hl, 4)} ${cpu._r.hl} ${cpu._r.hl.toString(2)}
+                `;
+                if (debugText != lastDebugText) {
+                    lastDebugText = debugText;
+                    debugP.innerText = debugText;
+                }
             } catch (e) {
                 alert(`
         Error occurred in display, probably caused by error in CPU.
