@@ -3,7 +3,7 @@ class LCDCRegister {
     lcdDisplayEnable7 = false; // Bit 7 - LCD Display Enable             (0=Off, 1=On)
     tilemapSelect___6 = false; // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
     enableWindow____5 = false; // Bit 5 - Window Display Enable          (0=Off, 1=On)
-    bgWindowSelect__4 = false; // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
+    bgWindowTiledataSelect__4 = false; // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
     bgTilemapSelect_3 = false; // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
     spriteSize______2 = false; // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
     bgWindowPriority1 = false; // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
@@ -14,7 +14,7 @@ class LCDCRegister {
         if (this.lcdDisplayEnable7) flagN = flagN | 0b10000000;
         if (this.tilemapSelect___6) flagN = flagN | 0b01000000;
         if (this.enableWindow____5) flagN = flagN | 0b00100000;
-        if (this.bgWindowSelect__4) flagN = flagN | 0b00010000;
+        if (this.bgWindowTiledataSelect__4) flagN = flagN | 0b00010000;
         if (this.bgTilemapSelect_3) flagN = flagN | 0b00001000;
         if (this.spriteSize______2) flagN = flagN | 0b00000100;
         if (this.bgWindowPriority1) flagN = flagN | 0b00000010;
@@ -26,7 +26,7 @@ class LCDCRegister {
         this.lcdDisplayEnable7 = (i & (1 << 7)) != 0;
         this.tilemapSelect___6 = (i & (1 << 6)) != 0;
         this.enableWindow____5 = (i & (1 << 5)) != 0;
-        this.bgWindowSelect__4 = (i & (1 << 4)) != 0;
+        this.bgWindowTiledataSelect__4 = (i & (1 << 4)) != 0;
         this.bgTilemapSelect_3 = (i & (1 << 3)) != 0;
         this.spriteSize______2 = (i & (1 << 2)) != 0;
         this.bgWindowPriority1 = (i & (1 << 1)) != 0;
@@ -117,7 +117,7 @@ class GPU {
     bus: MemoryBus;
     vram = new Uint8Array(0x2000);
 
-    steps = 0;
+    totalFrameCount = 0;
 
     // [tile][row][pixel]
     tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
@@ -125,8 +125,8 @@ class GPU {
     tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9800-9BFF 1024 bytes
     tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
 
-    lcdcRegister = new LCDCRegister(); // 0xFF40
-    lcdStatusRegister = new LCDCStatusRegister(); // 0xFF41
+    lcdControl = new LCDCRegister(); // 0xFF40
+    lcdStatus = new LCDCStatusRegister(); // 0xFF41
 
     bgPaletteData = new BGPaletteData(); // 0xFF47
 
@@ -152,27 +152,22 @@ class GPU {
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
-        this.steps++;
-        this.modeClock++;
-
-        if (!(this.steps % 4194)) {
-            // this.renderTiles();
-        }
-
-        switch (this.lcdStatusRegister.mode) {
+        // Clock the GPU based on how long the last CPU instruction took 
+        this.modeClock += this.bus.cpu.lastInstructionCycles
+        switch (this.lcdStatus.mode) {
             // Read from OAM - Scanline active
             case 2:
-                if (this.modeClock >= 20) {
+                if (this.modeClock >= 80) {
                     this.modeClock = 0;
-                    this.lcdStatusRegister.mode = 3;
+                    this.lcdStatus.mode = 3;
                 }
                 break;
 
             // Read from VRAM - Scanline active
             case 3:
-                if (this.modeClock >= 43) {
+                if (this.modeClock >= 172) {
                     this.modeClock = 0;
-                    this.lcdStatusRegister.mode = 0;
+                    this.lcdStatus.mode = 0;
 
                     // Write a scanline to the framebuffer
                     if (!IS_NODE) {
@@ -184,30 +179,34 @@ class GPU {
 
             // Hblank
             case 0:
-                if (this.modeClock >= 51) {
+                if (this.modeClock >= 204) {
                     this.modeClock = 0;
                     this.lcdcY++;
 
                     if (this.lcdcY == 144) {
-                        this.lcdStatusRegister.mode = 1;
-
-                        // Fire the Vblank interrupt
-                        this.bus.interrupts.attemptVblank();
+                        this.lcdStatus.mode = 1;
                     }
                     else {
-                        this.lcdStatusRegister.mode = 2;
+                        this.lcdStatus.mode = 2;
                     }
                 }
                 break;
 
             // Vblank
             case 1:
-                if (this.modeClock >= 114) {
+                if (this.modeClock >= 456) {
                     this.modeClock = 0;
+
+                    if (this.lcdcY == 144) {
+                        // Fire the Vblank interrupt
+                        this.bus.interrupts.attemptVblank();
+                        this.totalFrameCount++;
+                    }
+
                     this.lcdcY++;
 
                     if (this.lcdcY > 153) {
-                        this.lcdStatusRegister.mode = 2;
+                        this.lcdStatus.mode = 2;
                         this.lcdcY = 0;
 
                         this.runningTheCPU = false;
@@ -224,7 +223,8 @@ class GPU {
                 }
                 break;
         }
-
+        
+    
     }
 
     imageData = new Uint8ClampedArray(160 * 144 * 4);
@@ -243,23 +243,33 @@ class GPU {
         let y = (this.lcdcY + scrollY) & 7; // CORRECT
         let x = (scrollX) & 7;                // CORRECT
 
-        let mapoffs = 0x1800 + ((Math.floor((this.lcdcY + scrollY) / 8) * 32) & 1023);// 1023   // CORRECT 0x1800
+        let mapBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+        let mapOffset = mapBase + ((Math.floor((this.lcdcY + scrollY) / 8) * 32) & 1023);// 1023   // CORRECT 0x1800
 
         let lineoffs = (scrollX >> 3);
 
-        let tile = this.vram[mapoffs];
+        let tile = this.vram[mapOffset];
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
         // Loop through every single pixel 
         for (let i = 0; i < 160; i++) {
+
+            // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
+            let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
+
             // Re-map the tile pixel through the palette
-            let c = transformColor(this.bgPaletteData.lookup(this.tileset[tile][y][x]));
+            let c = transformColor(this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]));
+
+            // Write olive green color when LCD is disabled
+            if (!this.lcdControl.lcdDisplayEnable7) {
+                c = 0x0f380f;
+            }
 
             // Plot the pixel to canvas
             this.imageData[canvasIndex + 0] = (c >> 0) & 0xFF;
-            this.imageData[canvasIndex + 1] = (c >> 2) & 0xFF;
-            this.imageData[canvasIndex + 2] = (c >> 4) & 0xFF;
+            this.imageData[canvasIndex + 1] = (c >> 8) & 0xFF;
+            this.imageData[canvasIndex + 2] = (c >> 16) & 0xFF;
             this.imageData[canvasIndex + 3] = 255;
             canvasIndex += 4;
 
@@ -268,7 +278,7 @@ class GPU {
             if (x == 8) {
                 x = 0;
                 lineoffs++;
-                tile = this.vram[mapoffs + lineoffs];
+                tile = this.vram[mapOffset + lineoffs];
                 // if (GPU._bgtile == 1 && tile < 128) tile += 256;
             }
         }
@@ -314,8 +324,8 @@ class GPU {
                     let c = transformColor(this.bgPaletteData.lookup(pixel));
 
                     this.imageData[4 * ((y * 160) + x) + 0] = (c >> 0) & 0xFF;
-                    this.imageData[4 * ((y * 160) + x) + 1] = (c >> 2) & 0xFF;
-                    this.imageData[4 * ((y * 160) + x) + 2] = (c >> 4) & 0xFF;
+                    this.imageData[4 * ((y * 160) + x) + 1] = (c >> 8) & 0xFF;
+                    this.imageData[4 * ((y * 160) + x) + 2] = (c >> 16) & 0xFF;
                     this.imageData[4 * ((y * 160) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
@@ -336,11 +346,16 @@ class GPU {
     }
 
     write(index, value) {
+        // During mode 3, the CPU cannot access VRAM or CGB palette data
+        // if (this.lcdStatus.mode == 3) return;
+
         this.vram[index] = value;
 
         // Write to tile set
         if (index >= 0x0 && index <= 0x17FF) {
+            value += 0x1800;
             value &= 0x1FFE;
+            value -= 0x1800;
 
             // Work out which tile and row was updated
             var tile = Math.floor(index / 16);
@@ -349,7 +364,7 @@ class GPU {
             var sx;
             for (var x = 0; x < 8; x++) {
                 // Find bit index for this pixel
-                sx = 1 << (7 - x);
+                sx = 0b1 << (7 - x);
 
                 // Update tile set
                 this.tileset[tile][y][x] =

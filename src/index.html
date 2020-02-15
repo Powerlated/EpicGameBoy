@@ -4,9 +4,28 @@
 
 
     <style>
-        .panel {
+        html {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 500;
+        }
+
+        #panels > * {
             display: inline-block;
             min-width: 30%;
+        }
+
+        .palette-container {
+            display: flex;
+
+            margin-bottom: 20px;
+        }
+
+        .palette-square {
+            outline: solid 1px black;
+            
+            display: inline-block;
+            min-width: 48px;
+            min-height: 48px;
         }
 
         .interactive {
@@ -38,11 +57,8 @@
 <body>
     <h1 style="margin-bottom: 0">Game Boy Emulator</h1>
 
-    <div>
-        <p class="panel" id="debug">
-
-        </p>
-        <p class="panel" id="gpudebug" style="display: none">
+    <div id="panels">
+        <p class="panel" id="debug" style="line-height: 1.25;">
 
         </p>
         <!-- <b>Disassembly</b>  -->
@@ -54,7 +70,18 @@
 
         </span>
 
-        <canvas id="gameboy" width="160" height="144"></canvas>
+        <div>
+            <label>Palette</label>
+            <div class="palette-container">
+                <span class="palette-square" id="palette0"></span>
+                <span class="palette-square" id="palette1"></span>
+                <span class="palette-square" id="palette2"></span>
+                <span class="palette-square" id="palette3"></span>
+            </div>
+
+            <canvas id="gameboy" width="160" height="144"></canvas>
+        </div>
+
     </div>
 
 

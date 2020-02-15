@@ -343,7 +343,7 @@ class CPU {
 
     _r = new Registers();
     _pc: number = 0x0000;
-
+ 
     get pc(): number {
         return this._pc;
     }
@@ -406,26 +406,26 @@ class CPU {
 
         let c = this.cycles;
 
-        // if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
-        //     console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
-        //     this.pc = 0x100;
-        //     this._r._f.zero = true;
-        //     this._r._f.negative = false;
-        //     this._r._f.half_carry = true;
-        //     this._r._f.carry = true;
+        if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
+            console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
+            this.pc = 0x100;
+            this._r._f.zero = true;
+            this._r._f.negative = false;
+            this._r._f.half_carry = true;
+            this._r._f.carry = true;
 
-        //     this._r.a = 0x11;
-        //     this._r.bc = 0x0013;
-        //     this._r.de = 0x00d8;
-        //     this._r.hl = 0x014d;
-        //     this._r.sp = 0xfffe;
+            this._r.a = 0x11;
+            this._r.bc = 0x0013;
+            this._r.de = 0x00d8;
+            this._r.hl = 0x014d;
+            this._r.sp = 0xfffe;
 
-        //     // Make a write to disable the bootrom
-        //     this.bus.writeMem(0xFF50, 1);
-        // }
+            // Make a write to disable the bootrom
+            this.bus.writeMem(0xFF50, 1);
+        }
 
         // Divide CPU clock and send to GPU
-        if (this.time % 4 == 0)
+        // if (this.time % 4 == 0)
             this.bus.gpu.step();
 
         // Run the debug information collector
@@ -490,27 +490,32 @@ class CPU {
         this.lastInstructionCycles = this.cycles - c;
 
         // Handle interrupts
-        let happened = this.bus.interrupts.happenedInterrupts;
+        let happened = this.bus.interrupts.requestedInterrupts;
         if (this.bus.interrupts.masterEnabled) {
             // If any interrupt has happened, disable master flag
-            if (this.bus.interrupts.happenedInterrupts.numerical > 0) {
+            if (this.bus.interrupts.requestedInterrupts.numerical > 0) {
                 this.bus.interrupts.masterEnabled = false;
             }
 
-            if (happened.vblank) {
-                this.bus.interrupts.enabledInterrupts.vblank = false;
+            if (happened.vblank && this.bus.interrupts.enabledInterrupts.vblank) {
+                console.log("CPU: Handling vblank")
+                this.bus.interrupts.requestedInterrupts.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
-            } else if (happened.lcdStat) {
-                this.bus.interrupts.enabledInterrupts.lcdStat = false;
+            } else if (happened.lcdStat && this.bus.interrupts.enabledInterrupts.lcdStat) {
+                console.log("CPU: Handling lcd status")
+                this.bus.interrupts.requestedInterrupts.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
-            } else if (happened.timer) {
-                this.bus.interrupts.enabledInterrupts.timer = false;
+            } else if (happened.timer && this.bus.interrupts.enabledInterrupts.timer) {
+                console.log("CPU: Handling timer")
+                this.bus.interrupts.requestedInterrupts.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
-            } else if (happened.serial) {
-                this.bus.interrupts.enabledInterrupts.serial = false;
+            } else if (happened.serial && this.bus.interrupts.enabledInterrupts.serial) {
+                console.log("CPU: Handling serial")
+                this.bus.interrupts.requestedInterrupts.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
-            } else if (happened.joypad) {
-                this.bus.interrupts.enabledInterrupts.joypad = false;
+            } else if (happened.joypad && this.bus.interrupts.enabledInterrupts.joypad) {
+                console.log("CPU: Handling joypad")
+                this.bus.interrupts.requestedInterrupts.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
@@ -1012,7 +1017,7 @@ class CPU {
             case 0xDC: // CALL C, N16
                 return { op: this.CALL_N16, type: CC.C, length: 3 };
             case 0xD9: // RETI
-                return { op: this.RETI, type: CC.NZ, length: 3 };
+                return { op: this.RETI, type: CC.NZ, length: 1 };
             case 0x34: // INC [HL]
                 return { op: this.INC_R16, type: R16.HL, length: 3 };
             case 0x33: // INC SP
@@ -1426,7 +1431,7 @@ class CPU {
         this._r._f.half_carry = (this._r.a & 0b111) + (this._r.sp & 0b111) > 0b111;
         this._r._f.carry = (this._r.a & 0b1111111) + (this._r.sp & 0b1111111) > 0b1111111;
 
-        this._r.hl = o16b(e8 + this._r.sp);
+        this._r.hl = o16b(unTwo8b(e8) + this._r.sp);
     }
 
     // LD [$FF00+u8],A
@@ -1480,8 +1485,8 @@ class CPU {
     }
 
     // ADD SP, e8
-    ADD_SP_E8(n8: number) {
-        let value = unTwo8b(n8);
+    ADD_SP_E8(e8: number) {
+        let value = unTwo8b(e8);
         this._r.sp += value;
 
         this._r._f.zero = this._r.sp == 0;
@@ -2100,11 +2105,3 @@ function hexN_LC(i: number, digits: number) {
     return pad(i.toString(16), digits, '0');
 }
 
-// @ts-ignore
-const IS_NODE = (typeof process !== 'undefined') && (process.release.name === 'node');
-
-
-if (IS_NODE) {
-    // @ts-ignore
-    module.exports = { CPU, MemoryBus, GPU };
-}

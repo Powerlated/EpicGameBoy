@@ -4,6 +4,8 @@ const VRAM_END = 0x9FFF;
 const HWIO_BEGIN = 0xFF00;
 const HWIO_END = 0xFF7F;
 
+const INTERRUPT_REQUEST_FLAGS_ADDR = 0xFF0F;
+const INTERRUPT_ENABLE_FLAGS_ADDR = 0xFFFF;
 
 class MemoryBus {
     cpu: CPU;
@@ -36,10 +38,15 @@ class MemoryBus {
         `);
         }
 
+        // SET Interrupt request flags
+        if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
+            this.interrupts.requestedInterrupts.numerical = value;
+        }
         // SET Interrupt enable flags
-        if (addr == 0xFFFF) {
+        if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
             this.interrupts.enabledInterrupts.numerical = value;
         }
+        
 
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
@@ -58,11 +65,12 @@ class MemoryBus {
                     break;
                 case 0xFF40: // LCD Control
                     console.info(`LCD CONTROL CHANGE`);
-                    this.gpu.lcdcRegister.numerical = value;
+                    console.log(this.gpu.lcdControl)
+                    this.gpu.lcdControl.numerical = value;
                     break;
                 case 0xFF41: // LCDC Status
                     console.info(`LCDC STATUS CHANGE`);
-                    this.gpu.lcdStatusRegister.numerical = value;
+                    this.gpu.lcdStatus.numerical = value;
                     break;
                 case 0xFF42:
                     this.gpu.scrollY = value;
@@ -95,8 +103,13 @@ class MemoryBus {
             return this.gpu.read(addr - VRAM_BEGIN);
         }
 
+
+        // GET Interrupt request flags
+        if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
+            return this.interrupts.requestedInterrupts.numerical;
+        }
         // GET Interrupt enable flags
-        if (addr == 0xFFFF) {
+        if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
             return this.interrupts.enabledInterrupts.numerical;
         }
 
@@ -108,10 +121,10 @@ class MemoryBus {
                     return 0x69;
                 case 0xFF40:
                     console.info(`LCD CONTROL READ`);
-                    return this.gpu.lcdcRegister.numerical;
+                    return this.gpu.lcdControl.numerical;
                 case 0xFF41:
                     console.info(`LCDC STATUS READ`);
-                    return this.gpu.lcdStatusRegister.numerical;
+                    return this.gpu.lcdStatus.numerical;
                 case 0xFF42:
                     return this.gpu.scrollY;
                 case 0xFF43:

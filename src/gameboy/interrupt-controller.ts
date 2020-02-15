@@ -46,40 +46,41 @@ const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
 class InterruptController {
-    masterEnabled = false; // IME
+    masterEnabled = true; // IME
 
-    enabledInterrupts = new InterruptFlag();
-    happenedInterrupts = new InterruptFlag();
+    enabledInterrupts = new InterruptFlag(); // 0xFFFF
+    requestedInterrupts = new InterruptFlag(); // 0xFF0F
 
     // Note: When an interrupt is fired, the master interrupt flag is disabled
 
     attemptVblank() {
+        console.log("Attempting vblank");
         if (this.enabledInterrupts.vblank) {
-            this.happenedInterrupts.vblank = true;
+            this.requestedInterrupts.vblank = true;
         }
     }
 
     attemptLCDstatus() {
         if (this.enabledInterrupts.lcdStat) {
-            this.happenedInterrupts.lcdStat = true;
+            this.requestedInterrupts.lcdStat = true;
         }
     }
 
     attemptTimer() {
         if (this.enabledInterrupts.timer) {
-            this.happenedInterrupts.timer = true;
+            this.requestedInterrupts.timer = true;
         }
     }
 
     attemptSerial() {
         if (this.enabledInterrupts.serial) {
-            this.happenedInterrupts.serial = true;
+            this.requestedInterrupts.serial = true;
         }
     }
 
     attemptJoypad() {
         if (this.enabledInterrupts.joypad) {
-            this.happenedInterrupts.joypad = true;
+            this.requestedInterrupts.joypad = true;
         }
     }
 }

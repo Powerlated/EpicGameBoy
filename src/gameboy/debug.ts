@@ -101,15 +101,16 @@ function startDebugging() {
         setInterval(() => {
             let lastDebugText = "";
             let cpu = ((window as any).cpu as CPU);
-            try {
-                let h = cpu.bus.interrupts.happenedInterrupts;
-                let debugText = `
+            let h = cpu.bus.interrupts.requestedInterrupts;
+            let e = cpu.bus.interrupts.enabledInterrupts;
+            let debugText = `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
 
-                Interrupts Enabled: ${cpu.bus.interrupts.masterEnabled}
-                Interrupts: ${h.vblank ? "V" : "-"}${h.lcdStat ? "L" : "-"}${h.timer ? "T" : "-"}${h.serial ? "S" : "-"}${h.joypad ? "J" : "-"}
-                
+                Interrupts Master Enabled: ${cpu.bus.interrupts.masterEnabled}
+                Interrupts Happened: ${h.vblank ? "V" : "-"}${h.lcdStat ? "L" : "-"}${h.timer ? "T" : "-"}${h.serial ? "S" : "-"}${h.joypad ? "J" : "-"} (${hex(h.numerical, 2)})
+                Interrupts Enabled: ${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})
+
                 PC: ${hex(cpu.pc, 4)}
             
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}
@@ -130,31 +131,29 @@ function startDebugging() {
                 BC: ${hex(cpu._r.bc, 4)} ${cpu._r.bc} ${cpu._r.bc.toString(2)}
                 DE: ${hex(cpu._r.de, 4)} ${cpu._r.de} ${cpu._r.de.toString(2)}
                 HL: ${hex(cpu._r.hl, 4)} ${cpu._r.hl} ${cpu._r.hl.toString(2)}
-            
                 ------------------------------
-
                 Scroll Y: ${cpu.bus.gpu.scrollY}
                 Scroll X: ${cpu.bus.gpu.scrollX}
 
                 LCDC Y-Coordinate: ${cpu.bus.gpu.lcdcY} ${cpu.bus.gpu.lcdcY >= 144 ? "(Vblank)" : ""}
+
+                LCDC: ${pad(cpu.bus.gpu.lcdControl.numerical.toString(2), 8, '0')}
+                LCD Status: ${pad(cpu.bus.gpu.lcdStatus.numerical.toString(2), 7, '0')}
+
+                Total Frames: ${cpu.bus.gpu.totalFrameCount}
             `;
 
-            
+            let p0 = document.getElementById('palette0');
+            let p1 = document.getElementById('palette1');
+            let p2 = document.getElementById('palette2');
+            let p3 = document.getElementById('palette3');
 
-                    debugP.innerText = debugText;
-            } catch (e) {
-                alert(`
-        Error occurred in display, probably caused by error in CPU.
-        
-        PC: 0x${cpu.pc.toString(16)}
-        Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-        Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+            p0.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade0), 6);
+            p1.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade1), 6);
+            p2.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade2), 6);
+            p3.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade3), 6);
 
-        `);
-
-                console.error(e);
-                cpu.khzStop();
-            }
+            debugP.innerText = debugText;
         }, 100);
     } else {
         console.log("Running in node, not updating DEBUG");

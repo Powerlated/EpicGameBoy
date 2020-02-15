@@ -12,10 +12,10 @@ console.log("Loading ROM " + process.argv[2]);
 let buffer = fs.readFileSync(`${process.argv[2]}`);
 
 let cpu = new gameboy.CPU();
-cpu.logging = true;
+cpu.logging = false;
 
 buffer.forEach((v, i, a) => {
-  cpu.bus.memory[i] = v;
+  cpu.bus.rom[i] = v;
 });
 
 function cleanUp() {
@@ -40,7 +40,7 @@ setTimeout(() => {
       cleanUp();
     }
 
-    const EXIT_AT = 50000;
+    const EXIT_AT = 1000000;
     if (cpu.totalI > EXIT_AT) {
       console.log(`Hit ${EXIT_AT} instructions, exiting.`);
       cleanUp();
