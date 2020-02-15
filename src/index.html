@@ -187,14 +187,14 @@
             });
 
             cpu.bootromLoaded = true;
-            cpu.disassemble()
+            disassemble(cpu);
         }
 
         let disassemblyP = document.getElementById('disassembly-output');
         let lastDisassembly = "";
 
         function disassemble() {
-            let disassembly = cpu.disassemble();
+            let disassembly = disassemble(cpu);
             if (lastDisassembly != disassembly) {
                 disassemblyP.innerHTML = disassembly;
                 lastDisassembly = disassembly;
@@ -216,7 +216,7 @@
             }
 
 
-            disassemble();
+            disassemble(cpu);
         }
 
         function download(filename, text) {

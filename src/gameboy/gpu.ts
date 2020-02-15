@@ -245,7 +245,7 @@ class GPU {
         this.ctxTileset.strokeStyle = '#ff0000';
         this.ctxTileset.strokeRect(0, 0, 256, 71);
         this.ctxTileset.strokeStyle = '#0000ff';
-        this.ctxTileset.strokeRect(0, 72, 256, 71);
+        this.ctxTileset.strokeRect(0, 72, 256, 72);
         
     }
 

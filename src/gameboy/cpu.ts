@@ -22,112 +22,6 @@ function overflow8bErr(cpu, name, overflow) {
     `);
 }
 
-const willJump = (ins: Op, cpu: CPU) => {
-    if (ins.type == CC.C) return cpu._r._f.carry;
-    if (ins.type == CC.NC) return !cpu._r._f.carry;
-    if (ins.type == CC.Z) return cpu._r._f.zero;
-    if (ins.type == CC.NZ) return !cpu._r._f.zero;
-    if (ins.type == CC.UNCONDITIONAL) return true;
-};
-
-const isControlFlow = (ins: Op, cpu: CPU) => {
-    switch (ins.op) {
-        case cpu.JP_N16:
-        case cpu.CALL_N16:
-        case cpu.JP_HL:
-        case cpu.RET:
-        case cpu.JR_E8:
-            return true;
-        default:
-            return false;
-    }
-};
-
-const willJumpTo = (ins: Op, cpu: CPU, pcTriplet, disasmPc): number => {
-    switch (ins.op) {
-        case cpu.JP_N16:
-        case cpu.CALL_N16:
-            return pcTriplet[0] | pcTriplet[1] << 8;
-        case cpu.JP_HL:
-            return cpu._r.hl;
-        case cpu.RET:
-            let stackLowerByte = cpu.bus.readMem8(o16b(cpu._r.sp));
-            let stackUpperByte = cpu.bus.readMem8(o16b(cpu._r.sp + 1));
-            return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
-        case cpu.JR_E8:
-            // Offset 2 for the length of JR instruction
-            return disasmPc + unTwo8b(pcTriplet[1]) + 2;
-        default: return null;
-    }
-};
-
-const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU) => {
-    const HARDCODE_DECODE = (ins, pcTriplet) => {
-        const LD = "LD";
-        const RST = "RST";
-        const CP = "CP"
-        const ADC = "ADC";
-        switch (ins.op) {
-            case cpu.LD_iHLdec_A: return [LD, "(HL-),A"];
-            case cpu.LD_iHLinc_A: return [LD, "(HL+),A"];
-            case cpu.LD_SP: return [LD, "SP"];
-            case cpu.LD_iFF00plusC_A: return [LD, "($FF00+C),A"];
-            case cpu.LD_iFF00plusN8_A: return [LD, `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
-            case cpu.LD_A_iFF00plusC: return [LD, "A,($FF00+C)"];
-            case cpu.LD_A_iFF00plusN8: return [LD, `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
-            case cpu.RST: return [RST, `${hexN(ins.type, 2)}h`];
-            case cpu.LD_R8_R8: return [LD, `${ins.type},${ins.type2}`];
-            case cpu.LD_A_iR16: return [LD, `A,(${ins.type})`];
-            case cpu.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
-            case cpu.ADC_N8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
-            case cpu.LD_iN16_SP: return [LD, "(u16),SP"];
-            case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"]
-            default: return null;
-        }
-    };
-
-    let isCB = pcTriplet[0] == 0xCB;
-    let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
-    // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
-    let block = hardDecoded ? true : false;
-
-    let operandAndType = "";
-
-    // Detect bottom 3/4 of 0xCB table
-    if (isCB && pcTriplet[1] > 0x30) {
-        operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
-    } else if (!block) {
-        // Regular operations, block if hardcode decoded
-        operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
-    }
-
-    // Instructions with type 2
-    if (isNaN(ins.type2 as any) && !block) {
-        if (ins.length == 2) {
-            if (ins.op != cpu.JR_E8) {
-                // Regular operation
-                operandAndType += "$" + hexN(cpu.bus.readMem8(disasmPc + 1), 2);
-            } else {
-                // For JR operation, reverse two's complement instead of hex
-                operandAndType += "" + unTwo8b(cpu.bus.readMem8(disasmPc + 1));
-            }
-        } else if (ins.length == 3) {
-            // 16 bit
-            operandAndType += "$" + hexN(cpu.bus.readMem16(disasmPc + 1), 4);
-        }
-    }
-
-    let name;
-    // Check if instruction name is hardcoded
-    if (hardDecoded != null) {
-        name = hardDecoded[0] + " ";
-        name += hardDecoded[1];
-    } else {
-        name = ins.op.name.split('_')[0];
-    };
-    return name + " " + operandAndType;
-};
-
 function overflow16bErr(cpu, name, overflow) {
     alert(`
     ${name} was set out of 0-65535 (${overflow})
@@ -335,17 +229,26 @@ class CPU {
     log = [];
     fullLog = [];
 
+    _r = new Registers();
+    _pc: number = 0x0000;
+
+    bus = new MemoryBus();
+
+    breakpoints = new Set<number>();
+
+    disassembledLines = new Array(65536);
+
+    setHalt = false;
+    
+    scheduleEnableInterruptsForNextTick = false;
+
     constructor() {
         console.log("CPU Bootstrap!");
         this.bus.cpu = this;
         this.bus.gpu = new GPU(this.bus);
         this._r.cpu = this;
     }
-
-
-    _r = new Registers();
-    _pc: number = 0x0000;
-
+  
     get pc(): number {
         return this._pc;
     }
@@ -362,8 +265,6 @@ class CPU {
         }
         this._pc = i;
     }
-
-    bus = new MemoryBus();
 
     // #region
 
@@ -624,7 +525,7 @@ class CPU {
 
     }
 
-    breakpoints = new Set<number>();
+
 
     toggleBreakpoint(point: number) {
         if (!this.breakpoints.has(point)) {
@@ -642,133 +543,6 @@ class CPU {
         console.log("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints.delete(point);
     }
-
-
-    disassembledLines = new Array(65536);
-
-
-
-    disassemble(): string {
-        let disassembly = [];
-        let nextOpWillJumpTo = 0xFFFFFF;
-
-        const buildLine = line => {
-            // This assumes that CPU and disassemblyP are in the global context, terrible assumption but it works for now
-            return `
-            <span 
-                onclick="cpu.toggleBreakpoint(${disasmPc}); disassemblyP.innerHTML = cpu.disassemble();"
-            >${line}</span>`;
-        };
-
-        const CURRENT_LINE_COLOR = "lime";
-        const JUMP_TO_COLOR = "cyan";
-        const BREAKPOINT_COLOR = "indianred";
-
-        const BREAKPOINT_CODE = `style='background-color: ${BREAKPOINT_COLOR}'`;
-        const BREAKPOINT_GENERATE = () => this.breakpoints.has(disasmPc) ? BREAKPOINT_CODE : "";
-
-        const LOGBACK_INSTRUCTIONS = 16;
-        const READAHEAD_INSTRUCTIONS = 32;
-
-        let disasmPc = this.pc;
-
-        for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
-            let isCB = this.bus.readMem8(disasmPc) == 0xCB;
-            let pcTriplet = [this.bus.readMem8(disasmPc), this.bus.readMem8(disasmPc + 1), this.bus.readMem8(disasmPc + 2)];
-
-            // Pre-increment PC for 0xCB prefix
-            let ins = isCB ? this.cbOpcode(this.bus.readMem8(disasmPc + 1)) : this.rgOpcode(this.bus.readMem8(disasmPc));
-
-            // Decode hexadecimal triplet 
-            function decodeHex(pcTriplet: Array<number>) {
-                let i0 = hexN_LC(pcTriplet[0], 2);
-                let i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
-                let i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
-
-                return pad(`${i0} ${i1} ${i2}`, 8, ' ');
-            }
-
-
-            let hexDecoded = decodeHex(pcTriplet);
-
-            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${disassembleOp(ins, pcTriplet, disasmPc, this)}`;
-
-
-
-
-
-            if (i == 0) {
-                if (willJump(ins, this))
-                    nextOpWillJumpTo = willJumpTo(ins, this, pcTriplet, disasmPc);
-
-                if (isControlFlow(ins, this) && !willJump(ins, this)) {
-                    nextOpWillJumpTo = disasmPc + ins.length;
-                }
-            }
-
-            this.disassembledLines[disasmPc] = disasmLine;
-            if (ins.length >= 2) this.disassembledLines[disasmPc + 1] = null;
-            if (ins.length >= 3) this.disassembledLines[disasmPc + 2] = null;
-
-            // Build the HTML line
-            let disAsmLineHtml = buildLine(`
-            <span
-                ${BREAKPOINT_GENERATE()}
-                ${i == 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
-                ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
-            >
-                ${disasmLine}
-            </span>`);
-
-            disassembly.push(disAsmLineHtml);
-            disasmPc = o16b(disasmPc + ins.length);
-        }
-
-        const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span>';
-
-        disasmPc = this.pc;
-        let skippedLines = 0;
-        for (let i = 0; i < LOGBACK_INSTRUCTIONS; i++) {
-            if (this.disassembledLines[disasmPc] != null && disasmPc != this.pc) {
-                // Color the line background cyan if the next operation will jump there
-                let disAsmLineHtml = buildLine(`
-                <span 
-                    ${BREAKPOINT_GENERATE()}
-                    ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
-                >
-                    ${this.disassembledLines[disasmPc]}
-                </span>`);
-                disassembly.unshift(disAsmLineHtml);
-            }
-            if (this.disassembledLines[disasmPc] === null) {
-                skippedLines++;
-            }
-            // If there is no log at position, just add a blank line
-            if (this.disassembledLines[disasmPc] === undefined) {
-                disassembly.unshift(BLANK_LINE);
-            }
-
-            disasmPc = o16b(disasmPc - 1);
-        }
-
-        // Prepend the skipped lines to the log
-        for (let i = 0; i < skippedLines; i++) {
-            disassembly.unshift(BLANK_LINE);
-        }
-
-        const HOVER_BG = `onMouseOver="this.style.backgroundColor='#AAA'" onMouseOut="this.style.backgroundColor='rgba(0, 0, 0, 0)'"`;
-
-        // Add wrapper to each one
-        disassembly = disassembly.map((v, i, a) => {
-            return `<span
-            ${v == BLANK_LINE ? "" : HOVER_BG}
-            >${v}</span><br/>`;
-        });
-
-        return disassembly.join('');
-    }
-
-    setHalt = false;
 
     khzInterval = 0;
 
@@ -881,7 +655,7 @@ class CPU {
             case 0xC5: // PUSH B
                 return { op: this.PUSH_R16, type: R16.BC, length: 1 };
             case 0x17:
-                return { op: this.RLA, length: 1 };
+                return { op: this.RL_R8, type: R8.A, length: 1 };
             case 0xC1: // POP BC
                 return { op: this.POP_R16, type: R16.BC, length: 1 };
             case 0x05:
@@ -993,7 +767,7 @@ class CPU {
             case 0xF7: // RST 30h
                 return { op: this.RST, type: 0x30, length: 1 };
             case 0x1F: // RRA
-                return { op: this.RRA, length: 1 };
+                return { op: this.RR_R8, type: R8.A, length: 1 };
             case 0x30: // JR NC, E8
                 return { op: this.JR_E8, type: CC.NC, length: 2 };
             case 0x25: // DEC H
@@ -1067,7 +841,7 @@ class CPU {
             case 0xF2: // LD A, [FF00+C]
                 return { op: this.LD_A_iFF00plusC, length: 1 };
             case 0x0F: // RRCA
-                return { op: this.RRCA, length: 1 };
+                return { op: this.RR_R8, type: R8.A, length: 1 };
             case 0xE8: // AP SP, E8
                 return { op: this.ADD_SP_E8, length: 1 };
             case 0xF6: // OR A, N8
@@ -1218,10 +992,6 @@ class CPU {
         return { op: op, type: type, type2: bit, length: 2 };
     }
 
-
-
-
-
     INVALID_OPCODE() {
         this.pc--;
     }
@@ -1240,8 +1010,7 @@ class CPU {
         console.log("Disabled interrupts");
     }
 
-    scheduleEnableInterruptsForNextTick = false;
-
+    
     // EI - 0xFB
     EI() {
         this.scheduleEnableInterruptsForNextTick = true;
@@ -1879,66 +1648,6 @@ class CPU {
         this._r._f.carry = true;
     }
 
-    // Rotate A right through carry
-    RRA() {
-        let carryMask = (this._r.f & 0b00010000) << 3;
-
-        let newValue = o8b((this._r.a >> 1) | carryMask);
-        let didOverflow = do8b((this._r.a >> 1) | carryMask);
-
-        this._r._f.carry = (this._r.a & 0b00000001) == 0b1;
-        this._r._f.zero = false;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-
-        this._r.a = newValue;
-    }
-
-    // Rotate A left through carry
-    RLA() {
-        let carryMask = (this._r.f & 0b00010000) >> 4;
-
-        let newValue = o8b((this._r.a << 1) | carryMask);
-        let didOverflow = do8b((this._r.a << 1) | carryMask);
-
-        this._r._f.carry = (this._r.a & 0b10000000) >> 7 == 0b1;
-
-        this._r.a = newValue;
-
-        this._r._f.zero = false;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-    }
-
-    // Rotate register A right
-    RRCA() {
-        let rightmostBit = (this._r.a & 0b00000001) << 7;
-
-        let newValue = o8b((this._r.a >> 1) | rightmostBit);
-        let didOverflow = do8b((this._r.a >> 1) | rightmostBit);
-
-        this._r.a = newValue;
-
-        this._r._f.zero = false;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
-
-    // Rotate register A left
-    RRLA() {
-        let leftmostBit = (this._r.a & 0b10000000) >> 7;
-
-        let newValue = o8b((this._r.a << 1) | leftmostBit);
-        let didOverflow = do8b((this._r.a << 1) | leftmostBit);
-
-        this._r.a = newValue;
-
-        this._r._f.zero = false;
-        this._r._f.negative = false;
-        this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
-    }
 
     CPL() {
         this._r.a = this._r.a ^ 0b11111111;
