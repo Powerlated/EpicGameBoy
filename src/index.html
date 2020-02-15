@@ -63,13 +63,18 @@
         <button onclick="cpu.khz()">Speed Execute</button>
         <button onclick="cpu.bus.gpu.frameExecute()">Frame Execute</button>
         <button onclick="cpu.khzStop(); cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
-        <button onclick="cpu.gpu.renderSingleFrame()">Render Frame</button>
-        <button onclick="cpu.gpu.vblankExecute()">Execute until vblank</button>
+        <button onclick="cpu.bus.gpu.renderSingleFrame()">Render Frame</button>
+        <button onclick="cpu.bus.gpu.executeUntilVblank()">Execute until vblank</button>
         <button onclick="console.log(cpu.registers)">Dump Registers</button>
 
-        <div>
+        <div style="display: none">
             <label for="enableLogging">Enable Logging</label>
             <input id="enableLogging" autocomplete="off" type="checkbox">
+        </div>
+
+        <div>
+            <label for="drawTileset">Draw Tileset</label>
+            <input id="drawTileset" autocomplete="off" type="checkbox">
         </div>
 
         <div style="display: none">
@@ -93,13 +98,13 @@
         </div>
 
 
-        <div>
+        <div style="display: none">
             <label for="halt2Input">Halt when executed</label>
             <input id="halt2Input" type="number" />
         </div>
 
 
-        <div>
+        <div style="display: none">
             <button onclick="downloadLog()">Download Log</button>
         </div>
     </div>
@@ -139,10 +144,14 @@
             }
         }
 
-        setInterval(disassemble, 10);
+        setInterval(disassemble, 1);
 
         function executeAtPc() {
             let cpu = window.cpu;
+            cpu.debugging = false;
+            if (cpu.breakpoints.has(cpu.pc)) {
+                cpu.clearBreakpoint(cpu.pc);
+            }
             cpu.step();
 
             disassemble();
@@ -166,14 +175,16 @@
         }
 
         document.querySelector('#enableLogging').addEventListener('change', function (e) {
-
             cpu.logging = e.target.checked;
+        }, false);
+
+        document.querySelector('#drawTileset').addEventListener('change', function (e) {
+            cpu.bus.gpu.drawTileset = e.target.checked;
         }, false);
 
 
         document.querySelector('#haltInput').addEventListener('change', function (e) {
-            cpu.haltAt = parseInt(`0x${e.target.value}`);
-            console.log(`Set halt address to 0x${parseInt(cpu.haltAt).toString(16)}`)
+            cpu.setBreakpoint(parseInt(`0x${e.target.value}`));
         }, false);
         document.querySelector('#halt2Input').addEventListener('change', function (e) {
             cpu.haltWhen = parseInt(`${e.target.value}`);

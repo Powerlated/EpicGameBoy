@@ -1,4 +1,117 @@
-const PaletteBasic = [255, 0, 0, 0];
+class LCDCRegister {
+    // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
+    lcdDisplayEnable7 = false; // Bit 7 - LCD Display Enable             (0=Off, 1=On)
+    tilemapSelect___6 = false; // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
+    enableWindow____5 = false; // Bit 5 - Window Display Enable          (0=Off, 1=On)
+    bgWindowSelect__4 = false; // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
+    bgTilemapSelect_3 = false; // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
+    spriteSize______2 = false; // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
+    bgWindowPriority1 = false; // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
+    spriteDisplay___0 = false; // Bit 0 - BG/Window Display/Priority     (0=Off, 1=On)
+
+    get numerical(): number {
+        let flagN = 0;
+        if (this.lcdDisplayEnable7) flagN = flagN | 0b10000000;
+        if (this.tilemapSelect___6) flagN = flagN | 0b01000000;
+        if (this.enableWindow____5) flagN = flagN | 0b00100000;
+        if (this.bgWindowSelect__4) flagN = flagN | 0b00010000;
+        if (this.bgTilemapSelect_3) flagN = flagN | 0b00001000;
+        if (this.spriteSize______2) flagN = flagN | 0b00000100;
+        if (this.bgWindowPriority1) flagN = flagN | 0b00000010;
+        if (this.spriteDisplay___0) flagN = flagN | 0b00000001;
+        return flagN;
+    }
+
+    set numerical(i: number) {
+        this.lcdDisplayEnable7 = (i & (1 << 7)) != 0;
+        this.tilemapSelect___6 = (i & (1 << 6)) != 0;
+        this.enableWindow____5 = (i & (1 << 5)) != 0;
+        this.bgWindowSelect__4 = (i & (1 << 4)) != 0;
+        this.bgTilemapSelect_3 = (i & (1 << 3)) != 0;
+        this.spriteSize______2 = (i & (1 << 2)) != 0;
+        this.bgWindowPriority1 = (i & (1 << 1)) != 0;
+        this.spriteDisplay___0 = (i & (1 << 0)) != 0;
+    }
+}
+
+class LCDCStatusRegister {
+    // https://gbdev.gg8.se/wiki/articles/Video_Display#FF41_-_STAT_-_LCDC_Status_.28R.2FW.29
+    lyCoincidenceInterrupt6 = false; // Bit 6 - LYC=LY Coincidence Interrupt (1=Enable) (Read/Write)
+    mode2OamInterrupt_____5 = false; // Bit 5 - Mode 2 OAM Interrupt         (1=Enable) (Read/Write)
+    mode1VblankInterrupt__4 = false; // Bit 4 - Mode 1 V-Blank Interrupt     (1=Enable) (Read/Write)
+    mode0HblankInterrupt__3 = false; // Bit 3 - Mode 0 H-Blank Interrupt     (1=Enable) (Read/Write)
+    coincidenceFlag_______2 = false; // Bit 2 - Coincidence Flag  (0:LYC<>LY, 1:LYC=LY) (Read Only)
+
+    mode = 0;   // Bit 1-0 - Mode Flag       (Mode 0-3, see below) (Read Only)
+    // 0: During H-Blank
+    // 1: During V-Blank
+    // 2: During Searching OAM
+    // 3: During Transferring Data to LCD Driver
+
+    get numerical(): number {
+        let flagN = 0;
+        if (this.lyCoincidenceInterrupt6) flagN = flagN | 0b01000000;
+        if (this.mode2OamInterrupt_____5) flagN = flagN | 0b00100000;
+        if (this.mode1VblankInterrupt__4) flagN = flagN | 0b00010000;
+        if (this.mode0HblankInterrupt__3) flagN = flagN | 0b00001000;
+        if (this.coincidenceFlag_______2) flagN = flagN | 0b00000100;
+
+        flagN = flagN | this.mode & 0b11;
+        return flagN;
+    }
+
+    set numerical(i: number) {
+        this.lyCoincidenceInterrupt6 = (i & (1 << 6)) != 0;
+        this.mode2OamInterrupt_____5 = (i & (1 << 5)) != 0;
+        this.mode1VblankInterrupt__4 = (i & (1 << 4)) != 0;
+        this.mode0HblankInterrupt__3 = (i & (1 << 3)) != 0;
+        this.coincidenceFlag_______2 = (i & (1 << 2)) != 0;
+
+        // this.mode = i & 0b11; // this is read only when numerically setting
+    }
+}
+
+class BGPaletteData {
+    shade3 = 0; // Bit 7-6 
+    shade2 = 0; // Bit 5-4
+    shade1 = 0; // Bit 3-2
+    shade0 = 0; // Bit 1-0
+
+    get numerical(): number {
+        let n = 0;
+        this.shade3 = this.shade3 | n << 6;
+        this.shade2 = this.shade2 | n << 4;
+        this.shade1 = this.shade1 | n << 2;
+        this.shade0 = this.shade0 | n << 0;
+        return n;
+    }
+
+    set numerical(i: number) {
+        this.shade3 = (i >> 6) & 0b11;
+        this.shade2 = (i >> 4) & 0b11;
+        this.shade1 = (i >> 2) & 0b11;
+        this.shade0 = (i >> 0) & 0b11;
+    }
+
+    lookup(index: number) {
+        switch (index) {
+            case 3: return this.shade3;
+            case 2: return this.shade2;
+            case 1: return this.shade1;
+            case 0: return this.shade0;
+            default: return 0;
+        }
+    }
+}
+
+function transformColor(color: number): number {
+    switch (color) {
+        case 3: return 0x000000; // [255, 255, 255]
+        case 2: return 0x606060; // [192, 192, 192]
+        case 1: return 0xC0C0C0; // [96, 96, 96]
+        default: return 0xFFFFFF; // [0, 0, 0]
+    }
+}
 
 class GPU {
     bus: MemoryBus;
@@ -12,22 +125,21 @@ class GPU {
     tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9800-9BFF 1024 bytes
     tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
 
+    lcdcRegister = new LCDCRegister(); // 0xFF40
+    lcdStatusRegister = new LCDCStatusRegister(); // 0xFF41
+
+    bgPaletteData = new BGPaletteData(); // 0xFF47
+
     scrollY = 0; // 0xFF42
     scrollX = 0; // 0xFF43
 
     lcdcY = 0; // 0xFF44 - Current scanning line
 
-    mode: number = 0;
     modeClock: number = 0;
 
     c: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
 
-
-    drawPixel(x, y, r, g, b) {
-        this.ctx.fillStyle = "rgba(" + r + "," + g + "," + b + "," + 1 + ")";
-        this.ctx.fillRect(x, y, 1, 1);
-    }
 
     clearScreen() {
         var c = document.getElementById("gameboy");
@@ -35,6 +147,8 @@ class GPU {
 
         ctx.clearRect(0, 0, (c as any).width, (c as any).height);
     }
+
+    drawTileset = false;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -45,12 +159,12 @@ class GPU {
             // this.renderTiles();
         }
 
-        switch (this.mode) {
+        switch (this.lcdStatusRegister.mode) {
             // Read from OAM - Scanline active
             case 2:
                 if (this.modeClock >= 20) {
                     this.modeClock = 0;
-                    this.mode = 3;
+                    this.lcdStatusRegister.mode = 3;
                 }
                 break;
 
@@ -58,10 +172,10 @@ class GPU {
             case 3:
                 if (this.modeClock >= 43) {
                     this.modeClock = 0;
-                    this.mode = 0;
+                    this.lcdStatusRegister.mode = 0;
 
                     // Write a scanline to the framebuffer
-                    if (!isNode()) {
+                    if (!IS_NODE) {
                         this.renderScanline();
                     }
                 }
@@ -75,14 +189,13 @@ class GPU {
                     this.lcdcY++;
 
                     if (this.lcdcY == 144) {
-                        this.mode = 1;
+                        this.lcdStatusRegister.mode = 1;
 
                         // Fire the Vblank interrupt
-                        if (this.bus.interrupts.interruptEnableFlag.vBlank)
-                            this.bus.interrupts.interruptVblank();
+                        this.bus.interrupts.attemptVblank();
                     }
                     else {
-                        this.mode = 2;
+                        this.lcdStatusRegister.mode = 2;
                     }
                 }
                 break;
@@ -94,13 +207,18 @@ class GPU {
                     this.lcdcY++;
 
                     if (this.lcdcY > 153) {
-                        this.mode = 2;
+                        this.lcdStatusRegister.mode = 2;
                         this.lcdcY = 0;
 
                         this.runningTheCPU = false;
 
-                        if (!isNode()) {
-                            this.drawToCanvas();
+                        if (!IS_NODE) {
+                            if (!this.drawTileset) {
+                                this.drawToCanvas();
+                            } else {
+                                this.renderTiles();
+                                this.drawToCanvas();
+                            }
                         }
                     }
                 }
@@ -136,12 +254,12 @@ class GPU {
         // Loop through every single pixel 
         for (let i = 0; i < 160; i++) {
             // Re-map the tile pixel through the palette
-            let c = this.palette(this.tileset[tile][y][x]);
+            let c = transformColor(this.bgPaletteData.lookup(this.tileset[tile][y][x]));
 
             // Plot the pixel to canvas
-            this.imageData[canvasIndex + 0] = c;
-            this.imageData[canvasIndex + 1] = c;
-            this.imageData[canvasIndex + 2] = c;
+            this.imageData[canvasIndex + 0] = (c >> 0) & 0xFF;
+            this.imageData[canvasIndex + 1] = (c >> 2) & 0xFF;
+            this.imageData[canvasIndex + 2] = (c >> 4) & 0xFF;
             this.imageData[canvasIndex + 3] = 255;
             canvasIndex += 4;
 
@@ -170,7 +288,7 @@ class GPU {
     frameExecute() {
         this.frameExecuteInterval = setInterval(() => { this.renderSingleFrame(); }, 16);
     }
-    vblankExecute() {
+    executeUntilVblank() {
         this.bus.cpu.debugging = false;
         while (this.lcdcY != 144) {
             this.bus.cpu.step();
@@ -179,11 +297,6 @@ class GPU {
 
     stopFrameExecute() {
         clearInterval(this.frameExecuteInterval);
-    }
-
-
-    palette(i: number) {
-        return PaletteBasic[i];
     }
 
     // 160 x 144
@@ -198,7 +311,12 @@ class GPU {
                     let row = Math.floor(((i1 * 8) + i3) / 160);
                     let y = i2 + (row * 8);
 
-                    this.drawPixel(x, y, this.palette(pixel), this.palette(pixel), this.palette(pixel));
+                    let c = transformColor(this.bgPaletteData.lookup(pixel));
+
+                    this.imageData[4 * ((y * 160) + x) + 0] = (c >> 0) & 0xFF;
+                    this.imageData[4 * ((y * 160) + x) + 1] = (c >> 2) & 0xFF;
+                    this.imageData[4 * ((y * 160) + x) + 2] = (c >> 4) & 0xFF;
+                    this.imageData[4 * ((y * 160) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
         });
@@ -207,19 +325,9 @@ class GPU {
     constructor(bus) {
         this.bus = bus;
 
-        if (!isNode()) {
+        if (!IS_NODE) {
             this.c = document.getElementById("gameboy") as HTMLCanvasElement;
             this.ctx = this.c.getContext("2d");
-
-            setInterval(() => {
-                let debugP = document.getElementById('gpudebug');
-                debugP.innerText = `
-            Scroll Y: ${this.scrollY}
-            Scroll X: ${this.scrollX}
-
-            LCDC Y-Coordinate: ${this.lcdcY}
-            `;
-            }, 100);
         }
     }
 

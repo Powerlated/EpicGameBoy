@@ -4,43 +4,6 @@ const VRAM_END = 0x9FFF;
 const HWIO_BEGIN = 0xFF00;
 const HWIO_END = 0xFF7F;
 
-class InterruptFlag {
-    vBlank = false;
-    lcdStat = false;
-    timer = false;
-    serial = false;
-    joypad = false;
-
-
-    setNumerical(i: number) {
-        this.vBlank = (i & (1 << 0)) != 0;
-        this.lcdStat = (i & (1 << 1)) != 0;
-        this.timer = (i & (1 << 2)) != 0;
-        this.serial = (i & (1 << 3)) != 0;
-        this.joypad = (i & (1 << 4)) != 0;
-        return;
-    }
-
-    getNumerical(): number {
-        let flagN = 0;
-        if (this.vBlank) {
-            flagN = flagN | 0b00000001;
-        }
-        if (this.lcdStat) {
-            flagN = flagN | 0b00000010;
-        }
-        if (this.timer) {
-            flagN = flagN | 0b00000100;
-        }
-        if (this.serial) {
-            flagN = flagN | 0b00001000;
-        }
-        if (this.joypad) {
-            flagN = flagN | 0b00010000;
-        }
-        return flagN;
-    }
-}
 
 class MemoryBus {
     cpu: CPU;
@@ -75,7 +38,7 @@ class MemoryBus {
 
         // SET Interrupt enable flags
         if (addr == 0xFFFF) {
-
+            this.interrupts.enabledInterrupts.numerical = value;
         }
 
         // Write to VRAM
@@ -93,11 +56,13 @@ class MemoryBus {
                     console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);
                     break;
-                case 0xFF40:
+                case 0xFF40: // LCD Control
                     console.info(`LCD CONTROL CHANGE`);
+                    this.gpu.lcdcRegister.numerical = value;
                     break;
-                case 0xFF41:
+                case 0xFF41: // LCDC Status
                     console.info(`LCDC STATUS CHANGE`);
+                    this.gpu.lcdStatusRegister.numerical = value;
                     break;
                 case 0xFF42:
                     this.gpu.scrollY = value;
@@ -105,8 +70,11 @@ class MemoryBus {
                 case 0xFF43:
                     this.gpu.scrollX = value;
                     break;
+                case 0xFF47: // Palette
+                    this.gpu.bgPaletteData.numerical = value;
+                    break;
                 case 0xFF50:
-                    console.log("Disabled bootrom by write to 0xFF50")
+                    console.log("Disabled bootrom by write to 0xFF50");
                     this.bootromEnabled = false;
                     break;
                 default:
@@ -129,7 +97,7 @@ class MemoryBus {
 
         // GET Interrupt enable flags
         if (addr == 0xFFFF) {
-            return this.interrupts.interruptEnableFlag.getNumerical();
+            return this.interrupts.enabledInterrupts.numerical;
         }
 
         // Hardware I/O registers
@@ -140,16 +108,18 @@ class MemoryBus {
                     return 0x69;
                 case 0xFF40:
                     console.info(`LCD CONTROL READ`);
-                    return 0x00;
+                    return this.gpu.lcdcRegister.numerical;
                 case 0xFF41:
                     console.info(`LCDC STATUS READ`);
-                    return 0x00;
+                    return this.gpu.lcdStatusRegister.numerical;
                 case 0xFF42:
                     return this.gpu.scrollY;
                 case 0xFF43:
                     return this.gpu.scrollX;
                 case 0xFF44:
                     return this.gpu.lcdcY;
+                case 0xFF47: // Palette
+                    return this.gpu.bgPaletteData.numerical;
                 case 0xFF50:
                     return 0xFF;
                 default:

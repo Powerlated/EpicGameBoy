@@ -33,6 +33,19 @@ const willJump = (ins: Op, cpu: CPU) => {
     if (ins.type == CC.UNCONDITIONAL) return true;
 };
 
+const isControlFlow = (ins: Op, cpu: CPU) => {
+    switch (ins.op) {
+        case cpu.JP_N16:
+        case cpu.CALL_N16:
+        case cpu.JP_HL:
+        case cpu.RET:
+        case cpu.JR_E8:
+            return true;
+        default:
+            return false;
+    }
+};
+
 const willJumpTo = (ins: Op, cpu: CPU, pcTriplet, disasmPc): number => {
     switch (ins.op) {
         case cpu.JP_N16:
@@ -49,6 +62,68 @@ const willJumpTo = (ins: Op, cpu: CPU, pcTriplet, disasmPc): number => {
             return disasmPc + unTwo8b(pcTriplet[1]) + 2;
         default: return null;
     }
+};
+
+const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU) => {
+    const HARDCODE_DECODE = (ins, pcTriplet) => {
+        switch (ins.op) {
+            case cpu.LD_iHLdec_A: return ["LD", "(HL-),A"];
+            case cpu.LD_iHLinc_A: return ["LD", "(HL+),A"];
+            case cpu.LD_SP: return ["LD", "SP"];
+            case cpu.LD_iFF00plusC_A: return ["LD", "($FF00+C),A"];
+            case cpu.LD_iFF00plusN8_A: return ["LD", `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
+            case cpu.LD_A_iFF00plusC: return ["LD", "A,($FF00+C)"];
+            case cpu.LD_A_iFF00plusN8: return ["LD", `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
+            case cpu.RST: return ["RST", `${hexN(ins.type, 2)}h`];
+            case cpu.LD_R8_R8: return ["LD", `${ins.type},${ins.type2}`];
+            case cpu.LD_A_iR16: return ["LD", `A,(${ins.type})`];
+            case cpu.CP_A_N8: return ["CP", `$${hexN(pcTriplet[1], 2)}`];
+            case cpu.ADC_N8: return ["ADC", `A,$${hexN(pcTriplet[1], 2)}`];
+            case cpu.LD_iN16_SP: return ["LD", "(u16),SP"];
+            default: return null;
+        }
+    };
+
+    let isCB = pcTriplet[0] == 0xCB;
+    let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
+    // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
+    let block = hardDecoded ? true : false;
+
+    let operandAndType = "";
+
+    // Detect bottom 3/4 of 0xCB table
+    if (isCB && pcTriplet[1] > 0x30) {
+        operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
+    } else if (!block) {
+        // Regular operations, block if hardcode decoded
+        operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
+    }
+
+    // Instructions with type 2
+    if (isNaN(ins.type2 as any) && !block) {
+        if (ins.length == 2) {
+            if (ins.op != cpu.JR_E8) {
+                // Regular operation
+                operandAndType += "$" + hexN(cpu.bus.readMem8(disasmPc + 1), 2);
+            } else {
+                // For JR operation, reverse two's complement instead of hex
+                operandAndType += "" + unTwo8b(cpu.bus.readMem8(disasmPc + 1));
+            }
+        } else if (ins.length == 3) {
+            // 16 bit
+            operandAndType += "$" + hexN(cpu.bus.readMem16(disasmPc + 1), 4);
+        }
+    }
+
+    let name;
+    // Check if instruction name is hardcoded
+    if (hardDecoded != null) {
+        name = hardDecoded[0] + " ";
+        name += hardDecoded[1];
+    } else {
+        name = ins.op.name.split('_')[0];
+    };
+    return name + " " + operandAndType;
 };
 
 function overflow16bErr(cpu, name, overflow) {
@@ -119,8 +194,6 @@ class Registers {
     cpu: CPU;
 
     _f = new FlagsRegister();
-
-    interruptsEnabled = false;
 
     get f() {
         let flagN = 0;
@@ -263,7 +336,7 @@ class CPU {
     constructor() {
         console.log("CPU Bootstrap!");
         this.bus.cpu = this;
-        this.bus.gpu = this.gpu;
+        this.bus.gpu = new GPU(this.bus);
         this._r.cpu = this;
     }
 
@@ -289,7 +362,6 @@ class CPU {
     }
 
     bus = new MemoryBus();
-    gpu = new GPU(this.bus);
 
     // #region
 
@@ -374,6 +446,7 @@ class CPU {
 
         /** **** ALL STEPPER LOGIC IS BELOW HERE **** */
 
+
         isCB = this.fetchMem8(this.pc) == 0xCB;
 
         ins = isCB ? this.cbOpcode(this.bus.readMem8(++this.pc)) : this.rgOpcode(this.bus.readMem8(this.pc));
@@ -415,6 +488,32 @@ class CPU {
         this.totalI++;
 
         this.lastInstructionCycles = this.cycles - c;
+
+        // Handle interrupts
+        let happened = this.bus.interrupts.happenedInterrupts;
+        if (this.bus.interrupts.masterEnabled) {
+            // If any interrupt has happened, disable master flag
+            if (this.bus.interrupts.happenedInterrupts.numerical > 0) {
+                this.bus.interrupts.masterEnabled = false;
+            }
+
+            if (happened.vblank) {
+                this.bus.interrupts.enabledInterrupts.vblank = false;
+                this.jumpToInterrupt(VBLANK_VECTOR);
+            } else if (happened.lcdStat) {
+                this.bus.interrupts.enabledInterrupts.lcdStat = false;
+                this.jumpToInterrupt(LCD_STATUS_VECTOR);
+            } else if (happened.timer) {
+                this.bus.interrupts.enabledInterrupts.timer = false;
+                this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
+            } else if (happened.serial) {
+                this.bus.interrupts.enabledInterrupts.serial = false;
+                this.jumpToInterrupt(SERIAL_LINK_VECTOR);
+            } else if (happened.joypad) {
+                this.bus.interrupts.enabledInterrupts.joypad = false;
+                this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
+            }
+        }
     }
 
     stepDebug() {
@@ -490,82 +589,32 @@ class CPU {
         this.lastOperandDebug = operandDebug;
         this.lastInstructionDebug = insDebug;
 
-        // #endregion
-    }
 
+    }
 
     breakpoints = new Set<number>();
 
     toggleBreakpoint(point: number) {
         if (!this.breakpoints.has(point)) {
-            console.log("Set breakpoint at " + hex(point, 4));
-            this.breakpoints.add(point);
+            this.setBreakpoint(point);
         } else {
-            console.log("Cleared breakpoint at " + hex(point, 4));
-            this.breakpoints.delete(point);
+            this.clearBreakpoint(point);
         }
+    }
+
+    setBreakpoint(point: number) {
+        console.log("Set breakpoint at " + hex(point, 4));
+        this.breakpoints.add(point);
+    }
+    clearBreakpoint(point: number) {
+        console.log("Cleared breakpoint at " + hex(point, 4));
+        this.breakpoints.delete(point);
     }
 
 
     disassembledLines = new Array(65536);
 
-    disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number) => {
-        const HARDCODE_DECODE = (ins, pcTriplet) => {
-            switch (ins.op) {
-                case this.LD_iHLdec_A: return ["LD", "(HL-),A"];
-                case this.LD_iHLinc_A: return ["LD", "(HL+),A"];
-                case this.LD_SP: return ["LD", "SP"];
-                case this.LD_FF00plusC_A: return ["LD", "($FF00+C),A"];
-                case this.LD_FF00plusN8_A: return ["LD", `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
-                case this.RST: return ["RST", `${hexN(ins.type, 2)}h`];
-                case this.LD_R8_R8: return ["LD", `${ins.type},${ins.type2}`];
-                case this.LD_A_iR16: return ["LD", `A,(${ins.type})`];
-                case this.CP_A_N8: return ["CP", `$${hexN(pcTriplet[1], 2)}`];
-                default: return null;
-            }
-        };
 
-        let isCB = pcTriplet[0] == 0xCB;
-        let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
-        // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
-        let block = hardDecoded ? true : false;
-
-        let operandAndType = "";
-
-        // Detect bottom 3/4 of 0xCB table
-        if (isCB && pcTriplet[1] > 0x30) {
-            operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
-        } else if (!block) {
-            // Regular operations, block if hardcode decoded
-            operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
-        }
-
-        // Instructions with type 2
-        if (isNaN(ins.type2 as any) && !block) {
-            if (ins.length == 2) {
-                if (ins.op != this.JR_E8) {
-                    // Regular operation
-                    operandAndType += "$" + hexN(this.bus.readMem8(disasmPc + 1), 2);
-                } else {
-                    // For JR operation, reverse two's complement instead of hex
-                    operandAndType += "" + unTwo8b(this.bus.readMem8(disasmPc + 1));
-                }
-            } else if (ins.length == 3) {
-                // 16 bit
-                operandAndType += "$" + hexN(this.bus.readMem16(disasmPc + 1), 4);
-            }
-        }
-
-        let name;
-        // Check if instruction name is hardcoded
-        if (hardDecoded != null) {
-            name = hardDecoded[0] + " ";
-            name += hardDecoded[1];
-        } else {
-            name = ins.op.name.split('_')[0];
-        };
-        return name + " " + operandAndType;
-    };
 
     disassemble(): string {
         let disassembly = [];
@@ -610,14 +659,19 @@ class CPU {
 
             let hexDecoded = decodeHex(pcTriplet);
 
-            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${this.disassembleOp(ins, pcTriplet, disasmPc)}`;
+            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${disassembleOp(ins, pcTriplet, disasmPc, this)}`;
 
 
 
 
 
-            if (i == 0 && willJump(ins, this)) {
-                nextOpWillJumpTo = willJumpTo(ins, this, pcTriplet, disasmPc);
+            if (i == 0) {
+                if (willJump(ins, this))
+                    nextOpWillJumpTo = willJumpTo(ins, this, pcTriplet, disasmPc);
+
+                if (isControlFlow(ins, this) && !willJump(ins, this)) {
+                    nextOpWillJumpTo = disasmPc + ins.length;
+                }
             }
 
             this.disassembledLines[disasmPc] = disasmLine;
@@ -627,8 +681,9 @@ class CPU {
             // Build the HTML line
             let disAsmLineHtml = buildLine(`
             <span
-                ${i == 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
                 ${BREAKPOINT_GENERATE()}
+                ${i == 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
+                ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
             >
                 ${disasmLine}
             </span>`);
@@ -646,8 +701,8 @@ class CPU {
                 // Color the line background cyan if the next operation will jump there
                 let disAsmLineHtml = buildLine(`
                 <span 
-                    ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
                     ${BREAKPOINT_GENERATE()}
+                    ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
                 >
                     ${this.disassembledLines[disasmPc]}
                 </span>`);
@@ -694,7 +749,7 @@ class CPU {
         this.debugging = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
-            let max = 4194;
+            let max = 17493;
             if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
@@ -773,11 +828,11 @@ class CPU {
             case 0x3E:
                 return { op: this.LD_R8_N8, type: R8.A, length: 2 };
             case 0xE2:
-                return { op: this.LD_FF00plusC_A, length: 1 };
+                return { op: this.LD_iFF00plusC_A, length: 1 };
             case 0x0C:
                 return { op: this.INC_R8, type: R8.C, length: 1 };
             case 0xE0:
-                return { op: this.LD_FF00plusN8_A, length: 2 };
+                return { op: this.LD_iFF00plusN8_A, length: 2 };
             case 0x11:
                 return { op: this.LD_R16_N16, type: R16.DE, length: 3 };
             case 0x1A:
@@ -986,6 +1041,8 @@ class CPU {
                 return { op: this.DEC_R16, type: R16.HL, length: 1 };
             case 0x09: // ADD HL, BC
                 return { op: this.ADD_HL_R16, type: R16.BC, length: 1 };
+            case 0xDF: // RST 18h
+                return { op: this.RST, type: 0x18, length: 1 };
             case 0xD3:
             case 0xDB:
             case 0xDD:
@@ -1141,14 +1198,14 @@ class CPU {
 
     // DI - 0xF3
     DI() {
-        this._r.interruptsEnabled = false;
+        this.bus.interrupts.masterEnabled = false;
 
         console.log("Disabled interrupts");
     }
 
     // EI - 0xFB
     EI() {
-        this._r.interruptsEnabled = true;
+        this.bus.interrupts.masterEnabled = true;
 
         console.log("Enabled interrupts");
     }
@@ -1199,14 +1256,27 @@ class CPU {
 
 
     RST(vector: number) {
+        let pcUpperByte = o16b(this.pc) >> 8;
+        let pcLowerByte = o16b(this.pc) & 0xFF;
+
+        this._r.sp = o16b(this._r.sp - 1);
+        this.writeMem8(this._r.sp, pcUpperByte);
+        this._r.sp = o16b(this._r.sp - 1);
+        this.writeMem8(this._r.sp, pcLowerByte);
+
         this.pc = vector - 1;
+    }
 
-        let value = this.pc;
-        let upperByte = value >> 8;
-        let lowerByte = value & 0b11111111;
+    jumpToInterrupt(vector: number) {
+        let pcUpperByte = o16b(this.pc) >> 8;
+        let pcLowerByte = o16b(this.pc) & 0xFF;
 
-        this.writeMem8(o16b(--this._r.sp), upperByte);
-        this.writeMem8(o16b(--this._r.sp), lowerByte);
+        this._r.sp = o16b(this._r.sp - 1);
+        this.writeMem8(this._r.sp, pcUpperByte);
+        this._r.sp = o16b(this._r.sp - 1);
+        this.writeMem8(this._r.sp, pcLowerByte);
+
+        this.pc = vector;
     }
 
     LD_A_N16(n16: number) {
@@ -1360,14 +1430,14 @@ class CPU {
     }
 
     // LD [$FF00+u8],A
-    LD_FF00plusN8_A(u8: number) {
+    LD_iFF00plusN8_A(u8: number) {
         let value = this._r.a;
         this.writeMem8(o16b(0xFF00 + u8), value);
         // console.log(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A
-    LD_FF00plusC_A() {
+    LD_iFF00plusC_A() {
         let value = this._r.a;
         this.writeMem8(o16b(0xFF00 + this._r.c), value);
     }
@@ -2030,12 +2100,11 @@ function hexN_LC(i: number, digits: number) {
     return pad(i.toString(16), digits, '0');
 }
 
-function isNode(): boolean {
-    // @ts-ignore
-    return (typeof process !== 'undefined') && (process.release.name === 'node');
-}
+// @ts-ignore
+const IS_NODE = (typeof process !== 'undefined') && (process.release.name === 'node');
 
-if (isNode()) {
+
+if (IS_NODE) {
     // @ts-ignore
     module.exports = { CPU, MemoryBus, GPU };
 }
