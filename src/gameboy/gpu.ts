@@ -148,7 +148,7 @@ class GPU {
         ctx.clearRect(0, 0, (c as any).width, (c as any).height);
     }
 
-    drawTileset = false;
+    paintToCanvas = true;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -211,13 +211,8 @@ class GPU {
 
                         this.runningTheCPU = false;
 
-                        if (!IS_NODE) {
-                            if (!this.drawTileset) {
-                                this.drawToCanvas();
-                            } else {
-                                this.renderTiles();
-                                this.drawToCanvas();
-                            }
+                        if (!IS_NODE && this.paintToCanvas) {
+                            this.drawToCanvas();
                         }
                     }
                 }

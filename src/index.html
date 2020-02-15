@@ -9,7 +9,19 @@
             font-weight: 500;
         }
 
-        #panels > * {
+        #debug {
+            line-height: 1.2
+        }
+
+        .code {
+            font-family: "Lucida Console", Monaco, monospace;
+            outline: thin, 1px, black;
+            vertical-align: top;
+
+            line-height: 1;
+        }
+
+        #panels>* {
             display: inline-block;
             min-width: 30%;
         }
@@ -22,7 +34,7 @@
 
         .palette-square {
             outline: solid 1px black;
-            
+
             display: inline-block;
             min-width: 48px;
             min-height: 48px;
@@ -58,15 +70,11 @@
     <h1 style="margin-bottom: 0">Game Boy Emulator</h1>
 
     <div id="panels">
-        <p class="panel" id="debug" style="line-height: 1.25;">
+        <p class="panel" id="debug">
 
         </p>
         <!-- <b>Disassembly</b>  -->
-        <span class="panel" id="disassembly-output" style='
-            font-family: "Lucida Console", Monaco, monospace;
-            outline: thin, 1px, black;
-            vertical-align: top;
-            '>
+        <span class="panel code" id="disassembly-output">
 
         </span>
 
@@ -87,7 +95,7 @@
 
     <div class="interactive">
         <button onclick="executeAtPc()">Execute at PC</button>
-        <button onclick="cpu.khz()">Speed Execute</button>
+        <button onclick="executeAtPc(); cpu.khz()">Speed Execute</button>
         <button onclick="cpu.bus.gpu.frameExecute()">Frame Execute</button>
         <button onclick="cpu.khzStop(); cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
         <button onclick="cpu.bus.gpu.renderSingleFrame()">Render Frame</button>
@@ -175,11 +183,16 @@
 
         function executeAtPc() {
             let cpu = window.cpu;
+            let pc = cpu.pc
             cpu.debugging = false;
-            if (cpu.breakpoints.has(cpu.pc)) {
-                cpu.clearBreakpoint(cpu.pc);
+            if (cpu.breakpoints.has(pc)) {
+                cpu.clearBreakpoint(pc);
+                cpu.step();
+                cpu.setBreakpoint(pc);
+            } else {
+                cpu.step();
             }
-            cpu.step();
+            
 
             disassemble();
         }
@@ -205,8 +218,19 @@
             cpu.logging = e.target.checked;
         }, false);
 
+        let drawTilesetInterval = 0;
         document.querySelector('#drawTileset').addEventListener('change', function (e) {
-            cpu.bus.gpu.drawTileset = e.target.checked;
+            if (e.target.checked) {
+                drawTilesetInterval = setInterval(() => {
+                    cpu.bus.gpu.renderTiles();
+                    cpu.bus.gpu.drawToCanvas();
+                    cpu.bus.gpu.paintToCanvas = false;
+                }, 10);
+            } else {
+                cpu.bus.gpu.paintToCanvas = true;
+                clearInterval(drawTilesetInterval);
+            }
+
         }, false);
 
 

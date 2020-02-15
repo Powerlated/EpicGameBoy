@@ -399,6 +399,11 @@ class CPU {
     }
 
     step() {
+        if (this.scheduleEnableInterruptsForNextTick) {
+            this.scheduleEnableInterruptsForNextTick = false;
+            this.bus.interrupts.masterEnabled = true;
+        }
+
         if (this.breakpoints.has(this.pc)) {
             this.khzStop();
             return;
@@ -1208,9 +1213,11 @@ class CPU {
         console.log("Disabled interrupts");
     }
 
+    scheduleEnableInterruptsForNextTick = false;
+
     // EI - 0xFB
     EI() {
-        this.bus.interrupts.masterEnabled = true;
+        this.scheduleEnableInterruptsForNextTick = true;
 
         console.log("Enabled interrupts");
     }
@@ -1957,17 +1964,19 @@ class CPU {
 
     // Rotate TARGET left through carry
     RL_R8(t: R8) {
+        let value = this.getReg(t);
+
         let carryMask = (this._r.f & 0b00010000) >> 4;
 
-        let newValue = o8b((this.getReg(t) << 1) | carryMask);
-        let didOverflow = do8b((this.getReg(t) << 1) | carryMask);
+        let newValue = o8b((value << 1) | carryMask);
+        let didOverflow = do8b((value << 1) | carryMask);
 
         this.setReg(t, newValue);
 
         this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
+        this._r._f.carry = (value >> 7) == 1;
     }
 
     // Rotate TARGET right

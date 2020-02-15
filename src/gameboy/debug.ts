@@ -118,19 +118,21 @@ function startDebugging() {
                 SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)}
                 [SP]: ${hex(cpu.bus.readMem16(cpu._r.sp), 4)}
             
-                A: ${hex(cpu._r.a, 2)} ${cpu._r.a} ${cpu._r.a.toString(2)}
-                B: ${hex(cpu._r.b, 2)} ${cpu._r.b} ${cpu._r.b.toString(2)}
-                C: ${hex(cpu._r.c, 2)} ${cpu._r.c} ${cpu._r.c.toString(2)}
-                D: ${hex(cpu._r.d, 2)} ${cpu._r.d} ${cpu._r.d.toString(2)}
-                E: ${hex(cpu._r.e, 2)} ${cpu._r.e} ${cpu._r.e.toString(2)}
-                F: ${hex(cpu._r.f, 2)} ${cpu._r.f} ${cpu._r.f.toString(2)}
-                H: ${hex(cpu._r.h, 2)} ${cpu._r.h} ${cpu._r.h.toString(2)}
-                L: ${hex(cpu._r.l, 2)} ${cpu._r.l} ${cpu._r.l.toString(2)}
+                <span class="code">
+                A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
+                B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
+                C: ${hex(cpu._r.c, 2)} ${pad(cpu._r.c.toString(2), 8, '0')}
+                D: ${hex(cpu._r.d, 2)} ${pad(cpu._r.d.toString(2), 8, '0')}
+                E: ${hex(cpu._r.e, 2)} ${pad(cpu._r.e.toString(2), 8, '0')}
+                F: ${hex(cpu._r.f, 2)} ${pad(cpu._r.f.toString(2), 8, '0')}
+                H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
+                L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
             
-                AF: ${hex(cpu._r.af, 4)} ${cpu._r.af} ${cpu._r.af.toString(2)}
-                BC: ${hex(cpu._r.bc, 4)} ${cpu._r.bc} ${cpu._r.bc.toString(2)}
-                DE: ${hex(cpu._r.de, 4)} ${cpu._r.de} ${cpu._r.de.toString(2)}
-                HL: ${hex(cpu._r.hl, 4)} ${cpu._r.hl} ${cpu._r.hl.toString(2)}
+                AF: ${hex(cpu._r.af, 4)} ${pad(cpu._r.af.toString(2), 16, '0')}
+                BC: ${hex(cpu._r.bc, 4)} ${pad(cpu._r.bc.toString(2), 16, '0')}
+                DE: ${hex(cpu._r.de, 4)} ${pad(cpu._r.de.toString(2), 16, '0')}
+                HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.hl.toString(2), 16, '0')}
+                </span>
                 ------------------------------
                 Scroll Y: ${cpu.bus.gpu.scrollY}
                 Scroll X: ${cpu.bus.gpu.scrollX}
@@ -153,7 +155,8 @@ function startDebugging() {
             p2.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade2), 6);
             p3.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade3), 6);
 
-            debugP.innerText = debugText;
+            debugText = debugText.replace(/\n/g, "<br/>");
+            debugP.innerHTML = debugText;
         }, 100);
     } else {
         console.log("Running in node, not updating DEBUG");
