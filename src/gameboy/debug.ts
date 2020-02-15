@@ -98,6 +98,14 @@ function startDebugging() {
     let debugP = document.getElementById('debug');
     // @ts-check
     if (!IS_NODE) {
+        let lastFrameCount = 0;
+        let fps = 0;
+
+        setInterval(() => {
+            let cpu = ((window as any).cpu as CPU);
+            fps = cpu.bus.gpu.totalFrameCount - lastFrameCount;
+            lastFrameCount = cpu.bus.gpu.totalFrameCount;
+        }, 1000);
         setInterval(() => {
             let lastDebugText = "";
             let cpu = ((window as any).cpu as CPU);
@@ -143,7 +151,10 @@ function startDebugging() {
                 LCD Status: ${pad(cpu.bus.gpu.lcdStatus.numerical.toString(2), 7, '0')}
 
                 Total Frames: ${cpu.bus.gpu.totalFrameCount}
+                Frames Per Second: ${fps}
             `;
+
+
 
             let p0 = document.getElementById('palette0');
             let p1 = document.getElementById('palette1');

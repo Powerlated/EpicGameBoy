@@ -154,4 +154,14 @@ class MemoryBus {
     readMem16(addr: number) {
         return this.readMem8(addr) | this.readMem8(addr + 1) << 8;
     }
+    
+    reset() {
+        this.cpu.reset();
+        this.gpu.reset();
+        
+        // Zero out memory
+        this.memory.forEach((v, i, a) => {
+            a[i] = 0;
+        });
+    }
 }

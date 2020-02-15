@@ -184,9 +184,11 @@ class GPU {
                     this.lcdcY++;
 
                     if (this.lcdcY == 144) {
+                        // If we're at LCDCy = 144, ennter Vblank
                         this.lcdStatus.mode = 1;
                     }
                     else {
+                        // If we're at 
                         this.lcdStatus.mode = 2;
                     }
                 }
@@ -199,7 +201,7 @@ class GPU {
 
                     if (this.lcdcY == 144) {
                         // Fire the Vblank interrupt
-                        this.bus.interrupts.attemptVblank();
+                        this.bus.interrupts.requestVblank();
                         this.totalFrameCount++;
                     }
 
@@ -208,8 +210,6 @@ class GPU {
                     if (this.lcdcY > 153) {
                         this.lcdStatus.mode = 2;
                         this.lcdcY = 0;
-
-                        this.runningTheCPU = false;
 
                         if (!IS_NODE && this.paintToCanvas) {
                             this.drawToCanvas();
@@ -279,29 +279,11 @@ class GPU {
         }
     }
 
-    runningTheCPU = false;
-    renderSingleFrame() {
-        this.runningTheCPU = true;
-        this.bus.cpu.debugging = false;
-        while (this.runningTheCPU) {
-            this.bus.cpu.step();
-        }
-    }
-
-    frameExecuteInterval = 0;
-
-    frameExecute() {
-        this.frameExecuteInterval = setInterval(() => { this.renderSingleFrame(); }, 16);
-    }
     executeUntilVblank() {
         this.bus.cpu.debugging = false;
         while (this.lcdcY != 144) {
             this.bus.cpu.step();
         }
-    }
-
-    stopFrameExecute() {
-        clearInterval(this.frameExecuteInterval);
     }
 
     // 160 x 144
@@ -388,5 +370,28 @@ class GPU {
 
             tilemapArr[x][y] = value;
         }
+    }
+
+    reset() {
+        this.vram = new Uint8Array(0x2000);
+
+        this.totalFrameCount = 0;
+    
+        // [tile][row][pixel]
+        this.tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
+    
+        this.tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9800-9BFF 1024 bytes
+        this.tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
+    
+        this.lcdControl = new LCDCRegister(); // 0xFF40
+        this.lcdStatus = new LCDCStatusRegister(); // 0xFF41
+    
+        this.bgPaletteData = new BGPaletteData(); // 0xFF47
+    
+        this.scrollY = 0; // 0xFF42
+        this.scrollX = 0; // 0xFF43
+    
+        this.lcdcY = 0; // 0xFF44 - Current scanning line
+        this.modeClock = 0;
     }
 }

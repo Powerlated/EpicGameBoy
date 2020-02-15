@@ -96,8 +96,7 @@
     <div class="interactive">
         <button onclick="executeAtPc()">Execute at PC</button>
         <button onclick="executeAtPc(); cpu.khz()">Speed Execute</button>
-        <button onclick="cpu.bus.gpu.frameExecute()">Frame Execute</button>
-        <button onclick="cpu.khzStop(); cpu.bus.gpu.stopFrameExecute()">Halt Execute</button>
+        <button onclick="cpu.khzStop();">Halt Execute</button>
         <button onclick="cpu.bus.gpu.renderSingleFrame()">Render Frame</button>
         <button onclick="cpu.bus.gpu.executeUntilVblank()">Execute until vblank</button>
         <button onclick="console.log(cpu.registers)">Dump Registers</button>

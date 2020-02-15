@@ -1,7 +1,4 @@
-function mod(a: number, b: number): number {
-    let r = a % b;
-    return r < 0 ? r + b : r;
-}
+
 
 function undefErr(cpu, name) {
     alert(`
@@ -343,7 +340,7 @@ class CPU {
 
     _r = new Registers();
     _pc: number = 0x0000;
- 
+
     get pc(): number {
         return this._pc;
     }
@@ -380,6 +377,26 @@ class CPU {
     time = 0;
 
     debugging = true;
+
+    reset() {
+        this._r.a = 0;
+        this._r.b = 0;
+        this._r.c = 0;
+        this._r.d = 0;
+        this._r.e = 0;
+        this._r.f = 0;
+        this._r.h = 0;
+        this._r.l = 0;
+        this._r.af = 0;
+        this._r.bc = 0;
+        this._r.de = 0;
+        this._r.hl = 0;
+        this._r.sp = 0;
+        this.totalI = 0;
+        this.time = 0;
+        this.pc = 0;
+        this.cycles = 0;
+    }
 
     // #endregion
 
@@ -431,7 +448,7 @@ class CPU {
 
         // Divide CPU clock and send to GPU
         // if (this.time % 4 == 0)
-            this.bus.gpu.step();
+        this.bus.gpu.step();
 
         // Run the debug information collector
         this.stepDebug();
@@ -503,23 +520,23 @@ class CPU {
             }
 
             if (happened.vblank && this.bus.interrupts.enabledInterrupts.vblank) {
-                console.log("CPU: Handling vblank")
+                console.log("CPU: Handling vblank");
                 this.bus.interrupts.requestedInterrupts.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && this.bus.interrupts.enabledInterrupts.lcdStat) {
-                console.log("CPU: Handling lcd status")
+                console.log("CPU: Handling lcd status");
                 this.bus.interrupts.requestedInterrupts.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && this.bus.interrupts.enabledInterrupts.timer) {
-                console.log("CPU: Handling timer")
+                console.log("CPU: Handling timer");
                 this.bus.interrupts.requestedInterrupts.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && this.bus.interrupts.enabledInterrupts.serial) {
-                console.log("CPU: Handling serial")
+                console.log("CPU: Handling serial");
                 this.bus.interrupts.requestedInterrupts.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && this.bus.interrupts.enabledInterrupts.joypad) {
-                console.log("CPU: Handling joypad")
+                console.log("CPU: Handling joypad");
                 this.bus.interrupts.requestedInterrupts.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
@@ -759,16 +776,16 @@ class CPU {
         this.debugging = false;
         this.khzInterval = setInterval(() => {
             let i = 0;
-            let max = 17493;
+            let max = 70224; // Full frame GPU timing
             if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
             while (i < max && !this.breakpoints.has(this.pc) && !this.setHalt) {
                 this.step();
-                i++;
+                i += this.lastInstructionCycles;
             }
             if (this.setHalt) this.setHalt = false;
-        }, 10);
+        }, 16);
     }
 
     private getReg(t: R8 | R16) {
@@ -2079,15 +2096,15 @@ function unTwo16b(n: number): number {
 }
 
 function o4b(i: number): number {
-    return mod(i, 0xF + 1);
+    return i & 0xF;
 }
 
 function o8b(i: number): number {
-    return mod(i, 0xFF + 1);
+    return i & 0xFF;
 }
 
 function o16b(i: number): number {
-    return mod(i, 0xFFFF + 1);
+    return i & 0xFFFF;
 }
 
 function do4b(i: number): boolean {

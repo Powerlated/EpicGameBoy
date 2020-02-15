@@ -53,32 +53,39 @@ class InterruptController {
 
     // Note: When an interrupt is fired, the master interrupt flag is disabled
 
-    attemptVblank() {
-        console.log("Attempting vblank");
+    reset() {
+        this.masterEnabled = true;
+        
+        this.enabledInterrupts.numerical = 0;
+        this.requestedInterrupts.numerical = 0;
+    }
+
+    requestVblank() {
+        console.log("Requesting vblank");
         if (this.enabledInterrupts.vblank) {
             this.requestedInterrupts.vblank = true;
         }
     }
 
-    attemptLCDstatus() {
+    requestLCDstatus() {
         if (this.enabledInterrupts.lcdStat) {
             this.requestedInterrupts.lcdStat = true;
         }
     }
 
-    attemptTimer() {
+    requestTimer() {
         if (this.enabledInterrupts.timer) {
             this.requestedInterrupts.timer = true;
         }
     }
 
-    attemptSerial() {
+    requestSerial() {
         if (this.enabledInterrupts.serial) {
             this.requestedInterrupts.serial = true;
         }
     }
 
-    attemptJoypad() {
+    requestJoypad() {
         if (this.enabledInterrupts.joypad) {
             this.requestedInterrupts.joypad = true;
         }
