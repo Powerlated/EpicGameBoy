@@ -42,7 +42,7 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
     const HARDCODE_DECODE = (ins, pcTriplet) => {
         const LD = "LD";
         const RST = "RST";
-        const CP = "CP"
+        const CP = "CP";
         const ADC = "ADC";
         switch (ins.op) {
             case cpu.LD_iHLdec_A: return [LD, "(HL-),A"];
@@ -58,7 +58,7 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
             case cpu.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
             case cpu.ADC_N8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
             case cpu.LD_iN16_SP: return [LD, "(u16),SP"];
-            case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"]
+            case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"];
             default: return null;
         }
     };
@@ -105,6 +105,7 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
     return name + " " + operandAndType;
 };
 
+let disassembledLines = new Array(65536);
 
 function disassemble(cpu: CPU): string {
     let disassembly = [];
@@ -164,9 +165,9 @@ function disassemble(cpu: CPU): string {
             }
         }
 
-        cpu.disassembledLines[disasmPc] = disasmLine;
-        if (ins.length >= 2) cpu.disassembledLines[disasmPc + 1] = null;
-        if (ins.length >= 3) cpu.disassembledLines[disasmPc + 2] = null;
+        disassembledLines[disasmPc] = disasmLine;
+        if (ins.length >= 2) disassembledLines[disasmPc + 1] = null;
+        if (ins.length >= 3) disassembledLines[disasmPc + 2] = null;
 
         // Build the HTML line
         let disAsmLineHtml = buildLine(`
@@ -186,24 +187,27 @@ function disassemble(cpu: CPU): string {
 
     disasmPc = cpu.pc;
     let skippedLines = 0;
-    for (let i = 0; i < LOGBACK_INSTRUCTIONS; i++) {
-        if (cpu.disassembledLines[disasmPc] != null && disasmPc != cpu.pc) {
+    for (let i = 0; i < LOGBACK_INSTRUCTIONS;) {
+        if (disassembledLines[disasmPc] != undefined && disasmPc != cpu.pc) {
             // Color the line background cyan if the next operation will jump there
             let disAsmLineHtml = buildLine(`
                 <span 
                     ${BREAKPOINT_GENERATE()}
                     ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
                 >
-                    ${cpu.disassembledLines[disasmPc]}
+                    ${disassembledLines[disasmPc]}
                 </span>`);
             disassembly.unshift(disAsmLineHtml);
+
+            // Add to counter when adding disassembled line
+            i++;
         }
-        if (cpu.disassembledLines[disasmPc] === null) {
-            skippedLines++;
-        }
-        // If there is no log at position, just add a blank line
-        if (cpu.disassembledLines[disasmPc] === undefined) {
+        if (disassembledLines[disasmPc] === null) {
+            // Data, not operation
+        } else if(disassembledLines[disasmPc] === undefined) {
+            // If there is no log at position, just add a blank line
             disassembly.unshift(BLANK_LINE);
+            i++;
         }
 
         disasmPc = o16b(disasmPc - 1);
