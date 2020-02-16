@@ -617,7 +617,7 @@ class CPU {
             case R16.DE: this._r.de = i; break;
             case R16.HL: this._r.hl = i; break;
             case R16.SP: this._r.sp = i; break;
-            case R8.iHL: return this.writeMem8(this._r.hl, i);
+            case R8.iHL: this.writeMem8(this._r.hl, i); break;
         }
     }
 
@@ -1306,12 +1306,13 @@ class CPU {
     // ADD SP, e8
     ADD_SP_E8(e8: number) {
         let value = unTwo8b(e8);
-        this._r.sp += value;
-
-        this._r._f.zero = this._r.sp == 0;
+    
+        this._r._f.zero = false
         this._r._f.negative = false;
-        this._r._f.half_carry = ((0xF) + (0xF)) > 0xF;
+        this._r._f.half_carry = ((value & 0xF) + (this._r.sp & 0xF)) > 0xF;
         this._r._f.carry = ((value & 0xFF) + (this._r.sp & 0xFF)) > 0xFF;
+
+        this._r.sp = o16b(this._r.sp + value);
     }
 
     // JR
@@ -1331,7 +1332,7 @@ class CPU {
         this._r.sp = n16;
     }
 
-    LD_SP_HL(n16: number) {
+    LD_SP_HL() {
         this._r.sp = this._r.hl;
     }
 
@@ -1625,14 +1626,13 @@ class CPU {
         let target = this.getReg(t);
 
         let newValue = o8b(target - 1);
-        let didOverflow = do8b(target - 1);
 
         this.setReg(t, newValue);
 
         // UNMODIFIED this._r._f.carry = didOverflow;
         this._r._f.zero = newValue == 0;
         this._r._f.negative = true;
-        this._r._f.half_carry = (target & 0xF) - (1 & 0xF) < 0;
+        this._r._f.half_carry = (1 & 0xF) > (target & 0xF);
     }
 
     DEC_R16(tt: R16) {

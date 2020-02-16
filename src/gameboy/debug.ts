@@ -135,6 +135,7 @@ function startDebugging() {
                 BC: ${hex(cpu._r.bc, 4)} ${pad(cpu._r.bc.toString(2), 16, '0')}
                 DE: ${hex(cpu._r.de, 4)} ${pad(cpu._r.de.toString(2), 16, '0')}
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.hl.toString(2), 16, '0')}
+                [HL]: ${hex(cpu.bus.readMem8(cpu._r.hl), 2)}
                 </span>------------------------------
                 Scroll X/Y: ${cpu.bus.gpu.scrollY}/${cpu.bus.gpu.scrollX}
                 LCDC Y-Coordinate: ${cpu.bus.gpu.lcdcY} ${cpu.bus.gpu.lcdcY >= 144 ? "(Vblank)" : ""}
