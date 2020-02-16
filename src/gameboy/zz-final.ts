@@ -6,5 +6,5 @@ const IS_NODE = (typeof process !== 'undefined') && (process.release.name === 'n
 
 if (IS_NODE) {
     // @ts-ignore
-    module.exports = { CPU, MemoryBus, GPU };
+    module.exports = { CPU, MemoryBus, GPU, GameBoy };
 }

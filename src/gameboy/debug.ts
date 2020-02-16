@@ -1,6 +1,7 @@
 
 function test() {
-    let cpu;
+    let gb = new GameBoy();
+    let cpu = gb.cpu;
 
     cpu._r._f.zero = true;
     console.log(cpu._r.f);
@@ -14,7 +15,7 @@ function test() {
     console.log(cpu._r.a);
     console.log("Expect 200.");
 
-    cpu = new CPU();
+    cpu.reset();
 
     cpu._r.a = 200;
     cpu._r.b = 200;
@@ -23,7 +24,7 @@ function test() {
     console.log(cpu._r._f.carry);
     console.log("Expect 144 and carry bit.");
 
-    cpu = new CPU();
+    cpu.reset();
 
     cpu._r.c = 200;
     cpu._r.hl = 256;
@@ -32,7 +33,7 @@ function test() {
     console.log(cpu._r._f.carry);
     console.log("ADDHL: Expect 456 and no carry bit.");
 
-    cpu = new CPU();
+    cpu.reset();
 
     cpu._r.hl = 42069;
     console.log(cpu._r.hl);
@@ -88,39 +89,41 @@ function test() {
     cpu.BIT_R8(R8.H, 7);
     console.log("Expect zero.");
 
-    cpu = new CPU();
+    cpu.reset();
 }
 
 
 
 
 function startDebugging() {
-    let debugP = document.getElementById('debug');
+    let debugP = document.getElementById('debug')!;
     // @ts-check
     if (!IS_NODE) {
         let lastFrameCount = 0;
         let fps = 0;
 
         setInterval(() => {
-            let cpu = ((window as any).cpu as CPU);
-            fps = cpu.bus.gpu.totalFrameCount - lastFrameCount;
-            lastFrameCount = cpu.bus.gpu.totalFrameCount;
+            let gpu = ((window as any).gb.gpu as GPU) 
+            fps = gpu.totalFrameCount - lastFrameCount;
+            lastFrameCount = gpu.totalFrameCount;
         }, 1000);
         setInterval(() => {
             let lastDebugText = "";
             let cpu = ((window as any).cpu as CPU);
-            let r = cpu.bus.interrupts.requestedInterrupts;
-            let e = cpu.bus.interrupts.enabledInterrupts;
+            let gpu = ((window as any).gb.gpu as GPU) 
+            let displaySerial = (window as any).displaySerial;
+            let r = cpu.gb.bus.interrupts.requestedInterrupts;
+            let e = cpu.gb.bus.interrupts.enabledInterrupts;
             let debugText = `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
 
-                IME/E/R: ${cpu.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
+                IME/E/R: ${cpu.gb.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}
         
-                SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)} [${hex(cpu.bus.readMem16(cpu._r.sp), 4)}]
+                SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu._r.sp), 4)}]
                 <span class="code">
                 A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
                 B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
@@ -135,34 +138,35 @@ function startDebugging() {
                 BC: ${hex(cpu._r.bc, 4)} ${pad(cpu._r.bc.toString(2), 16, '0')}
                 DE: ${hex(cpu._r.de, 4)} ${pad(cpu._r.de.toString(2), 16, '0')}
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.hl.toString(2), 16, '0')}
-                [HL]: ${hex(cpu.bus.readMem8(cpu._r.hl), 2)}
+                [HL]: ${hex(cpu.gb.bus.readMem8(cpu._r.hl), 2)}
                 </span>------------------------------
-                Scroll X/Y: ${cpu.bus.gpu.scrollY}/${cpu.bus.gpu.scrollX}
-                LCDC Y-Coordinate: ${cpu.bus.gpu.lcdcY} ${cpu.bus.gpu.lcdcY >= 144 ? "(Vblank)" : ""}
+                Scroll X/Y: ${gpu.scrollY}/${gpu.scrollX}
+                LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
-                LCDC: ${pad(cpu.bus.gpu.lcdControl.numerical.toString(2), 8, '0')}
-                LCD Status: ${pad(cpu.bus.gpu.lcdStatus.numerical.toString(2), 7, '0')}
+                LCDC: ${pad(gpu.lcdControl.numerical.toString(2), 8, '0')}
+                LCD Status: ${pad(gpu.lcdStatus.numerical.toString(2), 7, '0')}
 
-                Total Frames: ${cpu.bus.gpu.totalFrameCount}
+                Total Frames: ${gpu.totalFrameCount}
                 Frames Per Second: ${fps}
                 ------------------------------
-                Joypad: ${pad(cpu.bus.joypad.numerical.toString(2), 8, '0')}
+                Joypad: ${pad(cpu.gb.bus.joypad.numerical.toString(2), 8, '0')}
 
                 Serial Out: 
-                <span class="code">${new TextDecoder().decode(new Uint8Array(cpu.bus.serialOut.slice(0, 2560)))}</span>
+                <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>
+                
             `;
 
             
 
-            let p0 = document.getElementById('palette0');
-            let p1 = document.getElementById('palette1');
-            let p2 = document.getElementById('palette2');
-            let p3 = document.getElementById('palette3');
+            let p0 = document.getElementById('palette0')!;
+            let p1 = document.getElementById('palette1')!;
+            let p2 = document.getElementById('palette2')!;
+            let p3 = document.getElementById('palette3')!;
 
-            p0.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade0), 6);
-            p1.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade1), 6);
-            p2.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade2), 6);
-            p3.style.backgroundColor = hexN(transformColor(cpu.bus.gpu.bgPaletteData.shade3), 6);
+            p0.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
+            p1.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
+            p2.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
+            p3.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
 
             debugText = debugText.replace(/\n/g, "<br/>");
             debugP.innerHTML = debugText;

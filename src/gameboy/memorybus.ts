@@ -65,8 +65,9 @@ class JoypadRegister {
 }
 
 class MemoryBus {
-    cpu: CPU;
-    gpu: GPU;
+    gb: GameBoy
+    cpu: CPU
+    gpu: GPU
 
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
@@ -77,19 +78,22 @@ class MemoryBus {
 
     bootromEnabled = true;
 
-    constructor() {
+    constructor(gb: GameBoy) {
+        this.gb = gb
+        this.cpu = gb.cpu;
+        this.gpu = gb.gpu;
     }
 
-    serialOut = [];
+    serialOut: Array<number> = [];
 
     writeMem(addr: number, value: number) {
         if (value > 255) {
             alert(`
         WriteMem8(0x${value.toString(16)})
         
-        PC: 0x${this.cpu.pc.toString(16)}
-        Opcode: 0x${this.readMem8(this.cpu.pc).toString(16)}
-        Op: ${this.cpu.rgOpcode(this.readMem8(this.cpu.pc)).op.name}
+        PC: 0x${this.gb.cpu.pc.toString(16)}
+        Opcode: 0x${this.readMem8(this.gb.cpu.pc).toString(16)}
+        Op: ${this.gb.cpu.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
 
         `);
         }

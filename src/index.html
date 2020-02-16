@@ -121,8 +121,8 @@
         <button onclick="executeAtPc(); cpu.khz()">Speed Execute</button>
         <button onclick="cpu.khzStop();">Halt Execute</button>
         <button onclick="cpu.renderSingleFrame()">Render Frame</button>
-        <button onclick="cpu.bus.gpu.executeUntilVblank()">Execute until vblank</button>
-        <button onclick="cpu.bus.reset()">Reset</button>
+        <button onclick="cpu.gb.bus.gpu.executeUntilVblank()">Execute until vblank</button>
+        <button onclick="cpu.gb.bus.reset()">Reset</button>
 
         <div style="display: none">
             <label for="enableLogging">Enable Logging</label>
@@ -132,6 +132,11 @@
         <div>
             <label for="drawTileset">Draw Tileset</label>
             <input id="drawTileset" autocomplete="off" type="checkbox" checked>
+        </div>
+
+        <div>
+            <label for="displaySerialInput">Display Serial</label>
+            <input id="displaySerialInput" autocomplete="off" type="checkbox">
         </div>
 
         <div style="display: none">
@@ -180,7 +185,7 @@
             }
 
             array.forEach((v, i, a) => {
-                cpu.bus.bootrom[i] = v;
+                cpu.gb.bus.bootrom[i] = v;
             });
 
             cpu.bootromLoaded = true;
@@ -200,7 +205,7 @@
             }
 
             array.forEach((v, i, a) => {
-                cpu.bus.rom[i] = v;
+                gb.bus.rom[i] = v;
             });
         }
 
@@ -208,16 +213,15 @@
         let disassemblyP = document.getElementById('disassembly-output');
         let lastDisassembly = "";
 
-        function disassemble() {
-            let disassembly = disassemble(cpu);
+        function disassemble(cpu) {
+            let disassembly = Disassembler.disassemble(cpu);
             if (lastDisassembly != disassembly) {
                 disassemblyP.innerHTML = disassembly;
                 lastDisassembly = disassembly;
             }
         }
 
-        setInterval(disassemble, 10);
-
+       
         function executeAtPc() {
             let cpu = window.cpu;
             let pc = cpu.pc
@@ -269,13 +273,17 @@
         startDrawingTiles()
         function startDrawingTiles() {
             drawTilesetInterval = setInterval(() => {
-                cpu.bus.gpu.renderTiles();
-                cpu.bus.gpu.drawToCanvasTileset();
+                gb.gpu.renderTiles();
+                gb.gpu.drawToCanvasTileset();
             }, 10);
         }
         function stopDrawingTiles() {
             clearInterval(drawTilesetInterval);
         }
+
+        document.querySelector('#displaySerialInput').addEventListener('change', function (e) {
+            window.displaySerial = e.target.checked;
+        }, false);
 
 
         document.querySelector('#haltInput').addEventListener('change', function (e) {
@@ -293,7 +301,7 @@
                 var array = new Uint8Array(arrayBuffer);
 
                 array.forEach((v, i, a) => {
-                    cpu.bus.bootrom[i] = v;
+                    cpu.gb.bus.bootrom[i] = v;
                 });
             }
             reader.readAsArrayBuffer(this.files[0]);
@@ -307,18 +315,21 @@
                 var array = new Uint8Array(arrayBuffer);
 
                 array.forEach((v, i, a) => {
-                    cpu.bus.rom[i] = v;
+                    cpu.gb.bus.rom[i] = v;
                 });
                 // cpu.khz()
-                // cpu.bus.gpu.frameExecute();
+                // cpu.gb.bus.gpu.frameExecute();
             }
             reader.readAsArrayBuffer(this.files[0]);
         }, false);
     </script>
     <script src="gameboy/gameboy.js"></script>
     <script>
-        cpu = new CPU();
-        window.cpu = cpu;
+        let gb = new GameBoy();
+        window.cpu = gb.cpu;
+        window.gb = gb;
+
+        setInterval(() => disassemble(cpu), 10)
 
         loadTetris()
         startDebugging();
@@ -331,9 +342,9 @@
         const KEY_Z = 90;
         const KEY_X = 88;
         const ENTER = 13;
-        const BACKSPACE = 8;
+        const BACKSLASH = 220;
 
-        let block = [LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW, KEY_Z, KEY_X, ENTER, BACKSPACE]
+        let block = [LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW, KEY_Z, KEY_X, ENTER, BACKSLASH]
 
         document.onkeydown = function (e) {
             if (block.includes(e.keyCode))
@@ -341,29 +352,29 @@
 
             switch (e.keyCode) {
                 case LEFT_ARROW: // Left
-                    cpu.bus.joypad.dpad.left = true;
+                    cpu.gb.bus.joypad.dpad.left = true;
                     break;
                 case UP_ARROW: // Up
-                    cpu.bus.joypad.dpad.up = true;
+                    cpu.gb.bus.joypad.dpad.up = true;
                     break;
                 case RIGHT_ARROW: // Right
-                    cpu.bus.joypad.dpad.right = true;
+                    cpu.gb.bus.joypad.dpad.right = true;
                     break;
                 case DOWN_ARROW: // Down
-                    cpu.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.dpad.down = true;
                     break;
 
                 case KEY_Z: // Z > A
-                    cpu.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.dpad.down = true;
                     break;
                 case KEY_X: // X > B
-                    cpu.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.dpad.down = true;
                     break;
                 case ENTER: // Enter > Start
-                    cpu.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.dpad.down = true;
                     break;
-                case BACKSPACE: // Backspace > Select
-                    cpu.bus.joypad.dpad.down = true;
+                case BACKSLASH: // Backslash > Select
+                    cpu.gb.bus.joypad.dpad.down = true;
                     break;
             }
         };
@@ -373,29 +384,29 @@
 
             switch (e.keyCode) {
                 case LEFT_ARROW: // Left
-                    cpu.bus.joypad.dpad.left = false;
+                    cpu.gb.bus.joypad.dpad.left = false;
                     break;
                 case UP_ARROW: // Up
-                    cpu.bus.joypad.dpad.up = false;
+                    cpu.gb.bus.joypad.dpad.up = false;
                     break;
                 case RIGHT_ARROW: // Right
-                    cpu.bus.joypad.dpad.right = false;
+                    cpu.gb.bus.joypad.dpad.right = false;
                     break;
                 case DOWN_ARROW: // Down
-                    cpu.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.dpad.down = false;
                     break;
 
                 case KEY_Z: // Z > A
-                    cpu.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.dpad.down = false;
                     break;
                 case KEY_X: // X > B
-                    cpu.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.dpad.down = false;
                     break;
                 case ENTER: // Enter > Start
-                    cpu.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.dpad.down = false;
                     break;
-                case BACKSPACE: // Backspace > Select
-                    cpu.bus.joypad.dpad.down = false;
+                case BACKSLASH: // Backslash > Select
+                    cpu.gb.bus.joypad.dpad.down = false;
                     break;
             }
         }

@@ -11,17 +11,20 @@ let fs = require("fs");
 console.log("Loading ROM " + process.argv[2]);
 let buffer = fs.readFileSync(`${process.argv[2]}`);
 
-let cpu = new gameboy.CPU();
+console.log(gameboy)
+let gb = new gameboy.GameBoy();
+
+let cpu = gb.cpu;
 cpu.logging = false;
 
 buffer.forEach((v, i, a) => {
-  cpu.bus.rom[i] = v;
+  cpu.gb.bus.rom[i] = v;
 });
 
 function cleanUp() {
-  console.log(`---- START SERIAL DATA ----`)
-  console.log(new StringDecoder("utf8").write(Buffer.from(cpu.bus.serialOut)));
-  console.log(`----- END SERIAL DATA -----`)
+  console.log(`---- START SERIAL DATA ----`);
+  console.log(new StringDecoder("utf8").write(Buffer.from(cpu.gb.bus.serialOut)));
+  console.log(`----- END SERIAL DATA -----`);
 
   cpu.khzStop();
   fs.writeFileSync("./logs/EpicGameBoy.log", cpu.log.join("\n"));
@@ -36,7 +39,7 @@ setTimeout(() => {
   setInterval(() => {
     console.log(cpu.totalI);
     if (cpu.lastOpcodeReps > 10000) {
-      console.log(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 10000 instructions, exiting.`)
+      console.log(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 10000 instructions, exiting.`);
       cleanUp();
     }
 

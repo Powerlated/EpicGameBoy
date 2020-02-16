@@ -114,7 +114,8 @@ function transformColor(color: number): number {
 }
 
 class GPU {
-    bus: MemoryBus;
+    gb: GameBoy
+
     vram = new Uint8Array(0x2000);
 
     totalFrameCount = 0;
@@ -137,8 +138,8 @@ class GPU {
 
     modeClock: number = 0;
 
-    ctxGameboy: CanvasRenderingContext2D;
-    ctxTileset: CanvasRenderingContext2D;
+    ctxGameboy!: CanvasRenderingContext2D;
+    ctxTileset!: CanvasRenderingContext2D;
 
     clearScreen() {
         var c = document.getElementById("gameboy");
@@ -150,7 +151,7 @@ class GPU {
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
         // Clock the GPU based on how long the last CPU instruction took 
-        this.modeClock += this.bus.cpu.lastInstructionCycles;
+        this.modeClock += this.gb.cpu.lastInstructionCycles;
         switch (this.lcdStatus.mode) {
             // Read from OAM - Scanline active
             case 2:
@@ -198,7 +199,7 @@ class GPU {
 
                     if (this.lcdcY == 144) {
                         // Fire the Vblank interrupt
-                        this.bus.interrupts.requestVblank();
+                        this.gb.bus.interrupts.requestVblank();
                         this.totalFrameCount++;
                     }
 
@@ -303,9 +304,9 @@ class GPU {
     }
 
     executeUntilVblank() {
-        this.bus.cpu.debugging = false;
+        this.gb.cpu.debugging = false;
         while (this.lcdcY != 144) {
-            this.bus.cpu.step();
+            this.gb.cpu.step();
         }
     }
 
@@ -334,14 +335,14 @@ class GPU {
         });
     }
 
-    constructor(bus) {
-        this.bus = bus;
+    constructor(gb: GameBoy) {
+        this.gb = gb;
 
         if (!IS_NODE) {
             let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
             let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
-            this.ctxTileset = cTileset.getContext("2d");
-            this.ctxGameboy = cGameboy.getContext("2d");
+            this.ctxTileset = cTileset.getContext("2d")!;
+            this.ctxGameboy = cGameboy.getContext("2d")!;
         }
     }
 
@@ -352,7 +353,7 @@ class GPU {
         return this.vram[index];
     }
 
-    write(index, value) {
+    write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
 
@@ -383,26 +384,6 @@ class GPU {
                     (msb != 0 ? 2 : 0);
             }
             // Write to tile map
-        } else {
-            let tileAddrIndex = index;
-            let baseOffset: number;
-            let tilemapArr: Array<Array<number>>;
-            if (tileAddrIndex >= 0x1800 && tileAddrIndex <= 0x1BFF) {
-                baseOffset = -0x1800;
-                tilemapArr = this.tilemap0;
-            } else if (tileAddrIndex >= 0x1C00 && tileAddrIndex <= 0x1FFF) {
-                baseOffset = -0x1C00;
-                tilemapArr = this.tilemap1;
-            }
-
-            tileAddrIndex += baseOffset;
-
-            // Let the fun begin.
-
-            let x = tileAddrIndex % 32;
-            let y = Math.floor(tileAddrIndex / 32);
-
-            tilemapArr[x][y] = value;
         }
     }
 

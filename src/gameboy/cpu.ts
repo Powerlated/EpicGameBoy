@@ -1,35 +1,35 @@
 
 
-function undefErr(cpu, name) {
+function undefErr(cpu: CPU, name: string) {
     alert(`
     ${name} undefined
     
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
-    Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+    Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
+    Op: ${cpu.rgOpcode(cpu.gb.bus.readMem8(cpu.pc)).op.name}
     `);
 }
 
-function overflow8bErr(cpu, name, overflow) {
+function overflow8bErr(cpu: CPU, name: string, overflow: any) {
     alert(`
     ${name} was set out of 0-255 (${overflow})
     
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
-    Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+    Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
+    Op: ${cpu.rgOpcode(cpu.gb.bus.readMem8(cpu.pc)).op.name}
     `);
 }
 
-function overflow16bErr(cpu, name, overflow) {
+function overflow16bErr(cpu: CPU, name: string, overflow: any) {
     alert(`
     ${name} was set out of 0-65535 (${overflow})
     
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
-    Opcode: 0x${cpu.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${cpu.rgOpcode(cpu.bus.readMem8(cpu.pc)).op.name}
+    Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
+    Op: ${cpu.rgOpcode(cpu.gb.bus.readMem8(cpu.pc)).op.name}
     `);
 }
 
@@ -156,7 +156,7 @@ class Registers {
         this.l = i & 0xFF;
     }
 
-    constructor() {
+    constructor(cpu: CPU) {
         this.a = 0;
         this.b = 0;
         this.c = 0;
@@ -166,6 +166,8 @@ class Registers {
         this.h = 0;
         this.l = 0;
         this.sp = 0;
+
+        this.cpu = cpu;
     }
 }
 
@@ -222,17 +224,17 @@ function r_pad(n: string, width: number, z: string) {
 }
 
 class CPU {
+    gb: GameBoy;
+
     bootromLoaded = false;
 
     logging = false;
 
-    log = [];
-    fullLog = [];
+    log: Array<string> = [];
+    fullLog: Array<string> = [];
 
-    _r = new Registers();
+    _r = new Registers(this);
     _pc: number = 0x0000;
-
-    bus = new MemoryBus();
 
     breakpoints = new Set<number>();
 
@@ -240,11 +242,9 @@ class CPU {
 
     scheduleEnableInterruptsForNextTick = false;
 
-    constructor() {
+    constructor(gb: GameBoy) {
+        this.gb = gb;
         console.log("CPU Bootstrap!");
-        this.bus.cpu = this;
-        this.bus.gpu = new GPU(this.bus);
-        this._r.cpu = this;
     }
 
     get pc(): number {
@@ -306,7 +306,7 @@ class CPU {
 
     fetchMem8(addr: number): number {
         this.cycles += 4;
-        return this.bus.readMem8(addr);
+        return this.gb.bus.readMem8(addr);
     }
 
     // Timing already satisfied by fetchMem8
@@ -316,13 +316,13 @@ class CPU {
 
     writeMem8(addr: number, value: number) {
         this.cycles += 4;
-        this.bus.writeMem(addr, value);
+        this.gb.bus.writeMem(addr, value);
     }
 
     step() {
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
-            this.bus.interrupts.masterEnabled = true;
+            this.gb.bus.interrupts.masterEnabled = true;
         }
 
         if (this.breakpoints.has(this.pc)) {
@@ -332,7 +332,7 @@ class CPU {
 
         let c = this.cycles;
 
-        if (this.bootromLoaded == false && this.pc == 0 && this.bus.bootromEnabled == true) {
+        if (this.bootromLoaded == false && this.pc == 0 && this.gb.bus.bootromEnabled == true) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
             this._r._f.zero = true;
@@ -347,27 +347,27 @@ class CPU {
             this._r.sp = 0xfffe;
 
             // Make a write to disable the bootrom
-            this.bus.writeMem(0xFF50, 1);
+            this.gb.bus.writeMem(0xFF50, 1);
         }
 
         // Divide CPU clock and send to GPU
         // if (this.time % 4 == 0)
-        this.bus.gpu.step();
+        this.gb.gpu.step();
 
         // Run the debug information collector
         this.stepDebug();
 
-        let isCB = this.bus.readMem8(this.pc) == 0xCB;
+        let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
 
         // Use decoder based on prefix
-        let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
+        let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
 
         if (ins.op == this.INVALID_OPCODE) {
 
         }
 
         if (!ins.op) {
-            alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.bus.readMem8(this.pc + 1)), 4) : hex(this.bus.readMem8(this.pc), 2)} is a null op`);
+            alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
         }
 
         /** **** ALL STEPPER LOGIC IS BELOW HERE **** */
@@ -375,7 +375,7 @@ class CPU {
 
         isCB = this.fetchMem8(this.pc) == 0xCB;
 
-        ins = isCB ? this.cbOpcode(this.bus.readMem8(++this.pc)) : this.rgOpcode(this.bus.readMem8(this.pc));
+        ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(++this.pc)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
 
         // Rebind the this object
         ins.op = ins.op.bind(this);
@@ -417,12 +417,12 @@ class CPU {
 
 
         // Service interrupts
-        let happened = this.bus.interrupts.requestedInterrupts;
-        let enabled = this.bus.interrupts.enabledInterrupts;
-        if (this.bus.interrupts.masterEnabled) {
+        let happened = this.gb.bus.interrupts.requestedInterrupts;
+        let enabled = this.gb.bus.interrupts.enabledInterrupts;
+        if (this.gb.bus.interrupts.masterEnabled) {
             // If servicing any interrupt, disable the master flag
-            if ((this.bus.interrupts.requestedInterrupts.numerical & this.bus.interrupts.enabledInterrupts.numerical) > 0) {
-                this.bus.interrupts.masterEnabled = false;
+            if ((this.gb.bus.interrupts.requestedInterrupts.numerical & this.gb.bus.interrupts.enabledInterrupts.numerical) > 0) {
+                this.gb.bus.interrupts.masterEnabled = false;
                 // console.log("Handling interrupt, disabling IME")
 
                 // Stop
@@ -430,7 +430,7 @@ class CPU {
             }
 
             if (happened.vblank && enabled.vblank) {
-                // console.log(`[PC: ${this.bus.cpu.pc}] CPU: Handling vblank`);
+                // console.log(`[PC: ${this.gb.bus.cpu.pc}] CPU: Handling vblank`);
                 happened.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
@@ -454,15 +454,15 @@ class CPU {
     }
 
     stepDebug() {
-        let isCB = this.bus.readMem8(this.pc) == 0xCB;
+        let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
 
-        let ins = isCB ? this.cbOpcode(this.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.bus.readMem8(this.pc));
+        let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
 
         if (!ins.op) {
-            alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.bus.readMem8(this.pc + 1)), 4) : hex(this.bus.readMem8(this.pc), 2)} is a null op`);
+            alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
         }
 
-        let opcode = isCB ? this.bus.readMem8(this.pc + 1) : this.bus.readMem8(this.pc);
+        let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
 
         if (opcode == this.lastOpcode) {
             this.lastOpcodeReps++;
@@ -492,20 +492,20 @@ class CPU {
 
         if (this.debugging) {
             console.debug(`PC: ${this.pc}`);
-            console.log(`[OPcode: ${hex(this.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.bus.readMem8(this.pc).toString(16), 2, '0'));
+            console.log(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
 
             console.log("Instruction length: " + ins.length);
         }
 
         if (this.debugging || this.logging) {
             if (ins.length == 3) {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 2), 2)}`;
-                operandDebug = `${hex(this.bus.readMem16(this.pc + 1), 4)}`;
+                insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 2), 2)}`;
+                operandDebug = `${hex(this.gb.bus.readMem16(this.pc + 1), 4)}`;
             } else if (ins.length == 2) {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} ${hexN_LC(this.bus.readMem8(this.pc + 1), 2)} ..`;
-                operandDebug = `${hex(this.bus.readMem8(this.pc + 1), 2)}`;
+                insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ..`;
+                operandDebug = `${hex(this.gb.bus.readMem8(this.pc + 1), 2)}`;
             } else {
-                insDebug = `${hexN_LC(this.bus.readMem8(this.pc), 2)} .. ..`;
+                insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} .. ..`;
             }
             this.currentIns = `${ins.op.name} ${ins.type == undefined ? "" : ins.type}${ins.type2 == undefined ? "" : ins.type2}`;
         }
@@ -625,7 +625,7 @@ class CPU {
 
     };
 
-    rgOpcode(id): Op {
+    rgOpcode(id: number): Op {
 
         let upperNybble = id >> 4;
         let lowerNybble = id & 0b1111;
@@ -951,7 +951,7 @@ class CPU {
         clearInterval(this.khzInterval);
     }
 
-    cbOpcode(id): Op {
+    cbOpcode(id: number): Op {
         let upperNybble = id >> 4;
         let lowerNybble = id & 0b1111;
 
@@ -1021,7 +1021,7 @@ class CPU {
 
     // DI - 0xF3
     DI() {
-        this.bus.interrupts.masterEnabled = false;
+        this.gb.bus.interrupts.masterEnabled = false;
 
         // console.log("Disabled interrupts");
     }
@@ -1040,7 +1040,7 @@ class CPU {
     }
 
     STOP() {
-
+        // alert(`[PC: ${hex(this.pc, 4)}] CPU has been stopped`);
     }
 
     // wtf is a DAA?
@@ -1306,8 +1306,8 @@ class CPU {
     // ADD SP, e8
     ADD_SP_E8(e8: number) {
         let value = unTwo8b(e8);
-    
-        this._r._f.zero = false
+
+        this._r._f.zero = false;
         this._r._f.negative = false;
         this._r._f.half_carry = ((value & 0xF) + (this._r.sp & 0xF)) > 0xF;
         this._r._f.carry = ((value & 0xFF) + (this._r.sp & 0xFF)) > 0xFF;
@@ -1666,7 +1666,7 @@ class CPU {
 
     // #region 0xCB Opcodes
 
-    BIT_R8(t: R8, selectedBit) {
+    BIT_R8(t: R8, selectedBit: number) {
         let value = this.getReg(t);
         let mask = 1 << selectedBit;
 
@@ -1675,7 +1675,7 @@ class CPU {
         this._r._f.half_carry = true;
     }
 
-    RES_R8(t: R8, selectedBit) {
+    RES_R8(t: R8, selectedBit: number) {
         let value = this.getReg(t);
         let mask = 0b1 << selectedBit;
 
@@ -1684,7 +1684,7 @@ class CPU {
         this.setReg(t, final);
     }
 
-    SET_R8(t: R8, selectedBit) {
+    SET_R8(t: R8, selectedBit: number) {
         let value = this.getReg(t);
         let mask = 0b1 << selectedBit;
 
@@ -1825,7 +1825,7 @@ class CPU {
     SRA_R8(t: R8) {
         let value = this.getReg(t);
 
-        let leftmostBit = value & 0b10000000
+        let leftmostBit = value & 0b10000000;
         let newValue = (value >> 1) | leftmostBit;
 
         this.setReg(t, newValue);
@@ -1919,15 +1919,15 @@ function do16b(i: number): boolean {
     return i > 0xFFFF || i < 0;
 }
 
-function hex(i: number, digits: number) {
+function hex(i: any, digits: number) {
     return `0x${pad(i.toString(16), digits, '0').toUpperCase()}`;
 }
 
-function hexN(i: number, digits: number) {
+function hexN(i: any, digits: number) {
     return pad(i.toString(16), digits, '0').toUpperCase();
 }
 
-function hexN_LC(i: number, digits: number) {
+function hexN_LC(i: any, digits: number) {
     return pad(i.toString(16), digits, '0');
 }
 
