@@ -46,6 +46,12 @@ const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
 class InterruptController {
+    bus: MemoryBus
+
+    constructor(bus: MemoryBus) {
+        this.bus = bus;
+    }
+
     masterEnabled = true; // IME
 
     enabledInterrupts = new InterruptFlag(); // 0xFFFF
@@ -61,7 +67,7 @@ class InterruptController {
     }
 
     requestVblank() {
-        console.log("Requesting vblank");
+        console.log(`Requesting vblank`);
         if (this.enabledInterrupts.vblank) {
             this.requestedInterrupts.vblank = true;
         }

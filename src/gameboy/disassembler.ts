@@ -44,6 +44,7 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
         const RST = "RST";
         const CP = "CP";
         const ADC = "ADC";
+        const doublet = pcTriplet[1] | pcTriplet[2] << 8;
         switch (ins.op) {
             case cpu.LD_iHLdec_A: return [LD, "(HL-),A"];
             case cpu.LD_iHLinc_A: return [LD, "(HL+),A"];
@@ -57,8 +58,10 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
             case cpu.LD_A_iR16: return [LD, `A,(${ins.type})`];
             case cpu.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
             case cpu.ADC_N8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
-            case cpu.LD_iN16_SP: return [LD, "(u16),SP"];
+            case cpu.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
             case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"];
+            case cpu.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`]
+            case cpu.JP_HL: return ["JP", "HL"]
             default: return null;
         }
     };
@@ -169,7 +172,7 @@ function disassemble(cpu: CPU): string {
         if (ins.length >= 2) disassembledLines[disasmPc + 1] = null;
         if (ins.length >= 3) disassembledLines[disasmPc + 2] = null;
 
-        // Build the HTML line
+        // Build the HTML line, green and bold if PC is at it
         let disAsmLineHtml = buildLine(`
             <span
                 ${BREAKPOINT_GENERATE()}

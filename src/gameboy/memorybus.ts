@@ -15,11 +15,9 @@ class MemoryBus {
     bootrom = new Uint8Array(0xFF + 1).fill(0);
     rom = new Uint8Array(0xFFFFFF + 1).fill(0xFF);
 
-    interrupts = new InterruptController();
+    interrupts = new InterruptController(this);
 
     bootromEnabled = true;
-
-
 
     constructor() {
     }
@@ -65,7 +63,6 @@ class MemoryBus {
                     break;
                 case 0xFF40: // LCD Control
                     console.info(`LCD CONTROL CHANGE`);
-                    console.log(this.gpu.lcdControl)
                     this.gpu.lcdControl.numerical = value;
                     break;
                 case 0xFF41: // LCDC Status

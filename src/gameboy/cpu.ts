@@ -236,8 +236,6 @@ class CPU {
 
     breakpoints = new Set<number>();
 
-    disassembledLines = new Array(65536);
-
     setHalt = false;
     
     scheduleEnableInterruptsForNextTick = false;
@@ -417,33 +415,38 @@ class CPU {
 
         this.lastInstructionCycles = this.cycles - c;
 
+
         // Service interrupts
         let happened = this.bus.interrupts.requestedInterrupts;
-        if (this.bus.interrupts.masterEnabled) {
+        let enabled = this.bus.interrupts.enabledInterrupts;
+        if (this.bus.interrupts.masterEnabled && false) {
             // If servicing any interrupt, disable the master flag
             if (this.bus.interrupts.requestedInterrupts.numerical > 0) {
                 this.bus.interrupts.masterEnabled = false;
+
+                // Stop
+                this.khzStop();
             }
 
-            if (happened.vblank && this.bus.interrupts.enabledInterrupts.vblank) {
-                console.log("CPU: Handling vblank");
-                this.bus.interrupts.enabledInterrupts.vblank = false;
+            if (happened.vblank && enabled.vblank) {
+                console.log(`[PC: ${this.bus.cpu.pc}] CPU: Handling vblank`);
+                enabled.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
-            } else if (happened.lcdStat && this.bus.interrupts.enabledInterrupts.lcdStat) {
+            } else if (happened.lcdStat && enabled.lcdStat) {
                 console.log("CPU: Handling lcd status");
-                this.bus.interrupts.enabledInterrupts.lcdStat = false;
+                enabled.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
-            } else if (happened.timer && this.bus.interrupts.enabledInterrupts.timer) {
+            } else if (happened.timer && enabled.timer) {
                 console.log("CPU: Handling timer");
-                this.bus.interrupts.enabledInterrupts.timer = false;
+                enabled.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
-            } else if (happened.serial && this.bus.interrupts.enabledInterrupts.serial) {
+            } else if (happened.serial && enabled.serial) {
                 console.log("CPU: Handling serial");
-                this.bus.interrupts.enabledInterrupts.serial = false;
+                enabled.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
-            } else if (happened.joypad && this.bus.interrupts.enabledInterrupts.joypad) {
+            } else if (happened.joypad && enabled.joypad) {
                 console.log("CPU: Handling joypad");
-                this.bus.interrupts.enabledInterrupts.joypad = false;
+                enabled.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
@@ -619,7 +622,12 @@ class CPU {
         }
     }
 
+    static instrs: {
+
+    }
+
     rgOpcode(id): Op {
+
         let upperNybble = id >> 4;
         let lowerNybble = id & 0b1111;
 
@@ -673,7 +681,7 @@ class CPU {
             case 0xFE:
                 return { op: this.CP_A_N8, length: 2 };
             case 0xEA:
-                return { op: this.LD_N16_A, length: 3 };
+                return { op: this.LD_iN16_A, length: 3 };
             case 0x3D:
                 return { op: this.DEC_R8, type: R8.A, length: 1 };
             case 0x0D:
@@ -725,7 +733,7 @@ class CPU {
             case 0xD5:
                 return { op: this.PUSH_R16, type: R16.DE, length: 1 };
             case 0xE9: // JP HL
-                return { op: this.JP_HL, type: R16.HL, length: 1 };
+                return { op: this.JP_HL, length: 1 };
             case 0xC7: // RST 00h
                 return { op: this.RST, type: 0x00, length: 1 };
             case 0xFF: // RST 38h
@@ -823,7 +831,7 @@ class CPU {
             case 0xDC: // CALL C, N16
                 return { op: this.CALL_N16, type: CC.C, length: 3 };
             case 0xD9: // RETI
-                return { op: this.RETI, type: CC.NZ, length: 1 };
+                return { op: this.RETI, length: 1 };
             case 0x34: // INC [HL]
                 return { op: this.INC_R16, type: R16.HL, length: 3 };
             case 0x33: // INC SP
@@ -1064,8 +1072,8 @@ class CPU {
 
 
     RST(vector: number) {
-        let pcUpperByte = o16b(this.pc) >> 8;
-        let pcLowerByte = o16b(this.pc) & 0xFF;
+        let pcUpperByte = o16b(this.pc + 1) >> 8;
+        let pcLowerByte = o16b(this.pc + 1) & 0xFF;
 
         this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, pcUpperByte);
@@ -1129,7 +1137,7 @@ class CPU {
     }
 
     // Store value in register A into address n16
-    LD_N16_A(n16: number) {
+    LD_iN16_A(n16: number) {
         this.writeMem8(n16, this._r.a);
     }
 
@@ -1192,8 +1200,8 @@ class CPU {
         return 4;
     }
 
-    JP_HL(r16: R16) {
-        this.pc = this.getReg(r16) - 1;
+    JP_HL() {
+        this.pc = this._r.hl - 1;
     }
 
 
