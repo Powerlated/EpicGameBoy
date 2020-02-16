@@ -75,7 +75,7 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
 
     // Detect bottom 3/4 of 0xCB table
     if (isCB && pcTriplet[1] > 0x30) {
-        operandAndType = (ins.type2 ? ins.type2 : "") + (ins.type2 || ins.length > 1 ? "," : "") + (ins.type ? ins.type : "");
+        operandAndType = (ins.type2 ? ins.type2 : "") + (!isCB && (ins.type2 || ins.length > 1) ? "," : "") + (ins.type ? ins.type : "");
     } else if (!block) {
         // Regular operations, block if hardcode decoded
         operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");

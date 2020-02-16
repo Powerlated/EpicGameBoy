@@ -46,7 +46,7 @@ const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
 class InterruptController {
-    bus: MemoryBus
+    bus: MemoryBus;
 
     constructor(bus: MemoryBus) {
         this.bus = bus;
@@ -61,39 +61,28 @@ class InterruptController {
 
     reset() {
         this.masterEnabled = true;
-        
+
         this.enabledInterrupts.numerical = 0;
         this.requestedInterrupts.numerical = 0;
     }
 
     requestVblank() {
-        console.log(`Requesting vblank`);
-        if (this.enabledInterrupts.vblank) {
-            this.requestedInterrupts.vblank = true;
-        }
+        this.requestedInterrupts.vblank = true;
     }
 
     requestLCDstatus() {
-        if (this.enabledInterrupts.lcdStat) {
-            this.requestedInterrupts.lcdStat = true;
-        }
+        this.requestedInterrupts.lcdStat = true;
     }
 
     requestTimer() {
-        if (this.enabledInterrupts.timer) {
-            this.requestedInterrupts.timer = true;
-        }
+        this.requestedInterrupts.timer = true;
     }
 
     requestSerial() {
-        if (this.enabledInterrupts.serial) {
-            this.requestedInterrupts.serial = true;
-        }
+        this.requestedInterrupts.serial = true;
     }
 
     requestJoypad() {
-        if (this.enabledInterrupts.joypad) {
-            this.requestedInterrupts.joypad = true;
-        }
+        this.requestedInterrupts.joypad = true;
     }
 }

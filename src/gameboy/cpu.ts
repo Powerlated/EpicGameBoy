@@ -237,7 +237,7 @@ class CPU {
     breakpoints = new Set<number>();
 
     setHalt = false;
-    
+
     scheduleEnableInterruptsForNextTick = false;
 
     constructor() {
@@ -246,7 +246,7 @@ class CPU {
         this.bus.gpu = new GPU(this.bus);
         this._r.cpu = this;
     }
-  
+
     get pc(): number {
         return this._pc;
     }
@@ -419,34 +419,35 @@ class CPU {
         // Service interrupts
         let happened = this.bus.interrupts.requestedInterrupts;
         let enabled = this.bus.interrupts.enabledInterrupts;
-        if (this.bus.interrupts.masterEnabled && false) {
+        if (this.bus.interrupts.masterEnabled) {
             // If servicing any interrupt, disable the master flag
-            if (this.bus.interrupts.requestedInterrupts.numerical > 0) {
+            if ((this.bus.interrupts.requestedInterrupts.numerical & this.bus.interrupts.enabledInterrupts.numerical) > 0) {
                 this.bus.interrupts.masterEnabled = false;
+                // console.log("Handling interrupt, disabling IME")
 
                 // Stop
-                this.khzStop();
+                // this.khzStop();
             }
 
             if (happened.vblank && enabled.vblank) {
-                console.log(`[PC: ${this.bus.cpu.pc}] CPU: Handling vblank`);
-                enabled.vblank = false;
+                // console.log(`[PC: ${this.bus.cpu.pc}] CPU: Handling vblank`);
+                happened.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
                 console.log("CPU: Handling lcd status");
-                enabled.lcdStat = false;
+                happened.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
                 console.log("CPU: Handling timer");
-                enabled.timer = false;
+                happened.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
                 console.log("CPU: Handling serial");
-                enabled.serial = false;
+                happened.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && enabled.joypad) {
                 console.log("CPU: Handling joypad");
-                enabled.joypad = false;
+                happened.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
@@ -559,7 +560,7 @@ class CPU {
         this.khzInterval = setInterval(() => {
             let i = 0;
             // const max = 70224; // Full frame GPU timing
-            const max = 70224 * 2; // Full frame GPU timing, double speed
+            const max = 70224 * 1; // Full frame GPU timing, double speed
             if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
@@ -624,7 +625,7 @@ class CPU {
 
     static instrs: {
 
-    }
+    };
 
     rgOpcode(id): Op {
 
@@ -862,6 +863,8 @@ class CPU {
                 return { op: this.ADD_HL_R16, type: R16.BC, length: 1 };
             case 0xDF: // RST 18h
                 return { op: this.RST, type: 0x18, length: 1 };
+            case 0xE7: // RST 20h
+                return { op: this.RST, type: 0x20, length: 1 };
             case 0xD3:
             case 0xDB:
             case 0xDD:
@@ -968,8 +971,8 @@ class CPU {
         type = typeTable[lowerNybble & 0b111];
 
         if (upperNybble < 0x4) {
-            // 0x0 - 0x3
-            if (lowerNybble < 0x4) {
+            if (lowerNybble < 0x8) {
+                // 0x0 - 0x7
                 switch (upperNybble) {
                     case 0x0: op = this.RLC_R8; break;
                     case 0x1: op = this.RL_R8; break;
@@ -977,6 +980,7 @@ class CPU {
                     case 0x3: op = this.SWAP_R8; break;
                 }
             } else {
+                // 0x8 - 0xF
                 switch (upperNybble) {
                     case 0x0: op = this.RRC_R8; break;
                     case 0x1: op = this.RR_R8; break;
@@ -984,6 +988,8 @@ class CPU {
                     case 0x3: op = this.SRL_R8; break;
                 }
             }
+
+            bit = null;
             // 0x40 - 0xF0
         } else {
             switch (upperNybble >> 2) {
@@ -1015,15 +1021,15 @@ class CPU {
     DI() {
         this.bus.interrupts.masterEnabled = false;
 
-        console.log("Disabled interrupts");
+        // console.log("Disabled interrupts");
     }
 
-    
+
     // EI - 0xFB
     EI() {
         this.scheduleEnableInterruptsForNextTick = true;
 
-        console.log("Enabled interrupts");
+        // console.log("Enabled interrupts");
     }
 
     // HALT - 0x76

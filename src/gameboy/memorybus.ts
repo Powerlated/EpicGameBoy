@@ -113,6 +113,8 @@ class MemoryBus {
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
+                case 0xFF00:
+                    return 0xFF;
                 case 0xFF01:
                     console.info(`SERIAL PORT READ`);
                     return 0x69;
