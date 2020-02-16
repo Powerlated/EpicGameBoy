@@ -221,7 +221,7 @@
             }
         }
 
-       
+
         function executeAtPc() {
             let cpu = window.cpu;
             let pc = cpu.pc
@@ -365,16 +365,16 @@
                     break;
 
                 case KEY_Z: // Z > A
-                    cpu.gb.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.buttons.a = true;
                     break;
                 case KEY_X: // X > B
-                    cpu.gb.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.buttons.b = true;
                     break;
                 case ENTER: // Enter > Start
-                    cpu.gb.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.buttons.start = true;
                     break;
                 case BACKSLASH: // Backslash > Select
-                    cpu.gb.bus.joypad.dpad.down = true;
+                    cpu.gb.bus.joypad.buttons.select = true;
                     break;
             }
         };
@@ -397,16 +397,16 @@
                     break;
 
                 case KEY_Z: // Z > A
-                    cpu.gb.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.buttons.a = false;
                     break;
                 case KEY_X: // X > B
-                    cpu.gb.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.buttons.b = false;
                     break;
                 case ENTER: // Enter > Start
-                    cpu.gb.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.buttons.start = false;
                     break;
                 case BACKSLASH: // Backslash > Select
-                    cpu.gb.bus.joypad.dpad.down = false;
+                    cpu.gb.bus.joypad.buttons.select = false;
                     break;
             }
         }

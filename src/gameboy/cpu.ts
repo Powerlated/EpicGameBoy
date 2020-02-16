@@ -350,9 +350,9 @@ class CPU {
             this.gb.bus.writeMem(0xFF50, 1);
         }
 
-        // Divide CPU clock and send to GPU
-        // if (this.time % 4 == 0)
+        // Send clock to GPU and timer
         this.gb.gpu.step();
+        this.gb.timer.step();
 
         // Run the debug information collector
         this.stepDebug();
@@ -558,7 +558,7 @@ class CPU {
         this.khzInterval = setInterval(() => {
             let i = 0;
             // const max = 70224; // Full frame GPU timing
-            const max = 70224 * 4; // Full frame GPU timing, double speed
+            const max = 70224 * 1; // Full frame GPU timing, double speed
             if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }

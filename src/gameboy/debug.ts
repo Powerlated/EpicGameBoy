@@ -109,6 +109,7 @@ function startDebugging() {
         }, 1000);
         setInterval(() => {
             let lastDebugText = "";
+            let gb = ((window as any).gb as GameBoy)
             let cpu = ((window as any).cpu as CPU);
             let gpu = ((window as any).gb.gpu as GPU) 
             let displaySerial = (window as any).displaySerial;
@@ -125,21 +126,18 @@ function startDebugging() {
         
                 SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu._r.sp), 4)}]
                 <span class="code">
-                A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
-                B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
-                C: ${hex(cpu._r.c, 2)} ${pad(cpu._r.c.toString(2), 8, '0')}
-                D: ${hex(cpu._r.d, 2)} ${pad(cpu._r.d.toString(2), 8, '0')}
-                E: ${hex(cpu._r.e, 2)} ${pad(cpu._r.e.toString(2), 8, '0')}
-                F: ${hex(cpu._r.f, 2)} ${pad(cpu._r.f.toString(2), 8, '0')}
-                H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
-                L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
-            
-                AF: ${hex(cpu._r.af, 4)} ${pad(cpu._r.af.toString(2), 16, '0')}
-                BC: ${hex(cpu._r.bc, 4)} ${pad(cpu._r.bc.toString(2), 16, '0')}
-                DE: ${hex(cpu._r.de, 4)} ${pad(cpu._r.de.toString(2), 16, '0')}
-                HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.hl.toString(2), 16, '0')}
+                AF: ${hex(cpu._r.af, 4)} ${pad(cpu._r.a.toString(2), 8, '0')} ${pad(cpu._r.f.toString(2), 8, '0')} 
+                BC: ${hex(cpu._r.bc, 4)} ${pad(cpu._r.b.toString(2), 8, '0')} ${pad(cpu._r.c.toString(2), 8, '0')}
+                DE: ${hex(cpu._r.de, 4)} ${pad(cpu._r.d.toString(2), 8, '0')} ${pad(cpu._r.e.toString(2), 8, '0')}
+                HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.h.toString(2), 8, '0')} ${pad(cpu._r.l.toString(2), 8, '0')}
                 [HL]: ${hex(cpu.gb.bus.readMem8(cpu._r.hl), 2)}
                 </span>------------------------------
+
+                Timer Divider: ${gb.timer.addr_0xFF04}
+                Timer Counter: ${gb.timer.addr_0xFF05}
+                Timer Modulo: ${gb.timer.addr_0xFF06}
+                Timer Config: ${gb.timer.addr_0xFF07}
+
                 Scroll X/Y: ${gpu.scrollY}/${gpu.scrollX}
                 LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
@@ -156,6 +154,16 @@ function startDebugging() {
                 
             `;
 
+
+            // A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
+            // B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
+            // C: ${hex(cpu._r.c, 2)} ${pad(cpu._r.c.toString(2), 8, '0')}
+            // D: ${hex(cpu._r.d, 2)} ${pad(cpu._r.d.toString(2), 8, '0')}
+            // E: ${hex(cpu._r.e, 2)} ${pad(cpu._r.e.toString(2), 8, '0')}
+            // F: ${hex(cpu._r.f, 2)} ${pad(cpu._r.f.toString(2), 8, '0')}
+            // H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
+            // L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
+        
             
 
             let p0 = document.getElementById('palette0')!;
@@ -170,7 +178,7 @@ function startDebugging() {
 
             debugText = debugText.replace(/\n/g, "<br/>");
             debugP.innerHTML = debugText;
-        }, 100);
+        }, 10);
     } else {
         console.log("Running in node, not updating DEBUG");
     }
