@@ -122,7 +122,6 @@ function startDebugging() {
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}
         
                 SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)} [${hex(cpu.bus.readMem16(cpu._r.sp), 4)}]
-            
                 <span class="code">
                 A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
                 B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
@@ -137,11 +136,9 @@ function startDebugging() {
                 BC: ${hex(cpu._r.bc, 4)} ${pad(cpu._r.bc.toString(2), 16, '0')}
                 DE: ${hex(cpu._r.de, 4)} ${pad(cpu._r.de.toString(2), 16, '0')}
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.hl.toString(2), 16, '0')}
-                </span>
-                ------------------------------
-                Scroll Y: ${cpu.bus.gpu.scrollY}
-                Scroll X: ${cpu.bus.gpu.scrollX}
-
+                </span>------------------------------
+                Scroll X/Y: ${cpu.bus.gpu.scrollY}/${cpu.bus.gpu.scrollX}
+                
                 LCDC Y-Coordinate: ${cpu.bus.gpu.lcdcY} ${cpu.bus.gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
                 LCDC: ${pad(cpu.bus.gpu.lcdControl.numerical.toString(2), 8, '0')}

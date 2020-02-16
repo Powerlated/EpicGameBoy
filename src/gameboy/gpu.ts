@@ -255,15 +255,16 @@ class GPU {
         let scrollX = this.scrollX;
         let scrollY = this.scrollY;
 
-        let y = (this.lcdcY + scrollY) & 7; // CORRECT
-        let x = (scrollX) & 7;                // CORRECT
+        let y = (this.lcdcY + scrollY) & 0b111; // CORRECT
+        let x = (scrollX) & 0b111;                // CORRECT
 
         let mapBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
-        let mapOffset = mapBase + ((Math.floor((this.lcdcY + scrollY) / 8) * 32) & 1023);// 1023   // CORRECT 0x1800
 
-        let lineoffs = (scrollX >> 3);
+        let mapOffset = mapBase + ((Math.floor((this.lcdcY + scrollY) / 8) * 32) & 1023); // 1023   // CORRECT 0x1800
+        
+        let lineoffs = scrollX >> 3; 
 
-        let tile = this.vram[mapOffset];
+        let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
@@ -273,8 +274,9 @@ class GPU {
             // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
             let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
 
+            let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
             // Re-map the tile pixel through the palette
-            let c = transformColor(this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]));
+            let c = transformColor(pixel);
 
             // Write olive green color when LCD is disabled
             if (!this.lcdControl.lcdDisplayEnable7) {
@@ -293,6 +295,7 @@ class GPU {
             if (x == 8) {
                 x = 0;
                 lineoffs++;
+                lineoffs %= 32 // Wrap around after 20 tiles (width of tilemap) 
                 tile = this.vram[mapOffset + lineoffs];
                 // if (GPU._bgtile == 1 && tile < 128) tile += 256;
             }

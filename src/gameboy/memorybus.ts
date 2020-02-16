@@ -7,6 +7,61 @@ const HWIO_END = 0xFF7F;
 const INTERRUPT_REQUEST_FLAGS_ADDR = 0xFF0F;
 const INTERRUPT_ENABLE_FLAGS_ADDR = 0xFFFF;
 
+class JoypadRegister {
+
+    /* Pandocs - Joypad Input
+    Bit 7 - Not used
+    Bit 6 - Not used
+    Bit 5 - P15 Select Button Keys      (0=Select)
+    Bit 4 - P14 Select Direction Keys   (0=Select)
+    Bit 3 - P13 Input Down  or Start    (0=Pressed) (Read Only)
+    Bit 2 - P12 Input Up    or Select   (0=Pressed) (Read Only)
+    Bit 1 - P11 Input Left  or Button B (0=Pressed) (Read Only)
+    Bit 0 - P10 Input Right or Button A (0=Pressed) (Read Only)
+    */
+
+    selectButtons = false;
+    selectDpad = false;
+
+    dpad = {
+        down: false,
+        up: false,
+        left: false,
+        right: false
+    };
+
+    buttons = {
+        start: false,
+        select: false
+    };
+
+    get numerical(): number {
+        let n = 0;
+        
+        if (!this.selectButtons) n |= (1 << 5);
+        if (!this.selectDpad) n |= (1 << 4);
+
+        if (this.selectDpad) {
+            if (!this.dpad.down) n |= (1 << 3);
+            if (!this.dpad.up) n |= (1 << 2);
+            if (!this.dpad.left) n |= (1 << 1);
+            if (!this.dpad.right) n |= (1 << 0);
+        }
+        if (this.selectButtons) {
+            if (!this.dpad.down) n |= (1 << 3);
+            if (!this.dpad.up) n |= (1 << 2);
+            if (!this.dpad.left) n |= (1 << 1);
+            if (!this.dpad.right) n |= (1 << 0);
+        }
+        return n;
+    }
+
+    set numerical(i: number) {
+        this.selectButtons = (i >> 5) == 0; // Bit 5
+        this.selectDpad = (i >> 4) == 0; // Bit 4
+    }
+}
+
 class MemoryBus {
     cpu: CPU;
     gpu: GPU;
@@ -16,6 +71,7 @@ class MemoryBus {
     rom = new Uint8Array(0xFFFFFF + 1).fill(0xFF);
 
     interrupts = new InterruptController(this);
+    joypad = new JoypadRegister();
 
     bootromEnabled = true;
 
@@ -44,7 +100,7 @@ class MemoryBus {
         if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
             this.interrupts.enabledInterrupts.numerical = value;
         }
-        
+
 
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
@@ -57,6 +113,8 @@ class MemoryBus {
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
+                case 0xFF00: // Joypad write
+                    this.joypad.numerical = value;
                 case 0xFF01:
                     console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);
@@ -113,8 +171,8 @@ class MemoryBus {
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
-                case 0xFF00:
-                    return 0xFF;
+                case 0xFF00: // Joypad read
+                    return this.joypad.numerical;
                 case 0xFF01:
                     console.info(`SERIAL PORT READ`);
                     return 0x69;
@@ -153,15 +211,15 @@ class MemoryBus {
     readMem16(addr: number) {
         return this.readMem8(addr) | this.readMem8(addr + 1) << 8;
     }
-    
+
     reset() {
         this.cpu.reset();
         this.gpu.reset();
         this.interrupts.reset();
-        
+
         // Re-enable the bootrom
         this.bootromEnabled = true;
-        
+
         // Zero out memory
         this.memory.forEach((v, i, a) => {
             a[i] = 0;
