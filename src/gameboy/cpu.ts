@@ -558,7 +558,7 @@ class CPU {
         this.khzInterval = setInterval(() => {
             let i = 0;
             // const max = 70224; // Full frame GPU timing
-            const max = 70224 * 1; // Full frame GPU timing, double speed
+            const max = 70224 * 4; // Full frame GPU timing, double speed
             if (this.breakpoints.has(this.pc) || this.setHalt) {
                 clearInterval(this.khzInterval);
             }
@@ -661,8 +661,8 @@ class CPU {
                 return { op: this.NOP, length: 1 };
             case 0xC5: // PUSH B
                 return { op: this.PUSH_R16, type: R16.BC, length: 1 };
-            case 0x17:
-                return { op: this.RL_R8, type: R8.A, length: 1 };
+            case 0x17: // RLA
+                return { op: this.RLA, length: 1 };
             case 0xC1: // POP BC
                 return { op: this.POP_R16, type: R16.BC, length: 1 };
             case 0x05:
@@ -764,7 +764,7 @@ class CPU {
             case 0x26: // LD H, N8
                 return { op: this.LD_R8_N8, type: R8.H, length: 2 };
             case 0x1F: // RRA
-                return { op: this.RR_R8, type: R8.A, length: 1 };
+                return { op: this.RRA, length: 1 };
             case 0x30: // JR NC, E8
                 return { op: this.JR_E8, type: CC.NC, length: 2 };
             case 0x25: // DEC H
@@ -792,7 +792,7 @@ class CPU {
             case 0xF8: // LD HL, SP+e8
                 return { op: this.LD_HL_SPaddE8, length: 2 };
             case 0x07: // RLC A
-                return { op: this.RLC_R8, type: R8.A, length: 1 };
+                return { op: this.RLCA, length: 1 };
             case 0x10: // STOP
                 return { op: this.STOP, length: 2 };
             case 0x76: // HALT
@@ -836,7 +836,7 @@ class CPU {
             case 0xF2: // LD A, [FF00+C]
                 return { op: this.LD_A_iFF00plusC, length: 1 };
             case 0x0F: // RRCA
-                return { op: this.RR_R8, type: R8.A, length: 1 };
+                return { op: this.RRCA, length: 1 };
             case 0xE8: // AP SP, E8
                 return { op: this.ADD_SP_E8, length: 1 };
             case 0xF6: // OR A, N8
@@ -1488,7 +1488,7 @@ class CPU {
         // Set flags
         this._r._f.zero = newValue == 0;
         this._r._f.negative = true;
-        this._r._f.half_carry = (value & 0xF) > (this._r.a & 0xF) - (this._r._f.carry ? 1 : 0); 
+        this._r._f.half_carry = (value & 0xF) > (this._r.a & 0xF) - (this._r._f.carry ? 1 : 0);
         this._r._f.carry = value > this._r.a - (this._r._f.carry ? 1 : 0);
 
         // Set register values
@@ -1659,6 +1659,9 @@ class CPU {
 
     CPL() {
         this._r.a = this._r.a ^ 0b11111111;
+
+        this._r._f.negative = true;
+        this._r._f.half_carry = true;
     }
 
     // #region 0xCB Opcodes
@@ -1690,6 +1693,23 @@ class CPU {
         this.setReg(t, final);
     }
 
+    // Rotate A right through carry
+    RRA() {
+        let value = this._r.a;
+
+        let carryMask = (this._r.f & 0b00010000) << 3;
+
+        let newValue = o8b((value >> 1) | carryMask);
+
+        this._r.a = newValue;
+
+        this._r._f.zero = false;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = !!(value & 1);
+    }
+
+
     // Rotate TARGET right through carry
     RR_R8(t: R8) {
         let value = this.getReg(t);
@@ -1706,6 +1726,22 @@ class CPU {
         this._r._f.carry = !!(value & 1);
     }
 
+    // Rotate A left through carry
+    RLA() {
+        let value = this._r.a;
+
+        let carryMask = (this._r.f & 0b00010000) >> 4;
+
+        let newValue = o8b((value << 1) | carryMask);
+
+        this._r.a = newValue;
+
+        this._r._f.zero = false;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = (value >> 7) == 1;
+    }
+
     // Rotate TARGET left through carry
     RL_R8(t: R8) {
         let value = this.getReg(t);
@@ -1716,25 +1752,57 @@ class CPU {
 
         this.setReg(t, newValue);
 
-        this._r._f.zero = false
+        this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
         this._r._f.carry = (value >> 7) == 1;
     }
 
+    // Rotate A right
+    RRCA() {
+        let value = this._r.a;
+
+        let rightmostBit = (value & 1) << 7;
+        let newValue = o8b((value >> 1) | rightmostBit);
+
+        this._r.a = newValue;
+
+        this._r._f.zero = false;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = (value & 1) == 1;
+    }
+
+
     // Rotate TARGET right
     RRC_R8(t: R8) {
-        let rightmostBit = (this._r.a & 0b00000001) << 7;
+        let value = this.getReg(t);
 
-        let newValue = o8b((this._r.a >> 1) | rightmostBit);
-        let didOverflow = do8b((this._r.a >> 1) | rightmostBit);
+        let rightmostBit = (value & 1) << 7;
+        let newValue = o8b((value >> 1) | rightmostBit);
 
         this.setReg(t, newValue);
 
         this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
+        this._r._f.carry = !!(value & 1);
+    }
+
+    // Rotate A left
+    RLCA() {
+        let value = this._r.a;
+
+        let leftmostBit = (value & 0b10000000) >> 7;
+
+        let newValue = o8b((value << 1) | leftmostBit);
+
+        this._r.a = newValue;
+
+        this._r._f.zero = false;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = (value >> 7) == 1;
     }
 
     // Rotate TARGET left
@@ -1747,7 +1815,7 @@ class CPU {
 
         this.setReg(t, newValue);
 
-        this._r._f.zero = false;
+        this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
         this._r._f.carry = (value >> 7) == 1;
@@ -1755,15 +1823,17 @@ class CPU {
 
     // Shift TARGET right
     SRA_R8(t: R8) {
-        let newValue = o8b(this.getReg(t) >> 1);
-        let didOverflow = do8b(this.getReg(t) >> 1);
+        let value = this.getReg(t);
+
+        let leftmostBit = value & 0b10000000
+        let newValue = (value >> 1) | leftmostBit;
 
         this.setReg(t, newValue);
 
         this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
+        this._r._f.carry = !!(value & 1);
     }
 
     // Shift TARGET left 
@@ -1802,6 +1872,9 @@ class CPU {
         this.setReg(r8, (lowerNybble << 4) | upperNybble);
 
         this._r._f.zero = this.getReg(r8) == 0;
+        this._r._f.negative = false;
+        this._r._f.half_carry = false;
+        this._r._f.carry = false;
     }
 }
 
