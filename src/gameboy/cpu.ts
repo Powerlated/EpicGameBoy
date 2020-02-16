@@ -1713,11 +1713,10 @@ class CPU {
         let carryMask = (this._r.f & 0b00010000) >> 4;
 
         let newValue = o8b((value << 1) | carryMask);
-        let didOverflow = do8b((value << 1) | carryMask);
 
         this.setReg(t, newValue);
 
-        this._r._f.zero = newValue == 0;
+        this._r._f.zero = false
         this._r._f.negative = false;
         this._r._f.half_carry = false;
         this._r._f.carry = (value >> 7) == 1;
@@ -1740,17 +1739,18 @@ class CPU {
 
     // Rotate TARGET left
     RLC_R8(t: R8) {
-        let leftmostBit = (this._r.a & 0b10000000) >> 7;
+        let value = this.getReg(t);
 
-        let newValue = o8b((this._r.a << 1) | leftmostBit);
-        let didOverflow = do8b((this._r.a << 1) | leftmostBit);
+        let leftmostBit = (value & 0b10000000) >> 7;
+
+        let newValue = o8b((value << 1) | leftmostBit);
 
         this.setReg(t, newValue);
 
-        this._r._f.zero = newValue == 0;
+        this._r._f.zero = false;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
-        this._r._f.carry = didOverflow;
+        this._r._f.carry = (value >> 7) == 1;
     }
 
     // Shift TARGET right
