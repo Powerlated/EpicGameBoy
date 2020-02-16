@@ -1365,53 +1365,42 @@ class CPU {
         this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
         this._r._f.carry = didOverflow;
 
-
-
         // Set register values
         this._r.a = newValue;
-
     }
 
     // ADC A, r8
     ADC_A_R8(t: R8) {
-        let value =  this.getReg(t);
-        let value2 = this._r.a;
+        let value = this.getReg(t);
 
-        // Start by adding target to A
-        value2 = o8b(value + value2);
-
+        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
 
         // Set flags
-        this._r._f.zero = value2 == 0;
+        this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
-        this._r._f.half_carry = (value2 & 0xF) + (value & 0xF) > 0xF;
-        this._r._f.carry = do8b(value2);
-
-        // Then, add carry flag to A
-        value2 = value2 + (this._r._f.carry ? 1 : 0);
+        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) + (this._r._f.carry ? 1 : 0) > 0xF;
+        this._r._f.carry = didOverflow;
 
         // Set register values
-        this._r.a = o8b(value2);
+        this._r.a = newValue;
     }
 
     // ADC A, n8
     ADC_A_N8(n8: number) {
-        let value =  n8;
-        let value2 = this._r.a;
+        let value = n8;
 
-        let final = 0;
-
-        // Start by adding target to A
-        final = value + value2 + (this._r._f.carry ? 1 : 0);
+        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
 
         // Set flags
-        this._r._f.zero = final == 0;
+        this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
-        this._r._f.half_carry = (value2 & 0xF) + (value & 0xF) + (this._r._f.carry ? 1 : 0)> 0xF;
-        this._r._f.carry = do8b(final);
+        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) + (this._r._f.carry ? 1 : 0) > 0xF;
+        this._r._f.carry = didOverflow;
 
         // Set register values
-        this._r.a = o8b(final);
+        this._r.a = newValue;
     }
 
     ADD_HL_R8(t: R8) {
@@ -1449,28 +1438,28 @@ class CPU {
         let value = this.getReg(t);
 
         let newValue = o8b(this._r.a - value);
-        let didOverflow = do8b(this._r.a - value);
+
+        // Set flags
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = true;
+        this._r._f.half_carry = (value & 0xF) > (this._r.a & 0xF);
+        this._r._f.carry = value > this._r.a;
 
         // Set register values
         this._r.a = newValue;
-
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = true;
-        this._r._f.half_carry = (value & 0xF) - (1 & 0xF) < 0;
     }
 
 
     SUB_A_N8(n8: number) {
-        let newValue = o8b(this._r.a - n8);
-        let didOverflow = do8b(this._r.a - n8);
+        let value = n8;
+
+        let newValue = o8b(this._r.a - value);
 
         // Set flags
-        this._r._f.half_carry = (this._r.a & 0xF) - (n8 & 0xF) < 0;
-        this._r._f.carry = didOverflow;
         this._r._f.zero = newValue == 0;
         this._r._f.negative = true;
+        this._r._f.half_carry = (value & 0xF) > (this._r.a & 0xF);
+        this._r._f.carry = value > this._r.a;
 
         // Set register values
         this._r.a = newValue;
@@ -1479,36 +1468,32 @@ class CPU {
     SBC_A_R8(t: R8) {
         let value = this.getReg(t);
 
-        // Also subtract the carry flag for SBC
         let newValue = o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-        let didOverflow = do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+
+        // Set flags
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = true;
+        this._r._f.half_carry = (value & 0xF) > (this._r.a & 0xF) - (this._r._f.carry ? 1 : 0);
+        this._r._f.carry = value > this._r.a - (this._r._f.carry ? 1 : 0);
 
         // Set register values
         this._r.a = newValue;
-
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = true;
     }
 
     SBC_A_N8(n8: number) {
         let value = n8;
 
-        // Also subtract the carry flag for SBC
         let newValue = o8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
-        let didOverflow = do8b(this._r.a - value - (this._r._f.carry ? 1 : 0));
+
+        // Set flags
+        this._r._f.zero = newValue == 0;
+        this._r._f.negative = true;
+        this._r._f.half_carry = (value & 0xF) > (this._r.a & 0xF) - (this._r._f.carry ? 1 : 0); 
+        this._r._f.carry = value > this._r.a - (this._r._f.carry ? 1 : 0);
 
         // Set register values
         this._r.a = newValue;
-
-        // Set flags
-
-        this._r._f.zero = newValue == 0;
-        this._r._f.negative = true;
-        this._r._f.carry = didOverflow;
     }
-
 
     AND_A_R8(t: R8) {
         let value = this.getReg(t);
