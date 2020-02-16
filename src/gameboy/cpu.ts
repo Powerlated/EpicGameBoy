@@ -774,7 +774,7 @@ class CPU {
             case 0xCC: // CALL Z, N16
                 return { op: this.CALL_N16, type: CC.Z, length: 3 };
             case 0xCE: // ADC A, N8
-                return { op: this.ADC_N8, length: 2 };
+                return { op: this.ADC_A_N8, length: 2 };
             case 0xD0: // RET NC
                 return { op: this.RET, type: CC.NC, length: 1 };
             case 0xC8: // RET Z
@@ -1355,55 +1355,63 @@ class CPU {
     // ADD A, N8
     ADD_A_N8(n8: number) {
         let value = n8;
-        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
 
         let newValue = o8b(value + this._r.a);
         let didOverflow = do8b(value + this._r.a);
 
-        // Set register values
-        this._r.a = newValue;
-
         // Set flags
-        this._r._f.carry = didOverflow;
         this._r._f.zero = newValue == 0;
         this._r._f.negative = false;
+        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+        this._r._f.carry = didOverflow;
+
+
+
+        // Set register values
+        this._r.a = newValue;
 
     }
 
     // ADC A, r8
     ADC_A_R8(t: R8) {
-        let value = this.getReg(t);
-        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+        let value =  this.getReg(t);
+        let value2 = this._r.a;
 
-        // Add the carry flag as well for ADC
-        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        // Start by adding target to A
+        value2 = o8b(value + value2);
 
-        // Set register values
-        this._r.a = newValue;
 
         // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
+        this._r._f.zero = value2 == 0;
         this._r._f.negative = false;
+        this._r._f.half_carry = (value2 & 0xF) + (value & 0xF) > 0xF;
+        this._r._f.carry = do8b(value2);
+
+        // Then, add carry flag to A
+        value2 = value2 + (this._r._f.carry ? 1 : 0);
+
+        // Set register values
+        this._r.a = o8b(value2);
     }
 
     // ADC A, n8
-    ADC_N8(n8: number) {
-        let value = n8;
+    ADC_A_N8(n8: number) {
+        let value =  n8;
+        let value2 = this._r.a;
 
-        // Add the carry flag as well for ADC
-        let newValue = o8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
-        let didOverflow = do8b(value + this._r.a + (this._r._f.carry ? 1 : 0));
+        let final = 0;
+
+        // Start by adding target to A
+        final = value + value2 + (this._r._f.carry ? 1 : 0);
 
         // Set flags
-        this._r._f.carry = (this._r.a & 0b1111111) + (value & 0b1111111) + (this._r._f.carry ? 1 : 0) > 0b1111111;
-        this._r._f.zero = newValue == 0;
+        this._r._f.zero = final == 0;
         this._r._f.negative = false;
-        this._r._f.half_carry = (this._r.a & 0b111) + (value & 0b111) + (this._r._f.carry ? 1 : 0) > 0b111;
+        this._r._f.half_carry = (value2 & 0xF) + (value & 0xF) + (this._r._f.carry ? 1 : 0)> 0xF;
+        this._r._f.carry = do8b(final);
 
         // Set register values
-        this._r.a = newValue;
+        this._r.a = o8b(final);
     }
 
     ADD_HL_R8(t: R8) {
@@ -1428,13 +1436,13 @@ class CPU {
         let newValue = o16b(r16Value + this._r.hl);
         let didOverflow = do16b(r16Value + this._r.hl);
 
-        // Set register values
-        this._r.hl = newValue;
-
         // Set flag
         this._r._f.negative = false;
         this._r._f.half_carry = (this._r.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
         this._r._f.carry = didOverflow;
+
+        // Set register values
+        this._r.hl = newValue;
     }
 
     SUB_A_R8(t: R8) {
@@ -1842,15 +1850,15 @@ function o16b(i: number): number {
 }
 
 function do4b(i: number): boolean {
-    return i >= 0xF || i < 0;
+    return i > 0xF || i < 0;
 }
 
 function do8b(i: number): boolean {
-    return i >= 0xFF || i < 0;
+    return i > 0xFF || i < 0;
 }
 
 function do16b(i: number): boolean {
-    return i >= 0xFFFF || i < 0;
+    return i > 0xFFFF || i < 0;
 }
 
 function hex(i: number, digits: number) {

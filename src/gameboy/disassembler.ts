@@ -57,7 +57,7 @@ const disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu:
             case cpu.LD_R8_R8: return [LD, `${ins.type},${ins.type2}`];
             case cpu.LD_A_iR16: return [LD, `A,(${ins.type})`];
             case cpu.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
-            case cpu.ADC_N8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
+            case cpu.ADC_A_R8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
             case cpu.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
             case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"];
             case cpu.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`]
