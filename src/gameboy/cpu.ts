@@ -253,7 +253,7 @@ class CPU {
     set pc(i: number) {
         if (isNaN(i)) {
             alert(`
-            PC undefined
+            PC undefined (${i})
             
             PC: 0x${this.pc.toString(16)}
             Opcode: 0x${this.fetchMem8(this.pc).toString(16)}
@@ -382,7 +382,7 @@ class CPU {
 
         let additionalCycles = 0;
 
-        if (ins.type) {
+        if (ins.type != undefined) {
             if (ins.length == 3) {
                 additionalCycles = ins.op(ins.type, this.fetchMem16(this.pc + 1));
             } else if (ins.length == 2) {
@@ -528,8 +528,6 @@ class CPU {
 
 
     }
-
-
 
     toggleBreakpoint(point: number) {
         if (!this.breakpoints.has(point)) {
@@ -725,20 +723,12 @@ class CPU {
                 return { op: this.CPL, length: 1 };
             case 0xE6: // AND A, u8
                 return { op: this.AND_N8, length: 2 };
-            case 0xEF: // RST 28h
-                return { op: this.RST, type: 0x28, length: 1 };
             case 0xE1: // POP HL
                 return { op: this.POP_R16, type: R16.HL, length: 1 };
-            case 0x19:
-                return { op: this.ADD_HL_R8, type: R16.DE, length: 1 };
             case 0xD5:
                 return { op: this.PUSH_R16, type: R16.DE, length: 1 };
             case 0xE9: // JP HL
                 return { op: this.JP_HL, length: 1 };
-            case 0xC7: // RST 00h
-                return { op: this.RST, type: 0x00, length: 1 };
-            case 0xFF: // RST 38h
-                return { op: this.RST, type: 0x38, length: 1 };
             case 0x12: // LD [DE],A
                 return { op: this.LD_iR16_A, type: R16.DE, length: 1 };
             case 0x1C: // INC E
@@ -773,8 +763,6 @@ class CPU {
                 return { op: this.DEC_R8, type: R8.L, length: 1 };
             case 0x26: // LD H, N8
                 return { op: this.LD_R8_N8, type: R8.H, length: 2 };
-            case 0xF7: // RST 30h
-                return { op: this.RST, type: 0x30, length: 1 };
             case 0x1F: // RRA
                 return { op: this.RR_R8, type: R8.A, length: 1 };
             case 0x30: // JR NC, E8
@@ -797,8 +785,6 @@ class CPU {
                 return { op: this.RET, type: CC.NZ, length: 1 };
             case 0x35: // DEC [HL]
                 return { op: this.DEC_iHL, length: 1 };
-            case 0x29: // ADD HL, HL
-                return { op: this.ADD_HL_R16, type: R16.HL, length: 1 };
             case 0x3C: // INC A
                 return { op: this.INC_R8, type: R8.A, length: 1 };
             case 0xD8: // RET C
@@ -861,10 +847,26 @@ class CPU {
                 return { op: this.DEC_R16, type: R16.HL, length: 1 };
             case 0x09: // ADD HL, BC
                 return { op: this.ADD_HL_R16, type: R16.BC, length: 1 };
+            case 0x19: // ADD HL, DE
+                return { op: this.ADD_HL_R16, type: R16.DE, length: 1 };
+            case 0x29: // ADD HL, HL
+                return { op: this.ADD_HL_R16, type: R16.HL, length: 1 };
             case 0xDF: // RST 18h
                 return { op: this.RST, type: 0x18, length: 1 };
             case 0xE7: // RST 20h
                 return { op: this.RST, type: 0x20, length: 1 };
+            case 0xD7: // RST 10h
+                return { op: this.RST, type: 0x10, length: 1 };
+            case 0xEF: // RST 28h
+                return { op: this.RST, type: 0x28, length: 1 };
+            case 0xC7: // RST 00h
+                return { op: this.RST, type: 0x00, length: 1 };
+            case 0xCF: // RST 08h
+                return { op: this.RST, type: 0x08, length: 1 };
+            case 0xFF: // RST 38h
+                return { op: this.RST, type: 0x38, length: 1 };
+            case 0xF7: // RST 30h
+                return { op: this.RST, type: 0x30, length: 1 };
             case 0xD3:
             case 0xDB:
             case 0xDD:
@@ -1245,8 +1247,8 @@ class CPU {
     LD_HL_SPaddE8(e8: number) {
         this._r._f.zero = false;
         this._r._f.negative = false;
-        this._r._f.half_carry = (this._r.a & 0b111) + (this._r.sp & 0b111) > 0b111;
-        this._r._f.carry = (this._r.a & 0b1111111) + (this._r.sp & 0b1111111) > 0b1111111;
+        this._r._f.half_carry = (this._r.a & 0xF) + (this._r.sp & 0xF) > 0xF;
+        this._r._f.carry = (this._r.a & 0xFF) + (this._r.sp & 0xFF) > 0xFF;
 
         this._r.hl = o16b(unTwo8b(e8) + this._r.sp);
     }
@@ -1421,19 +1423,18 @@ class CPU {
     }
 
     ADD_HL_R16(r16: R16) {
-        let value = this.getReg(r16);
+        let r16Value = this.getReg(r16);
 
-        let newValue = o16b(value + this._r.hl);
-        let didOverflow = do16b(value + this._r.hl);
+        let newValue = o16b(r16Value + this._r.hl);
+        let didOverflow = do16b(r16Value + this._r.hl);
 
         // Set register values
         this._r.hl = newValue;
 
-        // Set flags
-        this._r._f.carry = didOverflow;
-        this._r._f.zero = newValue == 0;
+        // Set flag
         this._r._f.negative = false;
-        this._r._f.half_carry = (this._r.a & 0xF) + (value & 0xF) > 0xF;
+        this._r._f.half_carry = (this._r.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
+        this._r._f.carry = didOverflow;
     }
 
     SUB_A_R8(t: R8) {
@@ -1671,7 +1672,7 @@ class CPU {
 
     BIT_R8(t: R8, selectedBit) {
         let value = this.getReg(t);
-        let mask = 0b1 << selectedBit;
+        let mask = 1 << selectedBit;
 
         this._r._f.zero = (value & mask) == 0;
         this._r._f.negative = false;

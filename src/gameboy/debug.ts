@@ -118,7 +118,6 @@ function startDebugging() {
                 IME/E/R: ${cpu.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
-            
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}
         
                 SP: ${hex(cpu._r.sp, 4)} ${cpu._r.sp} ${cpu._r.sp.toString(2)} [${hex(cpu.bus.readMem16(cpu._r.sp), 4)}]
@@ -138,7 +137,6 @@ function startDebugging() {
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.hl.toString(2), 16, '0')}
                 </span>------------------------------
                 Scroll X/Y: ${cpu.bus.gpu.scrollY}/${cpu.bus.gpu.scrollX}
-                
                 LCDC Y-Coordinate: ${cpu.bus.gpu.lcdcY} ${cpu.bus.gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
                 LCDC: ${pad(cpu.bus.gpu.lcdControl.numerical.toString(2), 8, '0')}
@@ -146,9 +144,14 @@ function startDebugging() {
 
                 Total Frames: ${cpu.bus.gpu.totalFrameCount}
                 Frames Per Second: ${fps}
+                ------------------------------
+                Joypad: ${pad(cpu.bus.joypad.numerical.toString(2), 8, '0')}
+
+                Serial Out: 
+                <span class="code">${new TextDecoder().decode(new Uint8Array(cpu.bus.serialOut.slice(0, 2560)))}</span>
             `;
 
-
+            
 
             let p0 = document.getElementById('palette0');
             let p1 = document.getElementById('palette1');

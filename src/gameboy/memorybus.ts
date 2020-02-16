@@ -46,8 +46,7 @@ class JoypadRegister {
             if (!this.dpad.up) n |= (1 << 2);
             if (!this.dpad.left) n |= (1 << 1);
             if (!this.dpad.right) n |= (1 << 0);
-        }
-        if (this.selectButtons) {
+        } else if (this.selectButtons) {
             if (!this.dpad.down) n |= (1 << 3);
             if (!this.dpad.up) n |= (1 << 2);
             if (!this.dpad.left) n |= (1 << 1);
@@ -57,8 +56,11 @@ class JoypadRegister {
     }
 
     set numerical(i: number) {
-        this.selectButtons = (i >> 5) == 0; // Bit 5
-        this.selectDpad = (i >> 4) == 0; // Bit 4
+        this.selectButtons = (i >> 5) != 0; // Bit 5
+        this.selectDpad = (i >> 4) != 0; // Bit 4
+
+        if ((i >> 5) == 0) console.log("Selected buttons");
+        if ((i >> 4) == 0) console.log("Selected dpad");
     }
 }
 
@@ -116,7 +118,7 @@ class MemoryBus {
                 case 0xFF00: // Joypad write
                     this.joypad.numerical = value;
                 case 0xFF01:
-                    console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
+                    // console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);
                     break;
                 case 0xFF40: // LCD Control
@@ -172,6 +174,7 @@ class MemoryBus {
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
                 case 0xFF00: // Joypad read
+                    // console.log("Polled joypad")
                     return this.joypad.numerical;
                 case 0xFF01:
                     console.info(`SERIAL PORT READ`);

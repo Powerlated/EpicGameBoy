@@ -34,7 +34,7 @@ class LCDCRegister {
     }
 }
 
-class LCDCStatusRegister {
+class LCDStatusRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#FF41_-_STAT_-_LCDC_Status_.28R.2FW.29
     lyCoincidenceInterrupt6 = false; // Bit 6 - LYC=LY Coincidence Interrupt (1=Enable) (Read/Write)
     mode2OamInterrupt_____5 = false; // Bit 5 - Mode 2 OAM Interrupt         (1=Enable) (Read/Write)
@@ -126,7 +126,7 @@ class GPU {
     tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
 
     lcdControl = new LCDCRegister(); // 0xFF40
-    lcdStatus = new LCDCStatusRegister(); // 0xFF41
+    lcdStatus = new LCDStatusRegister(); // 0xFF41
 
     bgPaletteData = new BGPaletteData(); // 0xFF47
 
@@ -346,12 +346,15 @@ class GPU {
     }
 
     read(index: number): number {
+        // During mode 3, the CPU cannot access VRAM or CGB palette data
+        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+
         return this.vram[index];
     }
 
     write(index, value) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
+        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
 
         this.vram[index] = value;
 
@@ -415,7 +418,7 @@ class GPU {
         this.tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
 
         this.lcdControl = new LCDCRegister(); // 0xFF40
-        this.lcdStatus = new LCDCStatusRegister(); // 0xFF41
+        this.lcdStatus = new LCDStatusRegister(); // 0xFF41
 
         this.bgPaletteData = new BGPaletteData(); // 0xFF47
 

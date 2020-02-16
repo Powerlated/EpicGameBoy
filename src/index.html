@@ -167,9 +167,6 @@
     </div>
 
 
-
-
-
     <script>
         function loadDefaultBootRom() {
             const BOOTROM_BASE64 = `Mf7/ryH/nzLLfCD7ISb/DhE+gDLiDD7z4jI+d3c+/OBHEQQBIRCAGs2VAM2WABN7/jQg8xHYAAYIGhMiIwUg+T4Z6hCZIS+ZDgw9KAgyDSD5Lg8Y82c+ZFfgQj6R4EAEHgIODPBE/pAg+g0g9x0g8g4TJHweg/5iKAYewf5kIAZ74gw+h+LwQpDgQhUg0gUgTxYgGMtPBgTFyxEXwcsRFwUg9SIjIiPJzu1mZswNAAsDcwCDAAwADQAIER+IiQAO3Mxu5t3d2Zm7u2djbg7szN3cmZ+7uTM+PEK5pbmlQjwhBAERqAAaE74g/iN9/jQg9QYZeIYjBSD7hiD+PgHgUA==`
@@ -304,7 +301,6 @@
         }, false);
 
         document.querySelector('#gameromInput').addEventListener('change', function () {
-            loadDefaultBootRom();
             var reader = new FileReader();
             reader.onload = function () {
                 var arrayBuffer = this.result;
@@ -324,9 +320,85 @@
         cpu = new CPU();
         window.cpu = cpu;
 
-        loadDefaultBootRom()
         loadTetris()
         startDebugging();
+
+
+        const LEFT_ARROW = 37;
+        const UP_ARROW = 38;
+        const RIGHT_ARROW = 39;
+        const DOWN_ARROW = 40;
+        const KEY_Z = 90;
+        const KEY_X = 88;
+        const ENTER = 13;
+        const BACKSPACE = 8;
+
+        let block = [LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW, KEY_Z, KEY_X, ENTER, BACKSPACE]
+
+        document.onkeydown = function (e) {
+            if (block.includes(e.keyCode))
+                e.preventDefault();
+
+            switch (e.keyCode) {
+                case LEFT_ARROW: // Left
+                    cpu.bus.joypad.dpad.left = true;
+                    break;
+                case UP_ARROW: // Up
+                    cpu.bus.joypad.dpad.up = true;
+                    break;
+                case RIGHT_ARROW: // Right
+                    cpu.bus.joypad.dpad.right = true;
+                    break;
+                case DOWN_ARROW: // Down
+                    cpu.bus.joypad.dpad.down = true;
+                    break;
+
+                case KEY_Z: // Z > A
+                    cpu.bus.joypad.dpad.down = true;
+                    break;
+                case KEY_X: // X > B
+                    cpu.bus.joypad.dpad.down = true;
+                    break;
+                case ENTER: // Enter > Start
+                    cpu.bus.joypad.dpad.down = true;
+                    break;
+                case BACKSPACE: // Backspace > Select
+                    cpu.bus.joypad.dpad.down = true;
+                    break;
+            }
+        };
+        document.onkeyup = function (e) {
+            if (block.includes(e.keyCode))
+                e.preventDefault();
+
+            switch (e.keyCode) {
+                case LEFT_ARROW: // Left
+                    cpu.bus.joypad.dpad.left = false;
+                    break;
+                case UP_ARROW: // Up
+                    cpu.bus.joypad.dpad.up = false;
+                    break;
+                case RIGHT_ARROW: // Right
+                    cpu.bus.joypad.dpad.right = false;
+                    break;
+                case DOWN_ARROW: // Down
+                    cpu.bus.joypad.dpad.down = false;
+                    break;
+
+                case KEY_Z: // Z > A
+                    cpu.bus.joypad.dpad.down = false;
+                    break;
+                case KEY_X: // X > B
+                    cpu.bus.joypad.dpad.down = false;
+                    break;
+                case ENTER: // Enter > Start
+                    cpu.bus.joypad.dpad.down = false;
+                    break;
+                case BACKSPACE: // Backspace > Select
+                    cpu.bus.joypad.dpad.down = false;
+                    break;
+            }
+        }
     </script>
 </body>
 
