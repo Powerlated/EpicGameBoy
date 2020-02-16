@@ -150,7 +150,7 @@ class GPU {
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
         // Clock the GPU based on how long the last CPU instruction took 
-        this.modeClock += this.bus.cpu.lastInstructionCycles
+        this.modeClock += this.bus.cpu.lastInstructionCycles;
         switch (this.lcdStatus.mode) {
             // Read from OAM - Scanline active
             case 2:
@@ -215,8 +215,8 @@ class GPU {
                 }
                 break;
         }
-        
-    
+
+
     }
 
     imageDataGameboy = new Uint8ClampedArray(160 * 144 * 4);
@@ -229,10 +229,10 @@ class GPU {
 
     drawToCanvasTileset() {
         let iData = new ImageData(this.imageDataTileset, 256, 144);
-        
+
         this.ctxTileset.putImageData(iData, 0, 0);
 
-        this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)'
+        this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
         // 0: Bottom half used, 1: Top half used
         // Draw over unused with transparent yellow
         if (this.lcdControl.bgWindowTiledataSelect__4) {
@@ -246,7 +246,7 @@ class GPU {
         this.ctxTileset.strokeRect(0, 0, 256, 71);
         this.ctxTileset.strokeStyle = '#0000ff';
         this.ctxTileset.strokeRect(0, 72, 256, 72);
-        
+
     }
 
     renderScanline() {
@@ -335,7 +335,7 @@ class GPU {
         this.bus = bus;
 
         if (!IS_NODE) {
-            let cTileset= document.getElementById("tileset") as HTMLCanvasElement;
+            let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
             let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
             this.ctxTileset = cTileset.getContext("2d");
             this.ctxGameboy = cGameboy.getContext("2d");
@@ -348,31 +348,33 @@ class GPU {
 
     write(index, value) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        // if (this.lcdStatus.mode == 3) return;
+        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
 
         this.vram[index] = value;
 
         // Write to tile set
         if (index >= 0x0 && index <= 0x17FF) {
-            value += 0x1800;
-            value &= 0x1FFE;
-            value -= 0x1800;
+            index &= 0xFFFE;
 
             // Work out which tile and row was updated
-            var tile = Math.floor(index / 16);
-            var y = Math.floor((index % 16) / 2);
+            let tile = Math.floor(index / 16);
+            let y = Math.floor((index % 16) / 2);
 
-            var sx;
+            let mask;
             for (var x = 0; x < 8; x++) {
                 // Find bit index for this pixel
-                sx = 0b1 << (7 - x);
+                let bytes = [this.vram[index], this.vram[index + 1]];
+
+                mask = 0b1 << (7 - x);
+                let lsb = bytes[0] & mask;
+                let msb = bytes[1] & mask;
 
                 let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 0;
-                
+
                 // Update tile set
                 this.tileset[tile + tileOffset][y][x] =
-                    ((this.vram[index] & sx) ? 1 : 0) +
-                    ((this.vram[index + 1] & sx) ? 2 : 0);
+                    (lsb != 0 ? 1 : 0) +
+                    (msb != 0 ? 2 : 0);
             }
             // Write to tile map
         } else {
@@ -402,21 +404,21 @@ class GPU {
         this.vram = new Uint8Array(0x2000);
 
         this.totalFrameCount = 0;
-    
+
         // [tile][row][pixel]
         this.tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
-    
+
         this.tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9800-9BFF 1024 bytes
         this.tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
-    
+
         this.lcdControl = new LCDCRegister(); // 0xFF40
         this.lcdStatus = new LCDCStatusRegister(); // 0xFF41
-    
+
         this.bgPaletteData = new BGPaletteData(); // 0xFF47
-    
+
         this.scrollY = 0; // 0xFF42
         this.scrollX = 0; // 0xFF43
-    
+
         this.lcdcY = 0; // 0xFF44 - Current scanning line
         this.modeClock = 0;
     }
