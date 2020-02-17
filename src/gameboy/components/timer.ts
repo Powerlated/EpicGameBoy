@@ -11,29 +11,43 @@ class Timer {
         running: false
     };
 
+    c = {
+        clock: 0,
+        divClock: 0,
+        mainClock: 0
+    };
+
     constructor(gb: GameBoy) {
         this.gb = gb;
     }
 
     step() {
-        let time = this.gb.cpu.cycles / 4;
+        // Get the mtime
+        this.c.clock += this.gb.cpu.lastInstructionCycles / 4;
         const BASE = 16;
 
+        // 1048576hz Divide by 4 = 262144hz
+        if (this.c.clock >= 4) {
+            this.c.mainClock++;
+            this.c.clock -= 4;
 
-        // 4194304 Divide by 16 = 262144hz
-        if (time % BASE == 0) {
-            // Divide by 16 again = 16384hz 
-            if (time % (BASE * 16) == 0) {
+            this.c.divClock++;
+            // Divide by 16 again for 16834hz div clock
+            if (this.c.divClock == 16) {
                 this.divider++;
                 this.divider &= 0xFF;
+                this.c.divClock = 0;
+            }
+        }
+
+        if (this.control.running) {
+            if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
+                this.counter++;
             }
 
-            if (time % (BASE * Timer.TimerSpeeds[this.control.speed]) == 0) {
-                this.counter++;
-                if (this.counter >= 256) {
-                    this.gb.bus.interrupts.requestTimer();
-                    this.counter = this.modulo;
-                }
+            if (this.counter >= 256) {
+                this.gb.bus.interrupts.requestTimer()
+                this.counter = this.modulo;
             }
         }
     }

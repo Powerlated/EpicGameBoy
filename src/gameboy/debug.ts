@@ -116,6 +116,7 @@ function startDebugging() {
             let r = cpu.gb.bus.interrupts.requestedInterrupts;
             let e = cpu.gb.bus.interrupts.enabledInterrupts;
             let debugText = `
+                Control Flow: ${Disassembler.controlFlowDisassembly[0]}
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
 
