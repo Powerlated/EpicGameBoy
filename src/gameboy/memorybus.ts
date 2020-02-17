@@ -96,10 +96,16 @@ class MemoryBus {
                     this.gpu.scrollX = value;
                     break;
                 case 0xFF46:
-                    // console.log("OAM DMA")
+                    this.gpu.oamDma(value << 8);
                     break;
                 case 0xFF47: // Palette
                     this.gpu.bgPaletteData.numerical = value;
+                    break;
+                case 0xFF48: // Palette OBJ 0
+                    this.gpu.objPaletteData0.numerical = value;
+                    break;
+                case 0xFF49: // Palette OBJ 1
+                    this.gpu.objPaletteData1.numerical = value;
                     break;
                 case 0xFF50:
                     console.log("Disabled bootrom by write to 0xFF50");
@@ -164,6 +170,10 @@ class MemoryBus {
                     return this.gpu.lcdcY;
                 case 0xFF47: // Palette
                     return this.gpu.bgPaletteData.numerical;
+                case 0xFF48: // Palette OBJ 0
+                    return this.gpu.objPaletteData0.numerical;
+                case 0xFF49: // Palette OBJ 1
+                    return this.gpu.objPaletteData1.numerical;
                 case 0xFF50:
                     return 0xFF;
                 default:

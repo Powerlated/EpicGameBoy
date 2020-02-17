@@ -71,7 +71,42 @@ class LCDStatusRegister {
     }
 }
 
-class BGPaletteData {
+class OAMFlags {
+    behindBG = false;
+    yFlip = false;
+    xFlip = false;
+    paletteNumberDMG = false; // DMG only (0, 1)
+    tileVramBank = false; // CGB only (0, 1)
+    paletteNumberCGB = 0;
+
+    get numerical(): number {
+        let n = 0;
+        if (this.behindBG)
+            n |= 0b01000000;
+        if (this.yFlip)
+            n |= 0b00100000;
+        if (this.xFlip)
+            n |= 0b00010000;
+        if (this.paletteNumberDMG)
+            n |= 0b00001000;
+
+        n |= this.paletteNumberCGB & 0b111;
+        return n;
+    }
+
+    set numerical(i: number) {
+        this.behindBG = (i & (1 << 6)) != 0;
+        this.yFlip = (i & (1 << 5)) != 0;
+        this.xFlip = (i & (1 << 4)) != 0;
+        this.paletteNumberDMG = (i & (1 << 3)) != 0;
+        this.tileVramBank = (i & (1 << 2)) != 0;
+
+        this.paletteNumberCGB = i & 0b111;
+    }
+}
+
+
+class PaletteData {
     shade3 = 0; // Bit 7-6 
     shade2 = 0; // Bit 5-4
     shade1 = 0; // Bit 3-2
@@ -116,7 +151,8 @@ function transformColor(color: number): number {
 class GPU {
     gb: GameBoy;
 
-    vram = new Uint8Array(0x2000);
+    oam = new Uint8Array(256);
+    vram = new Uint8Array(0x2000 + 1);
 
     totalFrameCount = 0;
 
@@ -129,7 +165,9 @@ class GPU {
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
 
-    bgPaletteData = new BGPaletteData(); // 0xFF47
+    bgPaletteData = new PaletteData(); // 0xFF47
+    objPaletteData0 = new PaletteData(); // 0xFF48
+    objPaletteData1 = new PaletteData(); // 0xFF49
 
     scrollY = 0; // 0xFF42
     scrollX = 0; // 0xFF43
@@ -190,6 +228,7 @@ class GPU {
 
                         // Draw to the canvas
                         if (!IS_NODE && (this.totalFrameCount % this.gb.cpu.khzMul) == 0) {
+                            this.renderSprites();
                             this.drawToCanvasGameboy();
                         }
                     }
@@ -301,6 +340,45 @@ class GPU {
         }
     }
 
+    renderSprites() {
+        // 40 sprites in total in OAM
+        for (let sprite = 0; sprite < 40; sprite++) {
+            let base = sprite * 4;
+
+            let yPos = this.oam[base + 0];
+            let xPos = this.oam[base + 1];
+            let tile = this.oam[base + 2];
+
+            let flags = new OAMFlags();
+            flags.numerical = this.oam[base + 3];
+
+            for (let x = 0; x < 8; x++) {
+                for (let y = 0; y < 8; y++) {
+                    let screenYPos = yPos - 16;
+                    let screenXPos = xPos - 8;
+
+                    screenYPos += y;
+                    screenXPos += x;
+
+                    let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+
+                    let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
+                    let prePalette = this.tileset[tile + tileOffset][y][x];
+                    let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
+                    let c = transformColor(pixel);
+
+                    // Simulate transparency
+                    if (pixel != 0) {
+                        this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
+                        this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
+                        this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
+                        this.imageDataGameboy[canvasIndex + 3] = 255;
+                    }
+                }
+            }
+        }
+    }
+
     executeUntilVblank() {
         this.gb.cpu.debugging = false;
         while (this.lcdcY != 144) {
@@ -399,12 +477,18 @@ class GPU {
         this.lcdControl = new LCDCRegister(); // 0xFF40
         this.lcdStatus = new LCDStatusRegister(); // 0xFF41
 
-        this.bgPaletteData = new BGPaletteData(); // 0xFF47
+        this.bgPaletteData = new PaletteData(); // 0xFF47
 
         this.scrollY = 0; // 0xFF42
         this.scrollX = 0; // 0xFF43
 
         this.lcdcY = 0; // 0xFF44 - Current scanning line
         this.modeClock = 0;
+    }
+
+    oamDma(startAddr: number) {
+        for (let i = 0; i < 100; i++) {
+            this.oam[i] = this.gb.bus.readMem8(startAddr + i);
+        }
     }
 }
