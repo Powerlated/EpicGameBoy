@@ -385,7 +385,7 @@ class CPU {
         if (ins.type != undefined) {
             if (ins.length == 3) {
                 additionalCycles = ins.op(ins.type, this.fetchMem16(this.pc + 1));
-            } else if (ins.length == 2) {
+            } else if (ins.length == 2 && (ins.type2 == undefined)) {
                 additionalCycles = ins.op(ins.type, this.fetchMem8(this.pc + 1));
             } else {
                 additionalCycles = ins.op(ins.type, ins.type2);
@@ -784,7 +784,7 @@ class CPU {
             case 0xC0: // RET NZ
                 return { op: this.RET, type: CC.NZ, length: 1 };
             case 0x35: // DEC [HL]
-                return { op: this.DEC_iHL, length: 1 };
+                return { op: this.DEC_R8, type: R8.iHL, length: 1 };
             case 0x3C: // INC A
                 return { op: this.INC_R8, type: R8.A, length: 1 };
             case 0xD8: // RET C
@@ -820,7 +820,7 @@ class CPU {
             case 0xD9: // RETI
                 return { op: this.RETI, length: 1 };
             case 0x34: // INC [HL]
-                return { op: this.INC_R16, type: R16.HL, length: 3 };
+                return { op: this.INC_R8, type: R8.iHL, length: 3 };
             case 0x33: // INC SP
                 return { op: this.INC_R16, type: R16.SP, length: 3 };
             case 0x3B: // DEC SP
@@ -838,7 +838,7 @@ class CPU {
             case 0x0F: // RRCA
                 return { op: this.RRCA, length: 1 };
             case 0xE8: // AP SP, E8
-                return { op: this.ADD_SP_E8, length: 1 };
+                return { op: this.ADD_SP_E8, length: 2 };
             case 0xF6: // OR A, N8
                 return { op: this.OR_A_N8, length: 2 };
             case 0xDE: // SBC A, N8
@@ -1245,10 +1245,12 @@ class CPU {
     }
 
     LD_HL_SPaddE8(e8: number) {
+        let signedVal = unTwo8b(e8);
+
         this._r._f.zero = false;
         this._r._f.negative = false;
-        this._r._f.half_carry = (this._r.a & 0xF) + (this._r.sp & 0xF) > 0xF;
-        this._r._f.carry = (this._r.a & 0xFF) + (this._r.sp & 0xFF) > 0xFF;
+        this._r._f.half_carry = (signedVal & 0xF) + (this._r.sp & 0xF) > 0xF;
+        this._r._f.carry = (signedVal & 0xFF) + (this._r.sp & 0xFF) > 0xFF;
 
         this._r.hl = o16b(unTwo8b(e8) + this._r.sp);
     }
@@ -1639,11 +1641,6 @@ class CPU {
         this.setReg(tt, o16b(this.getReg(tt) - 1));
     }
 
-    DEC_iHL() {
-        this.writeMem8(this._r.hl, o8b(this.fetchMem8(this._r.hl)));
-    }
-
-
     CCF() {
         this._r._f.negative = false;
         this._r._f.half_carry = false;
@@ -1668,9 +1665,8 @@ class CPU {
 
     BIT_R8(t: R8, selectedBit: number) {
         let value = this.getReg(t);
-        let mask = 1 << selectedBit;
 
-        this._r._f.zero = (value & mask) == 0;
+        this._r._f.zero = (value & (1 << selectedBit)) == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = true;
     }
