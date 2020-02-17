@@ -264,7 +264,6 @@ class CPU {
         this._pc = i;
     }
 
-    khzMul = 1;
     // #region
 
     cycles = 0;
@@ -327,7 +326,7 @@ class CPU {
         }
 
         if (this.breakpoints.has(this.pc)) {
-            this.khzStop();
+            this.gb.speedStop();
             return;
         };
 
@@ -351,9 +350,6 @@ class CPU {
             this.gb.bus.writeMem(0xFF50, 1);
         }
 
-        // Send clock to GPU and timer
-        this.gb.gpu.step();
-        this.gb.timer.step();
 
         // Run the debug information collector
         if (this.debugging)
@@ -365,6 +361,9 @@ class CPU {
 
             // Use decoder based on prefix
             let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
+            let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
+
+            let isControlFlow = Disassembler.isControlFlow(ins, this);
 
             let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
             let line = `[PC: ${hex(this.pc, 4)}] ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}`;
@@ -414,6 +413,24 @@ class CPU {
             this.totalI++;
 
             this.lastInstructionCycles = this.cycles - c;
+
+            // ---------------------------
+
+            if (!isCB) {
+                if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false && opcode != 0x76) {
+                    alert(`
+                    Timings error:
+                    
+                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                    Opcode: ${hex(opcode, 2)}
+
+                    Instruction Timing: ${this.lastInstructionCycles}
+                    Proper Timing: ${NORMAL_TIMINGS[opcode] * 4}
+                    
+                    `);
+                    this.gb.speedStop();
+                }
+            }
         }
         //#endregion
 
@@ -538,7 +555,6 @@ class CPU {
             this.clearBreakpoint(point);
         }
     }
-
     setBreakpoint(point: number) {
         console.log("Set breakpoint at " + hex(point, 4));
         this.breakpoints.add(point);
@@ -546,30 +562,6 @@ class CPU {
     clearBreakpoint(point: number) {
         console.log("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints.delete(point);
-    }
-
-    khzInterval = 0;
-
-    khzStop() {
-        clearInterval(this.khzInterval);
-        this.stopNow = true;
-    }
-
-    khz() {
-        this.debugging = false;
-        this.khzInterval = setInterval(() => {
-            let i = 0;
-            // const max = 70224; // Full frame GPU timing
-            const max = 70224 * this.khzMul; // Full frame GPU timing, double speed
-            if (this.breakpoints.has(this.pc) || this.stopNow) {
-                clearInterval(this.khzInterval);
-            }
-            while (i < max && !this.breakpoints.has(this.pc) && !this.stopNow) {
-                this.step();
-                i += this.lastInstructionCycles;
-            }
-            if (this.stopNow) this.stopNow = false;
-        }, 15);
     }
 
     singleFrame() {
@@ -622,10 +614,6 @@ class CPU {
             case R8.iHL: this.writeMem8(this._r.hl, i); break;
         }
     }
-
-    static instrs: {
-
-    };
 
     rgOpcode(id: number): Op {
 
@@ -830,7 +818,7 @@ class CPU {
             case 0x39: // ADD HL, SP
                 return { op: this.ADD_HL_R16, type: R16.SP, length: 3 };
             case 0x0A: // LD A, [BC]
-                return { op: this.LD_A_iR16, type: R16.BC, length: 3 };
+                return { op: this.LD_A_iR16, type: R16.BC, length: 1 };
             case 0x3A: // LD A, [HL-]
                 return { op: this.LD_A_iHLdec, length: 1 };
             case 0x27: // DAA
@@ -949,7 +937,7 @@ class CPU {
 
 
         alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
-        clearInterval(this.khzInterval);
+        clearInterval(this.gb.speedInterval);
     }
 
     cbOpcode(id: number): Op {
@@ -1011,7 +999,7 @@ class CPU {
 
     INVALID_OPCODE() {
         this.pc--;
-        this.khzStop();
+        this.gb.speedStop();
     }
 
     // #region INSTRUCTIONS
@@ -1240,6 +1228,7 @@ class CPU {
     // LD A,(R16)
     LD_A_iR16(r16: R16) {
         this.setReg(R8.A, this.fetchMem8(this.getReg(r16)));
+
     }
 
     LD_R16_A(t: R8) {
@@ -1437,6 +1426,8 @@ class CPU {
 
         // Set register values
         this._r.hl = newValue;
+
+        return 4;
     }
 
     SUB_A_R8(t: R8) {
@@ -1641,6 +1632,8 @@ class CPU {
 
     DEC_R16(tt: R16) {
         this.setReg(tt, o16b(this.getReg(tt) - 1));
+
+        return 4;
     }
 
     CCF() {

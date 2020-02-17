@@ -108,7 +108,7 @@ function startDebugging() {
             lastFrameCount = gpu.totalFrameCount;
         }, 1000);
 
-       
+
         updateDebug();
     } else {
         console.log("Running in node, not updating DEBUG");
@@ -145,12 +145,6 @@ function updateDebug() {
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.h.toString(2), 8, '0')} ${pad(cpu._r.l.toString(2), 8, '0')}
                 [HL]: ${hex(cpu.gb.bus.readMem8(cpu._r.hl), 2)}
                 </span>------------------------------
-
-                Timer Divider: ${gb.timer.addr_0xFF04}
-                Timer Counter: ${gb.timer.addr_0xFF05}
-                Timer Modulo: ${gb.timer.addr_0xFF06}
-                Timer Config: ${gb.timer.addr_0xFF07}
-
                 Scroll X/Y: ${gpu.scrollY}/${gpu.scrollX}
                 LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
@@ -164,9 +158,20 @@ function updateDebug() {
 
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>
-                
+                ------------------------------
+                Pulse 1 Frequency: ${gb.soundChip.pulseChannel0.frequencyHz}
+                Pulse 2 Frequency: ${gb.soundChip.pulseChannel1.frequencyHz}
+                Wave Frequency:${gb.soundChip.waveChannel.frequencyHz}
+                Pulse 1 Volume: ${gb.soundChip.pulseChannel0.volume}
+                Pulse 2 Volume: ${gb.soundChip.pulseChannel1.volume}
+                Wave Volume:${gb.soundChip.waveChannel.volume}
             `;
 
+
+    // Timer: ${gb.timer.addr_0xFF04}
+    // // Timer Counter: ${gb.timer.addr_0xFF05}
+    // // Timer Modulo: ${gb.timer.addr_0xFF06}
+    // Timer Config: ${gb.timer.addr_0xFF07}
 
     // A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
     // B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
@@ -193,5 +198,5 @@ function updateDebug() {
     debugP.innerHTML = debugText;
 
 
-    requestAnimationFrame(updateDebug)
+    requestAnimationFrame(updateDebug);
 }

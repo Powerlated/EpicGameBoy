@@ -3,6 +3,8 @@
 <head>
     <title>Game Boy Emulator</title>
     <link rel="stylesheet" type="text/css" href="index.css">
+    <script src="gameboy/gameboy.js"></script>
+    <script src="../lib/Tone.js"></script>
 </head>
 
 <body>
@@ -46,12 +48,12 @@
 
     <div class="interactive">
         <button onclick="executeAtPc()">Execute at PC</button>
-        <button onclick="executeAtPc(); cpu.khz()">Speed Execute</button>
-        <button onclick="cpu.khzStop();">Halt Execute</button>
+        <button onclick="executeAtPc(); gb.speed()">Speed Execute</button>
+        <button onclick="gb.speedStop();">Halt Execute</button>
         <button onclick="cpu.renderSingleFrame()">Render Frame</button>
         <button onclick="gb.bus.gpu.executeUntilVblank()">Execute until vblank</button>
         <button onclick="gb.reset()">Reset</button>
-        
+
         <div style="display: none">
             <label for="enableLogging">Enable Logging</label>
             <input id="enableLogging" autocomplete="off" type="checkbox">
@@ -96,7 +98,6 @@
         </div>
     </div>
 
-    <script src="gameboy/gameboy.js"></script>
     <script src="index.js"></script>
   
 </body>

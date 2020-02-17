@@ -97,7 +97,7 @@ document.querySelector('#drawTileset').addEventListener('change', function (e) {
         startDrawingTiles();
         document.getElementById('tileset').style.display = "block";
     } else {
-        stopDrawingTiles(); 
+        stopDrawingTiles();
         document.getElementById('tileset').style.display = "none";
     }
 
@@ -175,7 +175,6 @@ function repeatDisassemble() {
     requestAnimationFrame(repeatDisassemble);
 }
 
-repeatDisassemble();
 
 loadTetris();
 startDebugging();
@@ -225,7 +224,7 @@ document.onkeydown = function (e) {
             break;
 
         case TAB:
-            cpu.khzMul = 4;
+            gb.khzMul = 4;
             break;
     }
 };
@@ -261,8 +260,11 @@ document.onkeyup = function (e) {
             break;
 
         case TAB:
-            cpu.khzMul = 1;
+            gb.khzMul = 1;
             break;
     }
 };
 
+document.querySelector('html').addEventListener('click', () => {
+    Tone.start();
+});

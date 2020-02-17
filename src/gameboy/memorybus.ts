@@ -41,6 +41,8 @@ class MemoryBus {
 
         `);
         }
+        
+        this.gb.soundChip.write(addr, value);
 
         // SET Interrupt request flags
         if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {

@@ -206,7 +206,7 @@ class GPU {
                     this.lcdStatus.mode = 0;
 
                     // Write a scanline to the framebuffer
-                    if (!IS_NODE && (this.totalFrameCount % this.gb.cpu.khzMul) == 0) {
+                    if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                         this.renderScanline();
                     }
                 }
@@ -227,7 +227,7 @@ class GPU {
                         this.totalFrameCount++;
 
                         // Draw to the canvas
-                        if (!IS_NODE && (this.totalFrameCount % this.gb.cpu.khzMul) == 0) {
+                        if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.renderSprites();
                             this.drawToCanvasGameboy();
                         }
