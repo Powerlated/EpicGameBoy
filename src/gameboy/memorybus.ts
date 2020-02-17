@@ -197,10 +197,6 @@ class MemoryBus {
     }
 
     reset() {
-        this.cpu.reset();
-        this.gpu.reset();
-        this.interrupts.reset();
-
         // Re-enable the bootrom
         this.bootromEnabled = true;
 

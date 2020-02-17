@@ -360,10 +360,13 @@ class GPU {
                     screenYPos += y;
                     screenXPos += x;
 
+                    let pixelX = flags.xFlip ? 7 - x : x;
+                    let pixelY = flags.yFlip ? 7 - y : y;
+
                     let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                     let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
-                    let prePalette = this.tileset[tile + tileOffset][y][x];
+                    let prePalette = this.tileset[tile + tileOffset][pixelY][pixelX];
                     let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                     let c = transformColor(pixel);
 
@@ -464,26 +467,36 @@ class GPU {
     }
 
     reset() {
-        this.vram = new Uint8Array(0x2000);
-
         this.totalFrameCount = 0;
 
         // [tile][row][pixel]
         this.tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
 
-        this.tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9800-9BFF 1024 bytes
-        this.tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
+        this.tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0));
+        this.tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0));
 
-        this.lcdControl = new LCDCRegister(); // 0xFF40
-        this.lcdStatus = new LCDStatusRegister(); // 0xFF41
+        this.lcdControl = new LCDCRegister();
+        this.lcdStatus = new LCDStatusRegister();
 
-        this.bgPaletteData = new PaletteData(); // 0xFF47
+        this.bgPaletteData = new PaletteData(); 
+        this.objPaletteData0 = new PaletteData(); 
+        this.objPaletteData1 = new PaletteData(); 
 
-        this.scrollY = 0; // 0xFF42
-        this.scrollX = 0; // 0xFF43
+        this.scrollY = 0;
+        this.scrollX = 0;
 
         this.lcdcY = 0; // 0xFF44 - Current scanning line
         this.modeClock = 0;
+
+        // Zero out OAM
+        this.oam.forEach((v, i, a) => {
+            a[i] = 0;
+        });
+
+        // Zero out VRAM
+        this.vram.forEach((v, i, a) => {
+            a[i] = 0;
+        });
     }
 
     oamDma(startAddr: number) {

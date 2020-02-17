@@ -49,16 +49,16 @@
         <button onclick="executeAtPc(); cpu.khz()">Speed Execute</button>
         <button onclick="cpu.khzStop();">Halt Execute</button>
         <button onclick="cpu.renderSingleFrame()">Render Frame</button>
-        <button onclick="cpu.gb.bus.gpu.executeUntilVblank()">Execute until vblank</button>
-        <button onclick="cpu.gb.bus.reset()">Reset</button>
-
+        <button onclick="gb.bus.gpu.executeUntilVblank()">Execute until vblank</button>
+        <button onclick="gb.reset()">Reset</button>
+        
         <div style="display: none">
             <label for="enableLogging">Enable Logging</label>
             <input id="enableLogging" autocomplete="off" type="checkbox">
         </div>
 
         <div>
-            <input id="drawTileset" autocomplete="off" type="checkbox" checked>
+            <input id="drawTileset" autocomplete="off" type="checkbox">
             <label for="drawTileset">Draw Tileset</label>
             
             <input id="displaySerialInput" autocomplete="off" type="checkbox">

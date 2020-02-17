@@ -264,7 +264,7 @@ class CPU {
         this._pc = i;
     }
 
-    khzMul = 1
+    khzMul = 1;
     // #region
 
     cycles = 0;
@@ -356,7 +356,8 @@ class CPU {
         this.gb.timer.step();
 
         // Run the debug information collector
-        this.stepDebug();
+        if (this.debugging)
+            this.stepDebug();
 
         // #region  **** ALL STEPPER LOGIC IS BELOW HERE **** 
         if (this.halted == false) {
@@ -365,7 +366,7 @@ class CPU {
             // Use decoder based on prefix
             let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
 
-            let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]
+            let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
             let line = `[PC: ${hex(this.pc, 4)}] ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}`;
 
             if (ins.op == this.INVALID_OPCODE) {
@@ -425,7 +426,7 @@ class CPU {
         let happened = this.gb.bus.interrupts.requestedInterrupts;
         let enabled = this.gb.bus.interrupts.enabledInterrupts;
         if (this.gb.bus.interrupts.masterEnabled) {
-            
+
             // If servicing any interrupt, disable the master flag
             if ((this.gb.bus.interrupts.requestedInterrupts.numerical & this.gb.bus.interrupts.enabledInterrupts.numerical) > 0) {
                 this.gb.bus.interrupts.masterEnabled = false;
@@ -882,12 +883,13 @@ class CPU {
                 return { op: this.INVALID_OPCODE, length: 1 };
         }
 
+        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
+
+
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
         if (upperNybble >= 0x8 && upperNybble <= 0xB) {
             let type: OperandType;
             let op: Function;
-
-            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
             type = typeTable[lowerNybble & 0b111];
 
@@ -918,8 +920,6 @@ class CPU {
             let type: OperandType;
             let type2: OperandType;
             let op: Function;
-
-            let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
             type2 = typeTable[lowerNybble & 0b111];
 

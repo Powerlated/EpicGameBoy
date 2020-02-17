@@ -91,22 +91,24 @@ document.querySelector('#enableLogging').addEventListener('change', function (e)
 }, false);
 
 let drawTilesetInterval = 0;
+document.getElementById('tileset').style.display = "none";
 document.querySelector('#drawTileset').addEventListener('change', function (e) {
     if (e.target.checked) {
         startDrawingTiles();
+        document.getElementById('tileset').style.display = "block";
     } else {
-        stopDrawingTiles();
+        stopDrawingTiles(); 
+        document.getElementById('tileset').style.display = "none";
     }
 
 }, false);
 
 // Draw tileset by default
-startDrawingTiles();
 function startDrawingTiles() {
     drawTilesetInterval = setInterval(() => {
         gb.gpu.renderTiles();
         gb.gpu.drawToCanvasTileset();
-    }, 100);
+    }, 10);
 }
 function stopDrawingTiles() {
     clearInterval(drawTilesetInterval);
@@ -169,7 +171,7 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
 }, false);
 
 function repeatDisassemble() {
-    disassemble(cpu);
+    // disassemble(cpu);
     requestAnimationFrame(repeatDisassemble);
 }
 
@@ -196,29 +198,29 @@ document.onkeydown = function (e) {
         e.preventDefault();
 
     switch (e.keyCode) {
-        case LEFT_ARROW: // Left
+        case LEFT_ARROW:
             cpu.gb.bus.joypad.dpad.left = true;
             break;
-        case UP_ARROW: // Up
+        case UP_ARROW:
             cpu.gb.bus.joypad.dpad.up = true;
             break;
-        case RIGHT_ARROW: // Right
+        case RIGHT_ARROW:
             cpu.gb.bus.joypad.dpad.right = true;
             break;
-        case DOWN_ARROW: // Down
+        case DOWN_ARROW:
             cpu.gb.bus.joypad.dpad.down = true;
             break;
 
-        case KEY_Z: // Z > A
+        case KEY_X:
             cpu.gb.bus.joypad.buttons.a = true;
             break;
-        case KEY_X: // X > B
+        case KEY_Z:
             cpu.gb.bus.joypad.buttons.b = true;
             break;
-        case ENTER: // Enter > Start
+        case ENTER:
             cpu.gb.bus.joypad.buttons.start = true;
             break;
-        case BACKSLASH: // Backslash > Select
+        case BACKSLASH:
             cpu.gb.bus.joypad.buttons.select = true;
             break;
 
@@ -232,29 +234,29 @@ document.onkeyup = function (e) {
         e.preventDefault();
 
     switch (e.keyCode) {
-        case LEFT_ARROW: // Left
+        case LEFT_ARROW:
             cpu.gb.bus.joypad.dpad.left = false;
             break;
-        case UP_ARROW: // Up
+        case UP_ARROW:
             cpu.gb.bus.joypad.dpad.up = false;
             break;
-        case RIGHT_ARROW: // Right
+        case RIGHT_ARROW:
             cpu.gb.bus.joypad.dpad.right = false;
             break;
-        case DOWN_ARROW: // Down
+        case DOWN_ARROW:
             cpu.gb.bus.joypad.dpad.down = false;
             break;
 
-        case KEY_Z: // Z > A
+        case KEY_X:
             cpu.gb.bus.joypad.buttons.a = false;
             break;
-        case KEY_X: // X > B
+        case KEY_Z:
             cpu.gb.bus.joypad.buttons.b = false;
             break;
-        case ENTER: // Enter > Start
+        case ENTER:
             cpu.gb.bus.joypad.buttons.start = false;
             break;
-        case BACKSLASH: // Backslash > Select
+        case BACKSLASH:
             cpu.gb.bus.joypad.buttons.select = false;
             break;
 

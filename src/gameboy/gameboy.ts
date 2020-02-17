@@ -8,4 +8,13 @@ class GameBoy {
     constructor() {
         console.log("New gameboy!")
     }
+
+    
+    reset() {
+        this.cpu.reset();
+        this.gpu.reset();
+        this.bus.interrupts.reset();
+        this.bus.reset();
+        this.timer.reset();
+    }
 }

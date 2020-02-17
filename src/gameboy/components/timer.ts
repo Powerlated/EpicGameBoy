@@ -46,10 +46,23 @@ class Timer {
             }
 
             if (this.counter >= 256) {
-                this.gb.bus.interrupts.requestTimer()
+                this.gb.bus.interrupts.requestTimer();
                 this.counter = this.modulo;
             }
         }
+    }
+
+    reset() {
+        this.divider = 0;
+        this.counter = 0;
+        this.modulo = 0;
+
+        this.control.speed = 0;
+        this.control.running = false;
+
+        this.c.clock = 0;
+        this.c.divClock = 0;
+        this.c.mainClock = 0;
     }
 
     // Divider
