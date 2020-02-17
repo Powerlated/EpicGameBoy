@@ -114,7 +114,7 @@ function transformColor(color: number): number {
 }
 
 class GPU {
-    gb: GameBoy
+    gb: GameBoy;
 
     vram = new Uint8Array(0x2000);
 
@@ -182,11 +182,19 @@ class GPU {
                     this.lcdcY++;
 
                     if (this.lcdcY == 144) {
-                        // If we're at LCDCy = 144, ennter Vblank
+                        // If we're at LCDCy = 144, enter Vblank
                         this.lcdStatus.mode = 1;
+                        // Fire the Vblank interrupt
+                        this.gb.bus.interrupts.requestVblank();
+                        this.totalFrameCount++;
+
+                        // Draw to the canvas
+                        if (!IS_NODE) {
+                            this.drawToCanvasGameboy();
+                        }
                     }
                     else {
-                        // If we're at 
+                        // Enter back into OAM mode if not Vblank
                         this.lcdStatus.mode = 2;
                     }
                 }
@@ -197,21 +205,11 @@ class GPU {
                 if (this.modeClock >= 456) {
                     this.modeClock = 0;
 
-                    if (this.lcdcY == 144) {
-                        // Fire the Vblank interrupt
-                        this.gb.bus.interrupts.requestVblank();
-                        this.totalFrameCount++;
-                    }
-
                     this.lcdcY++;
 
-                    if (this.lcdcY > 153) {
+                    if (this.lcdcY >= 154) {
                         this.lcdStatus.mode = 2;
                         this.lcdcY = 0;
-
-                        if (!IS_NODE) {
-                            this.drawToCanvasGameboy();
-                        }
                     }
                 }
                 break;
@@ -262,8 +260,8 @@ class GPU {
         let mapBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
         let mapOffset = mapBase + ((Math.floor((this.lcdcY + scrollY) / 8) * 32) & 1023); // 1023   // CORRECT 0x1800
-        
-        let lineoffs = scrollX >> 3; 
+
+        let lineoffs = scrollX >> 3;
 
         let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
 
@@ -296,7 +294,7 @@ class GPU {
             if (x == 8) {
                 x = 0;
                 lineoffs++;
-                lineoffs %= 32 // Wrap around after 20 tiles (width of tilemap) 
+                lineoffs %= 32; // Wrap around after 20 tiles (width of tilemap) 
                 tile = this.vram[mapOffset + lineoffs];
                 // if (GPU._bgtile == 1 && tile < 128) tile += 256;
             }

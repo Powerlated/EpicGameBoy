@@ -224,9 +224,9 @@ function r_pad(n: string, width: number, z: string) {
 }
 
 class CPU {
-    gb: GameBoy;
+    halted = false;
 
-    bootromLoaded = false;
+    gb: GameBoy;
 
     logging = false;
 
@@ -238,7 +238,7 @@ class CPU {
 
     breakpoints = new Set<number>();
 
-    setHalt = false;
+    stopNow = false;
 
     scheduleEnableInterruptsForNextTick = false;
 
@@ -332,7 +332,7 @@ class CPU {
 
         let c = this.cycles;
 
-        if (this.bootromLoaded == false && this.pc == 0 && this.gb.bus.bootromEnabled == true) {
+        if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
             this._r._f.zero = true;
@@ -357,69 +357,81 @@ class CPU {
         // Run the debug information collector
         this.stepDebug();
 
-        let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
+        // #region  **** ALL STEPPER LOGIC IS BELOW HERE **** 
+        if (this.halted == false) {
+            let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
 
-        // Use decoder based on prefix
-        let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
+            // Use decoder based on prefix
+            let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
 
-        if (ins.op == this.INVALID_OPCODE) {
+            let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]
+            let line = `[PC: ${hex(this.pc, 4)}] ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}`;
+            if (Disassembler.isControlFlow(ins, this) && line != Disassembler.controlFlowDisassembly[0]) {
 
-        }
-
-        if (!ins.op) {
-            alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
-        }
-
-        /** **** ALL STEPPER LOGIC IS BELOW HERE **** */
-
-
-        isCB = this.fetchMem8(this.pc) == 0xCB;
-
-        ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(++this.pc)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
-
-        // Rebind the this object
-        ins.op = ins.op.bind(this);
-
-        let additionalCycles = 0;
-
-        if (ins.type != undefined) {
-            if (ins.length == 3) {
-                additionalCycles = ins.op(ins.type, this.fetchMem16(this.pc + 1));
-            } else if (ins.length == 2 && (ins.type2 == undefined)) {
-                additionalCycles = ins.op(ins.type, this.fetchMem8(this.pc + 1));
-            } else {
-                additionalCycles = ins.op(ins.type, ins.type2);
+                Disassembler.controlFlowDisassembly.unshift(line);
+                if (Disassembler.controlFlowDisassembly.length > 100) {
+                    Disassembler.controlFlowDisassembly.pop();
+                }
             }
-        } else {
-            if (ins.length == 3) {
-                additionalCycles = ins.op(this.fetchMem16(this.pc + 1));
-            } else if (ins.length == 2) {
-                additionalCycles = ins.op(this.fetchMem8(this.pc + 1));
-            } else {
-                additionalCycles = ins.op();
+
+            if (ins.op == this.INVALID_OPCODE) {
+
             }
+
+            if (!ins.op) {
+                alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
+            }
+
+
+
+            isCB = this.fetchMem8(this.pc) == 0xCB;
+
+            ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
+
+            // Rebind the this object
+            ins.op = ins.op.bind(this);
+
+            let additionalCycles = 0;
+
+            if (ins.type != undefined) {
+                if (ins.length == 3) {
+                    additionalCycles = ins.op(ins.type, this.fetchMem16(this.pc + 1));
+                } else if (ins.length == 2 && (ins.type2 == undefined)) {
+                    additionalCycles = ins.op(ins.type, this.fetchMem8(this.pc + 1));
+                } else {
+                    additionalCycles = ins.op(ins.type, ins.type2);
+                }
+            } else {
+                if (ins.length == 3) {
+                    additionalCycles = ins.op(this.fetchMem16(this.pc + 1));
+                } else if (ins.length == 2) {
+                    additionalCycles = ins.op(this.fetchMem8(this.pc + 1));
+                } else {
+                    additionalCycles = ins.op();
+                }
+            }
+
+            if (!isNaN(additionalCycles))
+                this.cycles += additionalCycles;
+
+            this.pc = o16b(this.pc + ins.length);
+
+            this.totalI++;
+
+            this.lastInstructionCycles = this.cycles - c;
         }
+        //#endregion
 
-        // Roll back PC for CB so it can naturally increment later with proper length
-        if (isCB) this.pc = o16b(this.pc - 1);
-
-        if (!isNaN(additionalCycles)) {
-            this.cycles += additionalCycles;
+        // If the CPU is HALTed and there are requested interrupts, unHALT
+        if (this.gb.bus.interrupts.requestedInterrupts.numerical > 0 && this.halted == true) {
+            this.halted = false;
         }
-
-        this.pc = o16b(this.pc + ins.length);
-
-        check(this);
-
-        this.totalI++;
-
-        this.lastInstructionCycles = this.cycles - c;
-
 
         // Service interrupts
         let happened = this.gb.bus.interrupts.requestedInterrupts;
         let enabled = this.gb.bus.interrupts.enabledInterrupts;
         if (this.gb.bus.interrupts.masterEnabled) {
+            
             // If servicing any interrupt, disable the master flag
             if ((this.gb.bus.interrupts.requestedInterrupts.numerical & this.gb.bus.interrupts.enabledInterrupts.numerical) > 0) {
                 this.gb.bus.interrupts.masterEnabled = false;
@@ -430,27 +442,31 @@ class CPU {
             }
 
             if (happened.vblank && enabled.vblank) {
-                // console.log(`[PC: ${this.gb.bus.cpu.pc}] CPU: Handling vblank`);
+                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x40 [VBLANK] -----");
                 happened.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
-                console.log("CPU: Handling lcd status");
+                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x48 [LCD STAT] -----");
                 happened.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
-                console.log("CPU: Handling timer");
+                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x50 [TIMER] -----");
                 happened.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
-                console.log("CPU: Handling serial");
+                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x58 [SERIAL] -----");
                 happened.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && enabled.joypad) {
-                console.log("CPU: Handling joypad");
+                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x60 [JOYPAD] -----");
                 happened.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
+
+
+
+        check(this);
     }
 
     stepDebug() {
@@ -550,7 +566,7 @@ class CPU {
 
     khzStop() {
         clearInterval(this.khzInterval);
-        this.setHalt = true;
+        this.stopNow = true;
     }
 
     khz() {
@@ -559,14 +575,14 @@ class CPU {
             let i = 0;
             // const max = 70224; // Full frame GPU timing
             const max = 70224 * 1; // Full frame GPU timing, double speed
-            if (this.breakpoints.has(this.pc) || this.setHalt) {
+            if (this.breakpoints.has(this.pc) || this.stopNow) {
                 clearInterval(this.khzInterval);
             }
-            while (i < max && !this.breakpoints.has(this.pc) && !this.setHalt) {
+            while (i < max && !this.breakpoints.has(this.pc) && !this.stopNow) {
                 this.step();
                 i += this.lastInstructionCycles;
             }
-            if (this.setHalt) this.setHalt = false;
+            if (this.stopNow) this.stopNow = false;
         }, 16);
     }
 
@@ -1036,7 +1052,7 @@ class CPU {
 
     // HALT - 0x76
     HALT() {
-        alert(`[PC: ${hex(this.pc, 4)}] CPU has been halted`);
+        this.halted = true;
     }
 
     STOP() {

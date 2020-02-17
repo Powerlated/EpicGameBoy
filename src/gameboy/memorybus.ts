@@ -20,6 +20,7 @@ class MemoryBus {
     joypad = new JoypadRegister();
 
     bootromEnabled = true;
+    bootromLoaded = false;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -147,10 +148,10 @@ class MemoryBus {
                 case 0xFF07: // Timer control
                     return this.gb.timer.addr_0xFF07;
                 case 0xFF40:
-                    console.info(`LCD CONTROL READ`);
+                    // console.info(`LCD CONTROL READ`);
                     return this.gpu.lcdControl.numerical;
                 case 0xFF41:
-                    console.info(`LCDC STATUS READ`);
+                    // console.info(`LCDC STATUS READ`);
                     return this.gpu.lcdStatus.numerical;
                 case 0xFF42:
                     return this.gpu.scrollY;

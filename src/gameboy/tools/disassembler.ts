@@ -14,6 +14,7 @@ class Disassembler {
             case cpu.CALL_N16:
             case cpu.JP_HL:
             case cpu.RET:
+            case cpu.RST:
             case cpu.JR_E8:
                 return true;
             default:
@@ -180,10 +181,6 @@ class Disassembler {
                 >
                     ${disasmLine}
                 </span>`);
-
-            if (controlFlow) {
-                this.controlFlowDisassembly.unshift(disasmLine);
-            }
 
             disassembly.push(disAsmLineHtml);
             disasmPc = o16b(disasmPc + ins.length);
