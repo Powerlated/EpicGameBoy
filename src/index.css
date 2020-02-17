@@ -61,8 +61,8 @@ html {
 }
 
 #tileset {
-    width: 512px;
-    height: 288px;
+    width: 256px;
+    height: 144px;
 
     image-rendering: -moz-crisp-edges;
     /* Firefox */

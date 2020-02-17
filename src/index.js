@@ -168,7 +168,12 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
-setInterval(() => disassemble(cpu), 10);
+function repeatDisassemble() {
+    disassemble(cpu);
+    requestAnimationFrame(repeatDisassemble);
+}
+
+repeatDisassemble();
 
 loadTetris();
 startDebugging();

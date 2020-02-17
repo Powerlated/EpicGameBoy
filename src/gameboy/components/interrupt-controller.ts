@@ -67,27 +67,22 @@ class InterruptController {
     }
 
     requestVblank() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.bus.gb.cpu.pc, 4)}] >>>>> INTERRUPT REQUEST VBLANK <<<<<`);
         this.requestedInterrupts.vblank = true;
     }
 
     requestLCDstatus() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.bus.gb.cpu.pc, 4)}] >>>>> INTERRUPT REQUEST VBLANK <<<<<`);
         this.requestedInterrupts.lcdStat = true;
     }
 
     requestTimer() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.bus.gb.cpu.pc, 4)}] >>>>> INTERRUPT REQUEST VBLANK <<<<<`);
         this.requestedInterrupts.timer = true;
     }
 
     requestSerial() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.bus.gb.cpu.pc, 4)}] >>>>> INTERRUPT REQUEST VBLANK <<<<<`);
         this.requestedInterrupts.serial = true;
     }
 
     requestJoypad() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.bus.gb.cpu.pc, 4)}] >>>>> INTERRUPT REQUEST VBLANK <<<<<`);
         this.requestedInterrupts.joypad = true;
     }
 }

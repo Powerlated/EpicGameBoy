@@ -367,13 +367,6 @@ class CPU {
 
             let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]
             let line = `[PC: ${hex(this.pc, 4)}] ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}`;
-            if (Disassembler.isControlFlow(ins, this) && line != Disassembler.controlFlowDisassembly[0]) {
-
-                Disassembler.controlFlowDisassembly.unshift(line);
-                if (Disassembler.controlFlowDisassembly.length > 100) {
-                    Disassembler.controlFlowDisassembly.pop();
-                }
-            }
 
             if (ins.op == this.INVALID_OPCODE) {
 
@@ -443,23 +436,18 @@ class CPU {
             }
 
             if (happened.vblank && enabled.vblank) {
-                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x40 [VBLANK] -----");
                 happened.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
-                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x48 [LCD STAT] -----");
                 happened.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
-                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x50 [TIMER] -----");
                 happened.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
-                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x58 [SERIAL] -----");
                 happened.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && enabled.joypad) {
-                Disassembler.controlFlowDisassembly.unshift("----- INTERRUPT 0x60 [JOYPAD] -----");
                 happened.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
@@ -580,7 +568,7 @@ class CPU {
                 i += this.lastInstructionCycles;
             }
             if (this.stopNow) this.stopNow = false;
-        }, 16);
+        }, 15);
     }
 
     singleFrame() {
@@ -1043,7 +1031,6 @@ class CPU {
 
     // EI - 0xFB
     EI() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.pc, 4)}] >>>>> ENABLED INTERRUPTS <<<<<`);
         this.scheduleEnableInterruptsForNextTick = true;
 
         // console.log("Enabled interrupts");
@@ -1051,7 +1038,6 @@ class CPU {
 
     // HALT - 0x76
     HALT() {
-        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.pc, 4)}] >>>>> HALT <<<<<`);
         this.halted = true;
     }
 

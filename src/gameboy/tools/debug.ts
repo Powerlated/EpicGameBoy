@@ -103,20 +103,30 @@ function startDebugging() {
         let fps = 0;
 
         setInterval(() => {
-            let gpu = ((window as any).gb.gpu as GPU) 
-            fps = gpu.totalFrameCount - lastFrameCount;
+            let gpu = ((window as any).gb.gpu as GPU);
+            (window as any).fps = gpu.totalFrameCount - lastFrameCount;
             lastFrameCount = gpu.totalFrameCount;
         }, 1000);
-        setInterval(() => {
-            let lastDebugText = "";
-            let gb = ((window as any).gb as GameBoy)
-            let cpu = ((window as any).cpu as CPU);
-            let gpu = ((window as any).gb.gpu as GPU) 
-            let displaySerial = (window as any).displaySerial;
-            let r = cpu.gb.bus.interrupts.requestedInterrupts;
-            let e = cpu.gb.bus.interrupts.enabledInterrupts;
-            let debugText = `
-                Control Flow: ${Disassembler.controlFlowDisassembly[0]}
+
+       
+        updateDebug();
+    } else {
+        console.log("Running in node, not updating DEBUG");
+    }
+}
+
+
+function updateDebug() {
+    let debugP = document.getElementById('debug')!;
+    let lastDebugText = "";
+    let gb = ((window as any).gb as GameBoy);
+    let cpu = ((window as any).cpu as CPU);
+    let fps = (window as any).fps;
+    let gpu = ((window as any).gb.gpu as GPU);
+    let displaySerial = (window as any).displaySerial;
+    let r = cpu.gb.bus.interrupts.requestedInterrupts;
+    let e = cpu.gb.bus.interrupts.enabledInterrupts;
+    let debugText = `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
 
@@ -158,31 +168,30 @@ function startDebugging() {
             `;
 
 
-            // A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
-            // B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
-            // C: ${hex(cpu._r.c, 2)} ${pad(cpu._r.c.toString(2), 8, '0')}
-            // D: ${hex(cpu._r.d, 2)} ${pad(cpu._r.d.toString(2), 8, '0')}
-            // E: ${hex(cpu._r.e, 2)} ${pad(cpu._r.e.toString(2), 8, '0')}
-            // F: ${hex(cpu._r.f, 2)} ${pad(cpu._r.f.toString(2), 8, '0')}
-            // H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
-            // L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
-        
-            
+    // A: ${hex(cpu._r.a, 2)} ${pad(cpu._r.a.toString(2), 8, '0')}
+    // B: ${hex(cpu._r.b, 2)} ${pad(cpu._r.b.toString(2), 8, '0')}
+    // C: ${hex(cpu._r.c, 2)} ${pad(cpu._r.c.toString(2), 8, '0')}
+    // D: ${hex(cpu._r.d, 2)} ${pad(cpu._r.d.toString(2), 8, '0')}
+    // E: ${hex(cpu._r.e, 2)} ${pad(cpu._r.e.toString(2), 8, '0')}
+    // F: ${hex(cpu._r.f, 2)} ${pad(cpu._r.f.toString(2), 8, '0')}
+    // H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
+    // L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
 
-            let p0 = document.getElementById('palette0')!;
-            let p1 = document.getElementById('palette1')!;
-            let p2 = document.getElementById('palette2')!;
-            let p3 = document.getElementById('palette3')!;
 
-            p0.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
-            p1.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
-            p2.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
-            p3.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
 
-            debugText = debugText.replace(/\n/g, "<br/>");
-            debugP.innerHTML = debugText;
-        }, 50);
-    } else {
-        console.log("Running in node, not updating DEBUG");
-    }
+    let p0 = document.getElementById('palette0')!;
+    let p1 = document.getElementById('palette1')!;
+    let p2 = document.getElementById('palette2')!;
+    let p3 = document.getElementById('palette3')!;
+
+    p0.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
+    p1.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
+    p2.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
+    p3.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
+
+    debugText = debugText.replace(/\n/g, "<br/>");
+    debugP.innerHTML = debugText;
+
+
+    requestAnimationFrame(updateDebug)
 }

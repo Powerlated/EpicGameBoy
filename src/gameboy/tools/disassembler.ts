@@ -112,7 +112,7 @@ class Disassembler {
     };
 
     static disassembledLines: Array<string> = new Array(65536);
-    static controlFlowDisassembly: Array<string> = [];
+    // static controlFlowDisassembly: Array<string> = [];
 
     static disassemble(cpu: CPU): string {
         let disassembly = [];
