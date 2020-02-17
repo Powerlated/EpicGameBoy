@@ -53,7 +53,7 @@ class JoypadRegister {
         this.selectButtons = (i >> 5) != 0; // Bit 5
         this.selectDpad = (i >> 4) != 0; // Bit 4
 
-        if ((i >> 5) == 0) console.log("Selected buttons");
-        if ((i >> 4) == 0) console.log("Selected dpad");
+        // if ((i >> 5) == 0) console.log("Selected buttons");
+        // if ((i >> 4) == 0) console.log("Selected dpad");
     }
 }

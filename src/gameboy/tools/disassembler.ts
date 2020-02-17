@@ -14,6 +14,7 @@ class Disassembler {
             case cpu.CALL_N16:
             case cpu.JP_HL:
             case cpu.RET:
+            case cpu.RETI:
             case cpu.RST:
             case cpu.JR_E8:
                 return true;

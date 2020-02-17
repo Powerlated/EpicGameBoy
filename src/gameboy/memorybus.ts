@@ -95,6 +95,10 @@ class MemoryBus {
                 case 0xFF43:
                     this.gpu.scrollX = value;
                     break;
+                case 0xFF46:
+                    Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.gb.cpu.pc, 4)}] >>>>> OAM DMA <<<<<`);
+                    // console.log("OAM DMA")
+                    break;
                 case 0xFF47: // Palette
                     this.gpu.bgPaletteData.numerical = value;
                     break;

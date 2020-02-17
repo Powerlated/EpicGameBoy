@@ -264,6 +264,7 @@ class CPU {
         this._pc = i;
     }
 
+    khzMul = 1
     // #region
 
     cycles = 0;
@@ -465,7 +466,6 @@ class CPU {
         }
 
 
-
         check(this);
     }
 
@@ -509,7 +509,6 @@ class CPU {
         if (this.debugging) {
             console.debug(`PC: ${this.pc}`);
             console.log(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
-
             console.log("Instruction length: " + ins.length);
         }
 
@@ -541,8 +540,6 @@ class CPU {
 
         this.lastOperandDebug = operandDebug;
         this.lastInstructionDebug = insDebug;
-
-
     }
 
     toggleBreakpoint(point: number) {
@@ -574,7 +571,7 @@ class CPU {
         this.khzInterval = setInterval(() => {
             let i = 0;
             // const max = 70224; // Full frame GPU timing
-            const max = 70224 * 1; // Full frame GPU timing, double speed
+            const max = 70224 * this.khzMul; // Full frame GPU timing, double speed
             if (this.breakpoints.has(this.pc) || this.stopNow) {
                 clearInterval(this.khzInterval);
             }
@@ -836,7 +833,7 @@ class CPU {
             case 0xD9: // RETI
                 return { op: this.RETI, length: 1 };
             case 0x34: // INC [HL]
-                return { op: this.INC_R8, type: R8.iHL, length: 3 };
+                return { op: this.INC_R8, type: R8.iHL, length: 1 };
             case 0x33: // INC SP
                 return { op: this.INC_R16, type: R16.SP, length: 3 };
             case 0x3B: // DEC SP
@@ -1026,6 +1023,7 @@ class CPU {
 
     INVALID_OPCODE() {
         this.pc--;
+        this.khzStop();
     }
 
     // #region INSTRUCTIONS
@@ -1045,6 +1043,7 @@ class CPU {
 
     // EI - 0xFB
     EI() {
+        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.pc, 4)}] >>>>> ENABLED INTERRUPTS <<<<<`);
         this.scheduleEnableInterruptsForNextTick = true;
 
         // console.log("Enabled interrupts");
@@ -1052,6 +1051,7 @@ class CPU {
 
     // HALT - 0x76
     HALT() {
+        Disassembler.controlFlowDisassembly.unshift(`[PC: ${hex(this.pc, 4)}] >>>>> HALT <<<<<`);
         this.halted = true;
     }
 

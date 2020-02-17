@@ -181,7 +181,7 @@ function startDebugging() {
 
             debugText = debugText.replace(/\n/g, "<br/>");
             debugP.innerHTML = debugText;
-        }, 10);
+        }, 50);
     } else {
         console.log("Running in node, not updating DEBUG");
     }

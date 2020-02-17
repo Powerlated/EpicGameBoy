@@ -106,7 +106,7 @@ function startDrawingTiles() {
     drawTilesetInterval = setInterval(() => {
         gb.gpu.renderTiles();
         gb.gpu.drawToCanvasTileset();
-    }, 10);
+    }, 100);
 }
 function stopDrawingTiles() {
     clearInterval(drawTilesetInterval);
@@ -182,8 +182,9 @@ const KEY_Z = 90;
 const KEY_X = 88;
 const ENTER = 13;
 const BACKSLASH = 220;
+const TAB = 9;
 
-let block = [LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW, KEY_Z, KEY_X, ENTER, BACKSLASH];
+let block = [LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW, KEY_Z, KEY_X, ENTER, BACKSLASH, TAB];
 
 document.onkeydown = function (e) {
     if (block.includes(e.keyCode))
@@ -214,6 +215,10 @@ document.onkeydown = function (e) {
             break;
         case BACKSLASH: // Backslash > Select
             cpu.gb.bus.joypad.buttons.select = true;
+            break;
+
+        case TAB:
+            cpu.khzMul = 4;
             break;
     }
 };
@@ -246,6 +251,10 @@ document.onkeyup = function (e) {
             break;
         case BACKSLASH: // Backslash > Select
             cpu.gb.bus.joypad.buttons.select = false;
+            break;
+
+        case TAB:
+            cpu.khzMul = 1;
             break;
     }
 };

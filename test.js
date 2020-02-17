@@ -48,6 +48,6 @@ setTimeout(() => {
       console.log(`Hit ${EXIT_AT} instructions, exiting.`);
       cleanUp();
     }
-  }, 10);
+  }, 100);
 
 }, 0);
