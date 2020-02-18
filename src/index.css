@@ -44,8 +44,14 @@ html {
 }
 
 .interactive {
-    position: absolute;
-    bottom: 20;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    background-color: white;
+    border-top: 1px gray solid;
+    padding: 8px;
+    margin-top: 8px;
+
 }
 
 #gameboy {

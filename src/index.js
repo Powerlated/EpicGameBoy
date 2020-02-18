@@ -206,86 +206,76 @@ repeatDisassemble();
 // Handle input
 
 
-const LEFT_ARROW = 37;
-const UP_ARROW = 38;
-const RIGHT_ARROW = 39;
-const DOWN_ARROW = 40;
-const KEY_Z = 90;
-const KEY_X = 88;
-const ENTER = 13;
-const BACKSLASH = 220;
-const TAB = 9;
-
-let block = [LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW, KEY_Z, KEY_X, ENTER, BACKSLASH, TAB];
+let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
 
 document.onkeydown = function (e) {
-    if (block.includes(e.keyCode))
+    if (block.includes(e.key))
         e.preventDefault();
 
-    switch (e.keyCode) {
-        case LEFT_ARROW:
+    switch (e.key) {
+        case "ArrowLeft":
             gb.bus.joypad.dpad.left = true;
             break;
-        case UP_ARROW:
+        case "ArrowUp":
             gb.bus.joypad.dpad.up = true;
             break;
-        case RIGHT_ARROW:
+        case "ArrowRight":
             gb.bus.joypad.dpad.right = true;
             break;
-        case DOWN_ARROW:
+        case "ArrowDown":
             gb.bus.joypad.dpad.down = true;
             break;
 
-        case KEY_X:
+        case "x":
             gb.bus.joypad.buttons.a = true;
             break;
-        case KEY_Z:
+        case "z":
             gb.bus.joypad.buttons.b = true;
             break;
-        case ENTER:
+        case "Enter":
             gb.bus.joypad.buttons.start = true;
             break;
-        case BACKSLASH:
+        case "\\":
             gb.bus.joypad.buttons.select = true;
             break;
 
-        case TAB:
+        case "Tab":
             gb.speedMul = 4;
             break;
     }
 };
 document.onkeyup = function (e) {
-    if (block.includes(e.keyCode))
+    if (block.includes(e.key))
         e.preventDefault();
 
-    switch (e.keyCode) {
-        case LEFT_ARROW:
+    switch (e.key) {
+        case "ArrowLeft":
             gb.bus.joypad.dpad.left = false;
             break;
-        case UP_ARROW:
+        case "ArrowUp":
             gb.bus.joypad.dpad.up = false;
             break;
-        case RIGHT_ARROW:
+        case "ArrowRight":
             gb.bus.joypad.dpad.right = false;
             break;
-        case DOWN_ARROW:
+        case "ArrowDown":
             gb.bus.joypad.dpad.down = false;
             break;
 
-        case KEY_X:
+        case "x":
             gb.bus.joypad.buttons.a = false;
             break;
-        case KEY_Z:
+        case "z":
             gb.bus.joypad.buttons.b = false;
             break;
-        case ENTER:
+        case "Enter":
             gb.bus.joypad.buttons.start = false;
             break;
-        case BACKSLASH:
+        case "\\":
             gb.bus.joypad.buttons.select = false;
             break;
 
-        case TAB:
+        case "Tab":
             gb.speedMul = 1;
             break;
     }

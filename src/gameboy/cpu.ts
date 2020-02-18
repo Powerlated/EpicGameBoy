@@ -953,8 +953,9 @@ class CPU {
 
 
         alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
+        this.gb.speedStop();
         return { op: this.UNKNOWN_OPCODE, length: 1 };
-        clearInterval(this.gb.speedInterval);
+        
     }
 
     cbOpcode(id: number): Op {

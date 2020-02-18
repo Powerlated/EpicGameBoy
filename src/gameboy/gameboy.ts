@@ -19,25 +19,19 @@ class GameBoy {
     }
 
     speedMul = 1;
-    speedInterval = 0;
-    speedRunning = false;
+    speedIntervals: Array<number> = [];
 
     speedStop() {
-        if (this.speedRunning) {
-            clearInterval(this.speedInterval);
-            this.cpu.stopNow = true;
-            this.soundChip.setMuted(true);
-        }
+        this.speedIntervals.forEach((v, i, a) => { clearInterval(v) });
+
+        this.cpu.stopNow = true;
+        this.soundChip.setMuted(true);
     }
 
     speed() {
-        if (!this.speedRunning) {
-            this.cpu.debugging = false;
-            this.speedInterval = setInterval(() => { this.frame() }, 16)
-            this.speedRunning = true;
-            this.soundChip.setMuted(false);
-        }
-
+        this.cpu.debugging = false;
+        this.speedIntervals.push(setInterval(() => { this.frame() }, 16));
+        this.soundChip.setMuted(false);
     }
 
     frame() {
@@ -45,7 +39,7 @@ class GameBoy {
         // const max = 70224; // Full frame GPU timing
         const max = 70224 * this.speedMul; // Full frame GPU timing, double speed
         if (this.cpu.breakpoints.has(this.cpu.pc) || this.cpu.stopNow) {
-            clearInterval(this.speedInterval);
+            this.speedStop();
         }
         while (i < max && !this.cpu.breakpoints.has(this.cpu.pc) && !this.cpu.stopNow) {
             this.step();
