@@ -1,11 +1,13 @@
 class PulseChannel {
     frequencyUpper = 0; // Frequency = 131072/(2048-x) Hz
     frequencyLower = 0;
+    oldFrequencyLower = 0;
     oldFrequencyHz = 0;
 
     volume = 0; // 4-bit value 0-15
     volumeEnvelopeUp = false;
     volumeEnvelopeSweep = 4;
+    volumeEnvelopeStart = 0;
 
     oldVolume = 0;
 
@@ -264,11 +266,19 @@ class SoundChip {
                 break;
             case 0xFF12:
                 this.pulseChannel1.volume = (value >> 4) & 0xF;
+                this.pulseChannel1.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulseChannel1.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.pulseChannel1.volumeEnvelopeSweep = value & 0b111;
                 break;
             case 0xFF13: // Low bits
+                this.pulseChannel1.oldFrequencyLower = this.pulseChannel1.frequencyLower;
                 this.pulseChannel1.frequencyLower = value;
+
+                // If the Hz difference between the old and the new frequencies is higher than 4, attack
+                if (Math.abs(this.pulseChannel1.oldFrequencyLower - this.pulseChannel1.frequencyLower) > 4) {
+                    this.pulseChannel1.volume = this.pulseChannel1.volumeEnvelopeStart;
+                } 
+               
                 break;
             case 0xFF14:
                 this.pulseChannel1.frequencyUpper = value & 0b111;
@@ -281,11 +291,18 @@ class SoundChip {
                 break;
             case 0xFF17:
                 this.pulseChannel2.volume = (value >> 4) & 0xF;
+                this.pulseChannel2.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulseChannel2.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.pulseChannel2.volumeEnvelopeSweep = value & 0b111;
                 break;
             case 0xFF18:
+                this.pulseChannel2.oldFrequencyLower = this.pulseChannel2.frequencyLower;
                 this.pulseChannel2.frequencyLower = value;
+
+                 // If the Hz difference between the old and the new frequencies is higher than 4, attack
+                if (Math.abs(this.pulseChannel2.oldFrequencyLower - this.pulseChannel2.frequencyLower) > 4) {
+                    this.pulseChannel2.volume = this.pulseChannel2.volumeEnvelopeStart;
+                } 
                 break;
             case 0xFF19:
                 this.pulseChannel2.frequencyUpper = value & 0b111;
