@@ -26,6 +26,7 @@ class GameBoy {
         if (this.speedRunning) {
             clearInterval(this.speedInterval);
             this.cpu.stopNow = true;
+            this.speedRunning = false;
             this.soundChip.setMuted(true);
         }
     }
