@@ -117,6 +117,8 @@ function startDebugging() {
 
 
 function updateDebug() {
+    requestAnimationFrame(updateDebug);
+    if (!(window as any).globalDebug) return;
     let debugP = document.getElementById('debug')!;
     let lastDebugText = "";
     let gb = ((window as any).gb as GameBoy);
@@ -198,7 +200,6 @@ function updateDebug() {
 
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
-
-
-    requestAnimationFrame(updateDebug);
 }
+
+let globalDebug = false;

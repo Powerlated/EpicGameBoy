@@ -1,7 +1,7 @@
+// @ts-check
 let gb = new GameBoy();
 window.cpu = gb.cpu;
 window.gb = gb;
-
 
 function loadDefaultBootRom() {
     const BOOTROM_BASE64 = `Mf7/ryH/nzLLfCD7ISb/DhE+gDLiDD7z4jI+d3c+/OBHEQQBIRCAGs2VAM2WABN7/jQg8xHYAAYIGhMiIwUg+T4Z6hCZIS+ZDgw9KAgyDSD5Lg8Y82c+ZFfgQj6R4EAEHgIODPBE/pAg+g0g9x0g8g4TJHweg/5iKAYewf5kIAZ74gw+h+LwQpDgQhUg0gUgTxYgGMtPBgTFyxEXwcsRFwUg9SIjIiPJzu1mZswNAAsDcwCDAAwADQAIER+IiQAO3Mxu5t3d2Zm7u2djbg7szN3cmZ+7uTM+PEK5pbmlQjwhBAERqAAaE74g/iN9/jQg9QYZeIYjBSD7hiD+PgHgUA==`;
@@ -15,10 +15,10 @@ function loadDefaultBootRom() {
     }
 
     array.forEach((v, i, a) => {
-        cpu.gb.bus.bootrom[i] = v;
+        gb.bus.bootrom[i] = v;
     });
 
-    cpu.gb.bus.bootromLoaded = true;
+    gb.bus.bootromLoaded = true;
 
     disassemble(cpu);
 }
@@ -40,7 +40,6 @@ function loadTetris() {
     });
 }
 
-
 let disassemblyP = document.getElementById('disassembly-output');
 let lastDisassembly = "";
 
@@ -51,7 +50,6 @@ function disassemble(cpu) {
         lastDisassembly = disassembly;
     }
 }
-
 
 function executeAtPc() {
     let cpu = window.cpu;
@@ -65,10 +63,15 @@ function executeAtPc() {
         cpu.step();
     }
 
-
     disassemble(cpu);
 }
 
+/** 
+ * Downloads file
+ * 
+ * @argument {string} filename 
+ * @argument {string} text 
+ */
 function download(filename, text) {
     var element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
@@ -120,17 +123,15 @@ document.querySelector('#displaySerialInput').addEventListener('change', functio
 
 document.querySelector('#big-screen').addEventListener('change', function (e) {
     if (e.target.checked) {
-        document.getElementById('palette').style.display = "none";
-        document.getElementById('tileset').style.display = "none";
+        document.getElementById('palette').classList.add('hidden');
+        document.getElementById('tileset').classList.add('hidden');
 
-        document.getElementById('gameboy').style.width = "640px";
-        document.getElementById('gameboy').style.height = "576px";
+        document.getElementById('gameboy').classList.add('bigscreen');
     } else {
-        document.getElementById('palette').style.display = "block";
-        document.getElementById('tileset').style.display = "block";
+        document.getElementById('palette').classList.remove('hidden');
+        document.getElementById('tileset').classList.remove('hidden');
 
-        document.getElementById('gameboy').style.width = "320px";
-        document.getElementById('gameboy').style.height = "288px";
+        document.getElementById('gameboy').classList.remove('hidden');
     }
 }, false);
 
@@ -141,15 +142,36 @@ document.querySelector('#halt2Input').addEventListener('change', function (e) {
     cpu.haltWhen = parseInt(`${e.target.value}`);
     console.log(`Set halt instructions executed to ${parseInt(cpu.haltWhen).toString(10)}`);
 }, false);
+document.querySelector('#enableDebugger').addEventListener('change', function (e) {
+    let debugElements = document.getElementsByClassName('debug');
+    window.globalDebug = e.target.checked;
+
+    for (let i = 0; i < debugElements.length; i++) {
+        if (e.target.checked) {
+            debugElements[i].classList.remove('hidden');
+        } else {
+            debugElements[i].classList.add('hidden');
+        }
+    }
+})
+
+// Hide debugger by default
+window.onload = () => {
+    let debugElements = document.getElementsByClassName('debug');
+    for (let i = 0; i < debugElements.length; i++) {
+        debugElements[i].classList.add('hidden');
+    }
+}
 
 document.querySelector('#bootromInput').addEventListener('change', function () {
     var reader = new FileReader();
     reader.onload = function () {
         var arrayBuffer = this.result;
+
         var array = new Uint8Array(arrayBuffer);
 
         array.forEach((v, i, a) => {
-            cpu.gb.bus.bootrom[i] = v;
+            gb.bus.bootrom[i] = v;
         });
     };
     reader.readAsArrayBuffer(this.files[0]);
@@ -162,23 +184,26 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
         var array = new Uint8Array(arrayBuffer);
 
         array.forEach((v, i, a) => {
-            cpu.gb.bus.rom[i] = v;
+            gb.bus.rom[i] = v;
         });
         // cpu.khz()
-        // cpu.gb.bus.gpu.frameExecute();
+        // gb.bus.gpu.frameExecute();
     };
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
+loadTetris();
+startDebugging();
+
 function repeatDisassemble() {
-    disassemble(cpu);
     requestAnimationFrame(repeatDisassemble);
+    if (!this.globalDebug) return;
+    disassemble(cpu);
+
 }
 repeatDisassemble();
 
-
-loadTetris();
-startDebugging();
+// Handle input
 
 
 const LEFT_ARROW = 37;
@@ -199,29 +224,29 @@ document.onkeydown = function (e) {
 
     switch (e.keyCode) {
         case LEFT_ARROW:
-            cpu.gb.bus.joypad.dpad.left = true;
+            gb.bus.joypad.dpad.left = true;
             break;
         case UP_ARROW:
-            cpu.gb.bus.joypad.dpad.up = true;
+            gb.bus.joypad.dpad.up = true;
             break;
         case RIGHT_ARROW:
-            cpu.gb.bus.joypad.dpad.right = true;
+            gb.bus.joypad.dpad.right = true;
             break;
         case DOWN_ARROW:
-            cpu.gb.bus.joypad.dpad.down = true;
+            gb.bus.joypad.dpad.down = true;
             break;
 
         case KEY_X:
-            cpu.gb.bus.joypad.buttons.a = true;
+            gb.bus.joypad.buttons.a = true;
             break;
         case KEY_Z:
-            cpu.gb.bus.joypad.buttons.b = true;
+            gb.bus.joypad.buttons.b = true;
             break;
         case ENTER:
-            cpu.gb.bus.joypad.buttons.start = true;
+            gb.bus.joypad.buttons.start = true;
             break;
         case BACKSLASH:
-            cpu.gb.bus.joypad.buttons.select = true;
+            gb.bus.joypad.buttons.select = true;
             break;
 
         case TAB:
@@ -235,29 +260,29 @@ document.onkeyup = function (e) {
 
     switch (e.keyCode) {
         case LEFT_ARROW:
-            cpu.gb.bus.joypad.dpad.left = false;
+            gb.bus.joypad.dpad.left = false;
             break;
         case UP_ARROW:
-            cpu.gb.bus.joypad.dpad.up = false;
+            gb.bus.joypad.dpad.up = false;
             break;
         case RIGHT_ARROW:
-            cpu.gb.bus.joypad.dpad.right = false;
+            gb.bus.joypad.dpad.right = false;
             break;
         case DOWN_ARROW:
-            cpu.gb.bus.joypad.dpad.down = false;
+            gb.bus.joypad.dpad.down = false;
             break;
 
         case KEY_X:
-            cpu.gb.bus.joypad.buttons.a = false;
+            gb.bus.joypad.buttons.a = false;
             break;
         case KEY_Z:
-            cpu.gb.bus.joypad.buttons.b = false;
+            gb.bus.joypad.buttons.b = false;
             break;
         case ENTER:
-            cpu.gb.bus.joypad.buttons.start = false;
+            gb.bus.joypad.buttons.start = false;
             break;
         case BACKSLASH:
-            cpu.gb.bus.joypad.buttons.select = false;
+            gb.bus.joypad.buttons.select = false;
             break;
 
         case TAB:
@@ -266,6 +291,7 @@ document.onkeyup = function (e) {
     }
 };
 
+// Start tone.js
 document.querySelector('html').addEventListener('click', () => {
     Tone.start();
 });

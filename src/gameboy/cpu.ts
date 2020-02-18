@@ -280,7 +280,7 @@ class CPU {
     totalI = 0;
     time = 0;
 
-    debugging = true;
+    debugging = false;
 
     reset() {
         this._r.a = 0;

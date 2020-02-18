@@ -5,26 +5,26 @@
     <link rel="stylesheet" type="text/css" href="index.css">
     <script src="gameboy/gameboy.js"></script>
     <script src="../lib/Tone.js"></script>
+    <script src="../lib/preact.umd.js"></script>
 </head>
 
 <body>
     <h1 style="margin-bottom: 0">Game Boy Emulator</h1>
 
     <div id="panels">
-        <p class="panel" id="debug">
+        <p class="panel debug" id="debug">
 
         </p>
         <!-- <b>Disassembly</b>  -->
-        <span class="panel code" id="disassembly-output">
+        <span class="panel code debug" id="disassembly-output">
 
         </span>
 
         <div class="panel">
             <span class="code" id="breakpoints"></span>
-
-
-            <canvas id="tileset" width="256" height="144"></canvas>
-            <div id="palette">
+            
+            <canvas class="debug" id="tileset" width="256" height="144"></canvas>
+            <div id="palette" class="debug">
                 <label>Palette</label>
                 <div class="palette-container">
                     <span class="palette-square" id="palette0"></span>
@@ -48,7 +48,7 @@
 
     <div class="interactive">
         <button onclick="executeAtPc()">Execute at PC</button>
-        <button onclick="executeAtPc(); gb.speed()">Speed Execute</button>
+        <button onclick="gb.speed()">Speed Execute</button>
         <button onclick="gb.speedStop();">Halt Execute</button>
         <button onclick="cpu.renderSingleFrame()">Render Frame</button>
         <button onclick="gb.bus.gpu.executeUntilVblank()">Execute until vblank</button>
@@ -65,6 +65,10 @@
             
             <input id="displaySerialInput" autocomplete="off" type="checkbox">
             <label for="displaySerialInput">Display Serial</label>
+
+            <input id="enableDebugger" autocomplete="off" type="checkbox">
+            <label for="enableDebugger">Debugger</label>
+
 
             <div>
                 <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
