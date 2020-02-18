@@ -131,7 +131,7 @@ document.querySelector('#big-screen').addEventListener('change', function (e) {
         document.getElementById('palette').classList.remove('hidden');
         document.getElementById('tileset').classList.remove('hidden');
 
-        document.getElementById('gameboy').classList.remove('hidden');
+        document.getElementById('gameboy').classList.remove('bigscreen');
     }
 }, false);
 
