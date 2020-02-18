@@ -9,6 +9,26 @@ class PulseChannel {
 
     oldVolume = 0;
 
+    outputLeft = false;
+    outputRight = false;
+
+    get enabled(): boolean {
+        return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
+    }
+
+    get pan(): number {
+        if (this.outputLeft) {
+            return -1;
+        }
+        if (this.outputRight) {
+            return 1;
+        }
+        if (this.outputLeft && this.outputRight) {
+            return 0;
+        }
+        return 0;
+    }
+
     get frequencyHz(): number {
         let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
         return 131072 / (2048 - frequency);
@@ -29,9 +49,51 @@ class WaveChannel {
     soundExpires = false;
     soundLength = 0;
 
+    outputLeft = false;
+    outputRight = false;
+
+    get enabled(): boolean {
+        return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
+    }
+
+    get pan(): number {
+        if (this.outputLeft) {
+            return -1;
+        }
+        if (this.outputRight) {
+            return 1;
+        }
+        if (this.outputLeft && this.outputRight) {
+            return 0;
+        }
+        return 0;
+    }
+
     get frequencyHz(): number {
         let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
         return (65536 / (2048 - frequency));
+    }
+}
+
+class NoiseChannel {
+    outputLeft = false;
+    outputRight = false;
+
+    get enabled(): boolean {
+        return this.outputLeft || this.outputRight;
+    }
+
+    get pan(): number {
+        if (this.outputLeft) {
+            return -1;
+        }
+        if (this.outputRight) {
+            return 1;
+        }
+        if (this.outputLeft && this.outputRight) {
+            return 0;
+        }
+        return 0;
     }
 }
 
@@ -75,26 +137,34 @@ class SoundChip {
     pulseChannel1 = new PulseChannel();
     pulseChannel2 = new PulseChannel();
     waveChannel = new WaveChannel();
+    noiseChannel = new NoiseChannel();
 
     pulseOsc1: Tone.PulseOscillator;
+    pulsePan1: Tone.Panner;
     pulseOsc2: Tone.PulseOscillator;
+    pulsePan2: Tone.Panner;
     waveOsc: Tone.Oscillator;
+    wavePan: Tone.Panner;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
 
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
         this.pulseOsc1.volume.value = -36;
-        this.pulseOsc1.toMaster();
+        this.pulsePan1 = new Tone.Panner(0);
+        this.pulseOsc1.chain(this.pulsePan1, Tone.Master);
         this.pulseOsc1.start();
 
         this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
         this.pulseOsc2.volume.value = -36;
-        this.pulseOsc2.toMaster();
+        this.pulsePan2 = new Tone.Panner(0);
+        this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
         this.waveOsc = new Tone.Oscillator(0, "triangle");
         this.waveOsc.volume.value = -36;
+        this.wavePan = new Tone.Panner(0);
+        this.waveOsc.chain(this.wavePan, Tone.Master);
         this.waveOsc.toMaster();
         this.waveOsc.start();
 
@@ -140,27 +210,44 @@ class SoundChip {
         // 1048576hz Divide by 4096 = 256hz
         if (this.clockMain >= CLOCK_MAIN_STEPS) {
 
-            // Pulse 1
-            this.pulseOsc1.volume.value = SoundChip.convertVolume(this.pulseChannel1.volume);
-            this.pulseOsc1.frequency.value = this.pulseChannel1.frequencyHz;
-
-            // Pulse 2
-            this.pulseOsc2.volume.value = SoundChip.convertVolume(this.pulseChannel2.volume);
-            this.pulseOsc2.frequency.value = this.pulseChannel2.frequencyHz;
-
-            // Wave
-            this.waveOsc.frequency.value = this.waveChannel.frequencyHz;
-
-            if (this.waveChannel.soundLength > 0 && this.waveChannel.soundExpires) {
-                this.waveChannel.soundLength--;
-            }
-            if (this.waveChannel.soundLength > 0 || !this.waveChannel.soundExpires) {
-                this.waveOsc.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
+            if (this.pulseChannel1.enabled) {
+                // Pulse 1
+                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.pulseChannel1.volume);
+                this.pulseOsc1.frequency.value = this.pulseChannel1.frequencyHz;
             } else {
-                this.waveOsc.volume.value = 0;
+                this.pulseOsc1.volume.value = -1000000;
             }
-        }
 
+            if (this.pulseChannel2.enabled) {
+                // Pulse 2
+                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.pulseChannel2.volume);
+                this.pulseOsc2.frequency.value = this.pulseChannel2.frequencyHz;
+            } else {
+                this.pulseOsc2.volume.value = -1000000;
+            }
+
+            if (this.waveChannel.enabled) {
+                // Wave
+                this.waveOsc.frequency.value = this.waveChannel.frequencyHz;
+
+                if (this.waveChannel.soundLength > 0 && this.waveChannel.soundExpires) {
+                    this.waveChannel.soundLength--;
+                }
+                if (this.waveChannel.soundLength > 0 || !this.waveChannel.soundExpires) {
+                    this.waveOsc.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
+                } else {
+                    this.waveOsc.volume.value = 0;
+                }
+            } else {
+                this.waveOsc.volume.value = -1000000
+            }
+
+            this.pulsePan1.pan.value = this.pulseChannel1.pan;
+            this.pulsePan2.pan.value = this.pulseChannel2.pan;
+            this.wavePan.pan.value = this.waveChannel.pan;
+
+            // this.noiseOsc.mute = !this.noiseChannel.enabled
+        }
 
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
@@ -230,14 +317,15 @@ class SoundChip {
 
             // Panning
             case 0xFF25:
-                // if (((value >> 7) & 1) == 1) 
-                // if (((value >> 6) & 1) == 1)
-                // if (((value >> 5) & 1) == 1)
-                // if (((value >> 4) & 1) == 1)
-                // if (((value >> 3) & 1) == 1)
-                // if (((value >> 2) & 1) == 1)
-                // if (((value >> 1) & 1) == 1)
-                // if (((value >> 0) & 1) == 1) this.pulseOsc1.
+                this.noiseChannel.outputRight = (((value >> 7) & 1) == 1);
+                this.waveChannel.outputRight = (((value >> 6) & 1) == 1);
+                this.pulseChannel2.outputRight = (((value >> 5) & 1) == 1);
+                this.pulseChannel1.outputRight = (((value >> 4) & 1) == 1);
+                this.noiseChannel.outputLeft = (((value >> 3) & 1) == 1);
+                this.waveChannel.outputLeft = (((value >> 2) & 1) == 1);
+                this.pulseChannel2.outputLeft = (((value >> 1) & 1) == 1);
+                this.pulseChannel1.outputLeft = (((value >> 0) & 1) == 1);
+
                 break;
 
             // Control

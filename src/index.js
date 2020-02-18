@@ -171,7 +171,7 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
 }, false);
 
 function repeatDisassemble() {
-    // disassemble(cpu);
+    disassemble(cpu);
     requestAnimationFrame(repeatDisassemble);
 }
 repeatDisassemble();
