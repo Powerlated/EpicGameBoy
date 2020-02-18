@@ -1267,6 +1267,8 @@ class CPU {
         this._r._f.carry = (signedVal & 0xFF) + (this._r.sp & 0xFF) > 0xFF;
 
         this._r.hl = o16b(unTwo8b(e8) + this._r.sp);
+
+        return 4; // Internal time
     }
 
     // LD [$FF00+u8],A
