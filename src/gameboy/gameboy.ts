@@ -15,6 +15,7 @@ class GameBoy {
         this.soundChip.step();
         this.cpu.step();
         this.gpu.step();
+        this.timer.step();
     }
 
     speedMul = 1;
@@ -30,7 +31,7 @@ class GameBoy {
         this.speedInterval = setInterval(() => {
             let i = 0;
             // const max = 70224; // Full frame GPU timing
-            const max = 70224 * 1; // Full frame GPU timing, double speed
+            const max = 70224 * this.speedMul; // Full frame GPU timing, double speed
             if (this.cpu.breakpoints.has(this.cpu.pc) || this.cpu.stopNow) {
                 clearInterval(this.speedInterval);
             }

@@ -10,3 +10,5 @@ logs/
 testroms/*.sav
 src/testing
 bootrom.asm
+
+out/

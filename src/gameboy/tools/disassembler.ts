@@ -111,7 +111,9 @@ class Disassembler {
         return name + " " + operandAndType;
     };
 
-    static disassembledLines: Array<string> = new Array(65536);
+
+    // Null indicates the disassembled address was an operand or data
+    static disassembledLines: Array<string | null> = new Array(65536);
     // static controlFlowDisassembly: Array<string> = [];
 
     static disassemble(cpu: CPU): string {

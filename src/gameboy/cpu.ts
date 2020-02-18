@@ -366,7 +366,6 @@ class CPU {
             let isControlFlow = Disassembler.isControlFlow(ins, this);
 
             let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
-            let line = `[PC: ${hex(this.pc, 4)}] ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}`;
 
             if (ins.op == this.INVALID_OPCODE) {
 
@@ -378,9 +377,11 @@ class CPU {
 
 
 
-            isCB = this.fetchMem8(this.pc) == 0xCB;
+            isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
+            
+            if (isCB) this.cycles += 4;
 
-            ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
+            ins = isCB ? this.cbOpcode(this.fetchMem8(this.pc + 1)) : this.rgOpcode(this.fetchMem8(this.pc));
 
             // Rebind the this object
             ins.op = ins.op.bind(this);
@@ -426,6 +427,21 @@ class CPU {
 
                     Instruction Timing: ${this.lastInstructionCycles}
                     Proper Timing: ${NORMAL_TIMINGS[opcode] * 4}
+                    
+                    `);
+                    this.gb.speedStop();
+                }
+            } else {
+                // TODO Screw it, i'll handle this later
+                if (false && CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
+                    alert(`
+                    Timings error:
+                    
+                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                    Opcode: [CB] ${hex(opcode, 2)}
+
+                    Instruction Timing: ${this.lastInstructionCycles}
+                    Proper Timing: ${CB_TIMINGS[opcode] * 4}
                     
                     `);
                     this.gb.speedStop();
@@ -570,7 +586,7 @@ class CPU {
 
     private getReg(t: R8 | R16) {
         if (t == undefined) {
-            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.fetchMem8(this.pc), 2)}] Implementation error: getReg(undefined)`);
+            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: getReg(undefined)`);
         }
 
         switch (t) {
@@ -592,10 +608,10 @@ class CPU {
 
     private setReg(t: R8 | R16, i: number) {
         if (t == undefined) {
-            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.fetchMem8(this.pc), 2)}] Implementation error: setReg(undefined, [any])`);
+            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg(undefined, [any])`);
         }
         if (i == undefined) {
-            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.fetchMem8(this.pc), 2)}] Implementation error: setReg([any], undefined)`);
+            alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg([any], undefined)`);
         }
 
         switch (t) {
@@ -898,7 +914,7 @@ class CPU {
                 }
             }
 
-            return { op: op, type: type, length: 1 };
+            return { op: op!, type: type, length: 1 };
 
         }
         // #endregion
@@ -931,12 +947,13 @@ class CPU {
             }
 
 
-            return { op: op, type: type, type2: type2, length: 1 };
+            return { op: op!, type: type!, type2: type2, length: 1 };
 
         }
 
 
         alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
+        return { op: this.UNKNOWN_OPCODE, length: 1 };
         clearInterval(this.gb.speedInterval);
     }
 
@@ -980,7 +997,7 @@ class CPU {
                 }
             }
 
-            bit = null;
+            bit = null!;
             // 0x40 - 0xF0
         } else {
             switch (upperNybble >> 2) {
@@ -994,8 +1011,14 @@ class CPU {
 
 
 
-        return { op: op, type: type, type2: bit, length: 2 };
+        return { op: op!, type: type, type2: bit, length: 2 };
     }
+
+    UNKNOWN_OPCODE() {
+        this.pc--;
+        this.gb.speedStop();
+    }
+
 
     INVALID_OPCODE() {
         this.pc--;

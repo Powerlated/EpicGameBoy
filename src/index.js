@@ -174,6 +174,7 @@ function repeatDisassemble() {
     // disassemble(cpu);
     requestAnimationFrame(repeatDisassemble);
 }
+repeatDisassemble();
 
 
 loadTetris();
@@ -224,7 +225,7 @@ document.onkeydown = function (e) {
             break;
 
         case TAB:
-            gb.khzMul = 4;
+            gb.speedMul = 4;
             break;
     }
 };
@@ -260,11 +261,14 @@ document.onkeyup = function (e) {
             break;
 
         case TAB:
-            gb.khzMul = 1;
+            gb.speedMul = 1;
             break;
     }
 };
 
 document.querySelector('html').addEventListener('click', () => {
+    Tone.start();
+});
+document.querySelector('html').addEventListener('touchstart', () => {
     Tone.start();
 });

@@ -159,12 +159,14 @@ function updateDebug() {
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>
                 ------------------------------
-                Pulse 1 Frequency: ${gb.soundChip.pulseChannel0.frequencyHz}
-                Pulse 2 Frequency: ${gb.soundChip.pulseChannel1.frequencyHz}
+                Pulse 1 Frequency: ${gb.soundChip.pulseChannel1.frequencyHz}
+                Pulse 2 Frequency: ${gb.soundChip.pulseChannel2.frequencyHz}
                 Wave Frequency:${gb.soundChip.waveChannel.frequencyHz}
-                Pulse 1 Volume: ${gb.soundChip.pulseChannel0.volume}
-                Pulse 2 Volume: ${gb.soundChip.pulseChannel1.volume}
+                Pulse 1 Volume: ${gb.soundChip.pulseChannel1.volume}
+                Pulse 2 Volume: ${gb.soundChip.pulseChannel2.volume}
                 Wave Volume:${gb.soundChip.waveChannel.volume}
+                Pulse 1 Envelope: ${gb.soundChip.pulseChannel1.volumeEnvelopeSweep}
+                Pulse 2 Envelope: ${gb.soundChip.pulseChannel2.volumeEnvelopeSweep}
             `;
 
 
