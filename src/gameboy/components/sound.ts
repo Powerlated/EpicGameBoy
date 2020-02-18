@@ -17,10 +17,10 @@ class PulseChannel {
     }
 
     get pan(): number {
-        if (this.outputLeft) {
+        if (this.outputLeft && !this.outputRight) {
             return -1;
         }
-        if (this.outputRight) {
+        if (this.outputRight && !this.outputLeft) {
             return 1;
         }
         if (this.outputLeft && this.outputRight) {
@@ -57,10 +57,10 @@ class WaveChannel {
     }
 
     get pan(): number {
-        if (this.outputLeft) {
+        if (this.outputLeft && !this.outputRight) {
             return -1;
         }
-        if (this.outputRight) {
+        if (this.outputRight && !this.outputLeft) {
             return 1;
         }
         if (this.outputLeft && this.outputRight) {
@@ -84,10 +84,10 @@ class NoiseChannel {
     }
 
     get pan(): number {
-        if (this.outputLeft) {
+        if (this.outputLeft && !this.outputRight) {
             return -1;
         }
-        if (this.outputRight) {
+        if (this.outputRight && !this.outputLeft) {
             return 1;
         }
         if (this.outputLeft && this.outputRight) {
@@ -183,7 +183,7 @@ class SoundChip {
 
         if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
             if (this.pulseChannel1.volumeEnvelopeSweep != 0) {
-                if (this.pulseChannel1.volume > 0 && this.pulseChannel1.volume < 15) {
+                if (this.pulseChannel1.volume > 0 && this.pulseChannel1.volume < 16 && this.pulseChannel1.frequencyHz != 64) {
                     if (this.pulseChannel1.volumeEnvelopeUp) {
                         this.pulseChannel1.volume++;
                     } else {
@@ -196,7 +196,7 @@ class SoundChip {
 
         if (this.clockEnvelope2 >= CLOCK_ENVELOPE_STEPS) {
             if (this.pulseChannel2.volumeEnvelopeSweep != 0) {
-                if (this.pulseChannel2.volume > 0 && this.pulseChannel2.volume < 25) {
+                if (this.pulseChannel2.volume > 0 && this.pulseChannel2.volume < 16 && this.pulseChannel1.frequencyHz != 64) {
                     if (this.pulseChannel2.volumeEnvelopeUp) {
                         this.pulseChannel2.volume++;
                     } else {
@@ -239,7 +239,7 @@ class SoundChip {
                     this.waveOsc.volume.value = 0;
                 }
             } else {
-                this.waveOsc.volume.value = -1000000
+                this.waveOsc.volume.value = -1000000;
             }
 
             this.pulsePan1.pan.value = this.pulseChannel1.pan;
@@ -321,6 +321,7 @@ class SoundChip {
                 this.waveChannel.outputRight = (((value >> 6) & 1) == 1);
                 this.pulseChannel2.outputRight = (((value >> 5) & 1) == 1);
                 this.pulseChannel1.outputRight = (((value >> 4) & 1) == 1);
+
                 this.noiseChannel.outputLeft = (((value >> 3) & 1) == 1);
                 this.waveChannel.outputLeft = (((value >> 2) & 1) == 1);
                 this.pulseChannel2.outputLeft = (((value >> 1) & 1) == 1);
@@ -361,5 +362,12 @@ class SoundChip {
         this.clockMain = 0;
         this.clockEnvelope1 = 0;
         this.clockEnvelope2 = 0;
+    }
+
+    setMuted(muted: boolean) {
+        this.enabled = !muted;
+        this.pulseOsc1.mute = muted;
+        this.pulseOsc2.mute = muted;
+        this.waveOsc.mute = muted;
     }
 }
