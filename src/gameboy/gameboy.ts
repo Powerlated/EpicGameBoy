@@ -20,17 +20,24 @@ class GameBoy {
 
     speedMul = 1;
     speedInterval = 0;
+    speedRunning = false;
 
     speedStop() {
-        clearInterval(this.speedInterval);
-        this.cpu.stopNow = true;
-        this.soundChip.setMuted(true);
+        if (this.speedRunning) {
+            clearInterval(this.speedInterval);
+            this.cpu.stopNow = true;
+            this.soundChip.setMuted(true);
+        }
     }
 
     speed() {
-        this.cpu.debugging = false;
-        this.speedInterval = setInterval(() => {this.frame()}, 16)
-        this.soundChip.setMuted(false);
+        if (!this.speedRunning) {
+            this.cpu.debugging = false;
+            this.speedInterval = setInterval(() => { this.frame() }, 16)
+            this.speedRunning = true;
+            this.soundChip.setMuted(false);
+        }
+
     }
 
     frame() {
