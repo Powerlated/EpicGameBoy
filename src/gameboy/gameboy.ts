@@ -23,7 +23,6 @@ class GameBoy {
 
     speedStop() {
         this.speedIntervals.forEach((v, i, a) => { clearInterval(v) });
-
         this.cpu.stopNow = true;
         this.soundChip.setMuted(true);
     }
