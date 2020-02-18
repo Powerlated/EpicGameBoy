@@ -2,5 +2,8 @@
     "main": "./test.js",
     "dependencies": {
         "source-map-support": "^0.5.16"
+    },
+    "devDependencies": {
+        "@types/tone": "git://github.com/Tonejs/TypeScript.git"
     }
 }
