@@ -1,4 +1,3 @@
-// @ts-check
 let gb = new GameBoy();
 window.cpu = gb.cpu;
 window.gb = gb;

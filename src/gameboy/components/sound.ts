@@ -128,6 +128,7 @@ class SoundChip {
     // 0 = 50% Duty Cycle
     // static widths = [0.125, 0.25, 0.50, 0.75]; // WRONG
     static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
+    
 
     enabled = false;
 
@@ -151,24 +152,22 @@ class SoundChip {
     constructor(gb: GameBoy) {
         this.gb = gb;
 
-        let bitCrusher = new Tone.BitCrusher(4);
-
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
         this.pulseOsc1.volume.value = -36;
         this.pulsePan1 = new Tone.Panner(0);
-        this.pulseOsc1.chain(this.pulsePan1, bitCrusher, Tone.Master);
+        this.pulseOsc1.chain(this.pulsePan1, Tone.Master);
         this.pulseOsc1.start();
 
         this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
         this.pulseOsc2.volume.value = -36;
         this.pulsePan2 = new Tone.Panner(0);
-        this.pulseOsc2.chain(this.pulsePan2, bitCrusher, Tone.Master);
+        this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
         this.waveOsc = new Tone.Oscillator(0, "triangle");
         this.waveOsc.volume.value = -36;
         this.wavePan = new Tone.Panner(0);
-        this.waveOsc.chain(this.wavePan, bitCrusher, Tone.Master);
+        this.waveOsc.chain(this.wavePan, Tone.Master);
         this.waveOsc.toMaster();
         this.waveOsc.start();
 
