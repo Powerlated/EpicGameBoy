@@ -49,7 +49,7 @@ class WaveChannel {
     waveTableUpdated = false;
 
     restartSound = false;
-    soundExpires = false;
+    soundExpires = true;
     soundLength = 0;
 
     outputLeft = false;
@@ -252,12 +252,10 @@ class SoundChip {
                 this.pulseOsc2.volume.value = -1000000;
             }
 
-            if (this.waveChannel.soundExpires) {
-                if (this.waveChannel.soundLength > 0) {
-                    this.waveChannel.soundLength--
-                } else {
-                    this.waveChannel.volume = 0;
-                }
+            if (this.waveChannel.soundLength > 0) {
+                this.waveChannel.soundLength--;
+            } else {
+                this.waveChannel.volume = 0;
             }
 
             if (this.waveChannel.enabled) {
