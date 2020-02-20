@@ -45,7 +45,8 @@ class WaveChannel {
     volume = 0;
     oldVolume = 0;
 
-    waveTable: Array<number> = [];
+    waveTable: Array<number> = new Array(32).fill(0);
+    waveTableUpdated = false;
 
     restartSound = false;
     soundExpires = false;
@@ -74,6 +75,22 @@ class WaveChannel {
     get frequencyHz(): number {
         let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
         return (65536 / (2048 - frequency));
+    }
+
+    get buffer(): AudioBuffer {
+        const SAMPLE_RATE = 56320 * (this.frequencyHz / 440); // A440 without any division
+
+        let waveTable = this.waveTable.map(v => { return (v - 8) / 8; });
+        waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
+
+        let ac = (Tone.context as any as AudioContext);
+        let arrayBuffer = ac.createBuffer(1, waveTable.length, SAMPLE_RATE);
+        let buffering = arrayBuffer.getChannelData(0);
+        for (let i = 0; i < arrayBuffer.length; i++) {
+            buffering[i] = waveTable[i % waveTable.length];
+        }
+
+        return arrayBuffer;
     }
 }
 
@@ -105,7 +122,7 @@ class SoundChip {
     }
 
     static convertVolume(v: number) {
-        let base = -12;
+        let base = -18;
         let mute = 0;
         if (v == 0) mute = -10000;
         return base + mute + (6 * Math.log(v / 16));
@@ -128,7 +145,7 @@ class SoundChip {
     // 0 = 50% Duty Cycle
     // static widths = [0.125, 0.25, 0.50, 0.75]; // WRONG
     static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
-    
+
 
     enabled = false;
 
@@ -146,8 +163,9 @@ class SoundChip {
     pulsePan1: Tone.Panner;
     pulseOsc2: Tone.PulseOscillator;
     pulsePan2: Tone.Panner;
-    waveOsc: Tone.Oscillator;
+    waveSrc: Tone.BufferSource;
     wavePan: Tone.Panner;
+    waveVolume: Tone.Volume;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -164,12 +182,13 @@ class SoundChip {
         this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
-        this.waveOsc = new Tone.Oscillator(0, "triangle");
-        this.waveOsc.volume.value = -36;
+        this.waveSrc = new Tone.BufferSource(this.waveChannel.buffer, () => { });
+        this.waveSrc.loop = true;
+        this.waveVolume = new Tone.Volume();
+        this.waveVolume.volume.value = -36;
         this.wavePan = new Tone.Panner(0);
-        this.waveOsc.chain(this.wavePan, Tone.Master);
-        this.waveOsc.toMaster();
-        this.waveOsc.start();
+        this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
+        this.waveSrc.start();
 
         //play a middle 'C' for the duration of an 8th note
     }
@@ -230,19 +249,20 @@ class SoundChip {
             }
 
             if (this.waveChannel.enabled) {
-                // Wave
-                this.waveOsc.frequency.value = this.waveChannel.frequencyHz;
-
-                if (this.waveChannel.soundLength > 0 && this.waveChannel.soundExpires) {
-                    this.waveChannel.soundLength--;
-                }
-                if (this.waveChannel.soundLength > 0 || !this.waveChannel.soundExpires) {
-                    this.waveOsc.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
-                } else {
-                    this.waveOsc.volume.value = 0;
-                }
+                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
             } else {
-                this.waveOsc.volume.value = -1000000;
+                this.waveVolume.volume.value = -1000000;
+            }
+
+            if (this.waveChannel.waveTableUpdated == true) {
+                console.log("Wave table updated");
+                this.waveSrc.dispose();
+
+                this.waveSrc = new Tone.BufferSource(this.waveChannel.buffer, () => { });
+                this.waveSrc.loop = true;
+                this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
+
+                this.waveChannel.waveTableUpdated = false;
             }
 
             this.pulsePan1.pan.value = this.pulseChannel1.pan;
@@ -319,18 +339,24 @@ class SoundChip {
                 break;
             case 0xFF1D:
                 this.waveChannel.frequencyLower = value;
+                this.waveChannel.waveTableUpdated = true;
                 break;
             case 0xFF1E:
                 this.waveChannel.frequencyUpper = value & 0b111;
                 this.waveChannel.restartSound = ((value >> 7) & 1) == 1;
                 this.waveChannel.soundExpires = ((value >> 6) & 1) == 1;
+                this.waveChannel.waveTableUpdated = true;
                 break;
+
+            case 0xFF20:
+
 
             case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
             case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
-                let base = 0xFF30;
-                this.waveChannel.waveTable[((addr - base) * 2) + 0] = value >> 4;
-                this.waveChannel.waveTable[((addr - base) * 2) + 1] = value & 0xF;
+                const BASE = 0xFF30;
+                this.waveChannel.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
+                this.waveChannel.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
+                this.waveChannel.waveTableUpdated = true;
                 break;
 
             // Panning
@@ -354,13 +380,13 @@ class SoundChip {
                     console.log("Enabled sound");
                     this.pulseOsc1.mute = false;
                     this.pulseOsc2.mute = false;
-                    this.waveOsc.mute = false;
+                    this.waveVolume.mute = false;
                 } else {
                     console.log("Disabled sound");
                     this.enabled = false;
                     this.pulseOsc1.mute = true;
                     this.pulseOsc2.mute = true;
-                    this.waveOsc.mute = true;
+                    this.waveVolume.mute = true;
                 }
                 break;
         }
@@ -386,6 +412,6 @@ class SoundChip {
         this.enabled = !muted;
         this.pulseOsc1.mute = muted;
         this.pulseOsc2.mute = muted;
-        this.waveOsc.mute = muted;
+        this.waveVolume.mute = muted;
     }
 }
