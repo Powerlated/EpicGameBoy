@@ -201,6 +201,7 @@ class SoundChip {
 
         const CLOCK_MAIN_STEPS = 16384;
         const CLOCK_ENVELOPE_STEPS = 16384;
+        const CLOCK_SWEEP_STEPS = 32768;
 
         this.clockMain += this.gb.cpu.lastInstructionCycles / 4;
         this.clockEnvelope1 += (this.gb.cpu.lastInstructionCycles / 4) / this.pulseChannel1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
@@ -251,11 +252,21 @@ class SoundChip {
                 this.pulseOsc2.volume.value = -1000000;
             }
 
+            if (this.waveChannel.soundExpires) {
+                if (this.waveChannel.soundLength > 0) {
+                    this.waveChannel.soundLength--
+                } else {
+                    this.waveChannel.volume = 0;
+                }
+            }
+
             if (this.waveChannel.enabled) {
                 this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
             } else {
                 this.waveVolume.volume.value = -1000000;
             }
+
+
 
             if (this.waveChannel.waveTableUpdated == true) {
                 console.log("Wave table updated");
@@ -405,6 +416,7 @@ class SoundChip {
         this.pulseChannel1 = new PulseChannel();
         this.pulseChannel2 = new PulseChannel();
         this.waveChannel = new WaveChannel();
+        this.noiseChannel = new NoiseChannel();
 
         this.clockMain = 0;
         this.clockEnvelope1 = 0;
