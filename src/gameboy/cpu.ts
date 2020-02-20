@@ -1895,6 +1895,13 @@ class CPU {
     }
 }
 
+function unTwo4b(n: number): number {
+    if ((n & 0b1000) != 0) {
+        return n - 16;
+    } else {
+        return n;
+    }
+}
 
 function unTwo8b(n: number): number {
     if ((n & 0b10000000) != 0) {

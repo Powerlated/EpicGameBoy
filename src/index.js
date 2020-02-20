@@ -142,25 +142,32 @@ document.querySelector('#halt2Input').addEventListener('change', function (e) {
     console.log(`Set halt instructions executed to ${parseInt(cpu.haltWhen).toString(10)}`);
 }, false);
 document.querySelector('#enableDebugger').addEventListener('change', function (e) {
-    let debugElements = document.getElementsByClassName('debug');
-    window.globalDebug = e.target.checked;
-
-    for (let i = 0; i < debugElements.length; i++) {
-        if (e.target.checked) {
-            debugElements[i].classList.remove('hidden');
-        } else {
-            debugElements[i].classList.add('hidden');
-        }
+    if (e.target.checked) {
+        showDebug();
+    } else {
+        hideDebug();
     }
-})
+});
 
-// Hide debugger by default
-window.onload = () => {
+function showDebug() {
+    this.globalDebug = true;
+    let debugElements = document.getElementsByClassName('debug');
+    for (let i = 0; i < debugElements.length; i++) {
+        debugElements[i].classList.remove('hidden');
+    }
+}
+function hideDebug() {
+    this.globalDebug = false;
     let debugElements = document.getElementsByClassName('debug');
     for (let i = 0; i < debugElements.length; i++) {
         debugElements[i].classList.add('hidden');
     }
 }
+
+// Debugger default
+window.onload = () => {
+    showDebug();
+};
 
 document.querySelector('#bootromInput').addEventListener('change', function () {
     var reader = new FileReader();
