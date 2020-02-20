@@ -12,6 +12,8 @@ class MemoryBus {
     cpu: CPU;
     gpu: GPU;
 
+    mbc: MBC;
+
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
     rom = new Uint8Array(0xFFFFFF + 1).fill(0xFF);
@@ -26,6 +28,7 @@ class MemoryBus {
         this.gb = gb;
         this.cpu = gb.cpu;
         this.gpu = gb.gpu;
+        this.mbc = new NullMBC(gb);
     }
 
     serialOut: Array<number> = [];
@@ -40,6 +43,10 @@ class MemoryBus {
         Op: ${this.gb.cpu.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
 
         `);
+        }
+
+        if (addr >= 0x0000 && addr <= 0x7FFF) {
+            this.mbc.write(addr, value);
         }
 
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
@@ -128,6 +135,15 @@ class MemoryBus {
     }
 
     readMem8(addr: number): number {
+        if (addr < 0x100 && this.bootromEnabled) {
+            return this.bootrom[addr];
+        }
+
+        // MBC 
+        if (addr >= 0x0000 && addr <= 0x7FFF) {
+            return this.mbc.read(addr);
+        }
+
         // Return from VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
             return this.gpu.read(addr - VRAM_BEGIN);
@@ -184,15 +200,6 @@ class MemoryBus {
                     return 0x69;
             }
         }
-
-        // Read from ROM area
-        if (addr < 0x8000) {
-            if (addr < 0x100 && this.bootromEnabled) {
-                return this.bootrom[addr];
-            }
-            return this.rom[addr];
-        }
-
         return this.memory[addr];
     }
 
