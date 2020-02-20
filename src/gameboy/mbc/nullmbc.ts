@@ -1,14 +1,15 @@
 class NullMBC implements MBC {
-    gb: GameBoy;
 
-    constructor(gb: GameBoy) {
-        this.gb = gb;
+    bus: MemoryBus;
+
+    constructor(bus: MemoryBus) {
+        this.bus = bus;
     }
 
     selectedBank = 0;
 
     read(addr: number): number {
-        return this.gb.bus.rom[addr];
+        return this.bus.gb.bus.rom[addr];
     }
     write(addr: number, value: number) {
         return;

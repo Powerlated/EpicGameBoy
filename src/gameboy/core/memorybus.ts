@@ -28,7 +28,37 @@ class MemoryBus {
         this.gb = gb;
         this.cpu = gb.cpu;
         this.gpu = gb.gpu;
-        this.mbc = new NullMBC(gb);
+        this.mbc = new MBC3(this);
+    }
+
+    updateMBC() {
+        switch (this.rom[0x147]) {
+            case 0x01: case 0x02: case 0x03:
+                // this.mbc = new MBC1(this);
+                break;
+            case 0x05: case 0x06:
+                // this.mbc = new MBC2(this);
+                break;
+            case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
+                this.mbc = new MBC3(this);
+                break;
+            case 0x19: case 0x1A: case 0x1B: case 0x1B:
+            case 0x1C: case 0x1D: case 0x1E:
+                // this.mbc = new MBC5(this);
+                break;
+            case 0x20:
+                // this.mbc = new MBC6(this);
+                break;
+            case 0x22:
+                // this.mbc = new MBC7(this);
+                break;
+            case 0x00: case 0x08:
+            case 0x09: case 0x0B:
+            case 0x0C: case 0x0D:
+            default:
+                this.mbc = new NullMBC(this);
+                break;
+        }
     }
 
     serialOut: Array<number> = [];
@@ -135,6 +165,7 @@ class MemoryBus {
     }
 
     readMem8(addr: number): number {
+        this.updateMBC();
         if (addr < 0x100 && this.bootromEnabled) {
             return this.bootrom[addr];
         }

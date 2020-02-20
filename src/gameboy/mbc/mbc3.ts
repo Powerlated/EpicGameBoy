@@ -1,25 +1,25 @@
 class MBC3 implements MBC {
-
+    selectedBank = 1;
     enableRamAndTimer = false;
+    
+    bus: MemoryBus;
 
-    gb: GameBoy;
-
-    constructor(gb: GameBoy) {
-        this.gb = gb;
+    constructor(bus: MemoryBus) {
+        this.bus = bus;
     }
 
-    selectedBank = 1;
+    readBank(addr: number, bank: number): number {
+        return this.bus.rom[addr + (MBC.bankSize * bank)];
+    }
 
-    rom = this.gb.bus.rom;
-    
     read(addr: number): number {
         // Bank 0 (Read Only)
         if (addr >= 0x0000 && addr <= 0x3FFF) {
-            return this.rom[addr];
+            return this.bus.rom[addr];
         }
         // Banks 01-7F (Read Only)
         if (addr >= 0x4000 && addr <= 0x7FFF) {
-            return this.rom[addr + (16834 * this.selectedBank)];
+            return this.readBank(addr, this.selectedBank);
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
