@@ -104,10 +104,10 @@ class NoiseChannel {
 
     get pan(): number {
         if (this.outputLeft && !this.outputRight) {
-            return -1;
+            return -0.5;
         }
         if (this.outputRight && !this.outputLeft) {
-            return 1;
+            return 0.5;
         }
         if (this.outputLeft && this.outputRight) {
             return 0;
@@ -169,6 +169,9 @@ class SoundChip {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
+
+        // Tone.context.latencyHint = "fastest"
+        Tone.context.lookAhead = 0;
 
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
         this.pulseOsc1.volume.value = -36;
