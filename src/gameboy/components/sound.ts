@@ -20,10 +20,10 @@ class PulseChannel {
 
     get pan(): number {
         if (this.outputLeft && !this.outputRight) {
-            return -1;
+            return -0.5;
         }
         if (this.outputRight && !this.outputLeft) {
-            return 1;
+            return 0.5;
         }
         if (this.outputLeft && this.outputRight) {
             return 0;

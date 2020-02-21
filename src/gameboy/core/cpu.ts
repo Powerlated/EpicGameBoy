@@ -416,9 +416,10 @@ class CPU {
 
             // ---------------------------
 
-            if (!isCB) {
-                if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
-                    alert(`
+            if (false) {
+                if (!isCB) {
+                    if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
+                        alert(`
                     Length error:
                     
                     Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
@@ -428,15 +429,15 @@ class CPU {
                     Proper Length: ${DMG_OPS.Unprefixed[opcode].Length}
                     
                     `);
-                    this.gb.speedStop();
-                }
+                        this.gb.speedStop();
+                    }
 
-                if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
-                    isControlFlow == false &&
-                    opcode != 0x76 &&
-                    NORMAL_TIMINGS[opcode] != 0
-                ) {
-                    alert(`
+                    if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
+                        isControlFlow == false &&
+                        opcode != 0x76 &&
+                        NORMAL_TIMINGS[opcode] != 0
+                    ) {
+                        alert(`
                     Timings error:
                     
                     Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
@@ -446,11 +447,11 @@ class CPU {
                     Proper Timing: ${NORMAL_TIMINGS[opcode] * 4}
                     
                     `);
-                    this.gb.speedStop();
-                }
-            } else {
-                if (DMG_OPS.CBPrefixed[opcode].Length != ins.length) {
-                    alert(`
+                        this.gb.speedStop();
+                    }
+                } else {
+                    if (DMG_OPS.CBPrefixed[opcode].Length != ins.length) {
+                        alert(`
                     Length error:
                     
                     Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
@@ -460,12 +461,12 @@ class CPU {
                     Proper Length: ${DMG_OPS.CBPrefixed[opcode].Length}
                     
                     `);
-                    this.gb.speedStop();
-                }
+                        this.gb.speedStop();
+                    }
 
-                // TODO Screw it, i'll handle this later
-                if (CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
-                    alert(`
+                    // TODO Screw it, i'll handle this later
+                    if (CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
+                        alert(`
                     Timings error:
                     
                     Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
@@ -475,7 +476,8 @@ class CPU {
                     Proper Timing: ${CB_TIMINGS[opcode] * 4}
                     
                     `);
-                    this.gb.speedStop();
+                        this.gb.speedStop();
+                    }
                 }
             }
         }
