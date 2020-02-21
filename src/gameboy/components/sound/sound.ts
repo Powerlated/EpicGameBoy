@@ -229,7 +229,7 @@ class SoundChip {
         this.noiseSrc = new Tone.BufferSource(this.noiseChannel.buffer, () => { });
         this.noiseSrc.loop = true;
         this.noiseVolume = new Tone.Volume();
-        this.noiseVolume.volume.value = -36;
+        this.noiseVolume.mute = true;
         this.noiseSrc.chain(this.noiseVolume, Tone.Master);
         this.noiseSrc.start();
 
@@ -454,13 +454,15 @@ class SoundChip {
 
             // Control
             case 0xFF26:
-                if (((value >> 7) & 1) == 1) {
+                if (((value >> 7) & 1) != 0) {
                     this.enabled = true;
                     console.log("Enabled sound");
                     this.pulseOsc1.mute = false;
                     this.pulseOsc2.mute = false;
                     this.waveVolume.mute = false;
+                    this.noiseVolume.mute = false;
                 } else {
+                    break;
                     console.log("Disabled sound");
                     this.enabled = false;
                     this.pulseOsc1.mute = true;

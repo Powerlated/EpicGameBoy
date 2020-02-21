@@ -368,8 +368,7 @@ class GPU {
 
                 let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
-                let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
-                let prePalette = this.tileset[tile + tileOffset][pixelY][pixelX];
+                let prePalette = this.tileset[tile][pixelY][pixelX];
                 let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                 let c = transformColor(pixel);
 
