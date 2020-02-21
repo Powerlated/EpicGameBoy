@@ -82,12 +82,14 @@ class OAMFlags {
     get numerical(): number {
         let n = 0;
         if (this.behindBG)
-            n |= 0b01000000;
+            n |= 0b10000000;
         if (this.yFlip)
-            n |= 0b00100000;
+            n |= 0b01000000;
         if (this.xFlip)
-            n |= 0b00010000;
+            n |= 0b00100000;
         if (this.paletteNumberDMG)
+            n |= 0b00010000;
+        if (this.tileVramBank)
             n |= 0b00001000;
 
         n |= this.paletteNumberCGB & 0b111;
@@ -95,11 +97,11 @@ class OAMFlags {
     }
 
     set numerical(i: number) {
-        this.behindBG = (i & (1 << 6)) != 0;
-        this.yFlip = (i & (1 << 5)) != 0;
-        this.xFlip = (i & (1 << 4)) != 0;
-        this.paletteNumberDMG = (i & (1 << 3)) != 0;
-        this.tileVramBank = (i & (1 << 2)) != 0;
+        this.behindBG = (i & (1 << 7)) != 0;
+        this.yFlip = (i & (1 << 6)) != 0;
+        this.xFlip = (i & (1 << 5)) != 0;
+        this.paletteNumberDMG = (i & (1 << 4)) != 0;
+        this.tileVramBank = (i & (1 << 3)) != 0;
 
         this.paletteNumberCGB = i & 0b111;
     }
@@ -198,37 +200,37 @@ class GPU {
                     if (this.modeClock >= 80) {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 3;
+                        this.renderSprites();
                     }
                     break;
-    
+
                 // Read from VRAM - Scanline active
                 case 3:
                     if (this.modeClock >= 172) {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 0;
-    
+
                         // Write a scanline to the framebuffer
-                        if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                        if (!IS_NODE) {
                             this.renderScanline();
                         }
                     }
                     break;
-    
-    
+
+
                 // Hblank
                 case 0:
                     if (this.modeClock >= 204) {
                         this.modeClock = 0;
                         this.lcdcY++;
-                        this.renderSprites();
-    
+
                         if (this.lcdcY == 144) {
                             // If we're at LCDCy = 144, enter Vblank
                             this.lcdStatus.mode = 1;
                             // Fire the Vblank interrupt
                             this.gb.bus.interrupts.requestVblank();
                             this.totalFrameCount++;
-    
+
                             // Draw to the canvas
                             if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                                 this.drawToCanvasGameboy();
@@ -240,14 +242,14 @@ class GPU {
                         }
                     }
                     break;
-    
+
                 // Vblank
                 case 1:
                     if (this.modeClock >= 456) {
                         this.modeClock = 0;
-    
+
                         this.lcdcY++;
-    
+
                         if (this.lcdcY >= 154) {
                             this.lcdStatus.mode = 2;
                             this.lcdcY = 0;
@@ -256,7 +258,7 @@ class GPU {
                     break;
             }
         }
-       
+
     }
 
     imageDataGameboy = new Uint8ClampedArray(160 * 144 * 4);
@@ -308,7 +310,7 @@ class GPU {
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
-        // Loop through every single pixel 
+        // Loop through every single horzontal pixel 
         for (let i = 0; i < 160; i++) {
 
             // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
@@ -351,33 +353,39 @@ class GPU {
             let xPos = this.oam[base + 1];
             let tile = this.oam[base + 2];
 
-            let flags = new OAMFlags();
-            flags.numerical = this.oam[base + 3];
+            let screenYPos = yPos - 16;
+            let screenXPos = xPos - 8;
 
-            let y = this.lcdcY % 8;
+            // Render sprite only if it is visible on this scanline
+            if (!(screenYPos > this.lcdcY + 8) && screenYPos <= this.lcdcY) {
+                let flags = new OAMFlags();
+                flags.numerical = this.oam[base + 3];
 
-            for (let x = 0; x < 8; x++) {
-                let screenYPos = yPos - 16;
-                let screenXPos = xPos - 8;
+                let y = this.lcdcY % 8;
 
-                screenYPos += y;
-                screenXPos += x;
+                for (let x = 0; x < 8; x++) {
+                    screenYPos = yPos - 16;
+                    screenXPos = xPos - 8;
 
-                let pixelX = flags.xFlip ? 7 - x : x;
-                let pixelY = flags.yFlip ? 7 - y : y;
+                    screenYPos += y;
+                    screenXPos += x;
 
-                let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+                    let pixelX = flags.xFlip ? 7 - x : x;
+                    let pixelY = flags.yFlip ? 7 - y : y;
 
-                let prePalette = this.tileset[tile][pixelY][pixelX];
-                let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
-                let c = transformColor(pixel);
+                    let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
-                // Simulate transparency
-                if (pixel != 0) {
-                    this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
-                    this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
-                    this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
-                    this.imageDataGameboy[canvasIndex + 3] = 255;
+                    let prePalette = this.tileset[tile][pixelY][pixelX];
+                    let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
+                    let c = transformColor(pixel);
+
+                    // Simulate transparency
+                    if (pixel != 0) {
+                        this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
+                        this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
+                        this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
+                        this.imageDataGameboy[canvasIndex + 3] = 255;
+                    }
                 }
             }
         }

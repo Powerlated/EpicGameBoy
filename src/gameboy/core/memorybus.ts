@@ -109,6 +109,11 @@ class MemoryBus {
             return;
         }
 
+        // Write to OAM
+        if (addr >= 0xFE00 && addr <= 0xFE9F) {
+            this.gpu.oam[addr - 0xFE00] = value;
+        }
+
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
@@ -177,7 +182,7 @@ class MemoryBus {
             return this.bootrom[addr];
         }
 
-        // MBC 
+        // MBC
         if (addr >= 0x0000 && addr <= 0x7FFF) {
             return this.mbc.read(addr);
         }
@@ -185,6 +190,11 @@ class MemoryBus {
         // Return from VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
             return this.gpu.read(addr - VRAM_BEGIN);
+        }
+
+        // Read from OAM
+        if (addr >= 0xFE00 && addr <= 0xFE9F) {
+            return this.gpu.oam[addr - 0xFE00];
         }
 
 
@@ -253,5 +263,7 @@ class MemoryBus {
         this.memory.forEach((v, i, a) => {
             a[i] = 0;
         });
+
+        this.mbc.reset();
     }
 }

@@ -1,7 +1,7 @@
 class MBC3 implements MBC {
     romBank = 1;
     enableRamAndTimer = false;
-    
+    externalRam: Array<number> = [];
     bus: MemoryBus;
 
     constructor(bus: MemoryBus) {
@@ -24,7 +24,7 @@ class MBC3 implements MBC {
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-
+            return this.externalRam[addr];
         }
 
         return 0xFF;
@@ -43,5 +43,9 @@ class MBC3 implements MBC {
         if (addr >= 0x0000 && addr <= 0x1FFF) {
             this.enableRamAndTimer = true;
         }
+    }
+
+    reset() {
+        this.romBank = 1;
     }
 }

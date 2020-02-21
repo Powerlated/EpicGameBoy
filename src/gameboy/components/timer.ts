@@ -23,31 +23,33 @@ class Timer {
 
     step() {
         // Get the mtime
-        this.c.clock += this.gb.cpu.lastInstructionCycles / 4;
         const BASE = 16;
 
-        // 1048576hz Divide by 4 = 262144hz
-        if (this.c.clock >= 4) {
-            this.c.mainClock++;
-            this.c.clock -= 4;
+        for (let i = 0; i < this.gb.cpu.lastInstructionCycles / 4; i++) {
+            this.c.clock += 4;
+            // 1048576hz Divide by 4 = 262144hz
+            if (this.c.clock >= 4) {
+                this.c.mainClock++;
+                this.c.clock -= 4;
 
-            this.c.divClock++;
-            // Divide by 16 again for 16834hz div clock
-            if (this.c.divClock == 16) {
-                this.divider++;
-                this.divider &= 0xFF;
-                this.c.divClock = 0;
-            }
-        }
-
-        if (this.control.running) {
-            if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
-                this.counter++;
+                this.c.divClock++;
+                // Divide by 16 again for 16834hz div clock
+                if (this.c.divClock == 16) {
+                    this.divider++;
+                    this.divider &= 0xFF;
+                    this.c.divClock = 0;
+                }
             }
 
-            if (this.counter >= 256) {
-                this.gb.bus.interrupts.requestTimer();
-                this.counter = this.modulo;
+            if (this.control.running) {
+                if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
+                    this.counter++;
+                }
+
+                if (this.counter >= 256) {
+                    this.gb.bus.interrupts.requestTimer();
+                    this.counter = this.modulo;
+                }
             }
         }
     }

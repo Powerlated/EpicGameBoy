@@ -14,4 +14,6 @@ class NullMBC implements MBC {
     write(addr: number, value: number) {
         return;
     }
+
+    reset() {}
 }

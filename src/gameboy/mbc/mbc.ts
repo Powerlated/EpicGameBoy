@@ -5,6 +5,8 @@ interface MBC {
 
     read(addr: number): number;
     write(addr: number, value: number): void;
+
+    reset(): void;
 }
 
 class MBC {

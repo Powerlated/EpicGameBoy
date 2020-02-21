@@ -85,4 +85,12 @@ class MBC1 implements MBC {
             return;
         }
     }
+
+    reset() {
+        this.romBank = 1;
+        this.ramBank = 0;
+        this.enableExternalRam = false;
+        this.externalRam = this.externalRam.map(() => { return 0 }); // Zero out external RAM
+        this.bankingMode = BankingModes.ROMBankingMode
+    }
 }
