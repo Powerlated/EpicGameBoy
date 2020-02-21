@@ -204,7 +204,7 @@ enum CC {
 type OperandType = R8 | R16 | CC | number;
 
 interface Op {
-    op: Function, type?: OperandType, type2?: OperandType, length: number;
+    op: Function, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
 };
 
 enum Operand {
@@ -319,6 +319,8 @@ class CPU {
         this.gb.bus.writeMem(addr, value);
     }
 
+    opcodesRan = new Set();
+
     step() {
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
@@ -375,10 +377,10 @@ class CPU {
                 alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
             }
 
-
+            if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
             isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
-            
+
             if (isCB) this.cycles += 4;
 
             ins = isCB ? this.cbOpcode(this.fetchMem8(this.pc + 1)) : this.rgOpcode(this.fetchMem8(this.pc));
@@ -386,28 +388,23 @@ class CPU {
             // Rebind the this object
             ins.op = ins.op.bind(this);
 
-            let additionalCycles = 0;
-
             if (ins.type != undefined) {
                 if (ins.length == 3) {
-                    additionalCycles = ins.op(ins.type, this.fetchMem16(this.pc + 1));
+                    ins.op(ins.type, this.fetchMem16(this.pc + 1));
                 } else if (ins.length == 2 && (ins.type2 == undefined)) {
-                    additionalCycles = ins.op(ins.type, this.fetchMem8(this.pc + 1));
+                    ins.op(ins.type, this.fetchMem8(this.pc + 1));
                 } else {
-                    additionalCycles = ins.op(ins.type, ins.type2);
+                    ins.op(ins.type, ins.type2);
                 }
             } else {
                 if (ins.length == 3) {
-                    additionalCycles = ins.op(this.fetchMem16(this.pc + 1));
+                    ins.op(this.fetchMem16(this.pc + 1));
                 } else if (ins.length == 2) {
-                    additionalCycles = ins.op(this.fetchMem8(this.pc + 1));
+                    ins.op(this.fetchMem8(this.pc + 1));
                 } else {
-                    additionalCycles = ins.op();
+                    ins.op();
                 }
             }
-
-            if (!isNaN(additionalCycles))
-                this.cycles += additionalCycles;
 
             this.pc = o16b(this.pc + ins.length);
 
@@ -415,10 +412,16 @@ class CPU {
 
             this.lastInstructionCycles = this.cycles - c;
 
+            this.opcodesRan.add(pcTriplet[0]);
+
             // ---------------------------
 
             if (!isCB) {
-                if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false && opcode != 0x76) {
+                if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
+                    isControlFlow == false &&
+                    opcode != 0x76 &&
+                    NORMAL_TIMINGS[opcode] != 0
+                ) {
                     alert(`
                     Timings error:
                     
@@ -666,7 +669,7 @@ class CPU {
             case 0x00:
                 return { op: this.NOP, length: 1 };
             case 0xC5: // PUSH B
-                return { op: this.PUSH_R16, type: R16.BC, length: 1 };
+                return { op: this.PUSH_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
             case 0x17: // RLA
                 return { op: this.RLA, length: 1 };
             case 0xC1: // POP BC
@@ -676,13 +679,13 @@ class CPU {
             case 0x22:
                 return { op: this.LD_iHLinc_A, length: 1 };
             case 0x23:
-                return { op: this.INC_R16, type: R16.HL, length: 1 };
+                return { op: this.INC_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+            case 0x13:
+                return { op: this.INC_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
             case 0xC9:
                 return { op: this.RET, type: CC.UNCONDITIONAL, length: 1 };
             case 0x06:
                 return { op: this.LD_R8_N8, type: R8.B, length: 2 };
-            case 0x13:
-                return { op: this.INC_R16, type: R16.DE, length: 1 };
             case 0xFE:
                 return { op: this.CP_A_N8, length: 2 };
             case 0xEA:
@@ -721,8 +724,7 @@ class CPU {
                 return { op: this.LD_A_iHL_INC, length: 1 };
             case 0x01:
                 return { op: this.LD_R16_N16, type: R16.BC, length: 3 };
-            case 0x0B:
-                return { op: this.DEC_R16, type: R16.BC, length: 1 };
+
             case 0xFB: // DI - 0xFB Enable interrupts
                 return { op: this.EI, length: 1 };
             case 0x2F: // CPL
@@ -731,8 +733,20 @@ class CPU {
                 return { op: this.AND_N8, length: 2 };
             case 0xE1: // POP HL
                 return { op: this.POP_R16, type: R16.HL, length: 1 };
-            case 0xD5:
-                return { op: this.PUSH_R16, type: R16.DE, length: 1 };
+            case 0x0B: // DEC BC
+                return { op: this.DEC_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
+            case 0x1B: // DEC DE 
+                return { op: this.DEC_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
+            case 0x2B: // DEC HL
+                return { op: this.DEC_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+            case 0xD5: // PUSH DE
+                return { op: this.PUSH_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
+            case 0xF5: // PUSH AF 
+                return { op: this.PUSH_R16, type: R16.AF, length: 1, cyclesOffset: 4 };
+            case 0xE5: // PUSH HL
+                return { op: this.PUSH_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+            case 0x03: // INC BC
+                return { op: this.INC_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
             case 0xE9: // JP HL
                 return { op: this.JP_HL, length: 1 };
             case 0x12: // LD [DE],A
@@ -741,14 +755,8 @@ class CPU {
                 return { op: this.INC_R8, type: R8.E, length: 1 };
             case 0x14: // INC D
                 return { op: this.INC_R8, type: R8.D, length: 1 };
-            case 0xE5: // PUSH HL
-                return { op: this.PUSH_R16, type: R16.HL, length: 1 };
-            case 0xF5: // PUSH AF 
-                return { op: this.PUSH_R16, type: R16.AF, length: 1 };
             case 0xF1: // POP AF 
                 return { op: this.POP_R16, type: R16.AF, length: 1 };
-            case 0x03: // INC BC
-                return { op: this.INC_R16, type: R16.BC, length: 1 };
             case 0xFA: // LD A, [N16]
                 return { op: this.LD_A_N16, length: 3 };
             case 0xC4: // CALL NZ, N16
@@ -796,7 +804,9 @@ class CPU {
             case 0xD8: // RET C
                 return { op: this.RET, type: CC.C, length: 1 };
             case 0xF8: // LD HL, SP+e8
-                return { op: this.LD_HL_SPaddE8, length: 2 };
+                return { op: this.LD_HL_SPaddE8, length: 2, cyclesOffset: 4 };
+            case 0xF9: // LD SP, HL
+                return { op: this.LD_SP_HL, length: 1, cyclesOffset: 4 };
             case 0x07: // RLC A
                 return { op: this.RLCA, length: 1 };
             case 0x10: // STOP
@@ -807,10 +817,7 @@ class CPU {
                 return { op: this.SCF, length: 1 };
             case 0x3F: // CCF
                 return { op: this.CCF, length: 1 };
-            case 0x1B: // DEC DE 
-                return { op: this.DEC_R16, type: R16.DE, length: 1 };
-            case 0xF9: // LD SP, HL
-                return { op: this.LD_SP_HL, length: 1 };
+
             case 0xCA: // JP Z, N16
                 return { op: this.JP_N16, type: CC.Z, length: 3 };
             case 0xD2: // JP NC, N16
@@ -828,11 +835,13 @@ class CPU {
             case 0x34: // INC [HL]
                 return { op: this.INC_R8, type: R8.iHL, length: 1 };
             case 0x33: // INC SP
-                return { op: this.INC_R16, type: R16.SP, length: 3 };
+                return { op: this.INC_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
             case 0x3B: // DEC SP
-                return { op: this.DEC_R16, type: R16.SP, length: 3 };
+                return { op: this.DEC_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
             case 0x39: // ADD HL, SP
-                return { op: this.ADD_HL_R16, type: R16.SP, length: 3 };
+                return { op: this.ADD_HL_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
+            case 0xE8: // ADD SP, E8
+                return { op: this.ADD_SP_E8, length: 2, cyclesOffset: 8 };
             case 0x0A: // LD A, [BC]
                 return { op: this.LD_A_iR16, type: R16.BC, length: 1 };
             case 0x3A: // LD A, [HL-]
@@ -843,20 +852,16 @@ class CPU {
                 return { op: this.LD_A_iFF00plusC, length: 1 };
             case 0x0F: // RRCA
                 return { op: this.RRCA, length: 1 };
-            case 0xE8: // AP SP, E8
-                return { op: this.ADD_SP_E8, length: 2 };
             case 0xF6: // OR A, N8
                 return { op: this.OR_A_N8, length: 2 };
             case 0xDE: // SBC A, N8
                 return { op: this.SBC_A_N8, length: 2 };
-            case 0x2B: // DEC HL
-                return { op: this.DEC_R16, type: R16.HL, length: 1 };
             case 0x09: // ADD HL, BC
-                return { op: this.ADD_HL_R16, type: R16.BC, length: 1 };
+                return { op: this.ADD_HL_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
             case 0x19: // ADD HL, DE
-                return { op: this.ADD_HL_R16, type: R16.DE, length: 1 };
+                return { op: this.ADD_HL_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
             case 0x29: // ADD HL, HL
-                return { op: this.ADD_HL_R16, type: R16.HL, length: 1 };
+                return { op: this.ADD_HL_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
             case 0xDF: // RST 18h
                 return { op: this.RST, type: 0x18, length: 1 };
             case 0xE7: // RST 20h
@@ -955,7 +960,7 @@ class CPU {
         alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
         this.gb.speedStop();
         return { op: this.UNKNOWN_OPCODE, length: 1 };
-        
+
     }
 
     cbOpcode(id: number): Op {
@@ -1174,8 +1179,6 @@ class CPU {
         this.writeMem8(this._r.sp, upperByte);
         this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, lowerByte);
-
-        return 4;
     }
 
     /*  PUSH r16 - 0xC1
@@ -1639,8 +1642,6 @@ class CPU {
     // Increment in register r16
     INC_R16(r16: R16) {
         this.setReg(r16, o16b(this.getReg(r16) + 1));
-
-        return 4;
     }
 
     DEC_R8(t: R8) {
@@ -1658,8 +1659,6 @@ class CPU {
 
     DEC_R16(tt: R16) {
         this.setReg(tt, o16b(this.getReg(tt) - 1));
-
-        return 4;
     }
 
     CCF() {

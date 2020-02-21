@@ -6,7 +6,7 @@ class NullMBC implements MBC {
         this.bus = bus;
     }
 
-    selectedBank = 0;
+    romBank = 0;
 
     read(addr: number): number {
         return this.bus.gb.bus.rom[addr];

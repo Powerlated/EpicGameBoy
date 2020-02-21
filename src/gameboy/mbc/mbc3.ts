@@ -1,5 +1,5 @@
 class MBC3 implements MBC {
-    selectedBank = 1;
+    romBank = 1;
     enableRamAndTimer = false;
     
     bus: MemoryBus;
@@ -9,7 +9,8 @@ class MBC3 implements MBC {
     }
 
     readBank(addr: number, bank: number): number {
-        return this.bus.rom[addr + (MBC.bankSize * bank)];
+        let calculated = (bank * MBC.bankSize) + (addr - MBC.bankSize);
+        return this.bus.rom[calculated];
     }
 
     read(addr: number): number {
@@ -19,7 +20,7 @@ class MBC3 implements MBC {
         }
         // Banks 01-7F (Read Only)
         if (addr >= 0x4000 && addr <= 0x7FFF) {
-            return this.readBank(addr, this.selectedBank);
+            return this.readBank(addr, this.romBank);
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
@@ -33,10 +34,10 @@ class MBC3 implements MBC {
         if (addr >= 0x2000 && addr <= 0x3FFF) {
             // MBC3 - Writing 0 will select 1
             if (value == 0) {
-                this.selectedBank = 1;
+                this.romBank = 1;
                 return;
             } else {
-                this.selectedBank = value & 0b1111111; // Whole 7 bits
+                this.romBank = value & 0b1111111; // Whole 7 bits
             }
         }
         if (addr >= 0x0000 && addr <= 0x1FFF) {

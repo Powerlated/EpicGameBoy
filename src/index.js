@@ -28,15 +28,13 @@ function loadTetris() {
     let raw = atob(TETRIS_BASE64);
     let rawLength = raw.length;
 
-    let array = new Uint8Array(new ArrayBuffer(65536));
+    let array = new Uint8Array(new ArrayBuffer(4194304));
 
     for (i = 0; i < rawLength; i++) {
         array[i] = raw.charCodeAt(i);
     }
 
-    array.forEach((v, i, a) => {
-        gb.bus.rom[i] = v;
-    });
+    gb.bus.replaceRom(array);
 }
 
 let disassemblyP = document.getElementById('disassembly-output');

@@ -34,7 +34,7 @@ class MemoryBus {
     updateMBC() {
         switch (this.rom[0x147]) {
             case 0x01: case 0x02: case 0x03:
-                // this.mbc = new MBC1(this);
+                this.mbc = new MBC1(this);
                 break;
             case 0x05: case 0x06:
                 // this.mbc = new MBC2(this);
@@ -56,9 +56,17 @@ class MemoryBus {
             case 0x09: case 0x0B:
             case 0x0C: case 0x0D:
             default:
-                this.mbc = new NullMBC(this);
+                this.mbc = new MBC1(this);
                 break;
         }
+    }
+
+    replaceRom(rom: Uint8Array) {
+        console.info("Replaced ROM")
+        rom.forEach((v, i) => {
+            this.rom[i] = v;
+        });
+        this.updateMBC();
     }
 
     serialOut: Array<number> = [];
@@ -165,7 +173,6 @@ class MemoryBus {
     }
 
     readMem8(addr: number): number {
-        this.updateMBC();
         if (addr < 0x100 && this.bootromEnabled) {
             return this.bootrom[addr];
         }
