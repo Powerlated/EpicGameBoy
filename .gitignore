@@ -11,4 +11,7 @@ testroms/*.sav
 src/testing
 bootrom.asm
 
+src/gameboy.js
+src/gameboy.js.map
+
 out/

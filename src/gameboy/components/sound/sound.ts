@@ -61,10 +61,10 @@ class WaveChannel {
 
     get pan(): number {
         if (this.outputLeft && !this.outputRight) {
-            return -1;
+            return -0.5;
         }
         if (this.outputRight && !this.outputLeft) {
-            return 1;
+            return 0.5;
         }
         if (this.outputLeft && this.outputRight) {
             return 0;
@@ -98,6 +98,13 @@ class WaveChannel {
 }
 
 class NoiseChannel {
+    volume = 0; // 4-bit value 0-15
+    volumeEnvelopeUp = false;
+    volumeEnvelopeSweep = 4;
+    volumeEnvelopeStart = 0;
+
+    soundLength = 0;
+
     outputLeft = false;
     outputRight = false;
 
@@ -147,7 +154,8 @@ class SoundChip {
 
     // 0 = 50% Duty Cycle
     // static widths = [0.125, 0.25, 0.50, 0.75]; // WRONG
-    static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
+    // static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
+    static widths = [0.5, 0, -0.5, -0.75]; // CORRECT
 
 
     enabled = false;
@@ -156,6 +164,7 @@ class SoundChip {
     clockMain = 0;
     clockEnvelope1 = 0;
     clockEnvelope2 = 0;
+    clockEnvelopeNoise = 0;
 
     pulseChannel1 = new PulseChannel();
     pulseChannel2 = new PulseChannel();
@@ -169,6 +178,9 @@ class SoundChip {
     waveSrc: Tone.BufferSource;
     wavePan: Tone.Panner;
     waveVolume: Tone.Volume;
+
+    noise: Tone.Noise;
+    noiseVolume: Tone.Volume;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -196,6 +208,13 @@ class SoundChip {
         this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
+        this.noise = new Tone.Noise();
+        this.noiseVolume = new Tone.Volume();
+        this.noiseVolume.volume.value = -100000000;
+        let crusher = new Tone.Distortion(1);
+        this.noise.chain(this.noiseVolume, crusher, Tone.Master);
+        this.noise.start();
+
         //play a middle 'C' for the duration of an 8th note
     }
 
@@ -209,6 +228,7 @@ class SoundChip {
         this.clockMain += this.gb.cpu.lastInstructionCycles / 4;
         this.clockEnvelope1 += (this.gb.cpu.lastInstructionCycles / 4) / this.pulseChannel1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
         this.clockEnvelope2 += (this.gb.cpu.lastInstructionCycles / 4) / this.pulseChannel2.volumeEnvelopeSweep; // 16384 hz, divide as needed
+        this.clockEnvelopeNoise += (this.gb.cpu.lastInstructionCycles / 4) / this.noiseChannel.volumeEnvelopeSweep; // 16384 hz, divide as needed
 
         if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
             if (this.pulseChannel1.volumeEnvelopeSweep != 0) {
@@ -234,6 +254,19 @@ class SoundChip {
                 }
             }
             this.clockEnvelope2 = 0;
+        }
+
+        if (this.clockEnvelopeNoise >= CLOCK_ENVELOPE_STEPS) {
+            if (this.noiseChannel.volumeEnvelopeSweep != 0) {
+                if (this.noiseChannel.volume > 0 && this.noiseChannel.volume < 16) {
+                    if (this.noiseChannel.volumeEnvelopeUp) {
+                        this.noiseChannel.volume++;
+                    } else {
+                        this.noiseChannel.volume--;
+                    }
+                }
+            }
+            this.clockEnvelopeNoise = 0;
         }
 
         // 1048576hz Divide by 4096 = 256hz
@@ -265,6 +298,12 @@ class SoundChip {
                 this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
             } else {
                 this.waveVolume.volume.value = -1000000;
+            }
+
+            if (this.noiseChannel.enabled) {
+                this.noiseVolume.volume.value = SoundChip.convertVolumeWave(this.noiseChannel.volume);
+            } else {
+                this.noiseVolume.volume.value = -1000000;
             }
 
 
@@ -363,6 +402,14 @@ class SoundChip {
                 break;
 
             case 0xFF20:
+                this.noiseChannel.soundLength = 256 - value;
+                break;
+            case 0xFF21:
+                this.noiseChannel.volume = (value >> 4) & 0xF;
+                this.noiseChannel.volumeEnvelopeStart = (value >> 4) & 0xF;
+                this.noiseChannel.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
+                this.noiseChannel.volumeEnvelopeSweep = value & 0b111;
+                break;
 
 
             case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:

@@ -3,7 +3,7 @@
         "target": "ES2020",
         "module": "amd",
         "sourceMap": true,
-        "outFile": "src/gameboy/gameboy.js",
+        "outFile": "src/gameboy.js",
         "strict": true
     },
 }
