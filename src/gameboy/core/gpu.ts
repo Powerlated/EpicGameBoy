@@ -175,6 +175,7 @@ class GPU {
     lcdcY = 0; // 0xFF44 - Current scanning line
 
     modeClock: number = 0;
+    frameClock: number = 0;
 
     ctxGameboy!: CanvasRenderingContext2D;
     ctxTileset!: CanvasRenderingContext2D;
@@ -189,72 +190,73 @@ class GPU {
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
         // Clock the GPU based on how long the last CPU instruction took 
-        this.modeClock += this.gb.cpu.lastInstructionCycles;
-        switch (this.lcdStatus.mode) {
-            // Read from OAM - Scanline active
-            case 2:
-                if (this.modeClock >= 80) {
-                    this.modeClock = 0;
-                    this.lcdStatus.mode = 3;
-                }
-                break;
-
-            // Read from VRAM - Scanline active
-            case 3:
-                if (this.modeClock >= 172) {
-                    this.modeClock = 0;
-                    this.lcdStatus.mode = 0;
-
-                    // Write a scanline to the framebuffer
-                    if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                        this.renderScanline();
+        for (let i = 0; i < this.gb.cpu.lastInstructionCycles / 4; i++) {
+            this.modeClock += 4;
+            switch (this.lcdStatus.mode) {
+                // Read from OAM - Scanline active
+                case 2:
+                    if (this.modeClock >= 80) {
+                        this.modeClock = 0;
+                        this.lcdStatus.mode = 3;
                     }
-                }
-                break;
-
-
-            // Hblank
-            case 0:
-                if (this.modeClock >= 204) {
-                    this.modeClock = 0;
-                    this.lcdcY++;
-
-                    if (this.lcdcY == 144) {
-                        // If we're at LCDCy = 144, enter Vblank
-                        this.lcdStatus.mode = 1;
-                        // Fire the Vblank interrupt
-                        this.gb.bus.interrupts.requestVblank();
-                        this.totalFrameCount++;
-
-                        // Draw to the canvas
+                    break;
+    
+                // Read from VRAM - Scanline active
+                case 3:
+                    if (this.modeClock >= 172) {
+                        this.modeClock = 0;
+                        this.lcdStatus.mode = 0;
+    
+                        // Write a scanline to the framebuffer
                         if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.renderSprites();
-                            this.drawToCanvasGameboy();
+                            this.renderScanline();
                         }
                     }
-                    else {
-                        // Enter back into OAM mode if not Vblank
-                        this.lcdStatus.mode = 2;
+                    break;
+    
+    
+                // Hblank
+                case 0:
+                    if (this.modeClock >= 204) {
+                        this.modeClock = 0;
+                        this.lcdcY++;
+                        this.renderSprites();
+    
+                        if (this.lcdcY == 144) {
+                            // If we're at LCDCy = 144, enter Vblank
+                            this.lcdStatus.mode = 1;
+                            // Fire the Vblank interrupt
+                            this.gb.bus.interrupts.requestVblank();
+                            this.totalFrameCount++;
+    
+                            // Draw to the canvas
+                            if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                                this.drawToCanvasGameboy();
+                            }
+                        }
+                        else {
+                            // Enter back into OAM mode if not Vblank
+                            this.lcdStatus.mode = 2;
+                        }
                     }
-                }
-                break;
-
-            // Vblank
-            case 1:
-                if (this.modeClock >= 456) {
-                    this.modeClock = 0;
-
-                    this.lcdcY++;
-
-                    if (this.lcdcY >= 154) {
-                        this.lcdStatus.mode = 2;
-                        this.lcdcY = 0;
+                    break;
+    
+                // Vblank
+                case 1:
+                    if (this.modeClock >= 456) {
+                        this.modeClock = 0;
+    
+                        this.lcdcY++;
+    
+                        if (this.lcdcY >= 154) {
+                            this.lcdStatus.mode = 2;
+                            this.lcdcY = 0;
+                        }
                     }
-                }
-                break;
+                    break;
+            }
         }
-
-
+       
     }
 
     imageDataGameboy = new Uint8ClampedArray(160 * 144 * 4);
@@ -352,31 +354,31 @@ class GPU {
             let flags = new OAMFlags();
             flags.numerical = this.oam[base + 3];
 
+            let y = this.lcdcY % 8;
+
             for (let x = 0; x < 8; x++) {
-                for (let y = 0; y < 8; y++) {
-                    let screenYPos = yPos - 16;
-                    let screenXPos = xPos - 8;
+                let screenYPos = yPos - 16;
+                let screenXPos = xPos - 8;
 
-                    screenYPos += y;
-                    screenXPos += x;
+                screenYPos += y;
+                screenXPos += x;
 
-                    let pixelX = flags.xFlip ? 7 - x : x;
-                    let pixelY = flags.yFlip ? 7 - y : y;
+                let pixelX = flags.xFlip ? 7 - x : x;
+                let pixelY = flags.yFlip ? 7 - y : y;
 
-                    let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+                let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
-                    let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
-                    let prePalette = this.tileset[tile + tileOffset][pixelY][pixelX];
-                    let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
-                    let c = transformColor(pixel);
+                let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
+                let prePalette = this.tileset[tile + tileOffset][pixelY][pixelX];
+                let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
+                let c = transformColor(pixel);
 
-                    // Simulate transparency
-                    if (pixel != 0) {
-                        this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
-                        this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
-                        this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
-                        this.imageDataGameboy[canvasIndex + 3] = 255;
-                    }
+                // Simulate transparency
+                if (pixel != 0) {
+                    this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
+                    this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
+                    this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
+                    this.imageDataGameboy[canvasIndex + 3] = 255;
                 }
             }
         }
@@ -478,9 +480,9 @@ class GPU {
         this.lcdControl = new LCDCRegister();
         this.lcdStatus = new LCDStatusRegister();
 
-        this.bgPaletteData = new PaletteData(); 
-        this.objPaletteData0 = new PaletteData(); 
-        this.objPaletteData1 = new PaletteData(); 
+        this.bgPaletteData = new PaletteData();
+        this.objPaletteData0 = new PaletteData();
+        this.objPaletteData1 = new PaletteData();
 
         this.scrollY = 0;
         this.scrollX = 0;

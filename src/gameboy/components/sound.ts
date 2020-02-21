@@ -270,7 +270,6 @@ class SoundChip {
 
 
             if (this.waveChannel.waveTableUpdated == true) {
-                console.log("Wave table updated");
                 this.waveSrc.dispose();
 
                 this.waveSrc = new Tone.BufferSource(this.waveChannel.buffer, () => { });
