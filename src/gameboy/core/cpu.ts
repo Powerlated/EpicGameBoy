@@ -417,6 +417,20 @@ class CPU {
             // ---------------------------
 
             if (!isCB) {
+                if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
+                    alert(`
+                    Length error:
+                    
+                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                    Opcode: ${hex(opcode, 2)}
+
+                    Instruction Length: ${ins.length}
+                    Proper Length: ${DMG_OPS.Unprefixed[opcode].Length}
+                    
+                    `);
+                    this.gb.speedStop();
+                }
+
                 if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
                     isControlFlow == false &&
                     opcode != 0x76 &&
@@ -435,8 +449,22 @@ class CPU {
                     this.gb.speedStop();
                 }
             } else {
+                if (DMG_OPS.CBPrefixed[opcode].Length != ins.length) {
+                    alert(`
+                    Length error:
+                    
+                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                    Opcode: ${hex(opcode, 2)}
+
+                    Instruction Length: ${ins.length}
+                    Proper Length: ${DMG_OPS.CBPrefixed[opcode].Length}
+                    
+                    `);
+                    this.gb.speedStop();
+                }
+
                 // TODO Screw it, i'll handle this later
-                if (false && CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
+                if (CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
                     alert(`
                     Timings error:
                     
@@ -979,12 +1007,16 @@ class CPU {
             bit = ((upperNybble & 0b11) * 2) + 1;
         }
 
+        let cyclesOffset = 0;
 
         let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
         type = typeTable[lowerNybble & 0b111];
 
         if (upperNybble < 0x4) {
+            // TODO: IDK why I need this
+            cyclesOffset = -4;
+
             if (lowerNybble < 0x8) {
                 // 0x0 - 0x7
                 switch (upperNybble) {
@@ -1017,7 +1049,7 @@ class CPU {
 
 
 
-        return { op: op!, type: type, type2: bit, length: 2 };
+        return { op: op!, type: type, type2: bit, length: 2, cyclesOffset: cyclesOffset };
     }
 
     UNKNOWN_OPCODE() {
@@ -1854,8 +1886,10 @@ class CPU {
 
     // Shift TARGET left 
     SLA_R8(t: R8) {
-        let newValue = o8b(this.getReg(t) << 1);
-        let didOverflow = do8b(this.getReg(t) << 1);
+        let value = this.getReg(t);
+
+        let newValue = o8b(value << 1);
+        let didOverflow = do8b(value << 1);
 
         this.setReg(t, newValue);
 
@@ -1881,13 +1915,14 @@ class CPU {
 
     // SWAP 
     SWAP_R8(r8: R8) {
-        let original = this.getReg(r8);
-        let lowerNybble = original & 0b00001111;
-        let upperNybble = (original >> 4) & 0b00001111;
+        let value = this.getReg(r8);
+
+        let lowerNybble = value & 0b00001111;
+        let upperNybble = (value >> 4) & 0b00001111;
 
         this.setReg(r8, (lowerNybble << 4) | upperNybble);
 
-        this._r._f.zero = this.getReg(r8) == 0;
+        this._r._f.zero = value == 0;
         this._r._f.negative = false;
         this._r._f.half_carry = false;
         this._r._f.carry = false;

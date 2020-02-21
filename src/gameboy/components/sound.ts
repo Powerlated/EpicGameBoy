@@ -78,13 +78,16 @@ class WaveChannel {
     }
 
     get buffer(): AudioBuffer {
-        const SAMPLE_RATE = 56320 * (this.frequencyHz / 440); // A440 without any division
+        let sampleRate = 56320 * (this.frequencyHz / 440); // A440 without any division
+        if (sampleRate > 384000) {
+            sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
+        }
 
         let waveTable = this.waveTable.map(v => { return (v - 8) / 8; });
         waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
         let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, SAMPLE_RATE);
+        let arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
         let buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];

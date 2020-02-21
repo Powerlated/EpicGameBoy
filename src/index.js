@@ -187,9 +187,7 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
         var arrayBuffer = this.result;
         var array = new Uint8Array(arrayBuffer);
 
-        array.forEach((v, i, a) => {
-            gb.bus.rom[i] = v;
-        });
+        gb.bus.replaceRom(array);
         // cpu.khz()
         // gb.bus.gpu.frameExecute();
     };

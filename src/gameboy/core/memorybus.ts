@@ -44,7 +44,7 @@ class MemoryBus {
                 break;
             case 0x19: case 0x1A: case 0x1B: case 0x1B:
             case 0x1C: case 0x1D: case 0x1E:
-                // this.mbc = new MBC5(this);
+                this.mbc = new MBC3(this);
                 break;
             case 0x20:
                 // this.mbc = new MBC6(this);
@@ -56,7 +56,7 @@ class MemoryBus {
             case 0x09: case 0x0B:
             case 0x0C: case 0x0D:
             default:
-                this.mbc = new MBC1(this);
+                this.mbc = new NullMBC(this);
                 break;
         }
     }

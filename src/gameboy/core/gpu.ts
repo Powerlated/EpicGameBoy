@@ -427,14 +427,14 @@ class GPU {
 
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
 
         return this.vram[index];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
+        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
 
         this.vram[index] = value;
 
