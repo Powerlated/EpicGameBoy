@@ -519,9 +519,6 @@ class CPU {
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
-
-
-        check(this);
     }
 
     stepDebug() {

@@ -83,10 +83,17 @@ class MemoryBus {
         `);
         }
 
+        // Write to Echo RAM
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
+            this.memory[addr - 8192] = value;
+        }
+
+        // ROM Write (MBC Control)
         if (addr >= 0x0000 && addr <= 0x7FFF) {
             this.mbc.write(addr, value);
         }
 
+        // Sound registers
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
             this.gb.soundChip.write(addr, value);
         }
@@ -182,7 +189,12 @@ class MemoryBus {
             return this.bootrom[addr];
         }
 
-        // MBC
+        // Read from Echo RAM
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
+            return this.memory[addr - 8192];
+        }
+
+        // Read from ROM through MBC
         if (addr >= 0x0000 && addr <= 0x7FFF) {
             return this.mbc.read(addr);
         }
