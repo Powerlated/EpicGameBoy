@@ -124,6 +124,24 @@ class NoiseChannel {
         }
         return 0;
     }
+
+    get buffer(): AudioBuffer {
+        let waveTable = new Array(4800).fill(0);
+        waveTable = waveTable.map((v, i) => {
+            return Math.round(Math.random())
+        });
+
+        // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
+
+        let ac = (Tone.context as any as AudioContext);
+        let arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        let buffering = arrayBuffer.getChannelData(0);
+        for (let i = 0; i < arrayBuffer.length; i++) {
+            buffering[i] = waveTable[i % waveTable.length];
+        }
+
+        return arrayBuffer;
+    }
 }
 
 class SoundChip {
@@ -179,7 +197,7 @@ class SoundChip {
     wavePan: Tone.Panner;
     waveVolume: Tone.Volume;
 
-    noise: Tone.Noise;
+    noiseSrc: Tone.BufferSource;
     noiseVolume: Tone.Volume;
 
     constructor(gb: GameBoy) {
@@ -208,12 +226,12 @@ class SoundChip {
         this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
-        this.noise = new Tone.Noise();
+        this.noiseSrc = new Tone.BufferSource(this.noiseChannel.buffer, () => { });
+        this.noiseSrc.loop = true;
         this.noiseVolume = new Tone.Volume();
-        this.noiseVolume.volume.value = -100000000;
-        let crusher = new Tone.Distortion(1);
-        this.noise.chain(this.noiseVolume, crusher, Tone.Master);
-        this.noise.start();
+        this.noiseVolume.volume.value = -36;
+        this.noiseSrc.chain(this.noiseVolume, Tone.Master);
+        this.noiseSrc.start();
 
         //play a middle 'C' for the duration of an 8th note
     }
@@ -301,7 +319,7 @@ class SoundChip {
             }
 
             if (this.noiseChannel.enabled) {
-                this.noiseVolume.volume.value = SoundChip.convertVolumeWave(this.noiseChannel.volume);
+                this.noiseVolume.volume.value = SoundChip.convertVolume(this.noiseChannel.volume);
             } else {
                 this.noiseVolume.volume.value = -1000000;
             }
