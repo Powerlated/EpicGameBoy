@@ -188,15 +188,38 @@ function updateDebug() {
 
 
 
-    let p0 = document.getElementById('palette0')!;
-    let p1 = document.getElementById('palette1')!;
-    let p2 = document.getElementById('palette2')!;
-    let p3 = document.getElementById('palette3')!;
+    let p0bg = document.getElementById('palette0-bg')!;
+    let p1bg = document.getElementById('palette1-bg')!;
+    let p2bg = document.getElementById('palette2-bg')!;
+    let p3bg = document.getElementById('palette3-bg')!;
 
-    p0.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
-    p1.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
-    p2.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
-    p3.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
+    let p0obj0 = document.getElementById('palette0-obj0')!;
+    let p1obj0 = document.getElementById('palette1-obj0')!;
+    let p2obj0 = document.getElementById('palette2-obj0')!;
+    let p3obj0 = document.getElementById('palette3-obj0')!;
+
+    let p0obj1 = document.getElementById('palette0-obj1')!;
+    let p1obj1 = document.getElementById('palette1-obj1')!;
+    let p2obj1 = document.getElementById('palette2-obj1')!;
+    let p3obj1 = document.getElementById('palette3-obj1')!;
+
+
+    p0bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
+    p1bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
+    p2bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
+    p3bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
+    
+    p0obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade0), 6);
+    p1obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade1), 6);
+    p2obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade2), 6);
+    p3obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade3), 6);
+    
+    p0obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade0), 6);
+    p1obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade1), 6);
+    p2obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade2), 6);
+    p3obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade3), 6);
+
+
 
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
