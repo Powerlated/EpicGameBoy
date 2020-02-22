@@ -6,8 +6,8 @@ class LCDCRegister {
     bgWindowTiledataSelect__4 = false; // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
     bgTilemapSelect_3 = false; // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
     spriteSize______2 = false; // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
-    bgWindowPriority1 = false; // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
-    spriteDisplay___0 = false; // Bit 0 - BG/Window Display/Priority     (0=Off, 1=On)
+    spriteDisplay___1 = false; // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
+    bgWindowPriority0 = false; // Bit 0 - BG/Window Display/Priority     (0=Off, 1=On)
 
     get numerical(): number {
         let flagN = 0;
@@ -17,8 +17,8 @@ class LCDCRegister {
         if (this.bgWindowTiledataSelect__4) flagN = flagN | 0b00010000;
         if (this.bgTilemapSelect_3) flagN = flagN | 0b00001000;
         if (this.spriteSize______2) flagN = flagN | 0b00000100;
-        if (this.bgWindowPriority1) flagN = flagN | 0b00000010;
-        if (this.spriteDisplay___0) flagN = flagN | 0b00000001;
+        if (this.spriteDisplay___1) flagN = flagN | 0b00000010;
+        if (this.bgWindowPriority0) flagN = flagN | 0b00000001;
         return flagN;
     }
 
@@ -29,8 +29,8 @@ class LCDCRegister {
         this.bgWindowTiledataSelect__4 = (i & (1 << 4)) != 0;
         this.bgTilemapSelect_3 = (i & (1 << 3)) != 0;
         this.spriteSize______2 = (i & (1 << 2)) != 0;
-        this.bgWindowPriority1 = (i & (1 << 1)) != 0;
-        this.spriteDisplay___0 = (i & (1 << 0)) != 0;
+        this.spriteDisplay___1 = (i & (1 << 1)) != 0;
+        this.bgWindowPriority0 = (i & (1 << 0)) != 0;
     }
 }
 
@@ -200,7 +200,10 @@ class GPU {
                     if (this.modeClock >= 80) {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 3;
-                        this.renderSprites();
+
+                        if (this.lcdControl.spriteDisplay___1) {
+                            this.renderSprites();
+                        }
                     }
                     break;
 
@@ -210,7 +213,7 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 0;
 
-                        // Write a scanline to the framebuffer
+                        // Render scanline when entering Hblank
                         if (!IS_NODE) {
                             this.renderScanline();
                         }
@@ -291,6 +294,7 @@ class GPU {
 
     }
 
+    // TODO: Make scanline effects work
     renderScanline() {
         // console.log("Rendering a scanline @ Y:" + this.lcdcY);
 
@@ -310,7 +314,7 @@ class GPU {
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
-        // Loop through every single horzontal pixel 
+        // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < 160; i++) {
 
             // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
@@ -345,6 +349,7 @@ class GPU {
     }
 
     renderSprites() {
+        let spriteCount = 0;
         // 40 sprites in total in OAM
         for (let sprite = 0; sprite < 40; sprite++) {
             let base = sprite * 4;
@@ -358,6 +363,9 @@ class GPU {
 
             // Render sprite only if it is visible on this scanline
             if (!(screenYPos > this.lcdcY + 8) && screenYPos <= this.lcdcY) {
+                if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
+                spriteCount++;
+
                 let flags = new OAMFlags();
                 flags.numerical = this.oam[base + 3];
 
