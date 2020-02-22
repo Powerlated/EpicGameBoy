@@ -1,155 +1,3 @@
-class PulseChannel {
-    frequencyUpper = 0; // Frequency = 131072/(2048-x) Hz
-    frequencyLower = 0;
-    oldFrequencyLower = 0;
-    oldFrequencyHz = 0;
-
-    volume = 0; // 4-bit value 0-15
-    volumeEnvelopeUp = false;
-    volumeEnvelopeSweep = 4;
-    volumeEnvelopeStart = 0;
-
-    oldVolume = 0;
-
-    outputLeft = false;
-    outputRight = false;
-
-    triggered = false;
-
-    get enabled(): boolean {
-        return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
-    }
-
-    get pan(): number {
-        if (this.outputLeft && !this.outputRight) {
-            return -0.5;
-        }
-        if (this.outputRight && !this.outputLeft) {
-            return 0.5;
-        }
-        if (this.outputLeft && this.outputRight) {
-            return 0;
-        }
-        return 0;
-    }
-
-    get frequencyHz(): number {
-        let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
-        return 131072 / (2048 - frequency);
-    }
-}
-
-class WaveChannel {
-    frequencyUpper = 0;
-    frequencyLower = 0;
-    oldFrequencyHz = 0;
-
-    volume = 0;
-    oldVolume = 0;
-
-    waveTable: Array<number> = new Array(32).fill(0);
-    waveTableUpdated = false;
-
-    restartSound = false;
-    soundExpires = true;
-    soundLength = 0;
-
-    outputLeft = false;
-    outputRight = false;
-
-    triggered = false;
-
-    get enabled(): boolean {
-        return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
-    }
-
-    get pan(): number {
-        if (this.outputLeft && !this.outputRight) {
-            return -0.5;
-        }
-        if (this.outputRight && !this.outputLeft) {
-            return 0.5;
-        }
-        if (this.outputLeft && this.outputRight) {
-            return 0;
-        }
-        return 0;
-    }
-
-    get frequencyHz(): number {
-        let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
-        return (65536 / (2048 - frequency));
-    }
-
-    get buffer(): AudioBuffer {
-        let sampleRate = 56320 * (this.frequencyHz / 440); // A440 without any division
-        if (sampleRate > 384000) {
-            sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
-        }
-
-        let waveTable = this.waveTable.map(v => { return (v - 8) / 8; });
-        waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
-
-        let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
-        let buffering = arrayBuffer.getChannelData(0);
-        for (let i = 0; i < arrayBuffer.length; i++) {
-            buffering[i] = waveTable[i % waveTable.length];
-        }
-
-        return arrayBuffer;
-    }
-}
-
-class NoiseChannel {
-    volume = 0; // 4-bit value 0-15
-    volumeEnvelopeUp = false;
-    volumeEnvelopeSweep = 4;
-    volumeEnvelopeStart = 0;
-
-    soundLength = 0;
-
-    outputLeft = false;
-    outputRight = false;
-
-    triggered = false;
-
-    get enabled(): boolean {
-        return this.outputLeft || this.outputRight;
-    }
-
-    get pan(): number {
-        if (this.outputLeft && !this.outputRight) {
-            return -0.5;
-        }
-        if (this.outputRight && !this.outputLeft) {
-            return 0.5;
-        }
-        if (this.outputLeft && this.outputRight) {
-            return 0;
-        }
-        return 0;
-    }
-
-    get buffer(): AudioBuffer {
-        let waveTable = new Array(4800).fill(0);
-        waveTable = waveTable.map((v, i) => {
-            return Math.round(Math.random());
-        });
-
-        // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
-
-        let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
-        let buffering = arrayBuffer.getChannelData(0);
-        for (let i = 0; i < arrayBuffer.length; i++) {
-            buffering[i] = waveTable[i % waveTable.length];
-        }
-
-        return arrayBuffer;
-    }
-}
-
 class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {
         return v0 * (1 - t) + v1 * t;
@@ -238,13 +86,12 @@ class SoundChip {
         this.noiseVolume.mute = true;
         this.noiseSrc.chain(this.noiseVolume, Tone.Master);
         this.noiseSrc.start();
-
-        //play a middle 'C' for the duration of an 8th note
     }
 
     step() {
         if (!this.enabled) return;
 
+        // #region CLOCK
         const CLOCK_MAIN_STEPS = 16384;
         const CLOCK_ENVELOPE_STEPS = 16384;
         const CLOCK_SWEEP_STEPS = 32768;
@@ -292,60 +139,95 @@ class SoundChip {
             }
             this.clockEnvelopeNoise = 0;
         }
+        // #endregion
 
         // 1048576hz Divide by 4096 = 256hz
         if (this.clockMain >= CLOCK_MAIN_STEPS) {
-            // Pulse 1
-            if (this.pulseChannel1.enabled) {
-                if (this.pulseChannel1.triggered) {
-                    this.pulseChannel1.volume = this.pulseChannel1.volumeEnvelopeStart;
-                    this.pulseChannel1.triggered = false;
-                }
+            // #region TRIGGERS
+            if (this.pulseChannel1.triggered) this.pulseChannel1.trigger();
+            if (this.pulseChannel2.triggered) this.pulseChannel2.trigger();
+            if (this.waveChannel.triggered) this.waveChannel.trigger();
+            if (this.noiseChannel.triggered) this.noiseChannel.trigger();
+            this.pulseChannel1.triggered = false;
+            this.pulseChannel2.triggered = false;
+            this.waveChannel.triggered = false;
+            this.noiseChannel.triggered = false;
+            // #endregion
 
-                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.pulseChannel1.volume);
-                this.pulseOsc1.frequency.value = this.pulseChannel1.frequencyHz;
-            } else {
-                this.pulseOsc1.volume.value = -1000000;
+            // #region LENGTH
+            if (this.pulseChannel1.enabled) {
+                if (this.pulseChannel1.lengthEnable) {
+                    this.pulseChannel1.lengthCounter--;
+                    if (this.pulseChannel1.lengthCounter == 0) {
+                        this.pulseChannel1.enabled = false;
+                    }
+                }
             }
 
             if (this.pulseChannel2.enabled) {
-                // Pulse 2
-                if (this.pulseChannel2.triggered) {
-                    this.pulseChannel2.volume = this.pulseChannel2.volumeEnvelopeStart;
-                    this.pulseChannel2.triggered = false;
+                if (this.pulseChannel2.lengthEnable) {
+                    this.pulseChannel2.lengthCounter--;
+                    if (this.pulseChannel2.lengthCounter == 0) {
+                        this.pulseChannel2.enabled = false;
+                    }
                 }
-
-                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.pulseChannel2.volume);
-                this.pulseOsc2.frequency.value = this.pulseChannel2.frequencyHz;
-            } else {
-                this.pulseOsc2.volume.value = -1000000;
-            }
-
-            if (this.waveChannel.soundLength > 0) {
-                this.waveChannel.soundLength--;
-            } else {
-                this.waveChannel.volume = 0;
             }
 
             if (this.waveChannel.enabled) {
-                if (this.waveChannel.triggered) {
-                    this.waveChannel.triggered = false;
+                if (this.waveChannel.lengthEnable) {
+                    this.waveChannel.lengthCounter--;
+                    if (this.waveChannel.lengthCounter == 0) {
+                        this.waveChannel.enabled = false;
+                    }
                 }
-
-                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
-            } else {
-                this.waveVolume.volume.value = -1000000;
             }
 
             if (this.noiseChannel.enabled) {
-                if (this.noiseChannel.triggered) {
-                    this.noiseChannel.volume = this.noiseChannel.volumeEnvelopeStart;
-                    this.noiseChannel.triggered = false;
+                if (this.noiseChannel.lengthEnable) {
+                    this.noiseChannel.lengthCounter--;
+                    if (this.noiseChannel.lengthCounter == 0) {
+                        this.noiseChannel.enabled = false;
+                    }
                 }
+            }
+            // #endregion
 
+            // #region TONE.JS HANDLING
+
+            // frequencyHz check is for removing loud noises when frequency is zeroed
+
+            // Pulse 1
+            if (this.pulseChannel1.enabled && this.pulseChannel1.frequencyHz != 64) {
+                this.pulseOsc1.mute = false;
+                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.pulseChannel1.volume);
+                this.pulseOsc1.frequency.value = this.pulseChannel1.frequencyHz;
+            } else {
+                this.pulseOsc1.mute = true;
+            }
+
+            // Pulse 2
+            if (this.pulseChannel2.enabled && this.pulseChannel2.frequencyHz != 64) {
+                this.pulseOsc2.mute = true;
+                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.pulseChannel2.volume);
+                this.pulseOsc2.frequency.value = this.pulseChannel2.frequencyHz;
+            } else {
+                this.pulseOsc2.mute = true;
+            }
+
+            // Wave
+            if (this.waveChannel.enabled) {
+                this.waveVolume.mute = false;
+                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
+            } else {
+                this.waveVolume.mute = true;
+            }
+
+            // Noise
+            if (this.noiseChannel.enabled) {
+                this.noiseVolume.mute = false;
                 this.noiseVolume.volume.value = SoundChip.convertVolume(this.noiseChannel.volume);
             } else {
-                this.noiseVolume.volume.value = -1000000;
+                this.noiseVolume.mute = true;
             }
 
             if (this.waveChannel.waveTableUpdated == true) {
@@ -363,6 +245,8 @@ class SoundChip {
             this.wavePan.pan.value = this.waveChannel.pan;
 
             // this.noiseOsc.mute = !this.noiseChannel.enabled
+
+            // #endregion
         }
 
         this.clockMain %= CLOCK_MAIN_STEPS;
@@ -376,74 +260,87 @@ class SoundChip {
         switch (addr) {
 
             // Pulse 1
-            case 0xFF10: break;
-            case 0xFF11:
+            case 0xFF10: // NR10
+                break;
+            case 0xFF11: // NR11
                 dutyCycle = (value & 0b11000000) >> 6;
                 this.pulseOsc1.width.value = SoundChip.widths[dutyCycle];
+                this.pulseChannel1.lengthCounter = 64 - (value & 0b111111);
                 break;
-            case 0xFF12:
+            case 0xFF12: // NR12
                 this.pulseChannel1.volume = (value >> 4) & 0xF;
                 this.pulseChannel1.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulseChannel1.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.pulseChannel1.volumeEnvelopeSweep = value & 0b111;
                 break;
-            case 0xFF13: // Low bits
+            case 0xFF13: // NR13 Low bits
                 this.pulseChannel1.oldFrequencyLower = this.pulseChannel1.frequencyLower;
                 this.pulseChannel1.frequencyLower = value;
                 break;
-            case 0xFF14:
+            case 0xFF14: // NR14
                 this.pulseChannel1.frequencyUpper = value & 0b111;
+                this.pulseChannel1.lengthEnable = ((value >> 6) & 1) != 0;
                 this.pulseChannel1.triggered = ((value >> 7) & 1) != 0;
                 break;
 
             // Pulse 2
-            case 0xFF16:
+            case 0xFF16: // NR21
                 dutyCycle = (value & 0b11000000) >> 6;
                 this.pulseOsc2.width.value = SoundChip.widths[dutyCycle];
+                this.pulseChannel2.lengthCounter = 64 - (value & 0b111111);
                 break;
-            case 0xFF17:
+            case 0xFF17: // NR22
                 this.pulseChannel2.volume = (value >> 4) & 0xF;
                 this.pulseChannel2.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulseChannel2.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.pulseChannel2.volumeEnvelopeSweep = value & 0b111;
                 break;
-            case 0xFF18:
+            case 0xFF18: // NR23
                 this.pulseChannel2.oldFrequencyLower = this.pulseChannel2.frequencyLower;
                 this.pulseChannel2.frequencyLower = value;
 
                 break;
-            case 0xFF19:
+            case 0xFF19: // NR24
                 this.pulseChannel2.frequencyUpper = value & 0b111;
+                this.pulseChannel2.lengthEnable = ((value >> 6) & 1) != 0;
                 this.pulseChannel2.triggered = ((value >> 7) & 1) != 0;
                 break;
 
             // Wave
-            case 0xFF1A: break;
-            case 0xFF1B:
-                this.waveChannel.soundLength = 256 - value;
+            case 0xFF1A: // NR30
                 break;
-            case 0xFF1C:
+            case 0xFF1B: // NR31
+                this.waveChannel.lengthCounter = 256 - value;
+                break;
+            case 0xFF1C: // NR32
                 this.waveChannel.volume = (value >> 5) & 0b11;
                 break;
-            case 0xFF1D:
+            case 0xFF1D: // NR33
                 this.waveChannel.frequencyLower = value;
                 this.waveChannel.waveTableUpdated = true;
                 break;
-            case 0xFF1E:
+            case 0xFF1E: // NR34
                 this.waveChannel.frequencyUpper = value & 0b111;
                 this.waveChannel.triggered = ((value >> 7) & 1) != 0;
-                this.waveChannel.soundExpires = ((value >> 6) & 1) == 1;
+                this.waveChannel.lengthEnable = ((value >> 6) & 1) == 1;
                 this.waveChannel.waveTableUpdated = true;
                 break;
 
-            case 0xFF20:
-                this.noiseChannel.soundLength = 256 - value;
+            // Noise
+            case 0xFF20: // NR41
+                this.noiseChannel.lengthCounter = 64 - (value & 0b111111); // 6 bits
                 break;
-            case 0xFF21:
+            case 0xFF21: // NR42
                 this.noiseChannel.volume = (value >> 4) & 0xF;
                 this.noiseChannel.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.noiseChannel.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.noiseChannel.volumeEnvelopeSweep = value & 0b111;
+                break;
+            case 0xFF22: // NR43
+                break;
+            case 0xFF23: // NR44
+                this.noiseChannel.triggered = ((value >> 7) & 1) != 0;
+                this.noiseChannel.lengthEnable = ((value >> 6) & 1) != 0;
                 break;
 
 
@@ -470,21 +367,14 @@ class SoundChip {
                 break;
 
             // Control
-            case 0xFF26:
+            case 0xFF26: // NR52
                 if (((value >> 7) & 1) != 0) {
                     this.enabled = true;
                     console.log("Enabled sound");
-                    this.pulseOsc1.mute = false;
-                    this.pulseOsc2.mute = false;
-                    this.waveVolume.mute = false;
-                    this.noiseVolume.mute = false;
                 } else {
-                    break;
                     console.log("Disabled sound");
                     this.enabled = false;
-                    this.pulseOsc1.mute = true;
-                    this.pulseOsc2.mute = true;
-                    this.waveVolume.mute = true;
+                    break;
                 }
                 break;
         }
@@ -493,36 +383,45 @@ class SoundChip {
     read(addr: number): number {
         let i = this.soundRegisters[addr];
         switch (addr & 0xFF) {
-            case 0x10: i |= 0x80;
-            case 0x11: i |= 0x3F;
-            case 0x12: i |= 0x00;
-            case 0x13: i |= 0xFF;
-            case 0x14: i |= 0xBF;
+            case 0x10: i |= 0x80; break;
+            case 0x11: i |= 0x3F; break;
+            case 0x12: i |= 0x00; break;
+            case 0x13: i |= 0xFF; break;
+            case 0x14: i |= 0xBF; break;
 
-            case 0x15: i |= 0xFF;
-            case 0x16: i |= 0x3F;
-            case 0x17: i |= 0x00;
-            case 0x18: i |= 0xFF;
-            case 0x19: i |= 0xBF;
+            case 0x15: i |= 0xFF; break;
+            case 0x16: i |= 0x3F; break;
+            case 0x17: i |= 0x00; break;
+            case 0x18: i |= 0xFF; break;
+            case 0x19: i |= 0xBF; break;
 
-            case 0x1A: i |= 0x7F;
-            case 0x1B: i |= 0xFF;
-            case 0x1C: i |= 0x9F;
-            case 0x1D: i |= 0xFF;
-            case 0x1E: i |= 0xBF;
+            case 0x1A: i |= 0x7F; break;
+            case 0x1B: i |= 0xFF; break;
+            case 0x1C: i |= 0x9F; break;
+            case 0x1D: i |= 0xFF; break;
+            case 0x1E: i |= 0xBF; break;
 
-            case 0x1F: i |= 0xFF;
-            case 0x20: i |= 0xFF;
-            case 0x21: i |= 0x00;
-            case 0x22: i |= 0x00;
-            case 0x23: i |= 0xBF;
+            case 0x1F: i |= 0xFF; break;
+            case 0x20: i |= 0xFF; break;
+            case 0x21: i |= 0x00; break;
+            case 0x22: i |= 0x00; break;
+            case 0x23: i |= 0xBF; break;
 
-            case 0x24: i |= 0x00;
-            case 0x25: i |= 0x00;
-            case 0x26: i |= 0x70;
+            case 0x24: i |= 0x00; break;
+            case 0x25: i |= 0x00; break;
+            case 0x26: i |= 0x70; break;
         }
 
         if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
+
+        if (addr == 0xFF52) { // NR52
+            return 0;
+            if (this.enabled) i |= (1 << 7);
+            if (this.noiseChannel) i |= (1 << 3);
+            if (this.waveChannel) i |= (1 << 2);
+            if (this.pulseChannel2) i |= (1 << 1);
+            if (this.pulseChannel1) i |= (1 << 0);
+        }
 
         return i;
     }

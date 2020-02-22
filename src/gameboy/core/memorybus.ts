@@ -205,10 +205,10 @@ class MemoryBus {
         }
 
         // TODO: Turning this on causes click noises in Pokemon Gold and other games
-        // // Sound registers
-        // if (addr >= 0xFF10 && addr <= 0xFF3F) {
-        //     return this.gb.soundChip.read(addr);
-        // }
+        // Sound registers
+        if (addr >= 0xFF10 && addr <= 0xFF3F) {
+            return this.gb.soundChip.read(addr);
+        }
 
         // Read from OAM
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
