@@ -14,6 +14,8 @@ class PulseChannel {
     outputLeft = false;
     outputRight = false;
 
+    triggered = false;
+
     get enabled(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
     }
@@ -54,6 +56,8 @@ class WaveChannel {
 
     outputLeft = false;
     outputRight = false;
+
+    triggered = false;
 
     get enabled(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
@@ -108,6 +112,8 @@ class NoiseChannel {
     outputLeft = false;
     outputRight = false;
 
+    triggered = false;
+
     get enabled(): boolean {
         return this.outputLeft || this.outputRight;
     }
@@ -128,7 +134,7 @@ class NoiseChannel {
     get buffer(): AudioBuffer {
         let waveTable = new Array(4800).fill(0);
         waveTable = waveTable.map((v, i) => {
-            return Math.round(Math.random())
+            return Math.round(Math.random());
         });
 
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
@@ -289,9 +295,13 @@ class SoundChip {
 
         // 1048576hz Divide by 4096 = 256hz
         if (this.clockMain >= CLOCK_MAIN_STEPS) {
-
+            // Pulse 1
             if (this.pulseChannel1.enabled) {
-                // Pulse 1
+                if (this.pulseChannel1.triggered) {
+                    this.pulseChannel1.volume = this.pulseChannel1.volumeEnvelopeStart;
+                    this.pulseChannel1.triggered = false;
+                }
+
                 this.pulseOsc1.volume.value = SoundChip.convertVolume(this.pulseChannel1.volume);
                 this.pulseOsc1.frequency.value = this.pulseChannel1.frequencyHz;
             } else {
@@ -300,6 +310,11 @@ class SoundChip {
 
             if (this.pulseChannel2.enabled) {
                 // Pulse 2
+                if (this.pulseChannel2.triggered) {
+                    this.pulseChannel2.volume = this.pulseChannel2.volumeEnvelopeStart;
+                    this.pulseChannel2.triggered = false;
+                }
+
                 this.pulseOsc2.volume.value = SoundChip.convertVolume(this.pulseChannel2.volume);
                 this.pulseOsc2.frequency.value = this.pulseChannel2.frequencyHz;
             } else {
@@ -313,18 +328,25 @@ class SoundChip {
             }
 
             if (this.waveChannel.enabled) {
+                if (this.waveChannel.triggered) {
+                    this.waveChannel.triggered = false;
+                }
+
                 this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
             } else {
                 this.waveVolume.volume.value = -1000000;
             }
 
             if (this.noiseChannel.enabled) {
+                if (this.noiseChannel.triggered) {
+                    this.noiseChannel.volume = this.noiseChannel.volumeEnvelopeStart;
+                    this.noiseChannel.triggered = false;
+                }
+
                 this.noiseVolume.volume.value = SoundChip.convertVolume(this.noiseChannel.volume);
             } else {
                 this.noiseVolume.volume.value = -1000000;
             }
-
-
 
             if (this.waveChannel.waveTableUpdated == true) {
                 this.waveSrc.dispose();
@@ -346,8 +368,11 @@ class SoundChip {
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
 
+    soundRegisters = new Array(65536).fill(0);
+
     write(addr: number, value: number) {
         let dutyCycle = 0;
+        this.soundRegisters[addr] = value;
         switch (addr) {
 
             // Pulse 1
@@ -365,15 +390,10 @@ class SoundChip {
             case 0xFF13: // Low bits
                 this.pulseChannel1.oldFrequencyLower = this.pulseChannel1.frequencyLower;
                 this.pulseChannel1.frequencyLower = value;
-
-                // If the Hz difference between the old and the new frequencies is higher than 4, attack
-                if (Math.abs(this.pulseChannel1.oldFrequencyLower - this.pulseChannel1.frequencyLower) > 4) {
-                    this.pulseChannel1.volume = this.pulseChannel1.volumeEnvelopeStart;
-                }
-
                 break;
             case 0xFF14:
                 this.pulseChannel1.frequencyUpper = value & 0b111;
+                this.pulseChannel1.triggered = ((value >> 7) & 1) != 0;
                 break;
 
             // Pulse 2
@@ -391,13 +411,10 @@ class SoundChip {
                 this.pulseChannel2.oldFrequencyLower = this.pulseChannel2.frequencyLower;
                 this.pulseChannel2.frequencyLower = value;
 
-                // If the Hz difference between the old and the new frequencies is higher than 4, attack
-                if (Math.abs(this.pulseChannel2.oldFrequencyLower - this.pulseChannel2.frequencyLower) > 4) {
-                    this.pulseChannel2.volume = this.pulseChannel2.volumeEnvelopeStart;
-                }
                 break;
             case 0xFF19:
                 this.pulseChannel2.frequencyUpper = value & 0b111;
+                this.pulseChannel2.triggered = ((value >> 7) & 1) != 0;
                 break;
 
             // Wave
@@ -414,7 +431,7 @@ class SoundChip {
                 break;
             case 0xFF1E:
                 this.waveChannel.frequencyUpper = value & 0b111;
-                this.waveChannel.restartSound = ((value >> 7) & 1) == 1;
+                this.waveChannel.triggered = ((value >> 7) & 1) != 0;
                 this.waveChannel.soundExpires = ((value >> 6) & 1) == 1;
                 this.waveChannel.waveTableUpdated = true;
                 break;
@@ -473,8 +490,41 @@ class SoundChip {
         }
     }
 
-    read(addr: number) {
+    read(addr: number): number {
+        let i = this.soundRegisters[addr];
+        switch (addr & 0xFF) {
+            case 0x10: i |= 0x80;
+            case 0x11: i |= 0x3F;
+            case 0x12: i |= 0x00;
+            case 0x13: i |= 0xFF;
+            case 0x14: i |= 0xBF;
 
+            case 0x15: i |= 0xFF;
+            case 0x16: i |= 0x3F;
+            case 0x17: i |= 0x00;
+            case 0x18: i |= 0xFF;
+            case 0x19: i |= 0xBF;
+
+            case 0x1A: i |= 0x7F;
+            case 0x1B: i |= 0xFF;
+            case 0x1C: i |= 0x9F;
+            case 0x1D: i |= 0xFF;
+            case 0x1E: i |= 0xBF;
+
+            case 0x1F: i |= 0xFF;
+            case 0x20: i |= 0xFF;
+            case 0x21: i |= 0x00;
+            case 0x22: i |= 0x00;
+            case 0x23: i |= 0xBF;
+
+            case 0x24: i |= 0x00;
+            case 0x25: i |= 0x00;
+            case 0x26: i |= 0x70;
+        }
+
+        if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
+
+        return i;
     }
 
     reset() {
