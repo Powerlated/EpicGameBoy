@@ -29,7 +29,6 @@ class SoundChip {
     // static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
     static widths = [0.5, 0, -0.5, -0.75]; // CORRECT
 
-
     enabled = false;
 
     gb: GameBoy;
@@ -43,49 +42,15 @@ class SoundChip {
     waveChannel = new WaveChannel();
     noiseChannel = new NoiseChannel();
 
-    pulseOsc1: Tone.PulseOscillator;
-    pulsePan1: Tone.Panner;
-    pulseOsc2: Tone.PulseOscillator;
-    pulsePan2: Tone.Panner;
-    waveSrc: Tone.BufferSource;
-    wavePan: Tone.Panner;
-    waveVolume: Tone.Volume;
+    tjs = new ToneJsHandler(this);
 
-    noiseSrc: Tone.BufferSource;
-    noiseVolume: Tone.Volume;
+
 
     constructor(gb: GameBoy) {
         this.gb = gb;
 
         // Tone.context.latencyHint = "fastest"
         Tone.context.lookAhead = 0;
-
-        this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
-        this.pulseOsc1.volume.value = -36;
-        this.pulsePan1 = new Tone.Panner(0);
-        this.pulseOsc1.chain(this.pulsePan1, Tone.Master);
-        this.pulseOsc1.start();
-
-        this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
-        this.pulseOsc2.volume.value = -36;
-        this.pulsePan2 = new Tone.Panner(0);
-        this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
-        this.pulseOsc2.start();
-
-        this.waveSrc = new Tone.BufferSource(this.waveChannel.buffer, () => { });
-        this.waveSrc.loop = true;
-        this.waveVolume = new Tone.Volume();
-        this.waveVolume.volume.value = -36;
-        this.wavePan = new Tone.Panner(0);
-        this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
-        this.waveSrc.start();
-
-        this.noiseSrc = new Tone.BufferSource(this.noiseChannel.buffer, () => { });
-        this.noiseSrc.loop = true;
-        this.noiseVolume = new Tone.Volume();
-        this.noiseVolume.mute = true;
-        this.noiseSrc.chain(this.noiseVolume, Tone.Master);
-        this.noiseSrc.start();
     }
 
     step() {
@@ -190,65 +155,15 @@ class SoundChip {
                     }
                 }
             }
-            // #endregion
-
-            // #region TONE.JS HANDLING
-
-            // frequencyHz check is for removing loud noises when frequency is zeroed
-
-            // Pulse 1
-            if (this.pulseChannel1.enabled && this.pulseChannel1.frequencyHz != 64) {
-                this.pulseOsc1.mute = false;
-                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.pulseChannel1.volume);
-                this.pulseOsc1.frequency.value = this.pulseChannel1.frequencyHz;
-            } else {
-                this.pulseOsc1.mute = true;
-            }
-
-            // Pulse 2
-            if (this.pulseChannel2.enabled && this.pulseChannel2.frequencyHz != 64) {
-                this.pulseOsc2.mute = true;
-                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.pulseChannel2.volume);
-                this.pulseOsc2.frequency.value = this.pulseChannel2.frequencyHz;
-            } else {
-                this.pulseOsc2.mute = true;
-            }
-
-            // Wave
-            if (this.waveChannel.enabled) {
-                this.waveVolume.mute = false;
-                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.waveChannel.volume);
-            } else {
-                this.waveVolume.mute = true;
-            }
-
-            // Noise
-            if (this.noiseChannel.enabled) {
-                this.noiseVolume.mute = false;
-                this.noiseVolume.volume.value = SoundChip.convertVolume(this.noiseChannel.volume);
-            } else {
-                this.noiseVolume.mute = true;
-            }
-
-            if (this.waveChannel.waveTableUpdated == true) {
-                this.waveSrc.dispose();
-
-                this.waveSrc = new Tone.BufferSource(this.waveChannel.buffer, () => { });
-                this.waveSrc.loop = true;
-                this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
-
-                this.waveChannel.waveTableUpdated = false;
-            }
-
-            this.pulsePan1.pan.value = this.pulseChannel1.pan;
-            this.pulsePan2.pan.value = this.pulseChannel2.pan;
-            this.wavePan.pan.value = this.waveChannel.pan;
 
             // this.noiseOsc.mute = !this.noiseChannel.enabled
 
             // #endregion
-        }
 
+            // Update Tone.js
+            this.tjs.step();
+
+        }
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
 
@@ -263,8 +178,7 @@ class SoundChip {
             case 0xFF10: // NR10
                 break;
             case 0xFF11: // NR11
-                dutyCycle = (value & 0b11000000) >> 6;
-                this.pulseOsc1.width.value = SoundChip.widths[dutyCycle];
+                this.pulseChannel1.width = (value & 0b11000000) >> 6;
                 this.pulseChannel1.lengthCounter = 64 - (value & 0b111111);
                 break;
             case 0xFF12: // NR12
@@ -285,8 +199,7 @@ class SoundChip {
 
             // Pulse 2
             case 0xFF16: // NR21
-                dutyCycle = (value & 0b11000000) >> 6;
-                this.pulseOsc2.width.value = SoundChip.widths[dutyCycle];
+                this.pulseChannel2.width = (value & 0b11000000) >> 6;
                 this.pulseChannel2.lengthCounter = 64 - (value & 0b111111);
                 break;
             case 0xFF17: // NR22
@@ -441,8 +354,8 @@ class SoundChip {
 
     setMuted(muted: boolean) {
         this.enabled = !muted;
-        this.pulseOsc1.mute = muted;
-        this.pulseOsc2.mute = muted;
-        this.waveVolume.mute = muted;
+        this.tjs.pulseOsc1.mute = muted;
+        this.tjs.pulseOsc2.mute = muted;
+        this.tjs.waveVolume.mute = muted;
     }
 }

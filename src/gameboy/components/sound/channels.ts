@@ -7,6 +7,8 @@ interface BasicChannel {
 class PulseChannel implements BasicChannel {
     enabled = false;
 
+    width = 2;
+
     lengthEnable = false;
     lengthCounter = 0;
 
