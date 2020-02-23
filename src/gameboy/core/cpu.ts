@@ -371,6 +371,8 @@ class CPU {
             let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
             let isCB = pcTriplet[0] == 0xCB;
 
+            if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
+
             // Lookup decoded
             let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
             this.cycles += 4; // Decoding time penalty
@@ -382,8 +384,7 @@ class CPU {
 
             if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
-            if (isCB) this.cycles += 4;
-
+            
             if (ins.type != undefined) {
                 if (ins.length == 3) {
                     ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);

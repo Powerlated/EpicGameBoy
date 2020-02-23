@@ -178,7 +178,7 @@ class Ops {
 
         cpu.pc = u16 - 3;
 
-        return 4;
+        cpu.cycles += 4; // Branching takes 4 cycles
     }
 
     static JP_N16(cpu: CPU, cc: CC, n16: number) {
@@ -189,7 +189,7 @@ class Ops {
 
         cpu.pc = n16 - 3;
 
-        return 4;
+        cpu.cycles += 4; // Branching takes 4 cycles
     }
 
     static JP_HL(cpu: CPU, ) {
@@ -211,7 +211,7 @@ class Ops {
 
         cpu.pc = returnAddress;
 
-        return 4;
+        cpu.cycles += 4; // Branching takes 4 cycles
     }
 
     static RETI(cpu: CPU, ) {
@@ -239,7 +239,7 @@ class Ops {
 
         cpu._r.hl = o16b(unTwo8b(e8) + cpu._r.sp);
 
-        return 4; // Internal time
+        cpu.cycles += 4; // Internal time
     }
 
     // LD [$FF00+u8],A
@@ -313,7 +313,7 @@ class Ops {
 
         cpu.pc += unTwo8b(n8);
 
-        return 4;
+        cpu.cycles += 4; // Branching takes 4 cycles
     }
 
     // LD SP,u16 - 0x31 
@@ -423,7 +423,7 @@ class Ops {
         // Set register values
         cpu._r.hl = newValue;
 
-        return 4;
+        cpu.cycles += 4; // Internal time
     }
 
     static SUB_A_R8(cpu: CPU, t: R8) {
