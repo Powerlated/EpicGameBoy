@@ -170,6 +170,11 @@ class MemoryBus {
                     break;
                 case 0xFF50:
                     console.log("Disabled bootrom by write to 0xFF50");
+                    this.gb.cpu.recompiled.forEach((v, i, a) => {
+                        if (i < 0x100) {
+                            a[i] = undefined;
+                        }
+                    })
                     this.bootromEnabled = false;
                     break;
                 default:
