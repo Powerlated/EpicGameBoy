@@ -580,7 +580,10 @@ class CPU {
                 return;
             }
 
-            if (ins.op == Ops.INVALID_OPCODE) alert(`Dynarec hit INVALID @ ${hex(hpc, 4)}`);
+            if (ins.op == Ops.INVALID_OPCODE) {
+                console.log("Hit invalid")
+                return;
+            }
             hpc += ins.length;
         }
 
