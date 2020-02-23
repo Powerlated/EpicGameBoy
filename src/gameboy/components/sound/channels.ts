@@ -2,6 +2,9 @@ interface BasicChannel {
     triggered: boolean;
     volume: number;
     enabled: boolean;
+
+    updated: boolean;
+    update(): void;
 }
 
 class PulseChannel implements BasicChannel {
@@ -58,6 +61,9 @@ class PulseChannel implements BasicChannel {
         }
         this.volume = this.volumeEnvelopeStart;
     }
+
+    updated = false;
+    update() {this.updated = true};
 }
 
 class WaveChannel implements BasicChannel {
@@ -136,6 +142,9 @@ class WaveChannel implements BasicChannel {
             this.lengthCounter = 256;
         }
     }
+
+    updated = false;
+    update() {this.updated = true};
 }
 
 class NoiseChannel implements BasicChannel {
@@ -193,4 +202,7 @@ class NoiseChannel implements BasicChannel {
         console.log("triggered noise")
         this.enabled = true;
     }
+    
+    updated = false;
+    update() {this.updated = true};
 }

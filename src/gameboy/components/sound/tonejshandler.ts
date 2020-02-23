@@ -10,7 +10,7 @@ class ToneJsHandler {
     noiseSrc: Tone.BufferSource;
     noiseVolume: Tone.Volume;
 
-    s: SoundChip
+    s: SoundChip;
 
     constructor(s: SoundChip) {
         this.s = s;
@@ -43,61 +43,61 @@ class ToneJsHandler {
     }
 
     step() {
-         // #endregion
+        // #endregion
 
-            // #region TONE.JS HANDLING
+        // #region TONE.JS HANDLING
 
-            // frequencyHz check is for removing loud noises when frequency is zeroed
+        // frequencyHz check is for removing loud noises when frequency is zeroed
 
-            // Pulse 1
-            if (this.s.pulseChannel1.enabled && this.s.pulseChannel1.frequencyLower != 0) {
-                this.pulseOsc1.mute = false;
-                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulseChannel1.volume);
-                this.pulseOsc1.frequency.value = this.s.pulseChannel1.frequencyHz;
-                this.pulseOsc1.width.value = SoundChip.widths[this.s.pulseChannel1.width]
-            } else {
-                this.pulseOsc1.mute = true;
-            }
+        // Pulse 1
+        if (this.s.pulseChannel1.enabled && this.s.pulseChannel1.frequencyLower != 0 && this.s.pulseChannel1.updated) {
+            this.pulseOsc1.mute = false;
+            this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulseChannel1.volume);
+            this.pulseOsc1.frequency.value = this.s.pulseChannel1.frequencyHz;
+            this.pulseOsc1.width.value = SoundChip.widths[this.s.pulseChannel1.width];
+        } else {
+            this.pulseOsc1.mute = true;
+        }
 
-            // Pulse 2
-            if (this.s.pulseChannel2.enabled && this.s.pulseChannel2.frequencyLower != 0) {
-                this.pulseOsc2.mute = false;
-                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulseChannel2.volume);
-                this.pulseOsc2.frequency.value = this.s.pulseChannel2.frequencyHz;
-                this.pulseOsc2.width.value = SoundChip.widths[this.s.pulseChannel2.width]
-            } else {
-                this.pulseOsc2.mute = true;
-            }
+        // Pulse 2
+        if (this.s.pulseChannel2.enabled && this.s.pulseChannel2.frequencyLower != 0 && this.s.pulseChannel2.updated) {
+            this.pulseOsc2.mute = false;
+            this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulseChannel2.volume);
+            this.pulseOsc2.frequency.value = this.s.pulseChannel2.frequencyHz;
+            this.pulseOsc2.width.value = SoundChip.widths[this.s.pulseChannel2.width];
+        } else {
+            this.pulseOsc2.mute = true;
+        }
 
-            // Wave
-            if (this.s.waveChannel.enabled && this.s.waveChannel.frequencyLower != 0) {
-                this.waveVolume.mute = false;
-                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.waveChannel.volume);
-            } else {
-                this.waveVolume.mute = true;
-            }
+        // Wave
+        if (this.s.waveChannel.enabled && this.s.waveChannel.frequencyLower != 0 && this.s.waveChannel.updated) {
+            this.waveVolume.mute = false;
+            this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.waveChannel.volume);
+        } else {
+            this.waveVolume.mute = true;
+        }
 
-            // Noise
-            if (this.s.noiseChannel.enabled) {
-                this.noiseVolume.mute = false;
-                this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noiseChannel.volume);
-            } else {
-                this.noiseVolume.mute = true;
-            }
+        // Noise
+        if (this.s.noiseChannel.enabled && this.s.noiseChannel.updated) {
+            this.noiseVolume.mute = false;
+            this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noiseChannel.volume);
+        } else {
+            this.noiseVolume.mute = true;
+        }
 
-            if (this.s.waveChannel.waveTableUpdated == true) {
-                this.waveSrc.dispose();
+        if (this.s.waveChannel.waveTableUpdated == true) {
+            this.waveSrc.dispose();
 
-                this.waveSrc = new Tone.BufferSource(this.s.waveChannel.buffer, () => { });
-                this.waveSrc.loop = true;
-                this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
+            this.waveSrc = new Tone.BufferSource(this.s.waveChannel.buffer, () => { });
+            this.waveSrc.loop = true;
+            this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 
-                this.s.waveChannel.waveTableUpdated = false;
-            }
+            this.s.waveChannel.waveTableUpdated = false;
+        }
 
-            this.pulsePan1.pan.value = this.s.pulseChannel1.pan;
-            this.pulsePan2.pan.value = this.s.pulseChannel2.pan;
-            this.wavePan.pan.value = this.s.waveChannel.pan;
+        this.pulsePan1.pan.value = this.s.pulseChannel1.pan;
+        this.pulsePan2.pan.value = this.s.pulseChannel2.pan;
+        this.wavePan.pan.value = this.s.waveChannel.pan;
 
     }
 }

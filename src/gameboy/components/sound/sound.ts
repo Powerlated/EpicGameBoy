@@ -164,6 +164,7 @@ class SoundChip {
             this.tjs.step();
 
         }
+
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
 
@@ -176,84 +177,101 @@ class SoundChip {
 
             // Pulse 1
             case 0xFF10: // NR10
+                this.pulseChannel1.update();
                 break;
             case 0xFF11: // NR11
                 this.pulseChannel1.width = (value & 0b11000000) >> 6;
                 this.pulseChannel1.lengthCounter = 64 - (value & 0b111111);
+                this.pulseChannel1.update();
                 break;
             case 0xFF12: // NR12
                 this.pulseChannel1.volume = (value >> 4) & 0xF;
                 this.pulseChannel1.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulseChannel1.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.pulseChannel1.volumeEnvelopeSweep = value & 0b111;
+                this.pulseChannel1.update();
                 break;
             case 0xFF13: // NR13 Low bits
                 this.pulseChannel1.oldFrequencyLower = this.pulseChannel1.frequencyLower;
                 this.pulseChannel1.frequencyLower = value;
+                this.pulseChannel1.update();
                 break;
             case 0xFF14: // NR14
                 this.pulseChannel1.frequencyUpper = value & 0b111;
                 this.pulseChannel1.lengthEnable = ((value >> 6) & 1) != 0;
                 this.pulseChannel1.triggered = ((value >> 7) & 1) != 0;
+                this.pulseChannel1.update();
                 break;
 
             // Pulse 2
             case 0xFF16: // NR21
                 this.pulseChannel2.width = (value & 0b11000000) >> 6;
                 this.pulseChannel2.lengthCounter = 64 - (value & 0b111111);
+                this.pulseChannel2.update();
                 break;
             case 0xFF17: // NR22
                 this.pulseChannel2.volume = (value >> 4) & 0xF;
                 this.pulseChannel2.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulseChannel2.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.pulseChannel2.volumeEnvelopeSweep = value & 0b111;
+                this.pulseChannel2.update();
                 break;
             case 0xFF18: // NR23
                 this.pulseChannel2.oldFrequencyLower = this.pulseChannel2.frequencyLower;
                 this.pulseChannel2.frequencyLower = value;
-
+                this.pulseChannel2.update();
                 break;
             case 0xFF19: // NR24
                 this.pulseChannel2.frequencyUpper = value & 0b111;
                 this.pulseChannel2.lengthEnable = ((value >> 6) & 1) != 0;
                 this.pulseChannel2.triggered = ((value >> 7) & 1) != 0;
+                this.pulseChannel2.update();
                 break;
 
             // Wave
             case 0xFF1A: // NR30
+                this.waveChannel.update();
                 break;
             case 0xFF1B: // NR31
                 this.waveChannel.lengthCounter = 256 - value;
+                this.waveChannel.update();
                 break;
             case 0xFF1C: // NR32
                 this.waveChannel.volume = (value >> 5) & 0b11;
+                this.waveChannel.update();
                 break;
             case 0xFF1D: // NR33
                 this.waveChannel.frequencyLower = value;
                 this.waveChannel.waveTableUpdated = true;
+                this.waveChannel.update();
                 break;
             case 0xFF1E: // NR34
                 this.waveChannel.frequencyUpper = value & 0b111;
                 this.waveChannel.triggered = ((value >> 7) & 1) != 0;
                 this.waveChannel.lengthEnable = ((value >> 6) & 1) == 1;
                 this.waveChannel.waveTableUpdated = true;
+                this.waveChannel.update();
                 break;
 
             // Noise
             case 0xFF20: // NR41
                 this.noiseChannel.lengthCounter = 64 - (value & 0b111111); // 6 bits
+                this.noiseChannel.update();
                 break;
             case 0xFF21: // NR42
                 this.noiseChannel.volume = (value >> 4) & 0xF;
                 this.noiseChannel.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.noiseChannel.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
                 this.noiseChannel.volumeEnvelopeSweep = value & 0b111;
+                this.noiseChannel.update();
                 break;
             case 0xFF22: // NR43
+                this.noiseChannel.update();
                 break;
             case 0xFF23: // NR44
                 this.noiseChannel.triggered = ((value >> 7) & 1) != 0;
                 this.noiseChannel.lengthEnable = ((value >> 6) & 1) != 0;
+                this.noiseChannel.update();
                 break;
 
 
@@ -263,6 +281,7 @@ class SoundChip {
                 this.waveChannel.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
                 this.waveChannel.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
                 this.waveChannel.waveTableUpdated = true;
+                this.waveChannel.update();
                 break;
 
             // Panning
