@@ -45,7 +45,6 @@ class MBC1 implements MBC {
                 this.romBank = 1;
             } else {
                 this.romBank = value & 0b11111; // Whole 5 bits
-                console.log("[MBC1]: Bank switch to " + this.romBank);
             }
             return;
         }

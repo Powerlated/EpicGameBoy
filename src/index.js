@@ -51,7 +51,7 @@ function disassemble(cpu) {
 function executeAtPc() {
     let cpu = window.cpu;
     let pc = cpu.pc;
-    cpu.debugging = false;
+    cpu.debugging = true;
     if (cpu.breakpoints.has(pc)) {
         cpu.clearBreakpoint(pc);
         cpu.step();
@@ -242,7 +242,7 @@ document.onkeydown = function (e) {
             break;
 
         case "Tab":
-            gb.speedMul = 4;
+            gb.speedMul = 8;
             break;
     }
 };

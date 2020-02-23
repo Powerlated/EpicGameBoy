@@ -328,7 +328,7 @@ class CPU {
         this.gb.bus.writeMem(addr, value);
     }
 
-    opcodesRan = new Set();
+    jumpedTo: Array<number> = new Array(65536).fill(0);
 
     step() {
         if (this.scheduleEnableInterruptsForNextTick) {
@@ -361,131 +361,260 @@ class CPU {
             this.gb.bus.writeMem(0xFF50, 1);
         }
 
+        if (this.debugging) {
+            console.log(`[STEP]`);
+        }
+
 
         // Run the debug information collector
-        if (this.debugging)
-            this.stepDebug();
+        // if (this.debugging)
+        // this.stepDebug();
 
         // #region  **** ALL STEPPER LOGIC IS BELOW HERE **** 
         if (this.halted == false) {
-            let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
-            let isCB = pcTriplet[0] == 0xCB;
+            if (this.recompiled[this.pc] == undefined) {
+                let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
+                let isCB = pcTriplet[0] == 0xCB;
 
-            if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
+                if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
-            // Lookup decoded
-            let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
-            this.cycles += 4; // Decoding time penalty
-            let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
+                // Lookup decoded
+                let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
+                this.cycles += 4; // Decoding time penalty
+                let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
 
-            if (!ins.op) {
-                alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
+                // #region DYNAREC
+
+                if (
+                    !this.gb.bus.bootromEnabled &&
+                    Disassembler.isControlFlow(ins)
+                ) {
+                    let to = Disassembler.willJumpTo(ins, this, pcTriplet, this.pc);
+                    this.jumpedTo[to]++;
+                    const THRESHOLD = 1;
+                    if (this.jumpedTo[to] == THRESHOLD && to <= 0x3FFF) {
+
+                        console.log(`[${THRESHOLD}] Hotspot in Bank 0 at: ` + hex(to, 4));
+                        this.recompileAt(to);
+                    }
+                }
+                // #endregion
+
+                if (!ins.op) {
+                    alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
+                }
+
+                if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
+
+                if (ins.type != undefined) {
+                    if (ins.length == 3) {
+                        ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
+                        this.cycles += 8;
+                    } else if (ins.length == 2 && (ins.type2 == undefined)) {
+                        ins.op(this, ins.type, pcTriplet[1]);
+                        this.cycles += 4;
+                    } else {
+                        ins.op(this, ins.type, ins.type2);
+                    }
+                } else {
+                    if (ins.length == 3) {
+                        ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
+                        this.cycles += 8;
+                    } else if (ins.length == 2) {
+                        ins.op(this, pcTriplet[1]);
+                        this.cycles += 4;
+                    } else {
+                        ins.op(this);
+                    }
+                }
+
+                this.pc += ins.length;
+                this.pc &= 0xFFFF;
+
+                this.totalI++;
+
+                this.lastInstructionCycles = this.cycles - c;
+                this.lastStepCycles = this.cycles - c;
+
+                // this.opcodesRan.add(pcTriplet[0]);
+
+                // ---------------------------
+
+                if (false) {
+                    let isControlFlow = Disassembler.isControlFlow(ins);
+                    if (!isCB) {
+                        if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
+                            alert(`
+                        Length error:
+                        
+                        Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                        Opcode: ${hex(opcode, 2)}
+    
+                        Instruction Length: ${ins.length}
+                        Proper Length: ${DMG_OPS.Unprefixed[opcode].Length}
+                        
+                        `);
+                            this.gb.speedStop();
+                        }
+
+                        if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
+                            isControlFlow == false &&
+                            opcode != 0x76 &&
+                            NORMAL_TIMINGS[opcode] != 0
+                        ) {
+                            alert(`
+                        Timings error:
+                        
+                        Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                        Opcode: ${hex(opcode, 2)}
+    
+                        Instruction Timing: ${this.lastInstructionCycles}
+                        Proper Timing: ${NORMAL_TIMINGS[opcode] * 4}
+                        
+                        `);
+                            this.gb.speedStop();
+                        }
+                    } else {
+                        if (DMG_OPS.CBPrefixed[opcode].Length != ins.length) {
+                            alert(`
+                        Length error:
+                        
+                        Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                        Opcode: ${hex(opcode, 2)}
+    
+                        Instruction Length: ${ins.length}
+                        Proper Length: ${DMG_OPS.CBPrefixed[opcode].Length}
+                        
+                        `);
+                            this.gb.speedStop();
+                        }
+
+                        // TODO Screw it, i'll handle this later
+                        if (CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
+                            alert(`
+                        Timings error:
+                        
+                        Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
+                        Opcode: [CB] ${hex(opcode, 2)}
+    
+                        Instruction Timing: ${this.lastInstructionCycles}
+                        Proper Timing: ${CB_TIMINGS[opcode] * 4}
+                        
+                        `);
+                            this.gb.speedStop();
+                        }
+                    }
+                }
+                this.gb.soundChip.step();
+                this.gb.gpu.step();
+                this.gb.timer.step();
+                this.serviceInterrupts();
+                if (this.debugging == true) {
+                    console.log(`Executing interpreter @ ${hex(this.pc, 4)}`);
+                }
+            } else {
+                if (this.debugging == true) {
+                    console.log(`Executing dynarec'd block @ ${hex(this.pc, 4)}`);
+                    console.log(this.recompiled[this.pc].toString());
+                }
+                this.recompiled[this.pc](this);
+                this.jitRan++;
+            }
+        } else {
+            this.lastStepCycles = 4;
+            this.gb.soundChip.step();
+            this.gb.gpu.step();
+            this.gb.timer.step();
+            this.serviceInterrupts();  
+        }
+
+        //#endregion
+    }
+
+    recompiled: Array<Function> = [];
+    jitCompiled = 0;
+    jitRan = 0;
+    lastStepCycles = 0;
+
+    recompileAt(hpc: number) {
+        this.jitCompiled++;
+        const START_HPC = hpc;
+        let instructions: Array<{ ins: Op, args: Array<any>; }> = [];
+        let buildFunction: Array<string> = [];
+        let cont = true;
+        let endPc = 0;
+        while (cont) {
+            let hpcTriplet = [this.gb.bus.readMem8(hpc), this.gb.bus.readMem8(hpc + 1), this.gb.bus.readMem8(hpc + 2)];
+            let isCB = hpcTriplet[0] == 0xCB;
+
+            let ins = isCB ? this.opCacheCb[hpcTriplet[1]] : this.opCacheRg[hpcTriplet[0]];
+
+            if (Disassembler.isControlFlow(ins)) {
+                cont = false;
+                console.log(`Canceling at ${hex(hpc, 4)}, found ${ins.op.name}`);
+                endPc = hpc;
             }
 
-            if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
-
-            
             if (ins.type != undefined) {
                 if (ins.length == 3) {
-                    ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
-                    this.cycles += 8;
+                    instructions.push({ ins: ins, args: [`"${ins.type}"`, hpcTriplet[2] << 8 | hpcTriplet[1]] });
                 } else if (ins.length == 2 && (ins.type2 == undefined)) {
-                    ins.op(this, ins.type, pcTriplet[1]);
-                    this.cycles += 4;
+                    instructions.push({ ins: ins, args: [`"${ins.type}"`, hpcTriplet[1]] });
                 } else {
-                    ins.op(this, ins.type, ins.type2);
+                    instructions.push({ ins: ins, args: [`"${ins.type}"`, `"${ins.type2}"`] });
                 }
             } else {
                 if (ins.length == 3) {
-                    ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
-                    this.cycles += 8;
+                    instructions.push({ ins: ins, args: [hpcTriplet[2] << 8 | hpcTriplet[1]] });
                 } else if (ins.length == 2) {
-                    ins.op(this, pcTriplet[1]);
-                    this.cycles += 4;
+                    instructions.push({ ins: ins, args: [hpcTriplet[1]] });
                 } else {
-                    ins.op(this);
+                    instructions.push({ ins: ins, args: [] });
                 }
             }
+            console.log(`[PC: ${hex(hpc, 4)}] Found ${ins.op.name}`);
 
-            this.pc += ins.length;
-            this.pc &= 0xFFFF;
-
-            this.totalI++;
-
-            this.lastInstructionCycles = this.cycles - c;
-
-            // this.opcodesRan.add(pcTriplet[0]);
-
-            // ---------------------------
-
-            if (false) {
-                let isControlFlow = Disassembler.isControlFlow(ins, this);
-                if (!isCB) {
-                    if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
-                        alert(`
-                    Length error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: ${hex(opcode, 2)}
-
-                    Instruction Length: ${ins.length}
-                    Proper Length: ${DMG_OPS.Unprefixed[opcode].Length}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-
-                    if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
-                        isControlFlow == false &&
-                        opcode != 0x76 &&
-                        NORMAL_TIMINGS[opcode] != 0
-                    ) {
-                        alert(`
-                    Timings error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: ${hex(opcode, 2)}
-
-                    Instruction Timing: ${this.lastInstructionCycles}
-                    Proper Timing: ${NORMAL_TIMINGS[opcode] * 4}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-                } else {
-                    if (DMG_OPS.CBPrefixed[opcode].Length != ins.length) {
-                        alert(`
-                    Length error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: ${hex(opcode, 2)}
-
-                    Instruction Length: ${ins.length}
-                    Proper Length: ${DMG_OPS.CBPrefixed[opcode].Length}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-
-                    // TODO Screw it, i'll handle this later
-                    if (CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
-                        alert(`
-                    Timings error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: [CB] ${hex(opcode, 2)}
-
-                    Instruction Timing: ${this.lastInstructionCycles}
-                    Proper Timing: ${CB_TIMINGS[opcode] * 4}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-                }
+            if (instructions.length > 10000) {
+                console.log("Stopping, no control flow after 1000 instructions.");
+                return;
             }
+
+            if (ins.op == Ops.INVALID_OPCODE) alert(`Dynarec hit INVALID @ ${hex(hpc, 4)}`);
+            hpc += ins.length;
         }
-        //#endregion
 
+        function addLine(l: string) {
+            buildFunction.push(`${l};\n`);
+        }
+
+        const OPS = "Ops";
+        addLine(`cpu.lastStepCycles = 0`);
+        // Start building the function
+        instructions.forEach((v, i, a) => {
+            addLine(`${OPS}.${v.ins.op.name}(cpu,${v.args.join(',')})`);
+            addLine(`cpu.pc += ${v.ins.length}`);
+            addLine(`cpu.lastInstructionCycles = ${v.ins.length * 4}`);
+            addLine(`cpu.lastStepCycles += ${v.ins.length * 4}`);
+            addLine(`cpu.gb.soundChip.step()`);
+            addLine(`cpu.gb.gpu.step()`);
+            addLine(`cpu.gb.timer.step()`);
+            addLine(`cpu.serviceInterrupts()`);
+            addLine(`cpu.cycles += ${v.ins.length * 4}`);
+        });
+
+        addLine(`cpu.totalI += ${instructions.length}`);
+
+        // addLine(`console.log("Ran JIT instruction")`);
+
+        console.log(buildFunction.join(''));
+        let f = new Function("cpu", buildFunction.join(''));
+        this.recompiled[START_HPC] = f;
+
+        console.log(`Found ${instructions.length} instructions until control flow`);
+        console.log(instructions);
+    }
+
+    serviceInterrupts() {
         // If the CPU is HALTed and there are requested interrupts, unHALT
         if (this.gb.bus.interrupts.requestedInterrupts.numerical > 0 && this.halted == true) {
             this.halted = false;

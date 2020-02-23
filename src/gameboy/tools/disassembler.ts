@@ -8,15 +8,15 @@ class Disassembler {
         if (ins.type == CC.UNCONDITIONAL) return true;
     };
 
-    static isControlFlow = (ins: Op, cpu: CPU) => {
+    static isControlFlow = (ins: Op) => {
         switch (ins.op) {
             case Ops.JP_N16:
-            case Ops.CALL_N16:
             case Ops.JP_HL:
+            case Ops.JR_E8:
+            case Ops.CALL_N16:
             case Ops.RET:
             case Ops.RETI:
             case Ops.RST:
-            case Ops.JR_E8:
                 return true;
             default:
                 return false;
@@ -27,7 +27,7 @@ class Disassembler {
         switch (ins.op) {
             case Ops.JP_N16:
             case Ops.CALL_N16:
-                return pcTriplet[0] | pcTriplet[1] << 8;
+                return pcTriplet[1] | pcTriplet[2] << 8;
             case Ops.JP_HL:
                 return cpu._r.hl;
             case Ops.RET:
@@ -147,7 +147,7 @@ class Disassembler {
 
             // Pre-increment PC for 0xCB prefix
             let ins = isCB ? cpu.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : cpu.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
-            let controlFlow = Disassembler.isControlFlow(ins, cpu);
+            let controlFlow = Disassembler.isControlFlow(ins);
 
             // Decode hexadecimal triplet 
             function decodeHex(pcTriplet: Array<number>) {

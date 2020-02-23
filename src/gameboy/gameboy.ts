@@ -12,10 +12,8 @@ class GameBoy {
     }
 
     step() {
-        this.soundChip.step();
+    
         this.cpu.step();
-        this.gpu.step();
-        this.timer.step();
     }
 
     speedMul = 1;
@@ -42,7 +40,7 @@ class GameBoy {
         }
         while (i < max && !this.cpu.breakpoints.has(this.cpu.pc) && !this.cpu.stopNow) {
             this.step();
-            i += this.cpu.lastInstructionCycles;
+            i += this.cpu.lastStepCycles;
         }
         if (this.cpu.stopNow) this.cpu.stopNow = false;
     }

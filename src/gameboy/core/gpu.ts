@@ -79,6 +79,12 @@ class OAMFlags {
     tileVramBank = false; // CGB only (0, 1)
     paletteNumberCGB = 0;
 
+    constructor(n?: number) {
+        if (n != undefined) {
+            this.numerical = n;
+        }
+    }
+
     get numerical(): number {
         let n = 0;
         if (this.behindBG)
@@ -366,12 +372,12 @@ class GPU {
                 if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
                 spriteCount++;
 
-                let flags = new OAMFlags();
-                flags.numerical = this.oam[base + 3];
+                let flags = new OAMFlags(this.oam[base + 3]);
 
                 let y = this.lcdcY % 8;
+                let spriteWidth = this.lcdControl.spriteSize______2 ? 16 : 8
 
-                for (let x = 0; x < 8; x++) {
+                for (let x = 0; x < spriteWidth; x++) {
                     screenYPos = yPos - 16;
                     screenXPos = xPos - 8;
 
@@ -396,13 +402,6 @@ class GPU {
                     }
                 }
             }
-        }
-    }
-
-    executeUntilVblank() {
-        this.gb.cpu.debugging = false;
-        while (this.lcdcY != 144) {
-            this.gb.cpu.step();
         }
     }
 

@@ -131,9 +131,8 @@ function updateDebug() {
     let debugText = `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
-
+                JIT Compiled/Ran: ${cpu.jitCompiled}/${cpu.jitRan} 
                 Halted: ${cpu.halted}
-
                 IME/E/R: ${cpu.gb.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
