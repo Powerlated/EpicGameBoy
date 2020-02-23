@@ -245,6 +245,12 @@ class CPU {
     constructor(gb: GameBoy) {
         this.gb = gb;
         console.log("CPU Bootstrap!");
+
+        // Generate all possible opcodes including invalids
+        for (let i = 0; i <= 0xFF; i++) {
+            this.opCacheRg[i] = this.rgOpcode(i);
+            this.opCacheCb[i] = this.cbOpcode(i);
+        }
     }
 
     get pc(): number {
@@ -281,6 +287,9 @@ class CPU {
     time = 0;
 
     debugging = false;
+
+    opCacheRg: Array<Op> = new Array(256);
+    opCacheCb: Array<Op> = new Array(256);
 
     reset() {
         this._r.a = 0;
@@ -359,18 +368,13 @@ class CPU {
 
         // #region  **** ALL STEPPER LOGIC IS BELOW HERE **** 
         if (this.halted == false) {
-            let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
-
-            // Use decoder based on prefix
-            let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
-            let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
-
-
             let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
+            let isCB = pcTriplet[0] == 0xCB;
 
-            if (ins.op == Ops.INVALID_OPCODE) {
-
-            }
+            // Lookup decoded
+            let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
+            this.cycles += 4; // Decoding time penalty
+            let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
 
             if (!ins.op) {
                 alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
@@ -378,37 +382,38 @@ class CPU {
 
             if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
-            isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
-
             if (isCB) this.cycles += 4;
-
-            ins = isCB ? this.cbOpcode(this.fetchMem8(this.pc + 1)) : this.rgOpcode(this.fetchMem8(this.pc));
 
             if (ins.type != undefined) {
                 if (ins.length == 3) {
-                    ins.op(this, ins.type, this.fetchMem16(this.pc + 1));
+                    ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
+                    this.cycles += 8;
                 } else if (ins.length == 2 && (ins.type2 == undefined)) {
-                    ins.op(this, ins.type, this.fetchMem8(this.pc + 1));
+                    ins.op(this, ins.type, pcTriplet[1]);
+                    this.cycles += 4;
                 } else {
                     ins.op(this, ins.type, ins.type2);
                 }
             } else {
                 if (ins.length == 3) {
-                    ins.op(this, this.fetchMem16(this.pc + 1));
+                    ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
+                    this.cycles += 8;
                 } else if (ins.length == 2) {
-                    ins.op(this, this.fetchMem8(this.pc + 1));
+                    ins.op(this, pcTriplet[1]);
+                    this.cycles += 4;
                 } else {
                     ins.op(this);
                 }
             }
 
-            this.pc = o16b(this.pc + ins.length);
+            this.pc += ins.length;
+            this.pc &= 0xFFFF;
 
             this.totalI++;
 
             this.lastInstructionCycles = this.cycles - c;
 
-            this.opcodesRan.add(pcTriplet[0]);
+            // this.opcodesRan.add(pcTriplet[0]);
 
             // ---------------------------
 
@@ -501,19 +506,19 @@ class CPU {
 
             if (happened.vblank && enabled.vblank) {
                 happened.vblank = false;
-                Ops.jumpToInterrupt(this, VBLANK_VECTOR);
+                this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
                 happened.lcdStat = false;
-                Ops.jumpToInterrupt(this, LCD_STATUS_VECTOR);
+                this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
                 happened.timer = false;
-                Ops.jumpToInterrupt(this, TIMER_OVERFLOW_VECTOR);
+                this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
                 happened.serial = false;
-                Ops.jumpToInterrupt(this, SERIAL_LINK_VECTOR);
+                this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && enabled.joypad) {
                 happened.joypad = false;
-                Ops.jumpToInterrupt(this, JOYPAD_PRESS_VECTOR);
+                this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
     }
@@ -591,6 +596,18 @@ class CPU {
         this.lastInstructionDebug = insDebug;
     }
 
+    jumpToInterrupt(vector: number) {
+        let pcUpperByte = o16b(this.pc) >> 8;
+        let pcLowerByte = o16b(this.pc) & 0xFF;
+
+        this._r.sp = o16b(this._r.sp - 1);
+        this.writeMem8(this._r.sp, pcUpperByte);
+        this._r.sp = o16b(this._r.sp - 1);
+        this.writeMem8(this._r.sp, pcLowerByte);
+
+        this.pc = vector;
+    }
+
     toggleBreakpoint(point: number) {
         if (!this.breakpoints.has(point)) {
             this.setBreakpoint(point);
@@ -605,10 +622,6 @@ class CPU {
     clearBreakpoint(point: number) {
         console.log("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints.delete(point);
-    }
-
-    singleFrame() {
-
     }
 
     getReg(t: R8 | R16) {
@@ -980,9 +993,10 @@ class CPU {
 
         }
 
-
-        alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
-        this.gb.speedStop();
+        if (this.debugging) {
+            alert(`[PC ${hex(this.pc, 4)}] Unknown Opcode in Lookup Table: ` + hex(id, 2));
+            this.gb.speedStop();
+        }
         return { op: Ops.UNKNOWN_OPCODE, length: 1 };
 
     }

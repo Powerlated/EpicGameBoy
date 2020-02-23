@@ -89,18 +89,6 @@ class Ops {
         cpu.pc = vector - 1;
     }
 
-    static jumpToInterrupt(cpu: CPU, vector: number) {
-        let pcUpperByte = o16b(cpu.pc) >> 8;
-        let pcLowerByte = o16b(cpu.pc) & 0xFF;
-
-        cpu._r.sp = o16b(cpu._r.sp - 1);
-        cpu.writeMem8(cpu._r.sp, pcUpperByte);
-        cpu._r.sp = o16b(cpu._r.sp - 1);
-        cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-        cpu.pc = vector;
-    }
-
     static LD_A_N16(cpu: CPU, n16: number) {
         cpu._r.a = cpu.fetchMem8(n16);
     }
