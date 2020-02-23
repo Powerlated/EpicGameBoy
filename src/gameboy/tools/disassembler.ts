@@ -10,13 +10,13 @@ class Disassembler {
 
     static isControlFlow = (ins: Op, cpu: CPU) => {
         switch (ins.op) {
-            case cpu.JP_N16:
-            case cpu.CALL_N16:
-            case cpu.JP_HL:
-            case cpu.RET:
-            case cpu.RETI:
-            case cpu.RST:
-            case cpu.JR_E8:
+            case Ops.JP_N16:
+            case Ops.CALL_N16:
+            case Ops.JP_HL:
+            case Ops.RET:
+            case Ops.RETI:
+            case Ops.RST:
+            case Ops.JR_E8:
                 return true;
             default:
                 return false;
@@ -25,16 +25,16 @@ class Disassembler {
 
     static willJumpTo = (ins: Op, cpu: CPU, pcTriplet: Array<number>, disasmPc: number): number => {
         switch (ins.op) {
-            case cpu.JP_N16:
-            case cpu.CALL_N16:
+            case Ops.JP_N16:
+            case Ops.CALL_N16:
                 return pcTriplet[0] | pcTriplet[1] << 8;
-            case cpu.JP_HL:
+            case Ops.JP_HL:
                 return cpu._r.hl;
-            case cpu.RET:
+            case Ops.RET:
                 let stackLowerByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp));
                 let stackUpperByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp + 1));
                 return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
-            case cpu.JR_E8:
+            case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction
                 return disasmPc + unTwo8b(pcTriplet[1]) + 2;
             default: return NaN;
@@ -49,22 +49,22 @@ class Disassembler {
             const ADC = "ADC";
             const doublet = pcTriplet[1] | pcTriplet[2] << 8;
             switch (ins.op) {
-                case cpu.LD_iHLdec_A: return [LD, "(HL-),A"];
-                case cpu.LD_iHLinc_A: return [LD, "(HL+),A"];
-                case cpu.LD_SP: return [LD, "SP"];
-                case cpu.LD_iFF00plusC_A: return [LD, "($FF00+C),A"];
-                case cpu.LD_iFF00plusN8_A: return [LD, `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
-                case cpu.LD_A_iFF00plusC: return [LD, "A,($FF00+C)"];
-                case cpu.LD_A_iFF00plusN8: return [LD, `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
-                case cpu.RST: return [RST, `${hexN(ins.type, 2)}h`];
-                case cpu.LD_R8_R8: return [LD, `${ins.type},${ins.type2}`];
-                case cpu.LD_A_iR16: return [LD, `A,(${ins.type})`];
-                case cpu.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
-                case cpu.ADC_A_R8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
-                case cpu.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
-                case cpu.LD_A_iHL_INC: return [LD, "A,(HL+)"];
-                case cpu.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
-                case cpu.JP_HL: return ["JP", "HL"];
+                case Ops.LD_iHLdec_A: return [LD, "(HL-),A"];
+                case Ops.LD_iHLinc_A: return [LD, "(HL+),A"];
+                case Ops.LD_SP: return [LD, "SP"];
+                case Ops.LD_iFF00plusC_A: return [LD, "($FF00+C),A"];
+                case Ops.LD_iFF00plusN8_A: return [LD, `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
+                case Ops.LD_A_iFF00plusC: return [LD, "A,($FF00+C)"];
+                case Ops.LD_A_iFF00plusN8: return [LD, `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
+                case Ops.RST: return [RST, `${hexN(ins.type, 2)}h`];
+                case Ops.LD_R8_R8: return [LD, `${ins.type},${ins.type2}`];
+                case Ops.LD_A_iR16: return [LD, `A,(${ins.type})`];
+                case Ops.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
+                case Ops.ADC_A_R8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
+                case Ops.LD_A_iHL_INC: return [LD, "A,(HL+)"];
+                case Ops.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
+                case Ops.JP_HL: return ["JP", "HL"];
                 default: return null;
             }
         };
@@ -87,7 +87,7 @@ class Disassembler {
         // Instructions with type 2
         if (isNaN(ins.type2 as any) && !block) {
             if (ins.length == 2) {
-                if (ins.op != cpu.JR_E8) {
+                if (ins.op != Ops.JR_E8) {
                     // Regular operation
                     operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
                 } else {
