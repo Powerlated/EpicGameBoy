@@ -201,7 +201,7 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 3;
 
-                        if (this.lcdControl.spriteDisplay___1) {
+                        if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.renderSprites();
                         }
                     }
@@ -214,7 +214,7 @@ class GPU {
                         this.lcdStatus.mode = 0;
 
                         // Render scanline when entering Hblank
-                        if (!IS_NODE) {
+                        if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.renderScanline();
                         }
                     }
