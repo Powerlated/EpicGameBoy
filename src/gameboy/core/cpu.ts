@@ -346,16 +346,12 @@ class CPU {
         if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
-            this._r._f.zero = true;
-            this._r._f.negative = false;
-            this._r._f.half_carry = true;
-            this._r._f.carry = true;
-
-            this._r.a = 0x11;
+            
+            this._r.af = 0x01B0;
             this._r.bc = 0x0013;
-            this._r.de = 0x00d8;
-            this._r.hl = 0x014d;
-            this._r.sp = 0xfffe;
+            this._r.de = 0x00D8;
+            this._r.hl = 0x014D;
+            this._r.sp = 0xFFFE;
 
             // Make a write to disable the bootrom
             this.gb.bus.writeMem(0xFF50, 1);
