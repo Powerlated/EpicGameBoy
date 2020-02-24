@@ -291,6 +291,9 @@ class CPU {
     opCacheRg: Array<Op> = new Array(256);
     opCacheCb: Array<Op> = new Array(256);
 
+    opcodesRan = new Set();
+
+
     reset() {
         this._r.a = 0;
         this._r.b = 0;
@@ -328,7 +331,6 @@ class CPU {
         this.gb.bus.writeMem(addr, value);
     }
 
-    opcodesRan = new Set();
 
     step() {
         if (this.scheduleEnableInterruptsForNextTick) {

@@ -16,7 +16,7 @@ class MemoryBus {
 
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
-    rom = new Uint8Array(0xFFFFFF + 1).fill(0xFF);
+    rom = new Uint8Array(4194304).fill(0xFF);
 
     interrupts = new InterruptController(this);
     joypad = new JoypadRegister();

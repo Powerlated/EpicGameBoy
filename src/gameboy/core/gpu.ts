@@ -161,9 +161,6 @@ class GPU {
     // [tile][row][pixel]
     tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
 
-    tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9800-9BFF 1024 bytes
-    tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0)); // 9C00-9FFF 1024 bytes
-
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
 
@@ -173,6 +170,9 @@ class GPU {
 
     scrollY = 0; // 0xFF42
     scrollX = 0; // 0xFF43
+
+    windowYpos = 0; // 0xFF4A
+    windowXpos = 0; // 0xFF4B
 
     lcdcY = 0; // 0xFF44 - Current scanning line
 
@@ -201,8 +201,9 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 3;
 
+                        // Render sprites when entering VRAM mode
                         if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.renderSprites();
+
                         }
                     }
                     break;
@@ -216,6 +217,7 @@ class GPU {
                         // Render scanline when entering Hblank
                         if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.renderScanline();
+                            this.renderSprites();
                         }
                     }
                     break;
@@ -363,27 +365,36 @@ class GPU {
 
             // Render sprite only if it is visible on this scanline
             if (!(screenYPos > this.lcdcY + 8) && screenYPos <= this.lcdcY) {
-                if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
-                spriteCount++;
+                // TODO: Fix sprite limiting
+                // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
+                // spriteCount++;
 
                 let flags = new OAMFlags();
                 flags.numerical = this.oam[base + 3];
 
                 let y = this.lcdcY % 8;
 
-                for (let x = 0; x < 8; x++) {
+                const WIDTH = this.lcdControl.spriteSize______2 ? 16 : 8;
+
+                for (let x = 0; x < WIDTH; x++) {
                     screenYPos = yPos - 16;
                     screenXPos = xPos - 8;
 
                     screenYPos += y;
                     screenXPos += x;
 
-                    let pixelX = flags.xFlip ? 7 - x : x;
-                    let pixelY = flags.yFlip ? 7 - y : y;
+                    let pixelX = flags.xFlip ? x : x;
+                    let pixelY = flags.yFlip ? y : y;
 
                     let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
-                    let prePalette = this.tileset[tile][pixelY][pixelX];
+                    let tileOffset = 0;
+                    if (x >= 8) { 
+                        tileOffset = 1; 
+                        pixelX &= 7
+                    }
+
+                    let prePalette = this.tileset[tile + tileOffset][pixelY][pixelX];
                     let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                     let c = transformColor(pixel);
 
@@ -488,9 +499,6 @@ class GPU {
 
         // [tile][row][pixel]
         this.tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
-
-        this.tilemap0 = new Array(256).fill(0).map(() => Array(256).fill(0));
-        this.tilemap1 = new Array(256).fill(0).map(() => Array(256).fill(0));
 
         this.lcdControl = new LCDCRegister();
         this.lcdStatus = new LCDStatusRegister();
