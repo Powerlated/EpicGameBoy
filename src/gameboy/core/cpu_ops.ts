@@ -89,7 +89,7 @@ class Ops {
         cpu.pc = vector - 1;
     }
 
-    static LD_A_N16(cpu: CPU, n16: number) {
+    static LD_A_iN16(cpu: CPU, n16: number) {
         cpu._r.a = cpu.fetchMem8(n16);
     }
 
@@ -314,11 +314,6 @@ class Ops {
         cpu.pc += unTwo8b(n8);
 
         cpu.cycles += 4; // Branching takes 4 cycles
-    }
-
-    // LD SP,u16 - 0x31 
-    static LD_SP(cpu: CPU, n16: number) {
-        cpu._r.sp = n16;
     }
 
     static LD_SP_HL(cpu: CPU, ) {

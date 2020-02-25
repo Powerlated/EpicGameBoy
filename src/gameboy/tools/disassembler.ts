@@ -51,7 +51,6 @@ class Disassembler {
             switch (ins.op) {
                 case Ops.LD_iHLdec_A: return [LD, "(HL-),A"];
                 case Ops.LD_iHLinc_A: return [LD, "(HL+),A"];
-                case Ops.LD_SP: return [LD, "SP"];
                 case Ops.LD_iFF00plusC_A: return [LD, "($FF00+C),A"];
                 case Ops.LD_iFF00plusN8_A: return [LD, `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
                 case Ops.LD_A_iFF00plusC: return [LD, "A,($FF00+C)"];
