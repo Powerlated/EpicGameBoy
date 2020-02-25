@@ -41,12 +41,13 @@ class Timer {
         }
 
         if (this.control.running) {
+            if (this.counter == this.modulo) this.gb.bus.interrupts.requestTimer();
+
             if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
                 this.counter++;
             }
 
             if (this.counter >= 256) {
-                this.gb.bus.interrupts.requestTimer();
                 this.counter = this.modulo;
             }
         }

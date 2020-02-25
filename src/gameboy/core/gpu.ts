@@ -293,7 +293,6 @@ class GPU {
         this.ctxTileset.strokeRect(0, 0, 256, 71);
         this.ctxTileset.strokeStyle = '#0000ff';
         this.ctxTileset.strokeRect(0, 72, 256, 72);
-
     }
 
     // TODO: Make scanline effects work
@@ -331,6 +330,8 @@ class GPU {
                 c = 0x0f380f;
             }
 
+            if (!this.lcdControl.bgWindowPriority0) c = 0xFFFFFF;
+
             // Plot the pixel to canvas
             this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
             this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
@@ -356,15 +357,17 @@ class GPU {
         for (let sprite = 0; sprite < 40; sprite++) {
             let base = sprite * 4;
 
-            let yPos = this.oam[base + 0];
-            let xPos = this.oam[base + 1];
-            let tile = this.oam[base + 2];
+            const yPos = this.oam[base + 0];
+            const xPos = this.oam[base + 1];
+            const tile = this.oam[base + 2];
 
             let screenYPos = yPos - 16;
             let screenXPos = xPos - 8;
 
+            const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
+
             // Render sprite only if it is visible on this scanline
-            if (!(screenYPos > this.lcdcY + 8) && screenYPos <= this.lcdcY) {
+            if (this.lcdcY >= screenYPos && (this.lcdcY <= (screenYPos + 16))) {
                 // TODO: Fix sprite limiting
                 // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
                 // spriteCount++;
@@ -374,38 +377,61 @@ class GPU {
 
                 let y = this.lcdcY % 8;
 
-                const WIDTH = this.lcdControl.spriteSize______2 ? 16 : 8;
-
-                for (let x = 0; x < WIDTH; x++) {
+                for (let x = 0; x < 8; x++) {
                     screenYPos = yPos - 16;
                     screenXPos = xPos - 8;
 
                     screenYPos += y;
                     screenXPos += x;
 
-                    let pixelX = flags.xFlip ? x : x;
-                    let pixelY = flags.yFlip ? y : y;
+                    let pixelX = flags.xFlip ? 7 - x : x;
+                    let pixelY = flags.yFlip ? 7 - y : y;
 
                     let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                     let tileOffset = 0;
-                    if (x >= 8) { 
-                        tileOffset = 1; 
-                        pixelX &= 7
-                    }
 
                     let prePalette = this.tileset[tile + tileOffset][pixelY][pixelX];
                     let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                     let c = transformColor(pixel);
 
-                    // Simulate transparency
-                    if (pixel != 0) {
+                    // Simulate transparency before transforming through object palette
+                    if (prePalette != 0) {
                         this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
                         this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
                         this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
                         this.imageDataGameboy[canvasIndex + 3] = 255;
                     }
                 }
+
+                if (HEIGHT == 16) {
+                    for (let x = 0; x < 8; x++) {
+                        screenYPos = yPos - 8;
+                        screenXPos = xPos - 8;
+    
+                        screenYPos += y;
+                        screenXPos += x;
+    
+                        let pixelX = flags.xFlip ? 7 - x : x;
+                        let pixelY = flags.yFlip ? 7 - y : y;
+    
+                        let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+    
+                        let tileOffset = 0;
+    
+                        let prePalette = this.tileset[tile + tileOffset + 1][pixelY][pixelX];
+                        let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
+                        let c = transformColor(pixel);
+    
+                        // Simulate transparency before transforming through object palette
+                        if (prePalette != 0) {
+                            this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
+                            this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
+                            this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
+                            this.imageDataGameboy[canvasIndex + 3] = 255;
+                        }
+                    }
+                } 
             }
         }
     }
@@ -525,7 +551,7 @@ class GPU {
     }
 
     oamDma(startAddr: number) {
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i <= 0x100; i++) {
             this.oam[i] = this.gb.bus.readMem8(startAddr + i);
         }
     }

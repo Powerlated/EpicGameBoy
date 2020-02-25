@@ -67,6 +67,7 @@ class MemoryBus {
             this.rom[i] = v;
         });
         this.updateMBC();
+        this.gb.reset();
     }
 
     serialOut: Array<number> = [];
@@ -81,6 +82,12 @@ class MemoryBus {
         Op: ${this.gb.cpu.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
 
         `);
+        }
+
+        // Write to High RAM
+        if (addr >= 0xFF80 && addr <= 0xFFFE) {
+            console.log("High RAM")
+            this.memory[addr] = value;
         }
 
         // Write to Echo RAM
@@ -119,6 +126,7 @@ class MemoryBus {
         // Write to OAM
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
             this.gpu.oam[addr - 0xFE00] = value;
+            console.log(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
         }
 
         // Hardware I/O registers
@@ -127,7 +135,7 @@ class MemoryBus {
                 case 0xFF00: // Joypad write
                     this.joypad.numerical = value;
                 case 0xFF01:
-                    // console.info(`[PC: ${hex(this.cpu.pc, 4)}, INS: #${this.cpu.totalI}] SERIAL PORT WRITE: ` + hex(value, 2));
+                    // console.info(`[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);
                     break;
                 case 0xFF04: // Timer divider
@@ -187,6 +195,11 @@ class MemoryBus {
     readMem8(addr: number): number {
         if (addr < 0x100 && this.bootromEnabled) {
             return this.bootrom[addr];
+        }
+
+        // Read from High RAM
+        if (addr >= 0xFF80 && addr <= 0xFFFE) {
+            return this.memory[addr];
         }
 
         // Read from Echo RAM
