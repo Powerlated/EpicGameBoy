@@ -33,6 +33,9 @@ export class PulseChannel implements BasicChannel {
     outputRight = false;
 
     triggered = false;
+    freqSweepTime = 0;
+    freqSweepUp = false;
+    freqSweepShiftNum = 0;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
@@ -201,7 +204,6 @@ export class NoiseChannel implements BasicChannel {
     }
 
     trigger() {
-        console.log("triggered noise")
         this.enabled = true;
     }
     

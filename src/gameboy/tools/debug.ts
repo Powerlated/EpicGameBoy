@@ -97,7 +97,7 @@ function test() {
 }
 
 
-function startDebugging() {
+export function startDebugging() {
     let debugP = document.getElementById('debug')!;
     // @ts-check
     if (!IS_NODE) {
@@ -139,7 +139,7 @@ let ctxMemoryMap = cMemoryMap.getContext("2d")!;
 
 let div = 0;
 
-export function updateDebug() {
+function updateDebug() {
     requestAnimationFrame(updateDebug);
     if ((window as any).globalDebug == false) return;
     if (div < 2) {
@@ -191,14 +191,14 @@ export function updateDebug() {
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>
                 ------------------------------
-                Pulse 1 Frequency: ${gb.soundChip.pulseChannel1.frequencyHz}
-                Pulse 2 Frequency: ${gb.soundChip.pulseChannel2.frequencyHz}
-                Wave Frequency:${gb.soundChip.waveChannel.frequencyHz}
-                Pulse 1 Volume: ${gb.soundChip.pulseChannel1.volume}
-                Pulse 2 Volume: ${gb.soundChip.pulseChannel2.volume}
-                Wave Volume:${gb.soundChip.waveChannel.volume}
-                Pulse 1 Envelope: ${gb.soundChip.pulseChannel1.volumeEnvelopeSweep}
-                Pulse 2 Envelope: ${gb.soundChip.pulseChannel2.volumeEnvelopeSweep}
+                Pulse 1 Frequency: ${gb.soundChip.pulse1.frequencyHz}
+                Pulse 2 Frequency: ${gb.soundChip.pulse2.frequencyHz}
+                Wave Frequency:${gb.soundChip.wave.frequencyHz}
+                Pulse 1 Volume: ${gb.soundChip.pulse1.volume}
+                Pulse 2 Volume: ${gb.soundChip.pulse2.volume}
+                Wave Volume:${gb.soundChip.wave.volume}
+                Pulse 1 Envelope: ${gb.soundChip.pulse1.volumeEnvelopeSweep}
+                Pulse 2 Envelope: ${gb.soundChip.pulse2.volumeEnvelopeSweep}
             `;
 
 

@@ -8,7 +8,7 @@ requirejs.config({
 requirejs(['tone', 'src/gameboy/gameboy', 'src/gameboy/tools/debug'], (Tone, GameBoy, Debug) => {
     window.GameBoy = GameBoy;
     window.Disassembler = GameBoy.Disassembler
-    window.startDebugging = Debug.updateDebug 
+    window.startDebugging = Debug.startDebugging 
     window.Tone = Tone;
 
     init();
@@ -40,6 +40,19 @@ function init() {
 
     function loadTetris() {
         let raw = atob(ROMS_BASE64.tetris);
+        let rawLength = raw.length;
+
+        let array = new Uint8Array(new ArrayBuffer(4194304));
+
+        for (i = 0; i < rawLength; i++) {
+            array[i] = raw.charCodeAt(i);
+        }
+
+        gb.bus.replaceRom(array);
+    }
+
+    function loadPokegold() {
+        let raw = atob(ROMS_BASE64.pokegold);
         let rawLength = raw.length;
 
         let array = new Uint8Array(new ArrayBuffer(4194304));
@@ -209,6 +222,7 @@ function init() {
     }, false);
 
     loadTetris();
+    loadPokegold();
     startDebugging();
 
     function repeatDisassemble() {

@@ -29,7 +29,7 @@ export default class ToneJsHandler {
         this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
-        this.waveSrc = new Tone.BufferSource(this.s.waveChannel.buffer, () => { });
+        this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
         this.waveSrc.loop = true;
         this.waveVolume = new Tone.Volume();
         this.waveVolume.volume.value = -36;
@@ -37,7 +37,7 @@ export default class ToneJsHandler {
         this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
-        this.noiseSrc = new Tone.BufferSource(this.s.noiseChannel.buffer, () => { });
+        this.noiseSrc = new Tone.BufferSource(this.s.noise.buffer, () => { });
         this.noiseSrc.loop = true;
         this.noiseVolume = new Tone.Volume();
         this.noiseVolume.mute = true;
@@ -53,54 +53,54 @@ export default class ToneJsHandler {
         // frequencyHz check is for removing loud noises when frequency is zeroed
 
         // Pulse 1
-        if (this.s.pulseChannel1.enabled && this.s.pulseChannel1.frequencyLower != 0 && this.s.pulseChannel1.updated) {
+        if (this.s.pulse1.enabled && this.s.pulse1.frequencyLower != 0 && this.s.pulse1.updated) {
             this.pulseOsc1.mute = false;
-            this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulseChannel1.volume);
-            this.pulseOsc1.frequency.value = this.s.pulseChannel1.frequencyHz;
-            this.pulseOsc1.width.value = SoundChip.widths[this.s.pulseChannel1.width];
+            this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulse1.volume);
+            this.pulseOsc1.frequency.value = this.s.pulse1.frequencyHz;
+            this.pulseOsc1.width.value = SoundChip.widths[this.s.pulse1.width];
         } else {
             this.pulseOsc1.mute = true;
         }
 
         // Pulse 2
-        if (this.s.pulseChannel2.enabled && this.s.pulseChannel2.frequencyLower != 0 && this.s.pulseChannel2.updated) {
+        if (this.s.pulse2.enabled && this.s.pulse2.frequencyLower != 0 && this.s.pulse2.updated) {
             this.pulseOsc2.mute = false;
-            this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulseChannel2.volume);
-            this.pulseOsc2.frequency.value = this.s.pulseChannel2.frequencyHz;
-            this.pulseOsc2.width.value = SoundChip.widths[this.s.pulseChannel2.width];
+            this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulse2.volume);
+            this.pulseOsc2.frequency.value = this.s.pulse2.frequencyHz;
+            this.pulseOsc2.width.value = SoundChip.widths[this.s.pulse2.width];
         } else {
             this.pulseOsc2.mute = true;
         }
 
         // Wave
-        if (this.s.waveChannel.enabled && this.s.waveChannel.frequencyLower != 0 && this.s.waveChannel.updated) {
+        if (this.s.wave.enabled && this.s.wave.frequencyLower != 0 && this.s.wave.updated) {
             this.waveVolume.mute = false;
-            this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.waveChannel.volume);
+            this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.wave.volume);
         } else {
             this.waveVolume.mute = true;
         }
 
         // Noise
-        if (this.s.noiseChannel.enabled && this.s.noiseChannel.updated) {
+        if (this.s.noise.enabled && this.s.noise.updated) {
             this.noiseVolume.mute = false;
-            this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noiseChannel.volume);
+            this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noise.volume);
         } else {
             this.noiseVolume.mute = true;
         }
 
-        if (this.s.waveChannel.waveTableUpdated == true) {
+        if (this.s.wave.waveTableUpdated == true) {
             this.waveSrc.dispose();
 
-            this.waveSrc = new Tone.BufferSource(this.s.waveChannel.buffer, () => { });
+            this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
             this.waveSrc.loop = true;
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 
-            this.s.waveChannel.waveTableUpdated = false;
+            this.s.wave.waveTableUpdated = false;
         }
 
-        this.pulsePan1.pan.value = this.s.pulseChannel1.pan;
-        this.pulsePan2.pan.value = this.s.pulseChannel2.pan;
-        this.wavePan.pan.value = this.s.waveChannel.pan;
+        this.pulsePan1.pan.value = this.s.pulse1.pan;
+        this.pulsePan2.pan.value = this.s.pulse2.pan;
+        this.wavePan.pan.value = this.s.wave.pan;
 
     }
 }
