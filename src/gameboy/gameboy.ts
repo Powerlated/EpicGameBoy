@@ -1,3 +1,9 @@
+import CPU from './core/cpu';
+import GPU from './core/gpu';
+import MemoryBus from './core/memorybus';
+import Timer from './components/timer';
+import SoundChip from './components/sound/sound';
+
 class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
@@ -58,3 +64,5 @@ class GameBoy {
         this.soundChip.reset();
     }
 }
+
+export default GameBoy;

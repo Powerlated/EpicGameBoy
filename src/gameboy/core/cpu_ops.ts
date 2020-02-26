@@ -1,3 +1,5 @@
+import CPU, { o8b, o16b, do8b, do16b, R8, R16, CC, unTwo8b } from './cpu'
+
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {
         cpu.pc--;
@@ -858,3 +860,5 @@ class Ops {
         cpu._r._f.carry = false;
     }
 }
+
+export default Ops;

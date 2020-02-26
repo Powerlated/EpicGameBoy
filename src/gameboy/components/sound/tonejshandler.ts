@@ -1,4 +1,7 @@
-class ToneJsHandler {
+import SoundChip from "./sound";
+import Tone from "tone";
+
+export default class ToneJsHandler {
     pulseOsc1: Tone.PulseOscillator;
     pulsePan1: Tone.Panner;
     pulseOsc2: Tone.PulseOscillator;

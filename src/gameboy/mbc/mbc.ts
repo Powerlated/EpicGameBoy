@@ -1,4 +1,6 @@
-interface MBC {
+import MemoryBus from "../core/memorybus";
+
+export default interface MBC {
 
     bus: MemoryBus;
     romBank: number;
@@ -9,6 +11,6 @@ interface MBC {
     reset(): void;
 }
 
-class MBC {
+export default class MBC {
     static bankSize = 16384;
 }

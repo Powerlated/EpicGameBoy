@@ -1,4 +1,7 @@
-class MBC3 implements MBC {
+import MemoryBus from "../core/memorybus";
+import MBC from "./mbc";
+
+export default class MBC3 implements MBC {
     romBank = 1;
     enableRamAndTimer = false;
     externalRam: Array<number> = [];

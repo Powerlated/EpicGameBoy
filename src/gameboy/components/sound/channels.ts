@@ -1,4 +1,6 @@
-interface BasicChannel {
+import Tone from "tone";
+
+export interface BasicChannel {
     triggered: boolean;
     volume: number;
     enabled: boolean;
@@ -7,7 +9,7 @@ interface BasicChannel {
     update(): void;
 }
 
-class PulseChannel implements BasicChannel {
+export class PulseChannel implements BasicChannel {
     enabled = false;
 
     width = 2;
@@ -66,7 +68,7 @@ class PulseChannel implements BasicChannel {
     update() {this.updated = true};
 }
 
-class WaveChannel implements BasicChannel {
+export class WaveChannel implements BasicChannel {
     enabled = false;
 
     lengthEnable = true;
@@ -147,7 +149,7 @@ class WaveChannel implements BasicChannel {
     update() {this.updated = true};
 }
 
-class NoiseChannel implements BasicChannel {
+export class NoiseChannel implements BasicChannel {
     enabled = false;
 
     lengthEnable = false;

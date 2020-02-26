@@ -4,6 +4,7 @@
         "module": "amd",
         "sourceMap": true,
         "outFile": "src/gameboy.js",
-        "strict": true
+        "strict": true,
+        "esModuleInterop": true
     },
 }

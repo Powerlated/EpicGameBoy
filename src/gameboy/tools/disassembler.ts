@@ -1,5 +1,8 @@
-class Disassembler {
+import CPU, { CC, o16b, hexN, hexN_LC, pad, Op, unTwo8b } from "../core/cpu";
 
+import Ops from "../core/cpu_ops";
+
+export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {
         if (ins.type == CC.C) return cpu._r._f.carry;
         if (ins.type == CC.NC) return !cpu._r._f.carry;
@@ -238,4 +241,3 @@ class Disassembler {
 
 
 }
-

@@ -1,4 +1,7 @@
-class NullMBC implements MBC {
+import MemoryBus from "../core/memorybus";
+import MBC from "./mbc";
+
+export default class NullMBC implements MBC {
 
     bus: MemoryBus;
 
