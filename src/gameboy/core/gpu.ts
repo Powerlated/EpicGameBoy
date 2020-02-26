@@ -408,21 +408,21 @@ class GPU {
                     for (let x = 0; x < 8; x++) {
                         screenYPos = yPos - 8;
                         screenXPos = xPos - 8;
-    
+
                         screenYPos += y;
                         screenXPos += x;
-    
+
                         let pixelX = flags.xFlip ? 7 - x : x;
                         let pixelY = flags.yFlip ? 7 - y : y;
-    
+
                         let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
-    
+
                         let tileOffset = 0;
-    
+
                         let prePalette = this.tileset[tile + tileOffset + 1][pixelY][pixelX];
                         let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                         let c = transformColor(pixel);
-    
+
                         // Simulate transparency before transforming through object palette
                         if (prePalette != 0) {
                             this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
@@ -431,7 +431,7 @@ class GPU {
                             this.imageDataGameboy[canvasIndex + 3] = 255;
                         }
                     }
-                } 
+                }
             }
         }
     }
@@ -550,9 +550,16 @@ class GPU {
         });
     }
 
+    // Source must be < 0xA000
     oamDma(startAddr: number) {
-        for (let i = 0; i <= 0x100; i++) {
-            this.oam[i] = this.gb.bus.readMem8(startAddr + i);
+        console.log(`OAM DMA @ ${hex(startAddr, 4)}`);
+        for (let i = 0; i < 0x100; i++) {
+            // If OAM -> OAM transfer, just write 0xFF for open
+            if (startAddr == 0xFE00) {
+                return;
+            } else {
+                this.oam[i] = this.gb.bus.readMem8(startAddr + i);
+            }
         }
     }
 }

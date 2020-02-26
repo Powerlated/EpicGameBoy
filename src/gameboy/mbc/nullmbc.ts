@@ -1,19 +1,21 @@
 class NullMBC implements MBC {
 
-    bus: MemoryBus;
+    ext: ExternalBus;
 
-    constructor(bus: MemoryBus) {
-        this.bus = bus;
+    constructor(ext: ExternalBus) {
+        this.ext = ext;
     }
 
     romBank = 0;
 
+    // Pass reads straight through with no MBC, however, one address line is missing
     read(addr: number): number {
-        return this.bus.gb.bus.rom[addr];
+        addr &= 32767;
+        return this.ext.rom[addr];
     }
     write(addr: number, value: number) {
         return;
     }
 
-    reset() {}
+    reset() { }
 }

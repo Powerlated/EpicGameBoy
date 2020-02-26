@@ -1,6 +1,6 @@
 interface MBC {
 
-    bus: MemoryBus;
+    ext: ExternalBus;
     romBank: number;
 
     read(addr: number): number;

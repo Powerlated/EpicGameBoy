@@ -115,10 +115,37 @@ function startDebugging() {
     }
 }
 
+let p0bg = document.getElementById('palette0-bg')!;
+let p1bg = document.getElementById('palette1-bg')!;
+let p2bg = document.getElementById('palette2-bg')!;
+let p3bg = document.getElementById('palette3-bg')!;
+
+let p0obj0 = document.getElementById('palette0-obj0')!;
+let p1obj0 = document.getElementById('palette1-obj0')!;
+let p2obj0 = document.getElementById('palette2-obj0')!;
+let p3obj0 = document.getElementById('palette3-obj0')!;
+
+let p0obj1 = document.getElementById('palette0-obj1')!;
+let p1obj1 = document.getElementById('palette1-obj1')!;
+let p2obj1 = document.getElementById('palette2-obj1')!;
+let p3obj1 = document.getElementById('palette3-obj1')!;
+
+let memoryMapData = new Uint8ClampedArray(256 * 256 * 4);
+
+let cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
+let ctxMemoryMap = cMemoryMap.getContext("2d")!;
+
+let div = 0;
 
 function updateDebug() {
     requestAnimationFrame(updateDebug);
-    if (!(window as any).globalDebug) return;
+    if ((window as any).globalDebug == false) return;
+    if (div < 2) {
+        div++;
+        return;
+    } else {
+        div = 0;
+    }
     let debugP = document.getElementById('debug')!;
     let lastDebugText = "";
     let gb = ((window as any).gb as GameBoy);
@@ -188,23 +215,6 @@ function updateDebug() {
     // L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
 
 
-
-    let p0bg = document.getElementById('palette0-bg')!;
-    let p1bg = document.getElementById('palette1-bg')!;
-    let p2bg = document.getElementById('palette2-bg')!;
-    let p3bg = document.getElementById('palette3-bg')!;
-
-    let p0obj0 = document.getElementById('palette0-obj0')!;
-    let p1obj0 = document.getElementById('palette1-obj0')!;
-    let p2obj0 = document.getElementById('palette2-obj0')!;
-    let p3obj0 = document.getElementById('palette3-obj0')!;
-
-    let p0obj1 = document.getElementById('palette0-obj1')!;
-    let p1obj1 = document.getElementById('palette1-obj1')!;
-    let p2obj1 = document.getElementById('palette2-obj1')!;
-    let p3obj1 = document.getElementById('palette3-obj1')!;
-
-
     p0bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
     p1bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
     p2bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
@@ -220,10 +230,25 @@ function updateDebug() {
     p2obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade2), 6);
     p3obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade3), 6);
 
-
-
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
+
+    for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+            let c = gb.bus.readMem8((y * 256) + x);
+
+            // Canvas Index
+            let ci = ((y * 256) + x) * 4;
+
+            memoryMapData[ci + 0] = c;
+            memoryMapData[ci + 1] = c;
+            memoryMapData[ci + 2] = c;
+            memoryMapData[ci + 3] = 0xFF;
+        }
+    }
+
+    let data = new ImageData(memoryMapData, 256, 256);
+    ctxMemoryMap.putImageData(data, 0, 0);
 }
 
 let globalDebug = false;

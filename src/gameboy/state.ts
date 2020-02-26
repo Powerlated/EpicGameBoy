@@ -23,7 +23,9 @@ type State = {
         bootrom: Array<number>;
         memory: Array<number>;
 
-        mbc: string;
+        ext: {
+            
+        }
     },
     gpu: {
         totalFrameCount: number;
@@ -124,7 +126,9 @@ function SaveState(gb: GameBoy, slot: number) {
             bootrom: Array.from(bus.bootrom),
             memory: Array.from(bus.memory),
 
-            mbc: bus.mbc.constructor.name,
+            ext: {
+                mbc: bus.ext.mbc.constructor.name,
+            }
         },
         timer: {
             divider: timer.divider,

@@ -148,14 +148,14 @@ document.querySelector('#enableDebugger').addEventListener('change', function (e
 });
 
 function showDebug() {
-    this.globalDebug = true;
+    window.globalDebug = true;
     let debugElements = document.getElementsByClassName('debug');
     for (let i = 0; i < debugElements.length; i++) {
         debugElements[i].classList.remove('hidden');
     }
 }
 function hideDebug() {
-    this.globalDebug = false;
+    window.globalDebug = false;
     let debugElements = document.getElementsByClassName('debug');
     for (let i = 0; i < debugElements.length; i++) {
         debugElements[i].classList.add('hidden');

@@ -2,21 +2,21 @@ class MBC3 implements MBC {
     romBank = 1;
     enableRamAndTimer = false;
     externalRam: Array<number> = [];
-    bus: MemoryBus;
+    ext: ExternalBus;
 
-    constructor(bus: MemoryBus) {
-        this.bus = bus;
+    constructor(ext: ExternalBus) {
+        this.ext = ext;
     }
 
     readBank(addr: number, bank: number): number {
         let calculated = (bank * MBC.bankSize) + (addr - MBC.bankSize);
-        return this.bus.rom[calculated];
+        return this.ext.rom[calculated];
     }
 
     read(addr: number): number {
         // Bank 0 (Read Only)
         if (addr >= 0x0000 && addr <= 0x3FFF) {
-            return this.bus.rom[addr];
+            return this.ext.rom[addr];
         }
         // Banks 01-7F (Read Only)
         if (addr >= 0x4000 && addr <= 0x7FFF) {

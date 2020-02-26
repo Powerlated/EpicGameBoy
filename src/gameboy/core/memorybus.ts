@@ -12,11 +12,10 @@ class MemoryBus {
     cpu: CPU;
     gpu: GPU;
 
-    mbc: MBC;
+    ext = new ExternalBus();
 
     memory = new Uint8Array(0xFFFF + 1).fill(0);
     bootrom = new Uint8Array(0xFF + 1).fill(0);
-    rom = new Uint8Array(4194304).fill(0xFF);
 
     interrupts = new InterruptController(this);
     joypad = new JoypadRegister();
@@ -28,23 +27,22 @@ class MemoryBus {
         this.gb = gb;
         this.cpu = gb.cpu;
         this.gpu = gb.gpu;
-        this.mbc = new MBC3(this);
     }
 
     updateMBC() {
-        switch (this.rom[0x147]) {
+        switch (this.ext.rom[0x147]) {
             case 0x01: case 0x02: case 0x03:
-                this.mbc = new MBC1(this);
+                this.ext.mbc = new MBC1(this.ext);
                 break;
             case 0x05: case 0x06:
                 // this.mbc = new MBC2(this);
                 break;
             case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
-                this.mbc = new MBC3(this);
+                this.ext.mbc = new MBC3(this.ext);
                 break;
             case 0x19: case 0x1A: case 0x1B: case 0x1B:
             case 0x1C: case 0x1D: case 0x1E:
-                this.mbc = new MBC3(this);
+                this.ext.mbc = new MBC3(this.ext);
                 break;
             case 0x20:
                 // this.mbc = new MBC6(this);
@@ -56,7 +54,7 @@ class MemoryBus {
             case 0x09: case 0x0B:
             case 0x0C: case 0x0D:
             default:
-                this.mbc = new NullMBC(this);
+                this.ext.mbc = new NullMBC(this.ext);
                 break;
         }
     }
@@ -64,7 +62,7 @@ class MemoryBus {
     replaceRom(rom: Uint8Array) {
         console.info("Replaced ROM");
         rom.forEach((v, i) => {
-            this.rom[i] = v;
+            this.ext.rom[i] = v;
         });
         this.updateMBC();
         this.gb.reset();
@@ -96,7 +94,7 @@ class MemoryBus {
 
         // ROM Write (MBC Control)
         if (addr >= 0x0000 && addr <= 0x7FFF) {
-            this.mbc.write(addr, value);
+            this.ext.write(addr, value);
         }
 
         // Sound registers
@@ -206,9 +204,9 @@ class MemoryBus {
             return this.memory[addr - 8192];
         }
 
-        // Read from ROM through MBC
+        // Read from ROM through External Bus
         if (addr >= 0x0000 && addr <= 0x7FFF) {
-            return this.mbc.read(addr);
+            return this.ext.read(addr);
         }
 
         // Return from VRAM
@@ -227,7 +225,6 @@ class MemoryBus {
             return this.gpu.oam[addr - 0xFE00];
         }
 
-
         // GET Interrupt request flags
         if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
             return this.interrupts.requestedInterrupts.numerical;
@@ -244,7 +241,7 @@ class MemoryBus {
                     // console.log("Polled joypad")
                     return this.joypad.numerical;
                 case 0xFF01:
-                    console.info(`SERIAL PORT READ`);
+                    // console.info(`SERIAL PORT READ`);
                     return 0x69;
                 case 0xFF04: // Timer divider
                     return this.gb.timer.addr_0xFF04;
@@ -294,6 +291,6 @@ class MemoryBus {
             a[i] = 0;
         });
 
-        this.mbc.reset();
+        this.ext.mbc.reset();
     }
 }

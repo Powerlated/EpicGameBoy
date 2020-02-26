@@ -31,16 +31,15 @@ html {
 
 .palette-container {
     display: flex;
-
-    margin-bottom: 20px;
+    margin-bottom: 0px;
 }
 
 .palette-square {
     outline: solid 1px black;
 
     display: inline-block;
-    min-width: 48px;
-    min-height: 48px;
+    min-width: 32px;
+    min-height: 32px;
 }
 
 .interactive {
@@ -67,6 +66,16 @@ html {
 
     outline-style: solid;
     outline-width: thick;
+    outline-color: black;
+}
+
+#memory-map {
+    width: 256px;
+    height: 256px;
+    image-rendering: pixelated;
+
+    outline-style: solid;
+    outline-width: thin;
     outline-color: black;
 }
 

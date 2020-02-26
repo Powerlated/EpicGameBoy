@@ -3,7 +3,6 @@
 <head>
     <title>Game Boy Emulator</title>
     <link rel="stylesheet" type="text/css" href="index.css">
-    <script src="./gameboy.js"></script>
     <script src="../lib/Tone.js"></script>
     <script src="../lib/preact.umd.js"></script>
     <script src="../lib/pako.js"></script>
@@ -23,8 +22,10 @@
 
         <div class="panel">
             <span class="code" id="breakpoints"></span>
-            
+
             <canvas class="debug" id="tileset" width="256" height="144"></canvas>
+            <canvas class="debug" id="memory-map" width="256" height="256"></canvas>
+            
             <div id="palette" class="debug">
                 <label>Palette</label>
                 <div class="palette-container">
@@ -52,7 +53,7 @@
             <div>
                 <br>
                 <label for="big-screen">Big Screen</label>
-                <input id="big-screen" autocomplete="off" type="checkbox"/>
+                <input id="big-screen" autocomplete="off" type="checkbox" />
             </div>
         </div>
 
@@ -75,7 +76,7 @@
         <div>
             <input id="drawTileset" autocomplete="off" type="checkbox">
             <label for="drawTileset">Draw Tileset</label>
-            
+
             <input id="displaySerialInput" autocomplete="off" type="checkbox">
             <label for="displaySerialInput">Display Serial</label>
 
@@ -87,7 +88,7 @@
                 <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
             </div>
         </div>
-        
+
         <div>
             <label for="gameromInput">Open Game ROM</label>
             <input id="gameromInput" autocomplete="off" type="file">
@@ -115,8 +116,7 @@
         </div>
     </div>
 
+    <script src="./gameboy.js"></script>
     <script src="index.js"></script>
-  
+   
 </body>
-
-
