@@ -1,8 +1,8 @@
 import GameBoy from "../../gameboy";
 
 import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
-import Tone from "tone";
 import ToneJsHandler from "./tonejshandler";
+import * as Tone from "tone";
 
 export default class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {

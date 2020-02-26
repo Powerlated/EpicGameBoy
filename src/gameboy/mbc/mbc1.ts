@@ -1,6 +1,7 @@
 import MBC from "./mbc";
 
 import MemoryBus from "../core/memorybus";
+import ExternalBus from "../core/externalbus";
 
 enum BankingModes {
     ROMBankingMode = "ROM", RAMBankingMode = "RAM"

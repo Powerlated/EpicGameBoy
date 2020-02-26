@@ -1,4 +1,5 @@
 import GameBoy from "../gameboy";
+import { hex } from "./cpu";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register

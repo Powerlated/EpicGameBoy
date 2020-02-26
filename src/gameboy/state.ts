@@ -1,5 +1,5 @@
 import GameBoy from './gameboy';
-import pako from 'pako';
+import * as pako from 'pako';
 
 type State = {
     cpu: {
@@ -27,7 +27,7 @@ type State = {
         memory: Array<number>;
 
         ext: {
-            
+
         }
     },
     gpu: {

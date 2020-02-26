@@ -97,8 +97,6 @@ function test() {
 }
 
 
-
-
 function startDebugging() {
     let debugP = document.getElementById('debug')!;
     // @ts-check
@@ -141,7 +139,7 @@ let ctxMemoryMap = cMemoryMap.getContext("2d")!;
 
 let div = 0;
 
-function updateDebug() {
+export function updateDebug() {
     requestAnimationFrame(updateDebug);
     if ((window as any).globalDebug == false) return;
     if (div < 2) {

@@ -9,6 +9,7 @@ import MBC from "../mbc/mbc";
 import MBC1 from "../mbc/mbc1";
 import NullMBC from "../mbc/nullmbc";
 import { JoypadRegister } from "../components/joypad";
+import ExternalBus from "./externalbus";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;

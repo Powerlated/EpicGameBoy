@@ -3,8 +3,9 @@ import GPU from './core/gpu';
 import MemoryBus from './core/memorybus';
 import Timer from './components/timer';
 import SoundChip from './components/sound/sound';
+import Disassembler from './tools/disassembler';
 
-class GameBoy {
+export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
@@ -28,14 +29,14 @@ class GameBoy {
     speedIntervals: Array<number> = [];
 
     speedStop() {
-        this.speedIntervals.forEach((v, i, a) => { clearInterval(v) });
+        this.speedIntervals.forEach((v, i, a) => { clearInterval(v); });
         this.cpu.stopNow = true;
         this.soundChip.setMuted(true);
     }
 
     speed() {
         this.cpu.debugging = false;
-        this.speedIntervals.push(setInterval(() => { this.frame() }, 16));
+        this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
         this.soundChip.setMuted(false);
     }
 
@@ -65,4 +66,4 @@ class GameBoy {
     }
 }
 
-export default GameBoy;
+export { GameBoy, CPU, GPU, MemoryBus, Timer, Disassembler }; 

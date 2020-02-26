@@ -1,5 +1,6 @@
 import MemoryBus from "../core/memorybus";
 import MBC from "./mbc";
+import ExternalBus from "../core/externalbus";
 
 export default class NullMBC implements MBC {
 

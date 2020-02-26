@@ -1,4 +1,4 @@
-import Tone from "tone";
+import * as Tone from "tone";
 
 export interface BasicChannel {
     triggered: boolean;

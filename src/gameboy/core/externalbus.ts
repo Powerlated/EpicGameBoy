@@ -1,4 +1,8 @@
-class ExternalBus {
+import MBC from "../mbc/mbc";
+
+import NullMBC from "../mbc/nullmbc";
+
+export default class ExternalBus {
     mbc: MBC;
     rom = new Uint8Array(4194304).fill(0xFF);
 
