@@ -61,9 +61,10 @@ class Disassembler {
                 case Ops.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
                 case Ops.ADC_A_R8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
                 case Ops.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
-                case Ops.LD_A_iHL_INC: return [LD, "A,(HL+)"];
+                case Ops.LD_A_iHLinc: return [LD, "A,(HL+)"];
                 case Ops.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
                 case Ops.JP_HL: return ["JP", "HL"];
+                case Ops.ADD_HL_R16: return ["ADD HL,", ins.type]
                 default: return null;
             }
         };

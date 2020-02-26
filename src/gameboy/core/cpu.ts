@@ -416,7 +416,7 @@ class CPU {
 
             // ---------------------------
 
-            if (false) {
+            if (true) {
                 let isControlFlow = Disassembler.isControlFlow(ins, this);
                 if (!isCB) {
                     if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
@@ -676,42 +676,6 @@ class CPU {
         let lowerNybble = id & 0b1111;
 
         switch (id) {
-            /** Misc - Organize some later */
-            case 0x32:
-                return { op: Ops.LD_iHLdec_A, length: 1 };
-            case 0xE2:
-                return { op: Ops.LD_iFF00plusC_A, length: 1 };
-            case 0xE0:
-                return { op: Ops.LD_iFF00plusN8_A, length: 2 };
-            case 0x1A:
-                return { op: Ops.LD_A_iR16, type: R16.DE, length: 1 };
-            case 0x00: // NOP
-                return { op: Ops.NOP, length: 1 };
-            case 0x22:
-                return { op: Ops.LD_iHLinc_A, length: 1 };
-            case 0xEA:
-                return { op: Ops.LD_iN16_A, length: 3 };
-            case 0x02: // LD (BC),A
-                return { op: Ops.LD_iR16_A, type: R16.BC, length: 1 };
-            case 0xF0: // LD A,[$FF00+n8]
-                return { op: Ops.LD_A_iFF00plusN8, length: 2 };
-            case 0xF3: // DI - Disable interrupts master flag
-                return { op: Ops.DI, length: 1 };
-            case 0x36:
-                return { op: Ops.LD_iHL_N8, length: 2 };
-            case 0x2A:
-                return { op: Ops.LD_A_iHL_INC, length: 1 };
-            case 0xFB: // EI - Enable interrupts master flag
-                return { op: Ops.EI, length: 1 };
-            case 0x2F: // CPL
-                return { op: Ops.CPL, length: 1 };
-            case 0xE6: // AND A, u8
-                return { op: Ops.AND_N8, length: 2 };
-
-
-
-
-
             /** JR */
             case 0x18: // JR E8
                 return { op: Ops.JR_E8, type: CC.UNCONDITIONAL, length: 2 };
@@ -848,11 +812,13 @@ class CPU {
             case 0xC0: // RET NZ
                 return { op: Ops.RET, type: CC.NZ, length: 1 };
 
-            /** SP/HL ops */
+            /** SP ops */
             case 0xF8: // LD HL, SP+e8
                 return { op: Ops.LD_HL_SPaddE8, length: 2, cyclesOffset: 4 };
             case 0xF9: // LD SP, HL
                 return { op: Ops.LD_SP_HL, length: 1, cyclesOffset: 4 };
+            case 0xE8: // ADD SP, E8
+                return { op: Ops.ADD_SP_E8, length: 2, cyclesOffset: 8 };
 
             /** A rotate */
             case 0x07: // RLC A
@@ -915,6 +881,8 @@ class CPU {
                 return { op: Ops.ADD_HL_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
             case 0x29: // ADD HL, HL
                 return { op: Ops.ADD_HL_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+            case 0x39: // ADD HL, SP
+                return { op: Ops.ADD_HL_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
 
             /** Reset Vectors */
             case 0xDF: // RST 18h
@@ -934,29 +902,60 @@ class CPU {
             case 0xF7: // RST 30h
                 return { op: Ops.RST, type: 0x30, length: 1 };
 
-            /** Miscellaneousjj */
-            case 0x12: // LD [DE],A
+            /** Miscellaneous */
+            case 0x02: // LD [BC], A
+                return { op: Ops.LD_iR16_A, type: R16.BC, length: 1 };
+            case 0x12: // LD [DE], A
                 return { op: Ops.LD_iR16_A, type: R16.DE, length: 1 };
+            case 0x22: // LD [HL+], A
+                return { op: Ops.LD_iHLinc_A, length: 1 };
+            case 0x32: // LD [HL-], A
+                return { op: Ops.LD_iHLdec_A, length: 1 };
+
+
+            case 0x0A: // LD A, [BC]
+                return { op: Ops.LD_A_iR16, type: R16.BC, length: 1 };
+            case 0x1A: // LD A, [DE]
+                return { op: Ops.LD_A_iR16, type: R16.DE, length: 1 };
+            case 0x2A: // LD A, [HL+]
+                return { op: Ops.LD_A_iHLinc, length: 1 };
+            case 0x3A: // LD A, [HL-]
+                return { op: Ops.LD_A_iHLdec, length: 1 };
+
+
+
             case 0xFA: // LD A, [N16]
                 return { op: Ops.LD_A_iN16, length: 3 };
             case 0x08: // LD [N16], SP
                 return { op: Ops.LD_iN16_SP, length: 3 };
             case 0xD9: // RETI
                 return { op: Ops.RETI, length: 1 };
-            case 0x39: // ADD HL, SP
-                return { op: Ops.ADD_HL_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
-            case 0xE8: // ADD SP, E8
-                return { op: Ops.ADD_SP_E8, length: 2, cyclesOffset: 8 };
-            case 0x0A: // LD A, [BC]
-                return { op: Ops.LD_A_iR16, type: R16.BC, length: 1 };
-            case 0x3A: // LD A, [HL-]
-                return { op: Ops.LD_A_iHLdec, length: 1 };
             case 0x27: // DAA
                 return { op: Ops.DA_A, length: 1 };
             case 0xF2: // LD A, [FF00+C]
                 return { op: Ops.LD_A_iFF00plusC, length: 1 };
             case 0xF6: // OR A, N8
                 return { op: Ops.OR_A_N8, length: 2 };;
+            case 0xE2: // 
+                return { op: Ops.LD_iFF00plusC_A, length: 1 };
+            case 0xE0: // LD [$FF00+N8], A
+                return { op: Ops.LD_iFF00plusN8_A, length: 2 };
+            case 0x00: // NOP
+                return { op: Ops.NOP, length: 1 };
+            case 0xEA: // LD [N16], A
+                return { op: Ops.LD_iN16_A, length: 3 };
+            case 0xF0: // LD A, [$FF00+N8]
+                return { op: Ops.LD_A_iFF00plusN8, length: 2 };
+            case 0xF3: // DI - Disable interrupts master flag
+                return { op: Ops.DI, length: 1 };
+            case 0x36:
+                return { op: Ops.LD_iHL_N8, length: 2 };
+            case 0xFB: // EI - Enable interrupts master flag
+                return { op: Ops.EI, length: 1 };
+            case 0x2F: // CPL
+                return { op: Ops.CPL, length: 1 };
+            case 0xE6: // AND A, u8
+                return { op: Ops.AND_N8, length: 2 };
 
 
             /** Invalid */
@@ -974,67 +973,41 @@ class CPU {
                 return { op: Ops.INVALID_OPCODE, length: 1 };
         }
 
-        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
-
+        const typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
+        // Mask for the low or high half of the table
+        const HALF_MASK = (1 << 3);
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
         if (upperNybble >= 0x8 && upperNybble <= 0xB) {
-            let type: OperandType;
-            let op: any;
+            const lowOps = [Ops.ADD_A_R8, Ops.SUB_A_R8, Ops.AND_A_R8, Ops.OR_A_R8];
+            const highOps = [Ops.ADC_A_R8, Ops.SBC_A_R8, Ops.XOR_A_R8, Ops.CP_A_R8];
 
-            type = typeTable[lowerNybble & 0b111];
-
+            let type = typeTable[lowerNybble & 0b111];
             const OPDEC = upperNybble & 0b11;
-            if (lowerNybble < 0x8) {
-                switch (OPDEC) {
-                    case 0x0: op = Ops.ADD_A_R8; break;
-                    case 0x1: op = Ops.SUB_A_R8; break;
-                    case 0x2: op = Ops.AND_A_R8; break;
-                    case 0x3: op = Ops.OR_A_R8; break;
-                }
-            } else {
-                switch (OPDEC) {
-                    case 0x0: op = Ops.ADC_A_R8; break;
-                    case 0x1: op = Ops.SBC_A_R8; break;
-                    case 0x2: op = Ops.XOR_A_R8; break;
-                    case 0x3: op = Ops.CP_A_R8; break;
-                }
-            }
 
-            return { op: op!, type: type, length: 1 };
+            let op: any;
+            (lowerNybble & HALF_MASK) != 0 ? op = highOps[OPDEC] : op = lowOps[OPDEC];
 
+            return { op: op, type: type, length: 1 };
         }
         // #endregion
 
         // #region Algorithm decoding LD 0x40-0x7F
         if (upperNybble >= 0x4 && upperNybble <= 0x7) {
-            let type: OperandType;
+            const highTypes = [R8.C, R8.E, R8.L, R8.A];
+            const lowTypes = [R8.B, R8.D, R8.H, R8.iHL];
+
             let type2: OperandType;
-            let op: any;
+            let op = Ops.LD_R8_R8;
 
             type2 = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
-            if (lowerNybble < 0x8) {
-                // Left side of table
-                switch (OPDEC) {
-                    case 0x0: op = Ops.LD_R8_R8; type = R8.B; break;
-                    case 0x1: op = Ops.LD_R8_R8; type = R8.D; break;
-                    case 0x2: op = Ops.LD_R8_R8; type = R8.H; break;
-                    case 0x3: op = Ops.LD_R8_R8; type = R8.iHL;
-                }
-            } else {
-                // Right side of table
-                switch (OPDEC) {
-                    case 0x0: op = Ops.LD_R8_R8; type = R8.C; break;
-                    case 0x1: op = Ops.LD_R8_R8; type = R8.E; break;
-                    case 0x2: op = Ops.LD_R8_R8; type = R8.L; break;
-                    case 0x3: op = Ops.LD_R8_R8; type = R8.A; break;
-                }
-            }
 
+            let type: OperandType;
+            (lowerNybble & HALF_MASK) != 0 ? type = highTypes[OPDEC] : type = lowTypes[OPDEC];
 
-            return { op: op!, type: type!, type2: type2, length: 1 };
+            return { op: op, type: type, type2: type2, length: 1 };
 
         }
 

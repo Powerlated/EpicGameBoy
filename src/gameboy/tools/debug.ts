@@ -128,7 +128,8 @@ function updateDebug() {
     let displaySerial = (window as any).displaySerial;
     let r = cpu.gb.bus.interrupts.requestedInterrupts;
     let e = cpu.gb.bus.interrupts.enabledInterrupts;
-    let debugText = `
+    let debugText =
+        `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
 
@@ -208,12 +209,12 @@ function updateDebug() {
     p1bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
     p2bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
     p3bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
-    
+
     p0obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade0), 6);
     p1obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade1), 6);
     p2obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade2), 6);
     p3obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade3), 6);
-    
+
     p0obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade0), 6);
     p1obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade1), 6);
     p2obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade2), 6);

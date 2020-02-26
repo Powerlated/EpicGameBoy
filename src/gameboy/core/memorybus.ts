@@ -86,7 +86,6 @@ class MemoryBus {
 
         // Write to High RAM
         if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            console.log("High RAM")
             this.memory[addr] = value;
         }
 

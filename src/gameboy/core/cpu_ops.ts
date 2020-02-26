@@ -93,11 +93,6 @@ class Ops {
         cpu._r.a = cpu.fetchMem8(n16);
     }
 
-    static LD_A_iHL_INC(cpu: CPU, ) {
-        cpu._r.a = cpu.fetchMem8(cpu._r.hl);
-        cpu._r.hl = o16b(cpu._r.hl + 1);
-    }
-
     static LD_iHL_N8(cpu: CPU, n8: number) {
         cpu.writeMem8(cpu._r.hl, n8);
     }
@@ -238,8 +233,6 @@ class Ops {
         cpu._r._f.carry = (signedVal & 0xFF) + (cpu._r.sp & 0xFF) > 0xFF;
 
         cpu._r.hl = o16b(unTwo8b(e8) + cpu._r.sp);
-
-        cpu.cycles += 4; // Internal time
     }
 
     // LD [$FF00+u8],A
@@ -417,8 +410,6 @@ class Ops {
 
         // Set register values
         cpu._r.hl = newValue;
-
-        cpu.cycles += 4; // Internal time
     }
 
     static SUB_A_R8(cpu: CPU, t: R8) {
