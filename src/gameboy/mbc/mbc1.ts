@@ -1,8 +1,12 @@
+import MBC from "./mbc";
+
+import MemoryBus from "../core/memorybus";
+
 enum BankingModes {
     ROMBankingMode = "ROM", RAMBankingMode = "RAM"
 }
 
-class MBC1 implements MBC {
+export default class MBC1 implements MBC {
     romBank = 1;
     ramBank = 0;
     enableExternalRam = false;

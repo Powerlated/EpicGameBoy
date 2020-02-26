@@ -1,3 +1,7 @@
+import Ops from "./cpu_ops";
+import GameBoy from "../gameboy";
+import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
+import Disassembler from "../tools/disassembler";
 
 
 function undefErr(cpu: CPU, name: string) {
@@ -185,15 +189,15 @@ class FlagsRegister {
     }
 }
 
-enum R8 {
+export enum R8 {
     A = "A", B = "B", C = "C", D = "D", E = "E", H = "H", L = "L", iHL = "(HL)"
 }
 
-enum R16 {
+export enum R16 {
     AF = "AF", BC = "BC", DE = "DE", HL = "HL", SP = "SP"
 }
 
-enum CC {
+export enum CC {
     UNCONDITIONAL = "UNCONDITIONAL",
     Z = "Z",
     NZ = "NZ",
@@ -201,29 +205,29 @@ enum CC {
     NC = "NC"
 }
 
-type OperandType = R8 | R16 | CC | number;
+export type OperandType = R8 | R16 | CC | number;
 
-interface Op {
+export interface Op {
     op(cpu: CPU, ...others: any): void, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
 };
 
-enum Operand {
+export enum Operand {
     b16, b8
 }
 
-function pad(n: string, width: number, z: string) {
+export function pad(n: string, width: number, z: string) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
 
-function r_pad(n: string, width: number, z: string) {
+export function r_pad(n: string, width: number, z: string) {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : n + new Array(width - n.length + 1).join(z);
 }
 
-class CPU {
+export default class CPU {
     halted = false;
 
     gb: GameBoy;
@@ -1083,7 +1087,7 @@ class CPU {
     }
 }
 
-function unTwo4b(n: number): number {
+export function unTwo4b(n: number): number {
     if ((n & 0b1000) != 0) {
         return n - 16;
     } else {
@@ -1091,7 +1095,7 @@ function unTwo4b(n: number): number {
     }
 }
 
-function unTwo8b(n: number): number {
+export function unTwo8b(n: number): number {
     if ((n & 0b10000000) != 0) {
         return n - 256;
     } else {
@@ -1099,7 +1103,7 @@ function unTwo8b(n: number): number {
     }
 }
 
-function unTwo16b(n: number): number {
+export function unTwo16b(n: number): number {
     if ((n & 0b1000000000000000) != 0) {
         return n - 65536;
     } else {
@@ -1107,39 +1111,38 @@ function unTwo16b(n: number): number {
     }
 }
 
-function o4b(i: number): number {
+export function o4b(i: number): number {
     return i & 0xF;
 }
 
-function o8b(i: number): number {
+export function o8b(i: number): number {
     return i & 0xFF;
 }
 
-function o16b(i: number): number {
+export function o16b(i: number): number {
     return i & 0xFFFF;
 }
 
-function do4b(i: number): boolean {
+export function do4b(i: number): boolean {
     return i > 0xF || i < 0;
 }
 
-function do8b(i: number): boolean {
+export function do8b(i: number): boolean {
     return i > 0xFF || i < 0;
 }
 
-function do16b(i: number): boolean {
+export function do16b(i: number): boolean {
     return i > 0xFFFF || i < 0;
 }
 
-function hex(i: any, digits: number) {
+export function hex(i: any, digits: number) {
     return `0x${pad(i.toString(16), digits, '0').toUpperCase()}`;
 }
 
-function hexN(i: any, digits: number) {
+export function hexN(i: any, digits: number) {
     return pad(i.toString(16), digits, '0').toUpperCase();
 }
 
-function hexN_LC(i: any, digits: number) {
+export function hexN_LC(i: any, digits: number) {
     return pad(i.toString(16), digits, '0');
 }
-

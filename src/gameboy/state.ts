@@ -1,3 +1,6 @@
+import GameBoy from './gameboy';
+import pako from 'pako';
+
 type State = {
     cpu: {
         pc: number;

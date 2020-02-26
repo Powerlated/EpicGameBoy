@@ -1,3 +1,4 @@
+import MemoryBus from "../core/memorybus";
 
 
 class InterruptFlag {
@@ -38,14 +39,15 @@ class InterruptFlag {
     }
 }
 
-const VBLANK_VECTOR = 0x40;
-const LCD_STATUS_VECTOR = 0x48;
-const TIMER_OVERFLOW_VECTOR = 0x50;
-const SERIAL_LINK_VECTOR = 0x58;
+export const VBLANK_VECTOR = 0x40;
+export const LCD_STATUS_VECTOR = 0x48;
+export const TIMER_OVERFLOW_VECTOR = 0x50;
+export const SERIAL_LINK_VECTOR = 0x58;
+export 
 const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
-class InterruptController {
+export default class InterruptController {
     bus: MemoryBus;
 
     constructor(bus: MemoryBus) {

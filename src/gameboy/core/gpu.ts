@@ -1,3 +1,5 @@
+import GameBoy from "../gameboy";
+
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
     lcdDisplayEnable7 = false; // Bit 7 - LCD Display Enable             (0=Off, 1=On)
@@ -141,7 +143,7 @@ class PaletteData {
     }
 }
 
-function transformColor(color: number): number {
+export function transformColor(color: number): number {
     switch (color) {
         case 3: return 0x000000; // [255, 255, 255]
         case 2: return 0x606060; // [192, 192, 192]
@@ -563,3 +565,5 @@ class GPU {
         }
     }
 }
+
+export default GPU;

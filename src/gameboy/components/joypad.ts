@@ -1,4 +1,4 @@
-class JoypadRegister {
+export class JoypadRegister {
 
     /* Pandocs - Joypad Input
     Bit 7 - Not used
