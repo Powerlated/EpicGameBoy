@@ -554,10 +554,10 @@ class GPU {
     oamDma(startAddr: number) {
         console.log(`OAM DMA @ ${hex(startAddr, 4)}`);
         for (let i = 0; i < 0x100; i++) {
-            // If OAM -> OAM transfer, just write 0xFF for open
+            // If $FE00, read from external bus 
             if (startAddr == 0xFE00) {
-                return;
-            } else {
+                this.oam[i] = this.gb.bus.ext.read(startAddr + i);
+            } else { // General bus read
                 this.oam[i] = this.gb.bus.readMem8(startAddr + i);
             }
         }

@@ -800,6 +800,7 @@ class CPU {
             case 0xDE: // SBC A, N8
                 return { op: Ops.SBC_A_N8, length: 2 };
 
+
             /** RET */
             case 0xC9: // RET
                 return { op: Ops.RET, type: CC.UNCONDITIONAL, length: 1 };
@@ -831,6 +832,10 @@ class CPU {
                 return { op: Ops.RLA, length: 1 };
 
             /** A ops */
+            case 0xE6: // AND A, N8
+                return { op: Ops.AND_N8, length: 2 };
+            case 0xF6: // OR A, N8
+                return { op: Ops.OR_A_N8, length: 2 };
             case 0xEE: // XOR A, N8
                 return { op: Ops.XOR_A_N8, length: 2 };
             case 0xFE: // CP A, N8
@@ -902,7 +907,7 @@ class CPU {
             case 0xF7: // RST 30h
                 return { op: Ops.RST, type: 0x30, length: 1 };
 
-            /** Miscellaneous */
+            /** LD between A and R16 */
             case 0x02: // LD [BC], A
                 return { op: Ops.LD_iR16_A, type: R16.BC, length: 1 };
             case 0x12: // LD [DE], A
@@ -911,8 +916,6 @@ class CPU {
                 return { op: Ops.LD_iHLinc_A, length: 1 };
             case 0x32: // LD [HL-], A
                 return { op: Ops.LD_iHLdec_A, length: 1 };
-
-
             case 0x0A: // LD A, [BC]
                 return { op: Ops.LD_A_iR16, type: R16.BC, length: 1 };
             case 0x1A: // LD A, [DE]
@@ -922,40 +925,39 @@ class CPU {
             case 0x3A: // LD A, [HL-]
                 return { op: Ops.LD_A_iHLdec, length: 1 };
 
+            /** LD between A and High RAM */
+            case 0xF0: // LD A, [$FF00+N8]
+                return { op: Ops.LD_A_iFF00plusN8, length: 2 };
+            case 0xE0: // LD [$FF00+N8], A
+                return { op: Ops.LD_iFF00plusN8_A, length: 2 };
+            case 0xF2: // LD A, [$FF00+C]
+                return { op: Ops.LD_A_iFF00plusC, length: 1 };
+            case 0xE2: // LD [$FF00+C], A
+                return { op: Ops.LD_iFF00plusC_A, length: 1 };
 
 
             case 0xFA: // LD A, [N16]
                 return { op: Ops.LD_A_iN16, length: 3 };
+            case 0xEA: // LD [N16], A
+                return { op: Ops.LD_iN16_A, length: 3 };
             case 0x08: // LD [N16], SP
                 return { op: Ops.LD_iN16_SP, length: 3 };
+
+            case 0xF3: // DI - Disable interrupts master flag
+                return { op: Ops.DI, length: 1 };
+            case 0xFB: // EI - Enable interrupts master flag
+                return { op: Ops.EI, length: 1 };
+
+            case 0x36: // LD [HL], N8
+                return { op: Ops.LD_iHL_N8, length: 2 };
+            case 0x2F: // CPL
+                return { op: Ops.CPL, length: 1 };
             case 0xD9: // RETI
                 return { op: Ops.RETI, length: 1 };
             case 0x27: // DAA
                 return { op: Ops.DA_A, length: 1 };
-            case 0xF2: // LD A, [FF00+C]
-                return { op: Ops.LD_A_iFF00plusC, length: 1 };
-            case 0xF6: // OR A, N8
-                return { op: Ops.OR_A_N8, length: 2 };;
-            case 0xE2: // 
-                return { op: Ops.LD_iFF00plusC_A, length: 1 };
-            case 0xE0: // LD [$FF00+N8], A
-                return { op: Ops.LD_iFF00plusN8_A, length: 2 };
             case 0x00: // NOP
                 return { op: Ops.NOP, length: 1 };
-            case 0xEA: // LD [N16], A
-                return { op: Ops.LD_iN16_A, length: 3 };
-            case 0xF0: // LD A, [$FF00+N8]
-                return { op: Ops.LD_A_iFF00plusN8, length: 2 };
-            case 0xF3: // DI - Disable interrupts master flag
-                return { op: Ops.DI, length: 1 };
-            case 0x36:
-                return { op: Ops.LD_iHL_N8, length: 2 };
-            case 0xFB: // EI - Enable interrupts master flag
-                return { op: Ops.EI, length: 1 };
-            case 0x2F: // CPL
-                return { op: Ops.CPL, length: 1 };
-            case 0xE6: // AND A, u8
-                return { op: Ops.AND_N8, length: 2 };
 
 
             /** Invalid */

@@ -57,6 +57,7 @@ class MemoryBus {
                 this.ext.mbc = new NullMBC(this.ext);
                 break;
         }
+        console.log(this.ext.mbc);
     }
 
     replaceRom(rom: Uint8Array) {
