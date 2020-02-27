@@ -9,6 +9,7 @@ export default class Disassembler {
         if (ins.type == CC.Z) return cpu._r._f.zero;
         if (ins.type == CC.NZ) return !cpu._r._f.zero;
         if (ins.type == CC.UNCONDITIONAL) return true;
+        return false;
     };
 
     static isControlFlow = (ins: Op, cpu: CPU) => {
@@ -34,8 +35,8 @@ export default class Disassembler {
             case Ops.JP_HL:
                 return cpu._r.hl;
             case Ops.RET:
-                let stackLowerByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp));
-                let stackUpperByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp + 1));
+                let stackLowerByte: number = cpu.gb.bus.readMem8(o16b(cpu._r.sp));
+                let stackUpperByte: number = cpu.gb.bus.readMem8(o16b(cpu._r.sp + 1));
                 return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
             case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction
@@ -45,12 +46,12 @@ export default class Disassembler {
     };
 
     static disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU) => {
-        const HARDCODE_DECODE = (ins: Op, pcTriplet: Array<number>) => {
-            const LD = "LD";
-            const RST = "RST";
-            const CP = "CP";
-            const ADC = "ADC";
-            const doublet = pcTriplet[1] | pcTriplet[2] << 8;
+        const HARDCODE_DECODE: (ins: Op, pcTriplet: Array<number>) => any[] | null = (ins: Op, pcTriplet: Array<number>): any[] | null => {
+            const LD: string = "LD";
+            const RST: string = "RST";
+            const CP: string = "CP";
+            const ADC: string = "ADC";
+            const doublet: number = pcTriplet[1] | pcTriplet[2] << 8;
             switch (ins.op) {
                 case Ops.LD_iHLdec_A: return [LD, "(HL-),A"];
                 case Ops.LD_iHLinc_A: return [LD, "(HL+),A"];
@@ -72,12 +73,12 @@ export default class Disassembler {
             }
         };
 
-        let isCB = pcTriplet[0] == 0xCB;
-        let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
+        let isCB: boolean = pcTriplet[0] == 0xCB;
+        let hardDecoded: string[] = HARDCODE_DECODE(ins, pcTriplet) as string[];
         // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
-        let block = hardDecoded ? true : false;
+        let block: boolean= hardDecoded ? true : false;
 
-        let operandAndType = "";
+        let operandAndType: string = "";
 
         // Detect bottom 3/4 of 0xCB table
         if (isCB && pcTriplet[1] > 0x30) {
@@ -103,7 +104,7 @@ export default class Disassembler {
             }
         }
 
-        let name;
+        let name: string;
         // Check if instruction name is hardcoded
         if (hardDecoded != null) {
             name = hardDecoded[0] + " ";
@@ -120,10 +121,11 @@ export default class Disassembler {
     // static controlFlowDisassembly: Array<string> = [];
 
     static disassemble(cpu: CPU): string {
-        let disassembly = [];
-        let nextOpWillJumpTo = 0xFFFFFF;
+        let disasmPc: number = cpu.pc;
+        let disassembly: string[] = [];
+        let nextOpWillJumpTo: number = 0xFFFFFF;
 
-        const buildLine = (line: string) => {
+        const buildLine = (line: string): string => {
             // CPU assumes that CPU and disassemblyP are in the global context, terrible assumption but it works for now
             return `
                 <span 
@@ -131,39 +133,37 @@ export default class Disassembler {
                 >${line}</span>`;
         };
 
-        const CURRENT_LINE_COLOR = "lime";
-        const JUMP_TO_COLOR = "cyan";
-        const BREAKPOINT_COLOR = "indianred";
+        const CURRENT_LINE_COLOR: string = "lime";
+        const JUMP_TO_COLOR: string = "cyan";
+        const BREAKPOINT_COLOR: string = "indianred";
 
-        const BREAKPOINT_CODE = `style='background-color: ${BREAKPOINT_COLOR}'`;
-        const BREAKPOINT_GENERATE = () => cpu.breakpoints.has(disasmPc) ? BREAKPOINT_CODE : "";
+        const BREAKPOINT_CODE: string = `style='background-color: ${BREAKPOINT_COLOR}'`;
+        const BREAKPOINT_GENERATE: () => void = () => cpu.breakpoints.has(disasmPc) ? BREAKPOINT_CODE : "";
 
-        const LOGBACK_INSTRUCTIONS = 16;
-        const READAHEAD_INSTRUCTIONS = 32;
+        const LOGBACK_INSTRUCTIONS: number = 16;
+        const READAHEAD_INSTRUCTIONS: number = 32;
 
-        let disasmPc = cpu.pc;
-
-        for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
-            let isCB = cpu.gb.bus.readMem8(disasmPc) == 0xCB;
-            let pcTriplet = [cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)];
+        for (let i: number = 0; i < READAHEAD_INSTRUCTIONS; i++) {
+            let isCB: boolean = cpu.gb.bus.readMem8(disasmPc) == 0xCB;
+            let pcTriplet: number[] = [cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)];
 
 
             // Pre-increment PC for 0xCB prefix
-            let ins = isCB ? cpu.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : cpu.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
-            let controlFlow = Disassembler.isControlFlow(ins, cpu);
+            let ins: Op = isCB ? cpu.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : cpu.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
+            let controlFlow: boolean = Disassembler.isControlFlow(ins, cpu);
 
             // Decode hexadecimal triplet 
-            function decodeHex(pcTriplet: Array<number>) {
-                let i0 = hexN_LC(pcTriplet[0], 2);
-                let i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
-                let i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
+            const decodeHex = (pcTriplet: Array<number>) => {
+                let i0: string = hexN_LC(pcTriplet[0], 2);
+                let i1: string = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
+                let i2: string = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
 
                 return pad(`${i0} ${i1} ${i2}`, 8, ' ');
             }
 
-            let hexDecoded = decodeHex(pcTriplet);
+            let hexDecoded: string = decodeHex(pcTriplet);
 
-            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, disasmPc, cpu)}`;
+            let disasmLine: string = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, disasmPc, cpu)}`;
 
             if (i == 0) {
                 if (Disassembler.willJump(ins, cpu))
@@ -179,7 +179,7 @@ export default class Disassembler {
             if (ins.length >= 3) Disassembler.disassembledLines[disasmPc + 2] = null;
 
             // Build the HTML line, green and bold if PC is at it
-            let disAsmLineHtml = buildLine(`
+            let disAsmLineHtml: string = buildLine(`
                 <span
                     ${BREAKPOINT_GENERATE()}
                     ${i == 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
@@ -192,14 +192,14 @@ export default class Disassembler {
             disasmPc = o16b(disasmPc + ins.length);
         }
 
-        const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span>';
+        const BLANK_LINE: string = '<span style="color: gray">------- -- -- -- --------</span>';
 
         disasmPc = cpu.pc;
-        let skippedLines = 0;
-        for (let i = 0; i < LOGBACK_INSTRUCTIONS;) {
+        let skippedLines: number = 0;
+        for (let i: number = 0; i < LOGBACK_INSTRUCTIONS;) {
             if (Disassembler.disassembledLines[disasmPc] != undefined && disasmPc != cpu.pc) {
                 // Color the line background cyan if the next operation will jump there
-                let disAsmLineHtml = buildLine(`
+                let disAsmLineHtml: string = buildLine(`
                     <span 
                         ${BREAKPOINT_GENERATE()}
                         ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
@@ -223,11 +223,11 @@ export default class Disassembler {
         }
 
         // Prepend the skipped lines to the log
-        for (let i = 0; i < skippedLines; i++) {
+        for (let i: number = 0; i < skippedLines; i++) {
             disassembly.unshift(BLANK_LINE);
         }
 
-        const HOVER_BG = `onMouseOver="this.style.backgroundColor='#AAA'" onMouseOut="this.style.backgroundColor='rgba(0, 0, 0, 0)'"`;
+        const HOVER_BG: string = `onMouseOver="this.style.backgroundColor='#AAA'" onMouseOut="this.style.backgroundColor='rgba(0, 0, 0, 0)'"`;
 
         // Add wrapper to each one
         disassembly = disassembly.map((v, i, a) => {

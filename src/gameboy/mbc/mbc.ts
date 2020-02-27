@@ -13,5 +13,5 @@ export default interface MBC {
 }
 
 export default class MBC {
-    static bankSize = 16384;
+    static bankSize: number = 16384;
 }

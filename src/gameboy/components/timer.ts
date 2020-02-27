@@ -1,13 +1,13 @@
 import GameBoy from "../gameboy";
 
 export default class Timer {
-    static TimerSpeeds = [64, 1, 4, 16]; // In terms of 262144hz division 
+    static TimerSpeeds: number[] = [64, 1, 4, 16]; // In terms of 262144hz division 
 
     gb: GameBoy;
 
-    divider = 0;
-    counter = 0;
-    modulo = 0;
+    divider: number = 0;
+    counter: number = 0;
+    modulo: number = 0;
     control = {
         speed: 0,
         running: false
@@ -23,10 +23,9 @@ export default class Timer {
         this.gb = gb;
     }
 
-    step() {
+    step(): void {
         // Get the mtime
         this.c.clock += this.gb.cpu.lastInstructionCycles / 4;
-        const BASE = 16;
 
         // 1048576hz Divide by 4 = 262144hz
         if (this.c.clock >= 4) {
@@ -55,7 +54,7 @@ export default class Timer {
         }
     }
 
-    reset() {
+    reset(): void {
         this.divider = 0;
         this.counter = 0;
         this.modulo = 0;
@@ -95,7 +94,7 @@ export default class Timer {
 
     // Control
     get addr_0xFF07(): number {
-        let n = 0;
+        let n: number = 0;
 
         n |= (this.control.speed & 0b11); // Bits 0-1
         if (this.control.running) n |= 0b00000100; // Bit 2

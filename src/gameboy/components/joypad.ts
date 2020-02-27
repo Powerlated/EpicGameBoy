@@ -11,8 +11,8 @@ export class JoypadRegister {
     Bit 0 - P10 Input Right or Button A (0=Pressed) (Read Only)
     */
 
-    selectButtons = false;
-    selectDpad = false;
+    selectButtons: boolean = false;
+    selectDpad: boolean = false;
 
     dpad = {
         down: false,
@@ -29,7 +29,7 @@ export class JoypadRegister {
     };
 
     get numerical(): number {
-        let n = 0;
+        let n: number = 0;
         
         if (!this.selectButtons) n |= (1 << 5);
         if (!this.selectDpad) n |= (1 << 4);

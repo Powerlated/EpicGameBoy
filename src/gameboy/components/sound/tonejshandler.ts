@@ -16,6 +16,7 @@ export default class ToneJsHandler {
     s: SoundChip;
 
     constructor(s: SoundChip) {
+
         this.s = s;
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
         this.pulseOsc1.volume.value = -36;
@@ -29,7 +30,7 @@ export default class ToneJsHandler {
         this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
-        this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
+        this.waveSrc = new Tone.BufferSource(this.getWaveBuffer(), () => { });
         this.waveSrc.loop = true;
         this.waveVolume = new Tone.Volume();
         this.waveVolume.volume.value = -36;
@@ -37,7 +38,7 @@ export default class ToneJsHandler {
         this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
-        this.noiseSrc = new Tone.BufferSource(this.s.noise.buffer, () => { });
+        this.noiseSrc = new Tone.BufferSource(this.getNoiseBuffer(), () => { });
         this.noiseSrc.loop = true;
         this.noiseVolume = new Tone.Volume();
         this.noiseVolume.mute = true;
@@ -45,7 +46,47 @@ export default class ToneJsHandler {
         this.noiseSrc.start();
     }
 
-    step() {
+    getNoiseBuffer(): AudioBuffer {
+        let waveTable: number[] = new Array(4800).fill(0);
+        waveTable = waveTable.map((v, i) => {
+            return Math.round(Math.random());
+        });
+
+        let ac: AudioContext = (Tone.context as any as AudioContext);
+        let arrayBuffer: AudioBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        let buffering: Float32Array = arrayBuffer.getChannelData(0);
+        for (let i: number = 0; i < arrayBuffer.length; i++) {
+            buffering[i] = waveTable[i % waveTable.length];
+        }
+
+        return arrayBuffer;
+    }
+
+    getWaveBuffer(): AudioBuffer {
+        let sampleRate: number = 56320 * (this.s.wave.frequencyHz / 440); // A440 without any division
+        if (sampleRate > 384000) {
+            sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
+        }
+
+        let waveTable: number[] = this.s.wave.waveTable.map(v => { return (v - 8) / 8; });
+        waveTable = waveTable.reduce(function (m: any, i: any): number[] { return m.concat(new Array(4).fill(i)); }, []);
+
+        // Output all zeroes if frequency binary is zero
+        if (this.s.wave.frequencyHz == 32) {
+            waveTable = new Array(1).fill(0);
+        }
+
+        let ac: AudioContext = (Tone.context as any as AudioContext);
+        let arrayBuffer: AudioBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
+        let buffering: Float32Array = arrayBuffer.getChannelData(0);
+        for (let i: number = 0; i < arrayBuffer.length; i++) {
+            buffering[i] = waveTable[i % waveTable.length];
+        }
+
+        return arrayBuffer;
+    }
+
+    step(): void {
         // #endregion
 
         // #region TONE.JS HANDLING
@@ -91,7 +132,7 @@ export default class ToneJsHandler {
         if (this.s.wave.waveTableUpdated == true) {
             this.waveSrc.dispose();
 
-            this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
+            this.waveSrc = new Tone.BufferSource(this.getWaveBuffer(), () => { });
             this.waveSrc.loop = true;
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 

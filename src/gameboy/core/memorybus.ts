@@ -11,30 +11,30 @@ import NullMBC from "../mbc/nullmbc";
 import { JoypadRegister } from "../components/joypad";
 import ExternalBus from "./externalbus";
 
-const VRAM_BEGIN = 0x8000;
-const VRAM_END = 0x9FFF;
+const VRAM_BEGIN: number = 0x8000;
+const VRAM_END: number = 0x9FFF;
 
-const HWIO_BEGIN = 0xFF00;
-const HWIO_END = 0xFF7F;
+const HWIO_BEGIN: number = 0xFF00;
+const HWIO_END: number = 0xFF7F;
 
-const INTERRUPT_REQUEST_FLAGS_ADDR = 0xFF0F;
-const INTERRUPT_ENABLE_FLAGS_ADDR = 0xFFFF;
+const INTERRUPT_REQUEST_FLAGS_ADDR: number = 0xFF0F;
+const INTERRUPT_ENABLE_FLAGS_ADDR: number = 0xFFFF;
 
 class MemoryBus {
     gb: GameBoy;
     cpu: CPU;
     gpu: GPU;
 
-    ext = new ExternalBus();
+    ext: ExternalBus = new ExternalBus();
 
-    memory = new Uint8Array(0xFFFF + 1).fill(0);
-    bootrom = new Uint8Array(0xFF + 1).fill(0);
+    memory: Uint8Array = new Uint8Array(0xFFFF + 1).fill(0);
+    bootrom: Uint8Array = new Uint8Array(0xFF + 1).fill(0);
 
-    interrupts = new InterruptController(this);
-    joypad = new JoypadRegister();
+    interrupts: InterruptController = new InterruptController(this);
+    joypad: JoypadRegister = new JoypadRegister();
 
-    bootromEnabled = true;
-    bootromLoaded = false;
+    bootromEnabled: boolean = true;
+    bootromLoaded: boolean = false;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -42,7 +42,7 @@ class MemoryBus {
         this.gpu = gb.gpu;
     }
 
-    updateMBC() {
+    updateMBC(): void {
         switch (this.ext.rom[0x147]) {
             case 0x01: case 0x02: case 0x03:
                 this.ext.mbc = new MBC1(this.ext);
@@ -53,7 +53,7 @@ class MemoryBus {
             case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
                 this.ext.mbc = new MBC3(this.ext);
                 break;
-            case 0x19: case 0x1A: case 0x1B: case 0x1B:
+            case 0x19: case 0x1A: case 0x1B:
             case 0x1C: case 0x1D: case 0x1E:
                 this.ext.mbc = new MBC3(this.ext);
                 break;
@@ -73,7 +73,7 @@ class MemoryBus {
         console.log(this.ext.mbc);
     }
 
-    replaceRom(rom: Uint8Array) {
+    replaceRom(rom: Uint8Array): void {
         console.info("Replaced ROM");
         rom.forEach((v, i) => {
             this.ext.rom[i] = v;
@@ -84,7 +84,7 @@ class MemoryBus {
 
     serialOut: Array<number> = [];
 
-    writeMem(addr: number, value: number) {
+    writeMem(addr: number, value: number): void {
         if (value > 255) {
             alert(`
         WriteMem8(0x${value.toString(16)})
@@ -292,11 +292,11 @@ class MemoryBus {
         return this.memory[addr];
     }
 
-    readMem16(addr: number) {
+    readMem16(addr: number): number {
         return this.readMem8(addr) | this.readMem8(addr + 1) << 8;
     }
 
-    reset() {
+    reset(): void {
         // Re-enable the bootrom
         this.bootromEnabled = true;
 

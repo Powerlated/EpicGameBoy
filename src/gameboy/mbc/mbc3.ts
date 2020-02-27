@@ -3,8 +3,8 @@ import MBC from "./mbc";
 import ExternalBus from "../core/externalbus";
 
 export default class MBC3 implements MBC {
-    romBank = 1;
-    enableRamAndTimer = false;
+    romBank: number = 1;
+    enableRamAndTimer: boolean = false;
     externalRam: Array<number> = [];
     ext: ExternalBus;
 
@@ -13,7 +13,7 @@ export default class MBC3 implements MBC {
     }
 
     readBank(addr: number, bank: number): number {
-        let calculated = (bank * MBC.bankSize) + (addr - MBC.bankSize);
+        let calculated: number = (bank * MBC.bankSize) + (addr - MBC.bankSize);
         return this.ext.rom[calculated];
     }
 
@@ -34,7 +34,7 @@ export default class MBC3 implements MBC {
         return 0xFF;
     }
 
-    write(addr: number, value: number) {
+    write(addr: number, value: number): void {
         if (addr >= 0x2000 && addr <= 0x3FFF) {
             // MBC3 - Writing 0 will select 1
             if (value == 0) {
@@ -49,7 +49,7 @@ export default class MBC3 implements MBC {
         }
     }
 
-    reset() {
+    reset(): void {
         this.romBank = 1;
     }
 }

@@ -3,9 +3,13 @@
     "dependencies": {
         "@types/pako": "^1.0.1",
         "preact": "^10.3.2",
-        "source-map-support": "^0.5.16"
+        "source-map-support": "^0.5.16",
+        "tslint": "^6.0.0",
+        "typescript-tslint-plugin": "^0.5.5"
     },
     "devDependencies": {
-        "@types/tone": "git://github.com/Tonejs/TypeScript.git"
+        "@types/tone": "git://github.com/Tonejs/TypeScript.git",
+        "typescript": "^3.8.2",
+        "typestrict": "^1.0.2"
     }
 }

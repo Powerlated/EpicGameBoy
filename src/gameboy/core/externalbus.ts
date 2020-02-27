@@ -4,7 +4,7 @@ import NullMBC from "../mbc/nullmbc";
 
 export default class ExternalBus {
     mbc: MBC;
-    rom = new Uint8Array(4194304).fill(0xFF);
+    rom: Uint8Array = new Uint8Array(4194304).fill(0xFF);
 
     constructor() {
         this.mbc = new NullMBC(this);
@@ -14,7 +14,7 @@ export default class ExternalBus {
         return this.mbc.read(addr);
     }
 
-    write(addr: number, value: number) {
+    write(addr: number, value: number): void {
         this.mbc.write(addr, value);
     }
 }

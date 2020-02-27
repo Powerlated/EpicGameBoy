@@ -1,0 +1,9 @@
+{
+  "extends": "typestrict",
+  "rules": {
+    "restrict-plus-operands": false,
+    "typedef": [true, "variable-declaration-ignore-function", "parameter", "call-signature", "member-variable-declaration"],
+    "no-use-before-declare": false,
+    "no-dead-store": false
+   }
+}

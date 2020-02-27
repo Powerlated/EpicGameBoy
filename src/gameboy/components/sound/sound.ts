@@ -2,21 +2,20 @@ import GameBoy from "../../gameboy";
 
 import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
 import ToneJsHandler from "./tonejshandler";
-import * as Tone from "tone";
 
 export default class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {
         return v0 * (1 - t) + v1 * t;
     }
 
-    static convertVolume(v: number) {
-        let base = -18;
-        let mute = 0;
+    static convertVolume(v: number): number {
+        let base: number = -18;
+        let mute: number = 0;
         if (v == 0) mute = -10000;
         return base + mute + (6 * Math.log(v / 16));
     }
 
-    static convertVolumeWave(v: number) {
+    static convertVolumeWave(v: number): number {
         switch (v) {
             case 0: v = 0; break;
             case 1: v = 16; break;
@@ -24,8 +23,8 @@ export default class SoundChip {
             case 3: v = 4; break;
         }
 
-        let base = -18;
-        let mute = 0;
+        let base: number = -18;
+        let mute: number = 0;
         if (v == 0) mute = -10000;
         return base + mute + (10 * Math.log(v / 16));
     }
@@ -33,21 +32,21 @@ export default class SoundChip {
     // 0 = 50% Duty Cycle
     // static widths = [0.125, 0.25, 0.50, 0.75]; // WRONG
     // static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
-    static widths = [0.5, 0, -0.5, -0.75]; // CORRECT
+    static widths: number[] = [0.5, 0, -0.5, -0.75]; // CORRECT
 
-    enabled = false;
+    enabled: boolean = false;
 
     gb: GameBoy;
-    clockMain = 0;
-    clockEnvelope1 = 0;
-    clockEnvelope2 = 0;
-    clockEnvelopeNoise = 0;
-    clockPulse1FreqSweep = 0;
+    clockMain: number = 0;
+    clockEnvelope1: number = 0;
+    clockEnvelope2: number = 0;
+    clockEnvelopeNoise: number = 0;
+    clockPulse1FreqSweep: number = 0;
 
-    pulse1 = new PulseChannel();
-    pulse2 = new PulseChannel();
-    wave = new WaveChannel();
-    noise = new NoiseChannel();
+    pulse1: PulseChannel = new PulseChannel();
+    pulse2: PulseChannel = new PulseChannel();
+    wave: WaveChannel = new WaveChannel();
+    noise: NoiseChannel = new NoiseChannel();
 
     tjs = new ToneJsHandler(this);
 
@@ -56,16 +55,14 @@ export default class SoundChip {
     constructor(gb: GameBoy) {
         this.gb = gb;
 
-        // Tone.context.latencyHint = "fastest"
-        Tone.context.lookAhead = 0;
     }
 
-    step() {
+    step(): void {
         if (!this.enabled) return;
 
         // #region CLOCK
-        const CLOCK_MAIN_STEPS = 16384;
-        const CLOCK_ENVELOPE_STEPS = 16384;
+        const CLOCK_MAIN_STEPS: number = 16384;
+        const CLOCK_ENVELOPE_STEPS: number = 16384;
 
         this.clockMain += this.gb.cpu.lastInstructionCycles / 4;
         this.clockEnvelope1 += (this.gb.cpu.lastInstructionCycles / 4) / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
@@ -137,8 +134,8 @@ export default class SoundChip {
                     console.log("Frequency sweep")
                     if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime) {
                         this.clockPulse1FreqSweep = 0;
-                        let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
-                        let diff = freq / (2 ^ this.pulse1.freqSweepShiftNum);
+                        let freq: number = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
+                        let diff: number = freq / (2 ^ this.pulse1.freqSweepShiftNum);
                         this.pulse1.freqSweepUp == false ? freq += diff : freq -= diff;
                         this.pulse1.frequencyLower = freq & 0xFF;
                         this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
@@ -188,10 +185,10 @@ export default class SoundChip {
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
 
-    soundRegisters = new Array(65536).fill(0);
+    soundRegisters: number[] = new Array(65536).fill(0);
 
-    write(addr: number, value: number) {
-        let dutyCycle = 0;
+    write(addr: number, value: number): void {
+        let dutyCycle: number = 0;
         this.soundRegisters[addr] = value;
         switch (addr) {
 
@@ -300,7 +297,7 @@ export default class SoundChip {
 
             case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
             case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
-                const BASE = 0xFF30;
+                const BASE: number = 0xFF30;
                 this.wave.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
                 this.wave.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
                 this.wave.waveTableUpdated = true;
@@ -336,7 +333,7 @@ export default class SoundChip {
     }
 
     read(addr: number): number {
-        let i = this.soundRegisters[addr];
+        let i: number = this.soundRegisters[addr];
         switch (addr & 0xFF) {
             case 0x10: i |= 0x80; break;
             case 0x11: i |= 0x3F; break;
@@ -381,7 +378,7 @@ export default class SoundChip {
         return i;
     }
 
-    reset() {
+    reset(): void {
         this.enabled = false;
 
         this.pulse1 = new PulseChannel();
@@ -394,11 +391,11 @@ export default class SoundChip {
         this.clockEnvelope2 = 0;
     }
 
-    setMuted(muted: boolean) {
+    setMuted(muted: boolean): void {
         this.enabled = !muted;
-        this.tjs.pulseOsc1.mute = muted;
-        this.tjs.pulseOsc2.mute = muted;
-        this.tjs.waveVolume.mute = muted;
-        this.tjs.noiseVolume.mute = muted;
+        // this.tjs.pulseOsc1.mute = muted;
+        // this.tjs.pulseOsc2.mute = muted;
+        // this.tjs.waveVolume.mute = muted;
+        // this.tjs.noiseVolume.mute = muted;
     }
 }

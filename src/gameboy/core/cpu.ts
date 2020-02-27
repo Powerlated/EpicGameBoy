@@ -1,10 +1,10 @@
 import Ops from "./cpu_ops";
 import GameBoy from "../gameboy";
-import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
+import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR, InterruptFlag } from "../components/interrupt-controller";
 import Disassembler from "../tools/disassembler";
 
 
-function undefErr(cpu: CPU, name: string) {
+function undefErr(cpu: CPU, name: string): void {
     alert(`
     ${name} undefined
     
@@ -15,7 +15,7 @@ function undefErr(cpu: CPU, name: string) {
     `);
 }
 
-function overflow8bErr(cpu: CPU, name: string, overflow: any) {
+function overflow8bErr(cpu: CPU, name: string, overflow: any): void {
     alert(`
     ${name} was set out of 0-255 (${overflow})
     
@@ -26,7 +26,7 @@ function overflow8bErr(cpu: CPU, name: string, overflow: any) {
     `);
 }
 
-function overflow16bErr(cpu: CPU, name: string, overflow: any) {
+function overflow16bErr(cpu: CPU, name: string, overflow: any): void {
     alert(`
     ${name} was set out of 0-65535 (${overflow})
     
@@ -37,7 +37,7 @@ function overflow16bErr(cpu: CPU, name: string, overflow: any) {
     `);
 }
 
-function check(cpu: CPU) {
+function check(cpu: CPU): void {
     if (cpu._r.a < 0 || cpu._r.a > 255)
         overflow8bErr(cpu, "A", cpu._r.a);
     if (cpu._r.b < 0 || cpu._r.b > 255)
@@ -90,13 +90,27 @@ function check(cpu: CPU) {
 
 }
 
+class FlagsRegister {
+    zero: boolean;
+    negative: boolean;
+    half_carry: boolean;
+    carry: boolean;
+
+    constructor() {
+        this.zero = false;
+        this.negative = false;
+        this.half_carry = false;
+        this.carry = false;
+    }
+}
+
 class Registers {
     cpu: CPU;
 
-    _f = new FlagsRegister();
+    _f: FlagsRegister = new FlagsRegister();
 
-    get f() {
-        let flagN = 0;
+    get f(): number {
+        let flagN: number = 0;
         if (this._f.zero) {
             flagN = flagN | 0b10000000;
         }
@@ -130,16 +144,16 @@ class Registers {
 
     sp: number;
 
-    get af() {
+    get af(): number {
         return this.a << 8 | this.f;
     }
-    get bc() {
+    get bc(): number {
         return this.b << 8 | this.c;
     }
-    get de() {
+    get de(): number {
         return this.d << 8 | this.e;
     }
-    get hl() {
+    get hl(): number {
         return this.h << 8 | this.l;
     }
 
@@ -175,20 +189,6 @@ class Registers {
     }
 }
 
-class FlagsRegister {
-    zero: boolean;
-    negative: boolean;
-    half_carry: boolean;
-    carry: boolean;
-
-    constructor() {
-        this.zero = false;
-        this.negative = false;
-        this.half_carry = false;
-        this.carry = false;
-    }
-}
-
 export enum R8 {
     A = "A", B = "B", C = "C", D = "D", E = "E", H = "H", L = "L", iHL = "(HL)"
 }
@@ -208,50 +208,54 @@ export enum CC {
 export type OperandType = R8 | R16 | CC | number;
 
 export interface Op {
-    op(cpu: CPU, ...others: any): void, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
+    op: OpFunc, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
+};
+
+export interface OpFunc extends Function {
+    (cpu: CPU, ...others: any): void;
 };
 
 export enum Operand {
     b16, b8
 }
 
-export function pad(n: string, width: number, z: string) {
+export function pad(n: string, width: number, z: string): string {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
 }
 
-export function r_pad(n: string, width: number, z: string) {
+export function r_pad(n: string, width: number, z: string): string {
     z = z || '0';
     n = n + '';
     return n.length >= width ? n : n + new Array(width - n.length + 1).join(z);
 }
 
 export default class CPU {
-    halted = false;
+    halted: boolean = false;
 
     gb: GameBoy;
 
-    logging = false;
+    logging: boolean = false;
 
-    log: Array<string> = [];
-    fullLog: Array<string> = [];
+    log: string[] = [];
+    fullLog: string[] = [];
 
-    _r = new Registers(this);
+    _r: Registers = new Registers(this);
     _pc: number = 0x0000;
 
-    breakpoints = new Set<number>();
+    breakpoints: Set<number> = new Set();
 
-    stopNow = false;
+    stopNow: boolean = false;
 
-    scheduleEnableInterruptsForNextTick = false;
+    scheduleEnableInterruptsForNextTick: boolean = false;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
         console.log("CPU Bootstrap!");
 
         // Generate all possible opcodes including invalids
-        for (let i = 0; i <= 0xFF; i++) {
+        for (let i: number = 0; i <= 0xFF; i++) {
             this.opCacheRg[i] = this.rgOpcode(i);
             this.opCacheCb[i] = this.cbOpcode(i);
         }
@@ -276,29 +280,29 @@ export default class CPU {
 
     // #region
 
-    cycles = 0;
+    cycles: number = 0;
 
-    lastSerialOut = 0;
-    lastInstructionDebug = "";
-    lastOperandDebug = "";
-    lastInstructionCycles = 0;
-    currentIns = "";
+    lastSerialOut: number = 0;
+    lastInstructionDebug : string= "";
+    lastOperandDebug: string = "";
+    lastInstructionCycles: number = 0;
+    currentIns : string= "";
 
-    lastOpcode = 0;
-    lastOpcodeReps = 0;
+    lastOpcode: number = 0;
+    lastOpcodeReps: number = 0;
 
-    totalI = 0;
-    time = 0;
+    totalI: number = 0;
+    time: number = 0;
 
-    debugging = false;
+    debugging: boolean = false;
 
-    opCacheRg: Array<Op> = new Array(256);
-    opCacheCb: Array<Op> = new Array(256);
+    opCacheRg: Op[] = new Array(256);
+    opCacheCb: Op[] = new Array(256);
 
-    opcodesRan = new Set();
+    opcodesRan: Set<Op> = new Set();
 
 
-    reset() {
+    reset(): void {
         this._r.a = 0;
         this._r.b = 0;
         this._r.c = 0;
@@ -330,13 +334,13 @@ export default class CPU {
         return this.fetchMem8(addr) | this.fetchMem8(addr + 1) << 8;
     }
 
-    writeMem8(addr: number, value: number) {
+    writeMem8(addr: number, value: number): void {
         this.cycles += 4;
         this.gb.bus.writeMem(addr, value);
     }
 
 
-    step() {
+    step(): void {
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
             this.gb.bus.interrupts.masterEnabled = true;
@@ -347,7 +351,7 @@ export default class CPU {
             return;
         };
 
-        let c = this.cycles;
+        let c: number = this.cycles;
 
         if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
@@ -370,15 +374,15 @@ export default class CPU {
 
         // #region  **** ALL STEPPER LOGIC IS BELOW HERE **** 
         if (this.halted == false) {
-            let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
-            let isCB = pcTriplet[0] == 0xCB;
+            let pcTriplet: Array<number> = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
+            let isCB: boolean = pcTriplet[0] == 0xCB;
 
             if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
             // Lookup decoded
-            let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
+            let ins: Op = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
             this.cycles += 4; // Decoding time penalty
-            let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
+            let opcode: number = isCB ? pcTriplet[1] : pcTriplet[0];
 
             if (!ins.op) {
                 alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
@@ -421,7 +425,7 @@ export default class CPU {
             // ---------------------------
 
             if (true) {
-                let isControlFlow = Disassembler.isControlFlow(ins, this);
+                let isControlFlow: boolean = Disassembler.isControlFlow(ins, this);
                 if (!isCB) {
                     if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
                         alert(`
@@ -494,8 +498,8 @@ export default class CPU {
         }
 
         // Service interrupts
-        let happened = this.gb.bus.interrupts.requestedInterrupts;
-        let enabled = this.gb.bus.interrupts.enabledInterrupts;
+        let happened: InterruptFlag = this.gb.bus.interrupts.requestedInterrupts;
+        let enabled: InterruptFlag = this.gb.bus.interrupts.enabledInterrupts;
         if (this.gb.bus.interrupts.masterEnabled) {
 
             // If servicing any interrupt, disable the master flag
@@ -526,16 +530,16 @@ export default class CPU {
         }
     }
 
-    stepDebug() {
-        let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
+    stepDebug(): void {
+        let isCB: boolean = this.gb.bus.readMem8(this.pc) == 0xCB;
 
-        let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
+        let ins: Op = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
 
         if (!ins.op) {
             alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
         }
 
-        let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
+        let opcode: number = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
 
         if (opcode == this.lastOpcode) {
             this.lastOpcodeReps++;
@@ -559,14 +563,14 @@ export default class CPU {
         //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
         // }
 
-        let insDebug = "";
-        let operandDebug = "";
+        let insDebug: string = "";
+        let operandDebug: string = "";
 
 
         if (this.debugging) {
             console.debug(`PC: ${this.pc}`);
             console.log(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
-            console.log("Instruction length: " + ins.length);
+            console.log(`Instruction length:  ${ins.length}`);
         }
 
         if (this.debugging || this.logging) {
@@ -584,7 +588,7 @@ export default class CPU {
 
         if (this.logging) {
 
-            let flags = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
+            let flags: string = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
 
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
@@ -599,9 +603,9 @@ export default class CPU {
         this.lastInstructionDebug = insDebug;
     }
 
-    jumpToInterrupt(vector: number) {
-        let pcUpperByte = o16b(this.pc) >> 8;
-        let pcLowerByte = o16b(this.pc) & 0xFF;
+    jumpToInterrupt(vector: number): void {
+        let pcUpperByte: number = o16b(this.pc) >> 8;
+        let pcLowerByte: number = o16b(this.pc) & 0xFF;
 
         this._r.sp = o16b(this._r.sp - 1);
         this.writeMem8(this._r.sp, pcUpperByte);
@@ -611,23 +615,23 @@ export default class CPU {
         this.pc = vector;
     }
 
-    toggleBreakpoint(point: number) {
+    toggleBreakpoint(point: number): void {
         if (!this.breakpoints.has(point)) {
             this.setBreakpoint(point);
         } else {
             this.clearBreakpoint(point);
         }
     }
-    setBreakpoint(point: number) {
+    setBreakpoint(point: number): void {
         console.log("Set breakpoint at " + hex(point, 4));
         this.breakpoints.add(point);
     }
-    clearBreakpoint(point: number) {
+    clearBreakpoint(point: number): void {
         console.log("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints.delete(point);
     }
 
-    getReg(t: R8 | R16) {
+    getReg(t: R8 | R16): number {
         if (t == undefined) {
             alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: getReg(undefined)`);
         }
@@ -649,7 +653,7 @@ export default class CPU {
         }
     }
 
-    setReg(t: R8 | R16, i: number) {
+    setReg(t: R8 | R16, i: number): void {
         if (t == undefined) {
             alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg(undefined, [any])`);
         }
@@ -676,8 +680,8 @@ export default class CPU {
 
     rgOpcode(id: number): Op {
 
-        let upperNybble = id >> 4;
-        let lowerNybble = id & 0b1111;
+        let upperNybble: number = id >> 4;
+        let lowerNybble: number = id & 0b1111;
 
         switch (id) {
             /** JR */
@@ -979,17 +983,17 @@ export default class CPU {
                 return { op: Ops.INVALID_OPCODE, length: 1 };
         }
 
-        const typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
+        const typeTable: Array<R8> = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
         // Mask for the low or high half of the table
-        const HALF_MASK = (1 << 3);
+        const HALF_MASK: number = (1 << 3);
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
         if (upperNybble >= 0x8 && upperNybble <= 0xB) {
-            const lowOps = [Ops.ADD_A_R8, Ops.SUB_A_R8, Ops.AND_A_R8, Ops.OR_A_R8];
-            const highOps = [Ops.ADC_A_R8, Ops.SBC_A_R8, Ops.XOR_A_R8, Ops.CP_A_R8];
+            const lowOps: Array<Function> = [Ops.ADD_A_R8, Ops.SUB_A_R8, Ops.AND_A_R8, Ops.OR_A_R8];
+            const highOps: Array<Function> = [Ops.ADC_A_R8, Ops.SBC_A_R8, Ops.XOR_A_R8, Ops.CP_A_R8];
 
-            let type = typeTable[lowerNybble & 0b111];
-            const OPDEC = upperNybble & 0b11;
+            let type: R8 = typeTable[lowerNybble & 0b111];
+            const OPDEC: number = upperNybble & 0b11;
 
             let op: any;
             (lowerNybble & HALF_MASK) != 0 ? op = highOps[OPDEC] : op = lowOps[OPDEC];
@@ -1000,15 +1004,15 @@ export default class CPU {
 
         // #region Algorithm decoding LD 0x40-0x7F
         if (upperNybble >= 0x4 && upperNybble <= 0x7) {
-            const highTypes = [R8.C, R8.E, R8.L, R8.A];
-            const lowTypes = [R8.B, R8.D, R8.H, R8.iHL];
+            const highTypes: Array<R8> = [R8.C, R8.E, R8.L, R8.A];
+            const lowTypes: Array<R8> = [R8.B, R8.D, R8.H, R8.iHL];
 
             let type2: OperandType;
-            let op = Ops.LD_R8_R8;
+            let op: OpFunc = Ops.LD_R8_R8;
 
             type2 = typeTable[lowerNybble & 0b111];
 
-            const OPDEC = upperNybble & 0b11;
+            const OPDEC: number = upperNybble & 0b11;
 
             let type: OperandType;
             (lowerNybble & HALF_MASK) != 0 ? type = highTypes[OPDEC] : type = lowTypes[OPDEC];
@@ -1026,8 +1030,8 @@ export default class CPU {
     }
 
     cbOpcode(id: number): Op {
-        let upperNybble = id >> 4;
-        let lowerNybble = id & 0b1111;
+        let upperNybble: number = id >> 4;
+        let lowerNybble: number = id & 0b1111;
 
         let type: OperandType;
         let bit: number;
@@ -1041,9 +1045,9 @@ export default class CPU {
             bit = ((upperNybble & 0b11) * 2) + 1;
         }
 
-        let cyclesOffset = 0;
+        let cyclesOffset: number = 0;
 
-        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
+        let typeTable: R8[] = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
 
         type = typeTable[lowerNybble & 0b111];
 
@@ -1083,7 +1087,7 @@ export default class CPU {
 
 
 
-        return { op: op!, type: type, type2: bit, length: 2, cyclesOffset: cyclesOffset };
+        return { op: op, type: type, type2: bit, length: 2, cyclesOffset: cyclesOffset };
     }
 }
 
@@ -1135,14 +1139,14 @@ export function do16b(i: number): boolean {
     return i > 0xFFFF || i < 0;
 }
 
-export function hex(i: any, digits: number) {
+export function hex(i: any, digits: number): string {
     return `0x${pad(i.toString(16), digits, '0').toUpperCase()}`;
 }
 
-export function hexN(i: any, digits: number) {
+export function hexN(i: any, digits: number): string {
     return pad(i.toString(16), digits, '0').toUpperCase();
 }
 
-export function hexN_LC(i: any, digits: number) {
+export function hexN_LC(i: any, digits: number): string {
     return pad(i.toString(16), digits, '0');
 }

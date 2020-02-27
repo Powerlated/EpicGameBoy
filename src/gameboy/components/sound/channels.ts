@@ -1,5 +1,3 @@
-import * as Tone from "tone";
-
 export interface BasicChannel {
     triggered: boolean;
     volume: number;
@@ -10,32 +8,32 @@ export interface BasicChannel {
 }
 
 export class PulseChannel implements BasicChannel {
-    enabled = false;
+    enabled: boolean = false;
 
-    width = 2;
+    width: number = 2;
 
-    lengthEnable = false;
-    lengthCounter = 0;
+    lengthEnable: boolean = false;
+    lengthCounter: number = 0;
 
-    frequencyUpper = 0; // Frequency = 131072/(2048-x) Hz
-    frequencyLower = 0;
-    oldFrequencyLower = 0;
-    oldFrequencyHz = 0;
+    frequencyUpper: number = 0; // Frequency = 131072/(2048-x) Hz
+    frequencyLower: number = 0;
+    oldFrequencyLower: number = 0;
+    oldFrequencyHz: number = 0;
 
-    volume = 0; // 4-bit value 0-15
-    volumeEnvelopeUp = false;
-    volumeEnvelopeSweep = 4;
-    volumeEnvelopeStart = 0;
+    volume: number = 0; // 4-bit value 0-15
+    volumeEnvelopeUp: boolean = false;
+    volumeEnvelopeSweep: number = 4;
+    volumeEnvelopeStart: number = 0;
 
-    oldVolume = 0;
+    oldVolume: number = 0;
 
-    outputLeft = false;
-    outputRight = false;
+    outputLeft: boolean = false;
+    outputRight: boolean = false;
 
-    triggered = false;
-    freqSweepTime = 0;
-    freqSweepUp = false;
-    freqSweepShiftNum = 0;
+    triggered: boolean = false;
+    freqSweepTime: number = 0;
+    freqSweepUp: boolean = false;
+    freqSweepShiftNum: number = 0;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
@@ -55,11 +53,11 @@ export class PulseChannel implements BasicChannel {
     }
 
     get frequencyHz(): number {
-        let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
+        let frequency: number = (this.frequencyUpper << 8) | this.frequencyLower;
         return 131072 / (2048 - frequency);
     }
 
-    trigger() {
+    trigger(): void {
         this.enabled = true;
         if (this.lengthCounter == 0) {
             this.lengthCounter = 64;
@@ -67,33 +65,33 @@ export class PulseChannel implements BasicChannel {
         this.volume = this.volumeEnvelopeStart;
     }
 
-    updated = false;
-    update() {this.updated = true};
+    updated: boolean = false;
+    update(): void { this.updated = true; };
 }
 
 export class WaveChannel implements BasicChannel {
-    enabled = false;
+    enabled: boolean = false;
 
-    lengthEnable = true;
-    lengthCounter = 0;
+    lengthEnable: boolean = true;
+    lengthCounter: number = 0;
 
-    frequencyUpper = 0;
-    frequencyLower = 0;
-    oldFrequencyHz = 0;
+    frequencyUpper: number = 0;
+    frequencyLower: number = 0;
+    oldFrequencyHz: number = 0;
 
-    volume = 0;
-    oldVolume = 0;
+    volume: number = 0;
+    oldVolume: number = 0;
 
     waveTable: Array<number> = new Array(32).fill(0);
-    waveTableUpdated = false;
+    waveTableUpdated: boolean = false;
 
-    restartSound = false;
+    restartSound: boolean = false;
 
 
-    outputLeft = false;
-    outputRight = false;
+    outputLeft: boolean = false;
+    outputRight: boolean = false;
 
-    triggered = false;
+    triggered: boolean = false;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
@@ -113,60 +111,36 @@ export class WaveChannel implements BasicChannel {
     }
 
     get frequencyHz(): number {
-        let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
+        let frequency: number = (this.frequencyUpper << 8) | this.frequencyLower;
         return (65536 / (2048 - frequency));
     }
 
-    get buffer(): AudioBuffer {
-        let sampleRate = 56320 * (this.frequencyHz / 440); // A440 without any division
-        if (sampleRate > 384000) {
-            sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
-        }
-
-        let waveTable = this.waveTable.map(v => { return (v - 8) / 8; });
-        waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
-
-        // Output all zeroes if frequency binary is zero
-        if (this.frequencyHz == 32) {
-            waveTable = new Array(1).fill(0);
-        }
-
-        let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
-        let buffering = arrayBuffer.getChannelData(0);
-        for (let i = 0; i < arrayBuffer.length; i++) {
-            buffering[i] = waveTable[i % waveTable.length];
-        }
-
-        return arrayBuffer;
-    }
-
-    trigger() {
+    trigger(): void {
         this.enabled = true;
         if (this.lengthCounter == 0) {
             this.lengthCounter = 256;
         }
     }
 
-    updated = false;
-    update() {this.updated = true};
+    updated: boolean = false;
+    update(): void { this.updated = true; };
 }
 
 export class NoiseChannel implements BasicChannel {
-    enabled = false;
+    enabled: boolean = false;
 
-    lengthEnable = false;
-    lengthCounter = 0;
+    lengthEnable: boolean = false;
+    lengthCounter: number = 0;
 
-    volume = 0; // 4-bit value 0-15
-    volumeEnvelopeUp = false;
-    volumeEnvelopeSweep = 4;
-    volumeEnvelopeStart = 0;
+    volume: number = 0; // 4-bit value 0-15
+    volumeEnvelopeUp: boolean = false;
+    volumeEnvelopeSweep: number = 4;
+    volumeEnvelopeStart: number = 0;
 
-    outputLeft = false;
-    outputRight = false;
+    outputLeft: boolean = false;
+    outputRight: boolean = false;
 
-    triggered = false;
+    triggered: boolean = false;
 
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;
@@ -185,28 +159,10 @@ export class NoiseChannel implements BasicChannel {
         return 0;
     }
 
-    get buffer(): AudioBuffer {
-        let waveTable = new Array(4800).fill(0);
-        waveTable = waveTable.map((v, i) => {
-            return Math.round(Math.random());
-        });
-
-        // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
-
-        let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
-        let buffering = arrayBuffer.getChannelData(0);
-        for (let i = 0; i < arrayBuffer.length; i++) {
-            buffering[i] = waveTable[i % waveTable.length];
-        }
-
-        return arrayBuffer;
-    }
-
-    trigger() {
+    trigger(): void {
         this.enabled = true;
     }
-    
-    updated = false;
-    update() {this.updated = true};
+
+    updated: boolean = false;
+    update(): void { this.updated = true; };
 }

@@ -6,41 +6,40 @@ import SoundChip from './components/sound/sound';
 import Disassembler from './tools/disassembler';
 
 export default class GameBoy {
-    cpu = new CPU(this);
-    gpu = new GPU(this);
-    bus = new MemoryBus(this);
+    cpu: CPU = new CPU(this);
+    gpu: GPU = new GPU(this);
+    bus: MemoryBus = new MemoryBus(this);
 
-    soundChip = new SoundChip(this);
+    soundChip: SoundChip = new SoundChip(this);
 
-    timer = new Timer(this);
+    timer: Timer = new Timer(this);
 
     constructor() {
         console.log("New gameboy!");
     }
 
-    step() {
+    step(): void {
         this.soundChip.step();
         this.cpu.step();
         this.gpu.step();
         this.timer.step();
     }
 
-    speedMul = 1;
+    speedMul: number = 1;
     speedIntervals: Array<number> = [];
 
-    speedStop() {
-.forEach((v, i, a) => { clearInterval(v); });
+    speedStop(): void {
+        this.speedIntervals.forEach((v, i, a) => { clearInterval(v); });
         this.cpu.stopNow = true;
-        this.soundChip.setMuted(        this.speedIntervalstrue);
     }
 
-    speed() {
+    speed(): void {
         this.cpu.debugging = false;
         this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
         this.soundChip.setMuted(false);
     }
 
-    frame() {
+    frame(): void {
         let i = 0;
         // const max = 70224; // Full frame GPU timing
         const max = 70224 * this.speedMul; // Full frame GPU timing, double speed
@@ -56,7 +55,7 @@ export default class GameBoy {
 
 
 
-    reset() {
+    reset(): void {
         this.cpu.reset();
         this.gpu.reset();
         this.bus.interrupts.reset();

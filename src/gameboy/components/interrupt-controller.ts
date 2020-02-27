@@ -1,12 +1,12 @@
 import MemoryBus from "../core/memorybus";
 
 
-class InterruptFlag {
-    vblank = false;
-    lcdStat = false;
-    timer = false;
-    serial = false;
-    joypad = false;
+export class InterruptFlag {
+    vblank: boolean = false;
+    lcdStat: boolean = false;
+    timer: boolean = false;
+    serial: boolean = false;
+    joypad: boolean = false;
 
 
     set numerical(i: number) {
@@ -19,7 +19,7 @@ class InterruptFlag {
     }
 
     get numerical(): number {
-        let flagN = 0;
+        let flagN: number = 0;
         if (this.vblank) {
             flagN = flagN | 0b00000001;
         }
@@ -39,12 +39,12 @@ class InterruptFlag {
     }
 }
 
-export const VBLANK_VECTOR = 0x40;
-export const LCD_STATUS_VECTOR = 0x48;
-export const TIMER_OVERFLOW_VECTOR = 0x50;
-export const SERIAL_LINK_VECTOR = 0x58;
+export const VBLANK_VECTOR: number = 0x40;
+export const LCD_STATUS_VECTOR: number = 0x48;
+export const TIMER_OVERFLOW_VECTOR: number = 0x50;
+export const SERIAL_LINK_VECTOR: number = 0x58;
 export 
-const JOYPAD_PRESS_VECTOR = 0x60;
+const JOYPAD_PRESS_VECTOR: number = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
 export default class InterruptController {
@@ -54,37 +54,37 @@ export default class InterruptController {
         this.bus = bus;
     }
 
-    masterEnabled = true; // IME
+    masterEnabled: boolean = true; // IME
 
-    enabledInterrupts = new InterruptFlag(); // 0xFFFF
-    requestedInterrupts = new InterruptFlag(); // 0xFF0F
+    enabledInterrupts: InterruptFlag = new InterruptFlag(); // 0xFFFF
+    requestedInterrupts: InterruptFlag = new InterruptFlag(); // 0xFF0F
 
     // Note: When an interrupt is fired, the master interrupt flag is disabled
 
-    reset() {
+    reset(): void {
         this.masterEnabled = true;
 
         this.enabledInterrupts.numerical = 0;
         this.requestedInterrupts.numerical = 0;
     }
 
-    requestVblank() {
+    requestVblank(): void {
         this.requestedInterrupts.vblank = true;
     }
 
-    requestLCDstatus() {
+    requestLCDstatus(): void {
         this.requestedInterrupts.lcdStat = true;
     }
 
-    requestTimer() {
+    requestTimer(): void {
         this.requestedInterrupts.timer = true;
     }
 
-    requestSerial() {
+    requestSerial(): void {
         this.requestedInterrupts.serial = true;
     }
 
-    requestJoypad() {
+    requestJoypad(): void {
         this.requestedInterrupts.joypad = true;
     }
 }

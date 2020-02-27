@@ -1,6 +1,6 @@
 // These are timings divided by four, multiply by four to get real timings in terms of clock cycles
 
-const NORMAL_TIMINGS =
+const NORMAL_TIMINGS: number[] =
     [
         1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
         0, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1,
@@ -20,7 +20,7 @@ const NORMAL_TIMINGS =
         3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4
     ];
 
-const CB_TIMINGS =
+const CB_TIMINGS: number[] =
     [
         2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,
         2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 4, 2,

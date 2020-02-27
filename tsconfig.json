@@ -4,6 +4,13 @@
         "module": "amd",
         "outFile": "src/gameboy.js",
         "sourceMap": true,
-        "strict": true
+        "strict": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "plugins": [
+            {
+                "name": "typescript-tslint-plugin"
+            }
+        ]
     },
 }

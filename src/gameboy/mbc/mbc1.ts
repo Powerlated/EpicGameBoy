@@ -8,12 +8,12 @@ enum BankingModes {
 }
 
 export default class MBC1 implements MBC {
-    romBank = 1;
-    ramBank = 0;
-    enableExternalRam = false;
+    romBank: number = 1;
+    ramBank: number = 0;
+    enableExternalRam: boolean = false;
     externalRam: Array<number> = [];
 
-    bankingMode = BankingModes.ROMBankingMode;
+    bankingMode: BankingModes = BankingModes.ROMBankingMode;
 
     ext: ExternalBus;
 
@@ -22,7 +22,7 @@ export default class MBC1 implements MBC {
     }
 
     readBank(addr: number, bank: number): number {
-        let calculated = (bank * MBC.bankSize) + (addr - MBC.bankSize);
+        let calculated: number = (bank * MBC.bankSize) + (addr - MBC.bankSize);
         return this.ext.rom[calculated];
     }
 
@@ -43,7 +43,7 @@ export default class MBC1 implements MBC {
         return 0xFF;
     }
 
-    write(addr: number, value: number) {
+    write(addr: number, value: number): void {
         if (addr >= 0x2000 && addr <= 0x3FFF) {
             // MBC1 - Writing 0 will select 1
             if (value == 0) {
@@ -91,7 +91,7 @@ export default class MBC1 implements MBC {
         }
     }
 
-    reset() {
+    reset(): void {
         this.romBank = 1;
         this.ramBank = 0;
         this.enableExternalRam = false;
