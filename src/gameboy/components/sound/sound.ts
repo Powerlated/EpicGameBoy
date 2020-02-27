@@ -134,7 +134,7 @@ export default class SoundChip {
                     }
                 }
                 if (this.pulse1.freqSweepTime != 0) {
-                    console.log("Frequency sweep")
+                    // console.log("Frequency sweep")
                     if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime) {
                         this.clockPulse1FreqSweep = 0;
                         let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
@@ -142,8 +142,8 @@ export default class SoundChip {
                         this.pulse1.freqSweepUp == false ? freq += diff : freq -= diff;
                         this.pulse1.frequencyLower = freq & 0xFF;
                         this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
-                        console.log("abs(Range): " + diff);
-                        console.log("Resulting frequency: " + this.pulse1.frequencyHz);
+                        // console.log("abs(Range): " + diff);
+                        // console.log("Resulting frequency: " + this.pulse1.frequencyHz);
                     }
                     this.clockPulse1FreqSweep++;
                 }
@@ -325,9 +325,9 @@ export default class SoundChip {
             case 0xFF26: // NR52
                 if (((value >> 7) & 1) != 0) {
                     this.enabled = true;
-                    console.log("Enabled sound");
+                    // console.log("Enabled sound");
                 } else {
-                    console.log("Disabled sound");
+                    // console.log("Disabled sound");
                     this.enabled = false;
                     break;
                 }

@@ -43,8 +43,7 @@ export const VBLANK_VECTOR = 0x40;
 export const LCD_STATUS_VECTOR = 0x48;
 export const TIMER_OVERFLOW_VECTOR = 0x50;
 export const SERIAL_LINK_VECTOR = 0x58;
-export 
-const JOYPAD_PRESS_VECTOR = 0x60;
+export const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
 export default class InterruptController {

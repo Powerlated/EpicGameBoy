@@ -59,7 +59,7 @@ class LCDStatusRegister {
         if (this.mode0HblankInterrupt__3) flagN = flagN | 0b00001000;
         if (this.coincidenceFlag_______2) flagN = flagN | 0b00000100;
 
-        flagN = flagN | this.mode & 0b11;
+        flagN = flagN | (this.mode & 0b11);
         return flagN;
     }
 
@@ -171,13 +171,16 @@ class GPU {
     objPaletteData0 = new PaletteData(); // 0xFF48
     objPaletteData1 = new PaletteData(); // 0xFF49
 
-    scrollY = 0; // 0xFF42
-    scrollX = 0; // 0xFF43
+    scrY = 0; // 0xFF42
+    scrX = 0; // 0xFF43
+
+    lcdcY = 0; // 0xFF44 - Current scanning line
+
+    lcdcYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY == lcdcYCompare 
 
     windowYpos = 0; // 0xFF4A
     windowXpos = 0; // 0xFF4B
 
-    lcdcY = 0; // 0xFF44 - Current scanning line
 
     modeClock: number = 0;
     frameClock: number = 0;
@@ -206,13 +209,14 @@ class GPU {
 
                         // Render sprites when entering VRAM mode
                         if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
-
+                            this.renderSprites();
                         }
                     }
                     break;
 
                 // Read from VRAM - Scanline active
                 case 3:
+
                     if (this.modeClock >= 172) {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 0;
@@ -220,7 +224,6 @@ class GPU {
                         // Render scanline when entering Hblank
                         if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.renderScanline();
-                            this.renderSprites();
                         }
                     }
                     break;
@@ -231,6 +234,10 @@ class GPU {
                     if (this.modeClock >= 204) {
                         this.modeClock = 0;
                         this.lcdcY++;
+
+                        if (this.lcdcYCompare == this.lcdcY) {
+                            this.gb.bus.interrupts.requestLCDstatus();
+                        }
 
                         if (this.lcdcY == 144) {
                             // If we're at LCDCy = 144, enter Vblank
@@ -300,19 +307,16 @@ class GPU {
 
     // TODO: Make scanline effects work
     renderScanline() {
-        // console.log("Rendering a scanline @ Y:" + this.lcdcY);
+        // console.log("Rendering a scanline @ SCROLL Y:" + this.scrY);
 
-        let scrollX = this.scrollX;
-        let scrollY = this.scrollY;
-
-        let y = (this.lcdcY + scrollY) & 0b111; // CORRECT
-        let x = (scrollX) & 0b111;                // CORRECT
+        let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
+        let x = (this.scrX) & 0b111;                // CORRECT
 
         let mapBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
-        let mapOffset = mapBase + ((Math.floor((this.lcdcY + scrollY) / 8) * 32) & 1023); // 1023   // CORRECT 0x1800
+        let mapOffset = mapBase + ((Math.floor((this.lcdcY + this.scrY) / 8) * 32) & 1023); // 1023   // CORRECT 0x1800
 
-        let lineoffs = scrollX >> 3;
+        let lineoffs = this.scrX >> 3;
 
         let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
 
@@ -340,6 +344,15 @@ class GPU {
             this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
             this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
             this.imageDataGameboy[canvasIndex + 3] = 255;
+
+            if (canvasIndex % (160 * 4) == 0) {
+                this.imageDataGameboy[canvasIndex + 0] = 0xFF - this.scrY; 
+                this.imageDataGameboy[canvasIndex + 1] = 0;
+                this.imageDataGameboy[canvasIndex + 2] = this.scrY;
+                this.imageDataGameboy[canvasIndex + 3] = 255;
+
+            }
+
             canvasIndex += 4;
 
             // When this tile ends, read another
@@ -536,8 +549,8 @@ class GPU {
         this.objPaletteData0 = new PaletteData();
         this.objPaletteData1 = new PaletteData();
 
-        this.scrollY = 0;
-        this.scrollX = 0;
+        this.scrY = 0;
+        this.scrX = 0;
 
         this.lcdcY = 0; // 0xFF44 - Current scanning line
         this.modeClock = 0;
@@ -555,7 +568,7 @@ class GPU {
 
     // Source must be < 0xA000
     oamDma(startAddr: number) {
-        console.log(`OAM DMA @ ${hex(startAddr, 4)}`);
+        // console.log(`OAM DMA @ ${hex(startAddr, 4)}`);
         for (let i = 0; i < 0x100; i++) {
             // If $FE00, read from external bus 
             if (startAddr == 0xFE00) {

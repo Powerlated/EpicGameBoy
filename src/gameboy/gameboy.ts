@@ -29,9 +29,9 @@ export default class GameBoy {
     speedIntervals: Array<number> = [];
 
     speedStop() {
-.forEach((v, i, a) => { clearInterval(v); });
+        this.speedIntervals.forEach(i => {clearInterval(i)});
         this.cpu.stopNow = true;
-        this.soundChip.setMuted(        this.speedIntervalstrue);
+        this.soundChip.setMuted(true);
     }
 
     speed() {

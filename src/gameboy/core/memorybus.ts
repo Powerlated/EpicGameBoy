@@ -170,10 +170,15 @@ class MemoryBus {
                     this.gpu.lcdStatus.numerical = value;
                     break;
                 case 0xFF42:
-                    this.gpu.scrollY = value;
+                    console.log("SCROLL Y WRITE: " + value);
+                    this.gpu.scrY = value;
                     break;
                 case 0xFF43:
-                    this.gpu.scrollX = value;
+                    // console.log("SCROLL X WRITE: " + value);
+                    this.gpu.scrX = value;
+                    break;
+                case 0xFF45:
+                    this.gpu.lcdcYCompare = value;
                     break;
                 case 0xFF46:
                     this.gpu.oamDma(value << 8);
@@ -272,11 +277,13 @@ class MemoryBus {
                     // console.info(`LCDC STATUS READ`);
                     return this.gpu.lcdStatus.numerical;
                 case 0xFF42:
-                    return this.gpu.scrollY;
+                    return this.gpu.scrY;
                 case 0xFF43:
-                    return this.gpu.scrollX;
+                    return this.gpu.scrX;
                 case 0xFF44:
                     return this.gpu.lcdcY;
+                case 0xFF45:
+                    return this.gpu.lcdcYCompare;
                 case 0xFF47: // Palette
                     return this.gpu.bgPaletteData.numerical;
                 case 0xFF48: // Palette OBJ 0

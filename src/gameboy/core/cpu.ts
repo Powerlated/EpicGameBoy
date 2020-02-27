@@ -349,6 +349,25 @@ export default class CPU {
 
         let c = this.cycles;
 
+        this.checkBootrom();
+
+        // Run the debug information collector
+        if (this.debugging)
+            this.stepDebug();
+
+        if (this.halted == false) {
+            this.executeInstruction();
+            this.lastInstructionCycles = this.cycles - c;
+        }
+
+        // If the CPU is HALTed and there are requested interrupts, unHALT
+        if (this.gb.bus.interrupts.requestedInterrupts.numerical > 0 && this.halted == true) {
+            this.halted = false;
+        }
+        this.serviceInterrupts();
+    }
+
+    checkBootrom() {
         if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
@@ -362,137 +381,59 @@ export default class CPU {
             // Make a write to disable the bootrom
             this.gb.bus.writeMem(0xFF50, 1);
         }
+    }
+
+    executeInstruction() {
+        let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
+        let isCB = pcTriplet[0] == 0xCB;
+
+        if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
+
+        // Lookup decoded
+        let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
+        this.cycles += 4; // Decoding time penalty
+        let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
+
+        if (!ins.op) {
+            alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
+        }
+
+        if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
 
-        // Run the debug information collector
-        if (this.debugging)
-            this.stepDebug();
-
-        // #region  **** ALL STEPPER LOGIC IS BELOW HERE **** 
-        if (this.halted == false) {
-            let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
-            let isCB = pcTriplet[0] == 0xCB;
-
-            if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
-
-            // Lookup decoded
-            let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
-            this.cycles += 4; // Decoding time penalty
-            let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
-
-            if (!ins.op) {
-                alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
-            }
-
-            if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
-
-
-            if (ins.type != undefined) {
-                if (ins.length == 3) {
-                    ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
-                    this.cycles += 8;
-                } else if (ins.length == 2 && (ins.type2 == undefined)) {
-                    ins.op(this, ins.type, pcTriplet[1]);
-                    this.cycles += 4;
-                } else {
-                    ins.op(this, ins.type, ins.type2);
-                }
+        if (ins.type != undefined) {
+            if (ins.length == 3) {
+                ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
+                this.cycles += 8;
+            } else if (ins.length == 2 && (ins.type2 == undefined)) {
+                ins.op(this, ins.type, pcTriplet[1]);
+                this.cycles += 4;
             } else {
-                if (ins.length == 3) {
-                    ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
-                    this.cycles += 8;
-                } else if (ins.length == 2) {
-                    ins.op(this, pcTriplet[1]);
-                    this.cycles += 4;
-                } else {
-                    ins.op(this);
-                }
+                ins.op(this, ins.type, ins.type2);
             }
-
-            this.pc += ins.length;
-            this.pc &= 0xFFFF;
-
-            this.totalI++;
-
-            this.lastInstructionCycles = this.cycles - c;
-
-            // this.opcodesRan.add(pcTriplet[0]);
-
-            // ---------------------------
-
-            if (true) {
-                let isControlFlow = Disassembler.isControlFlow(ins, this);
-                if (!isCB) {
-                    if (DMG_OPS.Unprefixed[opcode].Length != ins.length) {
-                        alert(`
-                    Length error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: ${hex(opcode, 2)}
-
-                    Instruction Length: ${ins.length}
-                    Proper Length: ${DMG_OPS.Unprefixed[opcode].Length}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-
-                    if (NORMAL_TIMINGS[opcode] * 4 != this.lastInstructionCycles &&
-                        isControlFlow == false &&
-                        opcode != 0x76 &&
-                        NORMAL_TIMINGS[opcode] != 0
-                    ) {
-                        alert(`
-                    Timings error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: ${hex(opcode, 2)}
-
-                    Instruction Timing: ${this.lastInstructionCycles}
-                    Proper Timing: ${NORMAL_TIMINGS[opcode] * 4}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-                } else {
-                    if (DMG_OPS.CBPrefixed[opcode].Length != ins.length) {
-                        alert(`
-                    Length error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: ${hex(opcode, 2)}
-
-                    Instruction Length: ${ins.length}
-                    Proper Length: ${DMG_OPS.CBPrefixed[opcode].Length}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-
-                    // TODO Screw it, i'll handle this later
-                    if (CB_TIMINGS[opcode] * 4 != this.lastInstructionCycles && isControlFlow == false) {
-                        alert(`
-                    Timings error:
-                    
-                    Instruction: ${Disassembler.disassembleOp(ins, pcTriplet, this.pc, this)}
-                    Opcode: [CB] ${hex(opcode, 2)}
-
-                    Instruction Timing: ${this.lastInstructionCycles}
-                    Proper Timing: ${CB_TIMINGS[opcode] * 4}
-                    
-                    `);
-                        this.gb.speedStop();
-                    }
-                }
+        } else {
+            if (ins.length == 3) {
+                ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
+                this.cycles += 8;
+            } else if (ins.length == 2) {
+                ins.op(this, pcTriplet[1]);
+                this.cycles += 4;
+            } else {
+                ins.op(this);
             }
         }
-        //#endregion
 
-        // If the CPU is HALTed and there are requested interrupts, unHALT
-        if (this.gb.bus.interrupts.requestedInterrupts.numerical > 0 && this.halted == true) {
-            this.halted = false;
-        }
+        this.pc += ins.length;
+        this.pc &= 0xFFFF;
 
+        this.totalI++;
+
+        // this.opcodesRan.add(pcTriplet[0]);
+
+
+    }
+
+    serviceInterrupts() {
         // Service interrupts
         let happened = this.gb.bus.interrupts.requestedInterrupts;
         let enabled = this.gb.bus.interrupts.enabledInterrupts;

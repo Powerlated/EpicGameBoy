@@ -177,7 +177,7 @@ function updateDebug() {
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.h.toString(2), 8, '0')} ${pad(cpu._r.l.toString(2), 8, '0')}
                 [HL]: ${hex(cpu.gb.bus.readMem8(cpu._r.hl), 2)}
                 </span>------------------------------
-                Scroll X/Y: ${gpu.scrollY}/${gpu.scrollX}
+                Scroll X/Y: ${gpu.scrY}/${gpu.scrX}
                 LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
                 LCDC: ${pad(gpu.lcdControl.numerical.toString(2), 8, '0')}
@@ -252,5 +252,3 @@ function updateDebug() {
     let data = new ImageData(memoryMapData, 256, 256);
     ctxMemoryMap.putImageData(data, 0, 0);
 }
-
-let globalDebug = false;

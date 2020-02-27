@@ -111,8 +111,8 @@ function SaveState(gb: GameBoy, slot: number) {
             objPaletteData0: gpu.objPaletteData0.numerical,
             objPaletteData1: gpu.objPaletteData1.numerical,
 
-            scrollY: gpu.scrollY,
-            scrollX: gpu.scrollX,
+            scrollY: gpu.scrY,
+            scrollX: gpu.scrX,
 
             windowYpos: gpu.windowYpos,
             windowXpos: gpu.windowXpos,

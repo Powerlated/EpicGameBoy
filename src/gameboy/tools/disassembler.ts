@@ -67,7 +67,7 @@ export default class Disassembler {
                 case Ops.LD_A_iHLinc: return [LD, "A,(HL+)"];
                 case Ops.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
                 case Ops.JP_HL: return ["JP", "HL"];
-                case Ops.ADD_HL_R16: return ["ADD HL,", ins.type]
+                case Ops.ADD_HL_R16: return ["ADD HL,", ins.type];
                 default: return null;
             }
         };
@@ -127,7 +127,11 @@ export default class Disassembler {
             // CPU assumes that CPU and disassemblyP are in the global context, terrible assumption but it works for now
             return `
                 <span 
-                    onclick="cpu.toggleBreakpoint(${disasmPc}); disassemblyP.innerHTML = Disassembler.disassemble(cpu);"
+                    onclick="
+                        cpu.toggleBreakpoint(${disasmPc});
+                        let disassemblyP = document.getElementById('disassembly-output'); 
+                        disassemblyP.innerHTML = Disassembler.disassemble(cpu);
+                    "
                 >${line}</span>`;
         };
 

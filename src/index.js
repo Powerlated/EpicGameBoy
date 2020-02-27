@@ -7,8 +7,8 @@ requirejs.config({
 
 requirejs(['tone', 'src/gameboy/gameboy', 'src/gameboy/tools/debug'], (Tone, GameBoy, Debug) => {
     window.GameBoy = GameBoy;
-    window.Disassembler = GameBoy.Disassembler
-    window.startDebugging = Debug.startDebugging 
+    window.Disassembler = GameBoy.Disassembler;
+    window.startDebugging = Debug.startDebugging;
     window.Tone = Tone;
 
     init();
@@ -189,11 +189,6 @@ function init() {
         }
     }
 
-    // Debugger default
-    window.onload = () => {
-        showDebug();
-    };
-
     document.querySelector('#bootromInput').addEventListener('change', function () {
         var reader = new FileReader();
         reader.onload = function () {
@@ -227,15 +222,21 @@ function init() {
 
     function repeatDisassemble() {
         requestAnimationFrame(repeatDisassemble);
-        if (!this.globalDebug) return;
-        disassemble(cpu);
+
+        if (window.globalDebug) {
+            disassemble(cpu);
+        }
 
     }
     repeatDisassemble();
 
+
+    // Debugger default
+    window.onload = () => {
+        showDebug();
+    };
+
     // Handle input
-
-
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
 
     document.onkeydown = function (e) {
