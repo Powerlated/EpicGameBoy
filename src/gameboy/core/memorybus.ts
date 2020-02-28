@@ -10,6 +10,7 @@ import MBC1 from "../mbc/mbc1";
 import NullMBC from "../mbc/nullmbc";
 import { JoypadRegister } from "../components/joypad";
 import ExternalBus from "./externalbus";
+import { writeDebug } from "../tools/debug";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -70,7 +71,7 @@ class MemoryBus {
                 this.ext.mbc = new NullMBC(this.ext);
                 break;
         }
-        console.log(this.ext.mbc);
+        writeDebug(this.ext.mbc);
     }
 
     replaceRom(rom: Uint8Array) {
@@ -128,7 +129,7 @@ class MemoryBus {
 
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
-            // console.log(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
+            // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
 
             this.gpu.write(addr - VRAM_BEGIN, value);
             return;
@@ -137,7 +138,7 @@ class MemoryBus {
         // Write to OAM
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
             this.gpu.oam[addr - 0xFE00] = value;
-            console.log(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
+            writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
         }
 
         // Hardware I/O registers
@@ -170,15 +171,17 @@ class MemoryBus {
                     this.gpu.lcdStatus.numerical = value;
                     break;
                 case 0xFF42:
-                    console.log("SCROLL Y WRITE: " + value);
+                    writeDebug("SCROLL Y WRITE: " + value);
                     this.gpu.scrY = value;
                     break;
                 case 0xFF43:
-                    // console.log("SCROLL X WRITE: " + value);
+                    // writeDebug("SCROLL X WRITE: " + value);
                     this.gpu.scrX = value;
                     break;
+                case 0xFF44: break;
                 case 0xFF45:
-                    this.gpu.lcdcYCompare = value;
+                    writeDebug(`Set Y Compare to: ${value}`);
+                    this.gpu.lYCompare = value;
                     break;
                 case 0xFF46:
                     this.gpu.oamDma(value << 8);
@@ -193,7 +196,7 @@ class MemoryBus {
                     this.gpu.objPaletteData1.numerical = value;
                     break;
                 case 0xFF50:
-                    console.log("Disabled bootrom by write to 0xFF50");
+                    writeDebug("Disabled bootrom by write to 0xFF50");
                     this.bootromEnabled = false;
                     break;
                 default:
@@ -257,7 +260,7 @@ class MemoryBus {
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             switch (addr) {
                 case 0xFF00: // Joypad read
-                    // console.log("Polled joypad")
+                    // writeDebug("Polled joypad")
                     return this.joypad.numerical;
                 case 0xFF01:
                     // console.info(`SERIAL PORT READ`);
@@ -283,7 +286,7 @@ class MemoryBus {
                 case 0xFF44:
                     return this.gpu.lcdcY;
                 case 0xFF45:
-                    return this.gpu.lcdcYCompare;
+                    return this.gpu.lYCompare;
                 case 0xFF47: // Palette
                     return this.gpu.bgPaletteData.numerical;
                 case 0xFF48: // Palette OBJ 0

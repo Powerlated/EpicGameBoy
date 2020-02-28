@@ -1,4 +1,4 @@
-console.log("Starting emulator test");
+writeDebug("Starting emulator test");
 
 const { StringDecoder } = require('string_decoder');
 
@@ -8,10 +8,10 @@ require('source-map-support').install();
 let gameboy = require("./src/gameboy/gameboy");
 let fs = require("fs");
 
-console.log("Loading ROM " + process.argv[2]);
+writeDebug("Loading ROM " + process.argv[2]);
 let buffer = fs.readFileSync(`${process.argv[2]}`);
 
-console.log(gameboy)
+writeDebug(gameboy)
 let gb = new gameboy.GameBoy();
 
 let cpu = gb.cpu;
@@ -22,30 +22,30 @@ buffer.forEach((v, i, a) => {
 });
 
 function cleanUp() {
-  console.log(`---- START SERIAL DATA ----`);
-  console.log(new StringDecoder("utf8").write(Buffer.from(cpu.gb.bus.serialOut)));
-  console.log(`----- END SERIAL DATA -----`);
+  writeDebug(`---- START SERIAL DATA ----`);
+  writeDebug(new StringDecoder("utf8").write(Buffer.from(cpu.gb.bus.serialOut)));
+  writeDebug(`----- END SERIAL DATA -----`);
 
   cpu.khzStop();
   fs.writeFileSync("./logs/EpicGameBoy.log", cpu.log.join("\n"));
   fs.writeFileSync("./EpicGameBoy_Full.log", cpu.fullLog.join("\n"));
-  console.log("Wrote log file");
+  writeDebug("Wrote log file");
   process.exit(0);
 }
 
 setTimeout(() => {
-  console.log("Starting test");
+  writeDebug("Starting test");
   cpu.khz();
   setInterval(() => {
-    console.log(cpu.totalI);
+    writeDebug(cpu.totalI);
     if (cpu.lastOpcodeReps > 10000) {
-      console.log(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 10000 instructions, exiting.`);
+      writeDebug(`Stuck on ${cpu.rgOpcode(cpu.lastOpcode).op.name} for 10000 instructions, exiting.`);
       cleanUp();
     }
 
     const EXIT_AT = 1000000;
     if (cpu.totalI > EXIT_AT) {
-      console.log(`Hit ${EXIT_AT} instructions, exiting.`);
+      writeDebug(`Hit ${EXIT_AT} instructions, exiting.`);
       cleanUp();
     }
   }, 100);

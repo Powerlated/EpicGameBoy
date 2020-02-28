@@ -8,90 +8,90 @@ function test() {
     let cpu = gb.cpu;
 
     cpu._r._f.zero = true;
-    console.log(cpu._r.f);
+    writeDebug(cpu._r.f);
     cpu._r.f = cpu._r.f;
-    console.log(cpu._r.f);
-    console.log("Expect both answers 128.");
+    writeDebug(cpu._r.f);
+    writeDebug("Expect both answers 128.");
 
     cpu._r.a = 100;
     cpu._r.b = 100;
     Ops.ADD_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("Expect 200.");
+    writeDebug(cpu._r.a);
+    writeDebug("Expect 200.");
 
     cpu.reset();
 
     cpu._r.a = 200;
     cpu._r.b = 200;
     Ops.ADD_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log(cpu._r._f.carry);
-    console.log("Expect 144 and carry bit.");
+    writeDebug(cpu._r.a);
+    writeDebug(cpu._r._f.carry);
+    writeDebug("Expect 144 and carry bit.");
 
     cpu.reset();
 
     cpu._r.c = 200;
     cpu._r.hl = 256;
     Ops.ADD_HL_R8(cpu, R8.C);
-    console.log(cpu._r.hl);
-    console.log(cpu._r._f.carry);
-    console.log("ADDHL: Expect 456 and no carry bit.");
+    writeDebug(cpu._r.hl);
+    writeDebug(cpu._r._f.carry);
+    writeDebug("ADDHL: Expect 456 and no carry bit.");
 
     cpu.reset();
 
     cpu._r.hl = 42069;
-    console.log(cpu._r.hl);
-    console.log("setting HL: Expect 42069.");
+    writeDebug(cpu._r.hl);
+    writeDebug("setting HL: Expect 42069.");
 
     cpu._r.a = 20;
     cpu._r.b = 16;
     Ops.SUB_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("SUB 20 - 16: Expect 4.");
+    writeDebug(cpu._r.a);
+    writeDebug("SUB 20 - 16: Expect 4.");
 
     cpu._r.a = 20;
     cpu._r.b = 160;
     Ops.SUB_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("SUB 20 - 160: Expect 116.");
+    writeDebug(cpu._r.a);
+    writeDebug("SUB 20 - 160: Expect 116.");
 
     cpu._r.a = 12;
     cpu._r.b = 25;
     Ops.AND_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("(DEC) 12 & 25: Expect (DEC) 8.");
+    writeDebug(cpu._r.a);
+    writeDebug("(DEC) 12 & 25: Expect (DEC) 8.");
 
     cpu._r.a = 12;
     cpu._r.b = 25;
     Ops.OR_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("(DEC) 12 | 25: Expect (DEC) 29.");
+    writeDebug(cpu._r.a);
+    writeDebug("(DEC) 12 | 25: Expect (DEC) 29.");
 
     cpu._r.a = 12;
     cpu._r.b = 25;
     Ops.XOR_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("(DEC) 12 ^ 25: Expect (DEC) 21.");
+    writeDebug(cpu._r.a);
+    writeDebug("(DEC) 12 ^ 25: Expect (DEC) 21.");
 
     cpu._r.a = 12;
     Ops.INC_R8(cpu, R8.A);
-    console.log(cpu._r.a);
-    console.log("INC A: Expect 13.");
+    writeDebug(cpu._r.a);
+    writeDebug("INC A: Expect 13.");
 
     cpu._r.a = 12;
     Ops.DEC_R8(cpu, R8.A);
-    console.log(cpu._r.a);
-    console.log("DEC A: Expect 11.");
+    writeDebug(cpu._r.a);
+    writeDebug("DEC A: Expect 11.");
 
     cpu._r.a = 0b00001111;
     cpu._r.b = 0b00000001;
     Ops.ADD_A_R8(cpu, R8.B);
-    console.log(cpu._r.a);
-    console.log("Expect half carry.");
+    writeDebug(cpu._r.a);
+    writeDebug("Expect half carry.");
 
     cpu._r.h = 0b00010000;
     Ops.BIT_R8(cpu, R8.H, 7);
-    console.log("Expect zero.");
+    writeDebug("Expect zero.");
 
     cpu.reset();
 }
@@ -113,7 +113,7 @@ export function startDebugging() {
 
         updateDebug();
     } else {
-        console.log("Running in node, not updating DEBUG");
+        writeDebug("Running in node, not updating DEBUG");
     }
 }
 
@@ -251,4 +251,8 @@ function updateDebug() {
 
     let data = new ImageData(memoryMapData, 256, 256);
     ctxMemoryMap.putImageData(data, 0, 0);
+}
+
+export function writeDebug(any: any) {
+    console.log(any);
 }

@@ -2,6 +2,7 @@ import Ops from "./cpu_ops";
 import GameBoy from "../gameboy";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
 import Disassembler from "../tools/disassembler";
+import { writeDebug } from "../tools/debug";
 
 
 function undefErr(cpu: CPU, name: string) {
@@ -238,7 +239,7 @@ export default class CPU {
     fullLog: Array<string> = [];
 
     _r = new Registers(this);
-    _pc: number = 0x0000;
+    pc: number = 0x0000;
 
     breakpoints = new Set<number>();
 
@@ -248,30 +249,13 @@ export default class CPU {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
-        console.log("CPU Bootstrap!");
+        writeDebug("CPU Bootstrap!");
 
         // Generate all possible opcodes including invalids
         for (let i = 0; i <= 0xFF; i++) {
             this.opCacheRg[i] = this.rgOpcode(i);
             this.opCacheCb[i] = this.cbOpcode(i);
         }
-    }
-
-    get pc(): number {
-        return this._pc;
-    }
-    set pc(i: number) {
-        if (isNaN(i)) {
-            alert(`
-            PC undefined (${i})
-            
-            PC: 0x${this.pc.toString(16)}
-            Opcode: 0x${this.fetchMem8(this.pc).toString(16)}
-            Op: ${this.rgOpcode(this.fetchMem8(this.pc)).op.name}
-    
-            `);
-        }
-        this._pc = i;
     }
 
     // #region
@@ -369,7 +353,7 @@ export default class CPU {
 
     checkBootrom() {
         if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
-            console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
+            writeDebug("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
 
             this._r.af = 0x01B0;
@@ -442,7 +426,7 @@ export default class CPU {
             // If servicing any interrupt, disable the master flag
             if ((this.gb.bus.interrupts.requestedInterrupts.numerical & this.gb.bus.interrupts.enabledInterrupts.numerical) > 0) {
                 this.gb.bus.interrupts.masterEnabled = false;
-                // console.log("Handling interrupt, disabling IME")
+                // writeDebug("Handling interrupt, disabling IME")
 
                 // Stop
                 // this.khzStop();
@@ -506,8 +490,8 @@ export default class CPU {
 
         if (this.debugging) {
             console.debug(`PC: ${this.pc}`);
-            console.log(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
-            console.log("Instruction length: " + ins.length);
+            writeDebug(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
+            writeDebug("Instruction length: " + ins.length);
         }
 
         if (this.debugging || this.logging) {
@@ -560,11 +544,11 @@ export default class CPU {
         }
     }
     setBreakpoint(point: number) {
-        console.log("Set breakpoint at " + hex(point, 4));
+        writeDebug("Set breakpoint at " + hex(point, 4));
         this.breakpoints.add(point);
     }
     clearBreakpoint(point: number) {
-        console.log("Cleared breakpoint at " + hex(point, 4));
+        writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints.delete(point);
     }
 

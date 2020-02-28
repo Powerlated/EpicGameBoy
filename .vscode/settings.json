@@ -4,5 +4,11 @@
         "src/gameboy/**/*.js.map": true,
         "src/gameboy.js*": true
     },
-    "debug.node.autoAttach": "off"
+    "debug.node.autoAttach": "off",
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/lib": true
+    }
 }

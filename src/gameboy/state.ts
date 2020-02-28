@@ -1,5 +1,6 @@
 import GameBoy from './gameboy';
 import * as pako from 'pako';
+import { writeDebug } from './tools/debug';
 
 type State = {
     cpu: {
@@ -158,5 +159,5 @@ function LoadState(gb: GameBoy, slot: number) {
 
     let state = JSON.parse(String.fromCharCode(...data));
 
-    console.log(state);
+    writeDebug(state);
 }

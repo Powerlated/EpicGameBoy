@@ -4,6 +4,7 @@ import MemoryBus from './core/memorybus';
 import Timer from './components/timer';
 import SoundChip from './components/sound/sound';
 import Disassembler from './tools/disassembler';
+import { writeDebug } from './tools/debug';
 
 export default class GameBoy {
     cpu = new CPU(this);
@@ -15,7 +16,7 @@ export default class GameBoy {
     timer = new Timer(this);
 
     constructor() {
-        console.log("New gameboy!");
+        writeDebug("New gameboy!");
     }
 
     step() {

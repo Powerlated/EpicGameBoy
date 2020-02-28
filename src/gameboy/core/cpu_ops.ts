@@ -23,7 +23,7 @@ class Ops {
     static DI(cpu: CPU) {
         cpu.gb.bus.interrupts.masterEnabled = false;
 
-        // console.log("Disabled interrupts");
+        // writeDebug("Disabled interrupts");
     }
 
 
@@ -31,7 +31,7 @@ class Ops {
     static EI(cpu: CPU) {
         cpu.scheduleEnableInterruptsForNextTick = true;
 
-        // console.log("Enabled interrupts");
+        // writeDebug("Enabled interrupts");
     }
 
     // HALT - 0x76
@@ -241,7 +241,7 @@ class Ops {
     static LD_iFF00plusN8_A(cpu: CPU, u8: number) {
         let value = cpu._r.a;
         cpu.writeMem8(o16b(0xFF00 + u8), value);
-        // console.log(0xFF00 + u8);
+        // writeDebug(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A

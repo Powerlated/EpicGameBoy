@@ -2,6 +2,7 @@ import MBC from "./mbc";
 
 import MemoryBus from "../core/memorybus";
 import ExternalBus from "../core/externalbus";
+import { writeDebug } from "../tools/debug";
 
 enum BankingModes {
     ROMBankingMode = "ROM", RAMBankingMode = "RAM"
@@ -50,7 +51,7 @@ export default class MBC1 implements MBC {
                 this.romBank = 1;
             } else {
                 this.romBank = value & 0b11111; // Whole 5 bits
-                console.log("[MBC1]: Bank switch to " + this.romBank);
+                writeDebug("[MBC1]: Bank switch to " + this.romBank);
             }
             return;
         }
