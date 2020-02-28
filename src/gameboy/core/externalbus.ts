@@ -1,6 +1,6 @@
-import MBC from "../mbc/mbc";
+import MBC from "./mbc/mbc";
 
-import NullMBC from "../mbc/nullmbc";
+import NullMBC from "./mbc/nullmbc";
 
 export default class ExternalBus {
     mbc: MBC;

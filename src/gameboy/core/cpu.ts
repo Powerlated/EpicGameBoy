@@ -1,9 +1,9 @@
 import Ops from "./cpu_ops";
 import GameBoy from "../gameboy";
-import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
 import Disassembler from "../tools/disassembler";
 import { writeDebug } from "../tools/debug";
 import { hex, pad, hexN_LC, hexN, r_pad, o16b } from "../tools/util";
+import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "./components/interrupt-controller";
 
 
 function undefErr(cpu: CPU, name: string) {

@@ -1,8 +1,7 @@
-import GameBoy from "../../gameboy";
-
 import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
 import ToneJsHandler from "./tonejshandler";
 import * as Tone from "tone";
+import GameBoy from "../../../gameboy";
 
 export default class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {
@@ -50,8 +49,6 @@ export default class SoundChip {
     noise = new NoiseChannel();
 
     tjs = new ToneJsHandler(this);
-
-
 
     constructor(gb: GameBoy) {
         this.gb = gb;

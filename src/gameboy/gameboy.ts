@@ -1,10 +1,10 @@
 import CPU from './core/cpu';
 import GPU from './core/gpu';
 import MemoryBus from './core/memorybus';
-import Timer from './components/timer';
-import SoundChip from './components/sound/sound';
 import Disassembler from './tools/disassembler';
 import { writeDebug } from './tools/debug';
+import SoundChip from './core/components/sound/sound';
+import Timer from './core/components/timer';
 
 export default class GameBoy {
     cpu = new CPU(this);

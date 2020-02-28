@@ -1,6 +1,6 @@
-import MemoryBus from "../core/memorybus";
+import MemoryBus from "../memorybus";
 import MBC from "./mbc";
-import ExternalBus from "../core/externalbus";
+import ExternalBus from "../externalbus";
 
 export default class MBC3 implements MBC {
     romBank = 1;

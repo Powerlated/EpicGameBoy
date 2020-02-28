@@ -1,5 +1,5 @@
-import MemoryBus from "../core/memorybus";
-import ExternalBus from "../core/externalbus";
+import MemoryBus from "../memorybus";
+import ExternalBus from "../externalbus";
 
 export default interface MBC {
 

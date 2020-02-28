@@ -1,4 +1,4 @@
-import GameBoy from "../gameboy";
+import { GameBoy } from "../../gameboy";
 
 export default class Timer {
     static TimerSpeeds = [64, 1, 4, 16]; // In terms of 262144hz division 

@@ -1,8 +1,8 @@
 import MBC from "./mbc";
 
-import MemoryBus from "../core/memorybus";
-import ExternalBus from "../core/externalbus";
-import { writeDebug } from "../tools/debug";
+import MemoryBus from "../memorybus";
+import ExternalBus from "../externalbus";
+import { writeDebug } from "../../tools/debug";
 
 enum BankingModes {
     ROMBankingMode = "ROM", RAMBankingMode = "RAM"

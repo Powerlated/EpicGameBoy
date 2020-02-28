@@ -3,15 +3,15 @@ import GameBoy from "../gameboy";
 import CPU from "./cpu";
 
 import GPU from "./gpu";
-import InterruptController from "../components/interrupt-controller";
-import MBC3 from "../mbc/mbc3";
-import MBC from "../mbc/mbc";
-import MBC1 from "../mbc/mbc1";
-import NullMBC from "../mbc/nullmbc";
-import { JoypadRegister } from "../components/joypad";
+import MBC3 from "./mbc/mbc3";
+import MBC from "./mbc/mbc";
+import MBC1 from "./mbc/mbc1";
+import NullMBC from "./mbc/nullmbc";
 import ExternalBus from "./externalbus";
 import { writeDebug } from "../tools/debug";
 import { hex } from "../tools/util";
+import InterruptController from "./components/interrupt-controller";
+import { JoypadRegister } from "./components/joypad";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
