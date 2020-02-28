@@ -1,6 +1,7 @@
-import CPU, { CC, o16b, hexN, hexN_LC, pad, Op, unTwo8b } from "../core/cpu";
+import CPU, { CC, Op } from "../core/cpu";
 
 import Ops from "../core/cpu_ops";
+import { o16b, unTwo8b, hexN, hexN_LC, pad } from "./util";
 
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {

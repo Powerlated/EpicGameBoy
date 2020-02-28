@@ -1,5 +1,4 @@
 import GameBoy from "../gameboy";
-import { hex } from "./cpu";
 import { writeDebug } from "../tools/debug";
 
 class LCDCRegister {

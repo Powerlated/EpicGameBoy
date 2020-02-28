@@ -3,6 +3,7 @@ import GameBoy from "../gameboy";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
 import Disassembler from "../tools/disassembler";
 import { writeDebug } from "../tools/debug";
+import { hex, pad, hexN_LC, hexN, r_pad, o16b } from "../tools/util";
 
 
 function undefErr(cpu: CPU, name: string) {
@@ -211,22 +212,6 @@ export type OperandType = R8 | R16 | CC | number;
 export interface Op {
     op(cpu: CPU, ...others: any): void, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
 };
-
-export enum Operand {
-    b16, b8
-}
-
-export function pad(n: string, width: number, z: string) {
-    z = z || '0';
-    n = n + '';
-    return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
-}
-
-export function r_pad(n: string, width: number, z: string) {
-    z = z || '0';
-    n = n + '';
-    return n.length >= width ? n : n + new Array(width - n.length + 1).join(z);
-}
 
 export default class CPU {
     halted = false;
@@ -906,7 +891,7 @@ export default class CPU {
 
         const typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
         // Mask for the low or high half of the table
-        const HALF_MASK = (1 << 3);
+        const HALF_MASK = 1 << 3;
 
         // #region Algorithm decoding ADD, ADC, SUB, SBC, AND, XOR, OR, CP in 0x80-0xBF
         if (upperNybble >= 0x8 && upperNybble <= 0xB) {
@@ -916,8 +901,9 @@ export default class CPU {
             let type = typeTable[lowerNybble & 0b111];
             const OPDEC = upperNybble & 0b11;
 
-            let op: any;
-            (lowerNybble & HALF_MASK) != 0 ? op = highOps[OPDEC] : op = lowOps[OPDEC];
+            let op = (lowerNybble & HALF_MASK) != 0 ?
+                highOps[OPDEC] :
+                lowOps[OPDEC];
 
             return { op: op, type: type, length: 1 };
         }
@@ -928,18 +914,15 @@ export default class CPU {
             const highTypes = [R8.C, R8.E, R8.L, R8.A];
             const lowTypes = [R8.B, R8.D, R8.H, R8.iHL];
 
-            let type2: OperandType;
-            let op = Ops.LD_R8_R8;
-
-            type2 = typeTable[lowerNybble & 0b111];
+            let type2 = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
 
-            let type: OperandType;
-            (lowerNybble & HALF_MASK) != 0 ? type = highTypes[OPDEC] : type = lowTypes[OPDEC];
+            let type = (lowerNybble & HALF_MASK) != 0 ?
+                highTypes[OPDEC] :
+                lowTypes[OPDEC];
 
-            return { op: op, type: type, type2: type2, length: 1 };
-
+            return { op: Ops.LD_R8_R8, type: type, type2: type2, length: 1 };
         }
 
         if (this.debugging) {
@@ -954,120 +937,39 @@ export default class CPU {
         let upperNybble = id >> 4;
         let lowerNybble = id & 0b1111;
 
-        let type: OperandType;
-        let bit: number;
         let op: any;
 
-        // 0x0 - 0x7
-        if (lowerNybble < 0x8) {
-            bit = (upperNybble & 0b11) * 2;
-            // 0x8 - 0xF
-        } else {
-            bit = ((upperNybble & 0b11) * 2) + 1;
-        }
+        const HALF_MASK = (1 << 3);
+
+        let bit = (lowerNybble & HALF_MASK) != 0 ?
+            ((upperNybble & 0b11) * 2) :
+            ((upperNybble & 0b11) * 2) + 1;
 
         let cyclesOffset = 0;
 
         let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
-
-        type = typeTable[lowerNybble & 0b111];
+        let type = typeTable[lowerNybble & 0b111];
 
         if (upperNybble < 0x4) {
+            const lowOps = [Ops.RLC_R8, Ops.RL_R8, Ops.SLA_R8, Ops.SWAP_R8];
+            const highOps = [Ops.RRC_R8, Ops.RR_R8, Ops.SRA_R8, Ops.SRL_R8];
             // TODO: IDK why I need this
             cyclesOffset = -4;
 
             if (lowerNybble < 0x8) {
-                // 0x0 - 0x7
-                switch (upperNybble) {
-                    case 0x0: op = Ops.RLC_R8; break;
-                    case 0x1: op = Ops.RL_R8; break;
-                    case 0x2: op = Ops.SLA_R8; break;
-                    case 0x3: op = Ops.SWAP_R8; break;
-                }
+                op = lowOps[upperNybble];
             } else {
-                // 0x8 - 0xF
-                switch (upperNybble) {
-                    case 0x0: op = Ops.RRC_R8; break;
-                    case 0x1: op = Ops.RR_R8; break;
-                    case 0x2: op = Ops.SRA_R8; break;
-                    case 0x3: op = Ops.SRL_R8; break;
-                }
+                op = highOps[upperNybble];
             }
 
             bit = null!;
             // 0x40 - 0xF0
         } else {
-            switch (upperNybble >> 2) {
-                case 0x1: op = Ops.BIT_R8; break;
-                case 0x2: op = Ops.RES_R8; break;
-                case 0x3: op = Ops.SET_R8; break;
-            }
+            op = [undefined, Ops.BIT_R8, Ops.RES_R8, Ops.SET_R8][upperNybble >> 2];
         }
-        // #endregion
 
 
-
-
-        return { op: op!, type: type, type2: bit, length: 2, cyclesOffset: cyclesOffset };
+        return { op: op, type: type, type2: bit, length: 2, cyclesOffset: cyclesOffset };
     }
 }
 
-export function unTwo4b(n: number): number {
-    if ((n & 0b1000) != 0) {
-        return n - 16;
-    } else {
-        return n;
-    }
-}
-
-export function unTwo8b(n: number): number {
-    if ((n & 0b10000000) != 0) {
-        return n - 256;
-    } else {
-        return n;
-    }
-}
-
-export function unTwo16b(n: number): number {
-    if ((n & 0b1000000000000000) != 0) {
-        return n - 65536;
-    } else {
-        return n;
-    }
-}
-
-export function o4b(i: number): number {
-    return i & 0xF;
-}
-
-export function o8b(i: number): number {
-    return i & 0xFF;
-}
-
-export function o16b(i: number): number {
-    return i & 0xFFFF;
-}
-
-export function do4b(i: number): boolean {
-    return i > 0xF || i < 0;
-}
-
-export function do8b(i: number): boolean {
-    return i > 0xFF || i < 0;
-}
-
-export function do16b(i: number): boolean {
-    return i > 0xFFFF || i < 0;
-}
-
-export function hex(i: any, digits: number) {
-    return `0x${pad(i.toString(16), digits, '0').toUpperCase()}`;
-}
-
-export function hexN(i: any, digits: number) {
-    return pad(i.toString(16), digits, '0').toUpperCase();
-}
-
-export function hexN_LC(i: any, digits: number) {
-    return pad(i.toString(16), digits, '0');
-}

@@ -1,6 +1,6 @@
 import GameBoy from "../gameboy";
 
-import CPU, { hex } from "./cpu";
+import CPU from "./cpu";
 
 import GPU from "./gpu";
 import InterruptController from "../components/interrupt-controller";
@@ -11,6 +11,7 @@ import NullMBC from "../mbc/nullmbc";
 import { JoypadRegister } from "../components/joypad";
 import ExternalBus from "./externalbus";
 import { writeDebug } from "../tools/debug";
+import { hex } from "../tools/util";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;

@@ -1,4 +1,5 @@
-import CPU, { o8b, o16b, do8b, do16b, R8, R16, CC, unTwo8b } from './cpu'
+import CPU, { R8, R16, CC } from './cpu'
+import { o8b, o16b, unTwo8b, do8b, do16b } from '../tools/util';
 
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {

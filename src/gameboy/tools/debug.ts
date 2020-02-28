@@ -1,7 +1,8 @@
 import GameBoy from "../gameboy";
 import Ops from "../core/cpu_ops";
 import GPU, { transformColor } from "../core/gpu";
-import CPU, { R8, hex, pad, hexN } from "../core/cpu";
+import CPU, { R8 } from "../core/cpu";
+import { hex, pad, hexN } from "./util";
 
 function test() {
     let gb = new GameBoy();
