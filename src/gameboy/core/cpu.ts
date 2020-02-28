@@ -209,8 +209,16 @@ export enum CC {
 
 export type OperandType = R8 | R16 | CC | number;
 
+export interface OpFunction {
+    (cpu: CPU, ...others: any): void;
+}
+
 export interface Op {
-    op(cpu: CPU, ...others: any): void, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
+    op: OpFunction, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
+};
+
+type JumpLogEntry = {
+    func: OpFunction;
 };
 
 export default class CPU {
@@ -222,6 +230,8 @@ export default class CPU {
 
     log: Array<string> = [];
     fullLog: Array<string> = [];
+
+    jumpLog: Array<string> = [];
 
     _r = new Registers(this);
     pc: number = 0x0000;
@@ -370,6 +380,15 @@ export default class CPU {
         if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
 
+        if (Disassembler.isControlFlow(ins)) {
+            if (Disassembler.willJump(ins, this)) {
+                let disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
+                let to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
+                this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
+                this.jumpLog = this.jumpLog.slice(0, 100);
+            }
+        }
+
         if (ins.type != undefined) {
             if (ins.length == 3) {
                 ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
@@ -391,6 +410,7 @@ export default class CPU {
                 ins.op(this);
             }
         }
+
 
         this.pc += ins.length;
         this.pc &= 0xFFFF;
@@ -941,9 +961,11 @@ export default class CPU {
 
         const HALF_MASK = (1 << 3);
 
-        let bit = (lowerNybble & HALF_MASK) != 0 ?
-            ((upperNybble & 0b11) * 2) :
+        // 0x0 - 0x7
+        let bit = lowerNybble < 0x8 ?
+            (upperNybble & 0b11) * 2 :
             ((upperNybble & 0b11) * 2) + 1;
+
 
         let cyclesOffset = 0;
 
@@ -965,7 +987,11 @@ export default class CPU {
             bit = null!;
             // 0x40 - 0xF0
         } else {
-            op = [undefined, Ops.BIT_R8, Ops.RES_R8, Ops.SET_R8][upperNybble >> 2];
+            switch (upperNybble >> 2) {
+                case 0x1: op = Ops.BIT_R8; break;
+                case 0x2: op = Ops.RES_R8; break;
+                case 0x3: op = Ops.SET_R8; break;
+            }
         }
 
 

@@ -46,8 +46,8 @@ function loadTetris() {
     gb.bus.replaceRom(array);
 }
 
-function loadPokegold() {
-    let raw = atob(ROMS_BASE64.pokegold);
+function loadPokeyellow() {
+    let raw = atob(ROMS_BASE64.pokeyellow);
     let rawLength = raw.length;
 
     let array = new Uint8Array(new ArrayBuffer(4194304));
@@ -226,16 +226,12 @@ function init() {
     window.gb = gb;
 
     loadTetris();
-    loadPokegold();
+    loadPokeyellow();
     startDebugging();
 
     repeatDisassemble();
 
-
-    // Debugger default
-    document.onload = () => {
-        showDebug();
-    };
+    showDebug();
 
     // Handle input
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];

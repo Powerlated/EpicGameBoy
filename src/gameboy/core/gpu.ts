@@ -346,6 +346,7 @@ class GPU {
             this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
             this.imageDataGameboy[canvasIndex + 3] = 255;
 
+            // Scroll X debug
             let i2 = (160 * 4 * (this.lcdcY)) + (this.scrX * 4);
             this.imageDataGameboy[i2 + 0] = 0xFF - this.scrX;
             this.imageDataGameboy[i2 + 1] = 0;
@@ -496,14 +497,14 @@ class GPU {
 
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
 
         return this.vram[index];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
+        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
 
         this.vram[index] = value;
 

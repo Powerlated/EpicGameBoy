@@ -9,10 +9,10 @@ export default class Disassembler {
         if (ins.type == CC.NC) return !cpu._r._f.carry;
         if (ins.type == CC.Z) return cpu._r._f.zero;
         if (ins.type == CC.NZ) return !cpu._r._f.zero;
-        if (ins.type == CC.UNCONDITIONAL) return true;
+        return true; // Jump by default
     };
 
-    static isControlFlow = (ins: Op, cpu: CPU) => {
+    static isControlFlow = (ins: Op) => {
         switch (ins.op) {
             case Ops.JP_N16:
             case Ops.CALL_N16:
@@ -27,20 +27,23 @@ export default class Disassembler {
         }
     };
 
-    static willJumpTo = (ins: Op, cpu: CPU, pcTriplet: Array<number>, disasmPc: number): number => {
+    static willJumpTo = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU): number => {
         switch (ins.op) {
             case Ops.JP_N16:
             case Ops.CALL_N16:
-                return pcTriplet[0] | pcTriplet[1] << 8;
+                return pcTriplet[1] | pcTriplet[2] << 8;
             case Ops.JP_HL:
                 return cpu._r.hl;
             case Ops.RET:
+            case Ops.RETI:
                 let stackLowerByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp));
                 let stackUpperByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp + 1));
                 return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
             case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction
                 return disasmPc + unTwo8b(pcTriplet[1]) + 2;
+            case Ops.RST:
+                return ins.type as number;
             default: return NaN;
         }
     };
@@ -67,6 +70,7 @@ export default class Disassembler {
                 case Ops.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
                 case Ops.LD_A_iHLinc: return [LD, "A,(HL+)"];
                 case Ops.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
+                case Ops.LD_HL_SPaddE8: return [LD, `HL,(SP+${unTwo8b(pcTriplet[1])})`]
                 case Ops.JP_HL: return ["JP", "HL"];
                 case Ops.ADD_HL_R16: return ["ADD HL,", ins.type];
                 default: return null;
@@ -155,7 +159,7 @@ export default class Disassembler {
 
             // Pre-increment PC for 0xCB prefix
             let ins = isCB ? cpu.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : cpu.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
-            let controlFlow = Disassembler.isControlFlow(ins, cpu);
+            let controlFlow = Disassembler.isControlFlow(ins);
 
             // Decode hexadecimal triplet 
             function decodeHex(pcTriplet: Array<number>) {
@@ -172,7 +176,7 @@ export default class Disassembler {
 
             if (i == 0) {
                 if (Disassembler.willJump(ins, cpu))
-                    nextOpWillJumpTo = Disassembler.willJumpTo(ins, cpu, pcTriplet, disasmPc);
+                    nextOpWillJumpTo = Disassembler.willJumpTo(ins, pcTriplet, disasmPc, cpu);
 
                 if (controlFlow && !Disassembler.willJump(ins, cpu)) {
                     nextOpWillJumpTo = disasmPc + ins.length;
