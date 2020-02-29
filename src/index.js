@@ -1,11 +1,11 @@
 requirejs.config({
     paths: {
-        'src/gameboy/*': './gameboy',
+        '*': './gameboy',
         'tone': '../lib/Tone'
     }
 });
 
-requirejs(['tone', 'src/gameboy/gameboy', 'src/gameboy/tools/debug'], (Tone, GameBoy, Debug) => {
+requirejs(['tone', 'gameboy', 'tools/debug'], (Tone, GameBoy, Debug) => {
     window.GameBoy = GameBoy;
     window.Disassembler = GameBoy.Disassembler;
     window.startDebugging = Debug.startDebugging;

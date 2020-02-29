@@ -5,7 +5,7 @@ const { StringDecoder } = require('string_decoder');
 global.alert = msg => { console.warn(msg); cleanUp(); };
 
 require('source-map-support').install();
-let gameboy = require("./src/gameboy/gameboy");
+let gameboy = require("../src/gameboy/gameboy");
 let fs = require("fs");
 
 writeDebug("Loading ROM " + process.argv[2]);
