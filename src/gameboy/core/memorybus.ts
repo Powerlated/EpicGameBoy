@@ -12,6 +12,7 @@ import { writeDebug } from "../tools/debug";
 import { hex } from "../tools/util";
 import InterruptController from "./components/interrupt-controller";
 import { JoypadRegister } from "./components/joypad";
+import MBC5 from "./mbc/mbc5";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -57,7 +58,7 @@ class MemoryBus {
                 break;
             case 0x19: case 0x1A: case 0x1B: case 0x1B:
             case 0x1C: case 0x1D: case 0x1E:
-                this.ext.mbc = new MBC3(this.ext);
+                this.ext.mbc = new MBC5(this.ext);
                 break;
             case 0x20:
                 // this.mbc = new MBC6(this);
@@ -72,11 +73,31 @@ class MemoryBus {
                 this.ext.mbc = new NullMBC(this.ext);
                 break;
         }
-        writeDebug(this.ext.mbc);
+        let banks = 0;
+        switch (this.ext.rom[0x148]) {
+            case 0x00: banks = 2; break;
+            case 0x01: banks = 4; break;
+            case 0x02: banks = 8; break;
+            case 0x03: banks = 16; break;
+            case 0x04: banks = 32; break;
+            case 0x05: banks = 64; break;
+            case 0x06: banks = 128; break;
+            case 0x07: banks = 256; break;
+            case 0x08: banks = 512; break;
+            case 0x52: banks = 72; break;
+            case 0x53: banks = 80; break;
+            case 0x54: banks = 96; break;
+        }
+        this.ext.romBanks = banks;
+        console.log("Banks: " + banks);
+        console.log(this.ext.mbc);
     }
 
     replaceRom(rom: Uint8Array) {
         console.info("Replaced ROM");
+        this.ext.rom.forEach((v, i, a) => {
+            a[i] = 0;
+        })
         rom.forEach((v, i) => {
             this.ext.rom[i] = v;
         });

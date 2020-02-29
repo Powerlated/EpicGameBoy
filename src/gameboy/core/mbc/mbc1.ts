@@ -4,27 +4,23 @@ import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
 import { writeDebug } from "../../tools/debug";
 
-enum BankingModes {
-    ROMBankingMode = "ROM", RAMBankingMode = "RAM"
+enum BankingMode {
+    ROM = "ROM", RAM = "RAM"
 }
 
-export default class MBC1 implements MBC {
+export default class MBC1 extends MBC implements MBC {
     romBank = 1;
     ramBank = 0;
     enableExternalRam = false;
-    externalRam: Array<number> = [];
+    externalRam: Array<number> = new Array(32768).fill(0);
 
-    bankingMode = BankingModes.ROMBankingMode;
+    bankingMode = BankingMode.ROM;
 
     ext: ExternalBus;
 
     constructor(ext: ExternalBus) {
+        super();
         this.ext = ext;
-    }
-
-    readBank(addr: number, bank: number): number {
-        let calculated = (bank * MBC.bankSize) + (addr - MBC.bankSize);
-        return this.ext.rom[calculated];
     }
 
     read(addr: number): number {
@@ -41,20 +37,10 @@ export default class MBC1 implements MBC {
             return this.externalRam[addr];
         }
 
-        return 0xFF;
+        return 0x00;
     }
 
     write(addr: number, value: number) {
-        if (addr >= 0x2000 && addr <= 0x3FFF) {
-            // MBC1 - Writing 0 will select 1
-            if (value == 0) {
-                this.romBank = 1;
-            } else {
-                this.romBank = value & 0b11111; // Whole 5 bits
-                writeDebug("[MBC1]: Bank switch to " + this.romBank);
-            }
-            return;
-        }
         // RAM Enable
         if (addr >= 0x0000 && addr <= 0x1FFF) {
             if ((value & 0xF) == 0x0A) {
@@ -64,16 +50,27 @@ export default class MBC1 implements MBC {
             }
             return;
         }
+        // ROM Bank Number Lower 5 Bits
+        if (addr >= 0x2000 && addr <= 0x3FFF) {
+            this.romBank &= 0b11100000; // Erase 5 bits
+            this.romBank |= (value & 0b00011111); // Whole 5 bits
+
+            if (this.romBank == 0) {
+                this.romBank = 1;
+            }
+
+            return;
+        }
         // RAM Bank Number / Upper Bits of ROM Bank Number
         if (addr >= 0x4000 && addr <= 0x5FFF) {
             value &= 0b11;
-            if (this.bankingMode == BankingModes.RAMBankingMode) {
+            if (this.bankingMode == BankingMode.RAM) {
                 this.ramBank = value;
             } else {
-                this.romBank &= 0b11111;
+                this.romBank &= 0b00011111; // Erase high bits 
                 this.romBank |= (value << 5);
             }
-
+            
             return;
         }
         // RAM Bank 00-03
@@ -84,9 +81,9 @@ export default class MBC1 implements MBC {
 
         if (addr >= 0x6000 && addr <= 0x7FFF) {
             if ((value & 1) == 1) {
-                this.bankingMode = BankingModes.ROMBankingMode;
+                this.bankingMode = BankingMode.ROM;
             } else {
-                this.bankingMode = BankingModes.RAMBankingMode;
+                this.bankingMode = BankingMode.RAM;
             }
             return;
         }
@@ -96,7 +93,7 @@ export default class MBC1 implements MBC {
         this.romBank = 1;
         this.ramBank = 0;
         this.enableExternalRam = false;
-        this.externalRam = this.externalRam.map(() => { return 0 }); // Zero out external RAM
-        this.bankingMode = BankingModes.ROMBankingMode
+        this.externalRam = this.externalRam.map(() => { return 0; }); // Zero out external RAM
+        this.bankingMode = BankingMode.ROM;
     }
 }

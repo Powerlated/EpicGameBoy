@@ -2,11 +2,12 @@ import MemoryBus from "../memorybus";
 import MBC from "./mbc";
 import ExternalBus from "../externalbus";
 
-export default class NullMBC implements MBC {
+export default class NullMBC extends MBC implements MBC {
 
     ext: ExternalBus;
 
     constructor(ext: ExternalBus) {
+        super();
         this.ext = ext;
     }
 

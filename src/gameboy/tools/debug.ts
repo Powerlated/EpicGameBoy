@@ -254,6 +254,9 @@ function updateDebug() {
     ctxMemoryMap.putImageData(data, 0, 0);
 }
 
+export let logDebug = false;
+
 export function writeDebug(any: any) {
-    console.log(any);
+    if (logDebug)
+        console.log(any);
 }

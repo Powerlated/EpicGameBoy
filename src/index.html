@@ -5,7 +5,7 @@
     <link rel="stylesheet" type="text/css" href="index.css">
 </head>
 
-<body>
+<body id="drop_zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
     <h1 style="margin-bottom: 0">Game Boy Emulator</h1>
 
     <div id="panels">
@@ -22,7 +22,7 @@
 
             <canvas class="debug" id="tileset" width="256" height="144"></canvas>
             <canvas class="debug" id="memory-map" width="256" height="256"></canvas>
-            
+
             <div id="palette" class="debug">
                 <label>Palette</label>
                 <div class="palette-container">

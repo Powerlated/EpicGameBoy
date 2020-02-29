@@ -4,6 +4,7 @@ import NullMBC from "./mbc/nullmbc";
 
 export default class ExternalBus {
     mbc: MBC;
+    romBanks = 0;
     rom = new Uint8Array(4194304).fill(0xFF);
 
     constructor() {

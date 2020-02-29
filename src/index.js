@@ -317,3 +317,23 @@ function init() {
         Tone.start();
     });
 }
+
+function dropHandler(ev) {
+    console.log('File(s) dropped');
+
+    // Prevent default behavior (Prevent file from being opened)
+    ev.preventDefault();
+
+    var reader = new FileReader();
+    reader.onload = function () {
+        var arrayBuffer = this.result;
+        var array = new Uint8Array(arrayBuffer);
+
+        gb.bus.replaceRom(array);
+    };
+    reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
+}
+
+function dragOverHandler(ev) {
+    ev.preventDefault();
+}

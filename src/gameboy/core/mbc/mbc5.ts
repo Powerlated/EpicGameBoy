@@ -1,10 +1,11 @@
 import MemoryBus from "../memorybus";
 import MBC from "./mbc";
 import ExternalBus from "../externalbus";
+import { hex } from "../../tools/util";
 
-export default class MBC3 extends MBC implements MBC {
+export default class MBC5 extends MBC implements MBC {
     romBank = 1;
-    enableRamAndTimer = false;
+    enableRam = false;
     externalRam: Array<number> = new Array(32768).fill(0);
     ext: ExternalBus;
 
@@ -31,17 +32,20 @@ export default class MBC3 extends MBC implements MBC {
     }
 
     write(addr: number, value: number) {
-        if (addr >= 0x2000 && addr <= 0x3FFF) {
-            // MBC3 - Writing 0 will select 1
-            if (value == 0) {
-                this.romBank = 1;
-                return;
-            } else {
-                this.romBank = value & 0b1111111; // Whole 7 bits
-            }
+        // RAM Bank 00-0F (Read/Write)
+        if (addr >= 0xA000 && addr <= 0xBFFF) {
+            return;
         }
-        if (addr >= 0x0000 && addr <= 0x1FFF) {
-            this.enableRamAndTimer = true;
+        // Low 8 bits of ROM Bank Number (Write)
+        if (addr >= 0x2000 && addr <= 0x2FFF) {
+            this.romBank &= 0b100000000; // Zero out low 8 bits
+            this.romBank |= value;
+        }
+        // High bit of ROM Bank Number (Write);
+        if (addr >= 0x3000 && addr <= 0x3FFF) {
+            this.romBank &= 0b011111111; // Zero out high bit
+            this.romBank |= (value << 8);
+            this.romBank &= 0b111111111; // Make sure everything fits
         }
     }
 
