@@ -16,17 +16,20 @@ export default class ToneJsHandler {
     s: SoundChip;
 
     constructor(s: SoundChip) {
+        let highPass = new Tone.Filter(160, 'highpass', -12);
+        let bitCrush = new Tone.BitCrusher(4);
+
         this.s = s;
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
         this.pulseOsc1.volume.value = -36;
         this.pulsePan1 = new Tone.Panner(0);
-        this.pulseOsc1.chain(this.pulsePan1, Tone.Master);
+        this.pulseOsc1.chain(this.pulsePan1, highPass, Tone.Master);
         this.pulseOsc1.start();
 
         this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
         this.pulseOsc2.volume.value = -36;
         this.pulsePan2 = new Tone.Panner(0);
-        this.pulseOsc2.chain(this.pulsePan2, Tone.Master);
+        this.pulseOsc2.chain(this.pulsePan2, highPass, Tone.Master);
         this.pulseOsc2.start();
 
         this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
@@ -34,7 +37,7 @@ export default class ToneJsHandler {
         this.waveVolume = new Tone.Volume();
         this.waveVolume.volume.value = -36;
         this.wavePan = new Tone.Panner(0);
-        this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
+        this.waveSrc.chain(this.wavePan, bitCrush, this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
         this.noiseSrc = new Tone.BufferSource(this.s.noise.buffer, () => { });
