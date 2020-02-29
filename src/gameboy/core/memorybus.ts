@@ -250,11 +250,11 @@ class MemoryBus {
 
         // GET Interrupt request flags
         if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
-            return this.interrupts.requestedInterrupts.numerical;
+            return this.interrupts.requestedInterrupts.numerical | 0b11100000;
         }
         // GET Interrupt enable flags
         if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.interrupts.enabledInterrupts.numerical;
+            return this.interrupts.enabledInterrupts.numerical | 0b11100000;
         }
 
         // Hardware I/O registers
@@ -262,7 +262,7 @@ class MemoryBus {
             switch (addr) {
                 case 0xFF00: // Joypad read
                     // writeDebug("Polled joypad")
-                    return this.joypad.numerical;
+                    return this.joypad.numerical | 0b11000000;
                 case 0xFF01:
                     // console.info(`SERIAL PORT READ`);
                     return 0xFF;
@@ -273,13 +273,13 @@ class MemoryBus {
                 case 0xFF06: // Timer modulo
                     return this.gb.timer.addr_0xFF06;
                 case 0xFF07: // Timer control
-                    return this.gb.timer.addr_0xFF07;
+                    return this.gb.timer.addr_0xFF07 | 0b11111000;
                 case 0xFF40:
                     // console.info(`LCD CONTROL READ`);
                     return this.gpu.lcdControl.numerical;
                 case 0xFF41:
                     // console.info(`LCDC STATUS READ`);
-                    return this.gpu.lcdStatus.numerical;
+                    return this.gpu.lcdStatus.numerical | 0b10000000;
                 case 0xFF42:
                     return this.gpu.scrY;
                 case 0xFF43:
@@ -297,7 +297,7 @@ class MemoryBus {
                 case 0xFF50:
                     return 0xFF;
                 default:
-                    return 0x69;
+                    return 0xFF;
             }
         }
         return this.memory[addr];
