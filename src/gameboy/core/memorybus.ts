@@ -97,7 +97,7 @@ class MemoryBus {
         console.info("Replaced ROM");
         this.ext.rom.forEach((v, i, a) => {
             a[i] = 0;
-        })
+        });
         rom.forEach((v, i) => {
             this.ext.rom[i] = v;
         });
@@ -193,16 +193,13 @@ class MemoryBus {
                     this.gpu.lcdStatus.numerical = value;
                     break;
                 case 0xFF42:
-                    writeDebug("SCROLL Y WRITE: " + value);
                     this.gpu.scrY = value;
                     break;
                 case 0xFF43:
-                    // writeDebug("SCROLL X WRITE: " + value);
                     this.gpu.scrX = value;
                     break;
                 case 0xFF44: break;
                 case 0xFF45:
-                    writeDebug(`Set Y Compare to: ${value}`);
                     this.gpu.lYCompare = value;
                     break;
                 case 0xFF46:
@@ -216,6 +213,12 @@ class MemoryBus {
                     break;
                 case 0xFF49: // Palette OBJ 1
                     this.gpu.objPaletteData1.numerical = value;
+                    break;
+                case 0xFF4A: // Window Y Position
+                    this.gpu.windowYpos = value;
+                    break;
+                case 0xFF4B: // Window X Position
+                    this.gpu.windowXpos = value;
                     break;
                 case 0xFF50:
                     writeDebug("Disabled bootrom by write to 0xFF50");
@@ -315,6 +318,10 @@ class MemoryBus {
                     return this.gpu.objPaletteData0.numerical;
                 case 0xFF49: // Palette OBJ 1
                     return this.gpu.objPaletteData1.numerical;
+                case 0xFF4A: // Window Y Position
+                    return this.gpu.windowYpos;
+                case 0xFF4B: // Window X Position
+                    return this.gpu.windowXpos;
                 case 0xFF50:
                     return 0xFF;
                 default:

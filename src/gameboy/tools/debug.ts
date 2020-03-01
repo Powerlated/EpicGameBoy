@@ -178,7 +178,8 @@ function updateDebug() {
                 HL: ${hex(cpu._r.hl, 4)} ${pad(cpu._r.h.toString(2), 8, '0')} ${pad(cpu._r.l.toString(2), 8, '0')}
                 [HL]: ${hex(cpu.gb.bus.readMem8(cpu._r.hl), 2)}
                 </span>------------------------------
-                Scroll X/Y: ${gpu.scrY}/${gpu.scrX}
+                Scroll X/Y: ${gpu.scrX}/${gpu.scrY}
+                Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}
                 LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
                 LCDC: ${pad(gpu.lcdControl.numerical.toString(2), 8, '0')}
