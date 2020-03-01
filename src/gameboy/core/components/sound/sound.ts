@@ -262,14 +262,12 @@ export default class SoundChip {
                 break;
             case 0xFF1D: // NR33
                 this.wave.frequencyLower = value;
-                this.wave.waveTableUpdated = true;
                 this.wave.update();
                 break;
             case 0xFF1E: // NR34
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) != 0;
                 this.wave.lengthEnable = ((value >> 6) & 1) == 1;
-                this.wave.waveTableUpdated = true;
                 this.wave.update();
                 break;
 

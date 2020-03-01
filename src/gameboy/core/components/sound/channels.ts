@@ -68,7 +68,7 @@ export class PulseChannel implements BasicChannel {
     }
 
     updated = false;
-    update() {this.updated = true};
+    update() { this.updated = true; };
 }
 
 export class WaveChannel implements BasicChannel {
@@ -118,7 +118,7 @@ export class WaveChannel implements BasicChannel {
     }
 
     get buffer(): AudioBuffer {
-        let sampleRate = 56320 * (this.frequencyHz / 440); // A440 without any division
+        let sampleRate = 56320; // A440 without any division
         if (sampleRate > 384000) {
             sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
         }
@@ -149,7 +149,9 @@ export class WaveChannel implements BasicChannel {
     }
 
     updated = false;
-    update() {this.updated = true};
+    update() {
+        this.updated = true;
+    };
 }
 
 export class NoiseChannel implements BasicChannel {
@@ -206,7 +208,7 @@ export class NoiseChannel implements BasicChannel {
     trigger() {
         this.enabled = true;
     }
-    
+
     updated = false;
-    update() {this.updated = true};
+    update() { this.updated = true; };
 }

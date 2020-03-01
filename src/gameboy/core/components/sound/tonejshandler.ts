@@ -77,6 +77,7 @@ export default class ToneJsHandler {
 
         // Wave
         if (this.s.wave.enabled && this.s.wave.frequencyLower != 0 && this.s.wave.updated) {
+            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
             this.waveVolume.mute = false;
             this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.wave.volume);
         } else {
@@ -95,6 +96,7 @@ export default class ToneJsHandler {
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
+            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
             this.waveSrc.loop = true;
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 
