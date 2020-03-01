@@ -12,7 +12,7 @@ export default class MBC1 extends MBC implements MBC {
     romBank = 1;
     ramBank = 0;
     enableExternalRam = false;
-    externalRam: Array<number> = new Array(32768).fill(0);
+    externalRam: Array<number> = new Array(32768).fill(0xFF);
 
     bankingMode = BankingMode.ROM;
 
@@ -34,7 +34,11 @@ export default class MBC1 extends MBC implements MBC {
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.externalRam[addr];
+            if (this.enableExternalRam) {
+                return this.externalRam[this.calcBankAddr(addr, this.ramBank)];
+            } else {
+                return 0xFF;
+            }
         }
 
         return 0x00;
@@ -65,25 +69,26 @@ export default class MBC1 extends MBC implements MBC {
         if (addr >= 0x4000 && addr <= 0x5FFF) {
             value &= 0b11;
             if (this.bankingMode == BankingMode.RAM) {
+                console.log("Set RAM Bank to: " + value);
                 this.ramBank = value;
             } else {
                 this.romBank &= 0b00011111; // Erase high bits 
                 this.romBank |= (value << 5);
             }
-            
+
             return;
         }
         // RAM Bank 00-03
-        if (addr >= 0xA000 && addr <= 0xBFFF) {
-            this.externalRam[addr] = value;
+        if (addr >= 0xA000 && addr <= 0xBFFF && this.enableExternalRam) {
+            this.externalRam[this.calcBankAddr(addr, this.ramBank)] = value;
             return;
         }
 
         if (addr >= 0x6000 && addr <= 0x7FFF) {
-            if ((value & 1) == 1) {
-                this.bankingMode = BankingMode.ROM;
-            } else {
+            if ((value & 1) != 0) {
                 this.bankingMode = BankingMode.RAM;
+            } else {
+                this.bankingMode = BankingMode.ROM;
             }
             return;
         }

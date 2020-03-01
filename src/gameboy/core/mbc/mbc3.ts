@@ -2,6 +2,7 @@ import MemoryBus from "../memorybus";
 import MBC from "./mbc";
 import ExternalBus from "../externalbus";
 
+// TODO: Implement RTC features in MBC3
 export default class MBC3 extends MBC implements MBC {
     romBank = 1;
     enableRamAndTimer = false;

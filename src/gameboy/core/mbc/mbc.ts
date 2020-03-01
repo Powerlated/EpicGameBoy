@@ -15,9 +15,13 @@ export default interface MBC {
 export default class MBC {
     static bankSize = 16384;
 
+    calcBankAddr(addr: number, bank: number): number {
+        return (bank * MBC.bankSize) + (addr - MBC.bankSize);
+    }
+
     readBank(addr: number, bank: number): number {
         bank %= this.ext.romBanks;
-        let calculated = (bank * MBC.bankSize) + (addr - MBC.bankSize);
+        let calculated = this.calcBankAddr(addr, bank); 
         return this.ext.rom[calculated];
     }
 }
