@@ -40,17 +40,17 @@ export default class Timer {
                 this.divider &= 0xFF;
                 this.c.divClock = 0;
             }
-        }
 
-        if (this.control.running) {
-            if (this.counter == this.modulo) this.gb.bus.interrupts.requestTimer();
-
-            if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
-                this.counter++;
-            }
-
-            if (this.counter >= 256) {
-                this.counter = this.modulo;
+            if (this.control.running) {
+                if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
+                    this.counter++;
+                    this.c.mainClock = 0;
+                }
+    
+                if (this.counter >= 256) {
+                    this.gb.bus.interrupts.requestTimer();
+                    this.counter = this.modulo;
+                }
             }
         }
     }
