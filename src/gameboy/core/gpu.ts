@@ -324,8 +324,11 @@ class GPU {
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
+        let xPos = this.windowXpos - 7;
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < 160; i++) {
+            // Don't bother drawing if WINDOW is overlaying
+            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) break;
 
             // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
             let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
@@ -373,29 +376,29 @@ class GPU {
                 tile = this.vram[mapOffset + lineoffs];
                 // if (GPU._bgtile == 1 && tile < 128) tile += 256;
             }
+        }
 
-            if (this.lcdControl.enableWindow____5) {
-                let xPos = this.windowXpos - 7;
+        if (this.lcdControl.enableWindow____5) {
+            let y = (this.lcdcY + this.windowYpos) & 0b111; // CORRECT
 
-                let y = (this.lcdcY + this.windowYpos) & 0b111; // CORRECT
+            // Make sure window is onscreen Y
+            if (this.lcdcY >= this.windowYpos) {
+                let x = xPos & 0b111;                // CORRECT
 
-                // Make sure window is onscreen Y
-                if (this.lcdcY >= this.windowYpos && i >= xPos) {
-                    let x = xPos & 0b111;                // CORRECT
+                let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
 
-                    let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
+                let mapIndex = ((Math.floor((this.lcdcY + this.windowYpos) / 8) * 32) & 1023);
+                let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-                    let mapIndex = ((Math.floor((this.lcdcY + this.windowYpos) / 8) * 32) & 1023);
-                    let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+                let lineoffs = xPos >> 3;
 
-                    let lineoffs = xPos >> 3;
+                let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
 
-                    let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
+                let canvasIndex = 160 * 4 * (this.lcdcY);
 
-                    let canvasIndex = 160 * 4 * (this.lcdcY);
-
-                    // Loop through every single horizontal pixel for this line 
-                    for (let i = 0; i < 160; i++) {
+                // Loop through every single horizontal pixel for this line 
+                for (let i = 0; i < 160; i++) {
+                    if (i >= xPos) {
                         // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
                         let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
 
@@ -445,8 +448,6 @@ class GPU {
                 }
             }
         }
-
-
     }
 
 
