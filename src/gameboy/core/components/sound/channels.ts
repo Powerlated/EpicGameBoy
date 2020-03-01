@@ -83,6 +83,8 @@ export class WaveChannel implements BasicChannel {
 
     volume = 0;
     oldVolume = 0;
+    
+    playing = true;
 
     waveTable: Array<number> = new Array(32).fill(0);
     waveTableUpdated = false;

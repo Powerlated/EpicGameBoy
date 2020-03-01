@@ -157,9 +157,11 @@ export default class SoundChip {
 
             if (this.wave.enabled) {
                 if (this.wave.lengthEnable) {
+                    console.log("WAVE LENGTH: " + this.wave.lengthCounter);
                     this.wave.lengthCounter--;
                     if (this.wave.lengthCounter == 0) {
-                        this.wave.enabled = false;
+                        console.log("WAVE EXPIRED");
+                        this.wave.playing = false;
                     }
                 }
             }
@@ -179,8 +181,8 @@ export default class SoundChip {
 
             // Update Tone.js
             this.tjs.step();
-
         }
+
 
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
@@ -250,6 +252,11 @@ export default class SoundChip {
 
             // Wave
             case 0xFF1A: // NR30
+                if ((value & (1 << 7)) != 0) {
+                    this.wave.playing = true;
+                } else {
+                    this.wave.playing = false;
+                }
                 this.wave.update();
                 break;
             case 0xFF1B: // NR31
@@ -267,7 +274,7 @@ export default class SoundChip {
             case 0xFF1E: // NR34
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) != 0;
-                this.wave.lengthEnable = ((value >> 6) & 1) == 1;
+                this.wave.lengthEnable = ((value >> 6) & 1) != 0;
                 this.wave.update();
                 break;
 
