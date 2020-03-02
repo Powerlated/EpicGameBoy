@@ -211,6 +211,17 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
+document.querySelector('#saveInput').addEventListener('change', function () {
+    var reader = new FileReader();
+    reader.onload = function () {
+        var arrayBuffer = this.result;
+        var array = new Uint8Array(arrayBuffer);
+
+        gb.bus.loadSave(array);
+    };
+    reader.readAsArrayBuffer(this.files[0]);
+}, false);
+
 function repeatDisassemble() {
     requestAnimationFrame(repeatDisassemble);
 

@@ -4,7 +4,7 @@ import CPU from "./cpu";
 
 import GPU from "./gpu";
 import MBC3 from "./mbc/mbc3";
-import MBC from "./mbc/mbc";
+import MBC, { MBCWithRAM } from "./mbc/mbc";
 import MBC1 from "./mbc/mbc1";
 import NullMBC from "./mbc/nullmbc";
 import ExternalBus from "./externalbus";
@@ -103,6 +103,16 @@ class MemoryBus {
         });
         this.updateMBC();
         this.gb.reset();
+    }
+
+    loadSave(ram: Uint8Array) {
+        console.info("Loaded Save");
+        let mbc = this.ext.mbc as MBCWithRAM;
+        if (mbc instanceof MBCWithRAM) {
+            ram.forEach((v, i) => {
+                mbc.externalRam[i] = v;
+            });
+        }
     }
 
     serialOut: Array<number> = [];
