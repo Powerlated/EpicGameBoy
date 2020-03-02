@@ -129,9 +129,9 @@ class MemoryBus {
         `);
         }
 
-        // Write to High RAM
-        if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            this.memory[addr] = value;
+        // ROM Write (MBC Control)
+        if (addr >= 0x0000 && addr <= 0x7FFF) {
+            this.ext.write(addr, value);
         }
 
         // Write to Echo RAM
@@ -139,9 +139,9 @@ class MemoryBus {
             this.memory[addr - 8192] = value;
         }
 
-        // ROM Write (MBC Control)
-        if (addr >= 0x0000 && addr <= 0x7FFF) {
-            this.ext.write(addr, value);
+        // Read from External RAM through External Bus
+        if (addr >= 0xA000 && addr <= 0xBFFF) {
+            return this.ext.read(addr);
         }
 
         // Sound registers
@@ -153,6 +153,13 @@ class MemoryBus {
         if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
             this.interrupts.requestedInterrupts.numerical = value;
         }
+
+
+        // Write to High RAM
+        if (addr >= 0xFF80 && addr <= 0xFFFE) {
+            this.memory[addr] = value;
+        }
+
         // SET Interrupt enable flags
         if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
             this.interrupts.enabledInterrupts.numerical = value;
@@ -239,6 +246,8 @@ class MemoryBus {
             }
         }
 
+
+
         // Write if outside the boot ROM and ROM area
         if (addr > 0x3FFF) {
             this.memory[addr] = value;
@@ -263,6 +272,11 @@ class MemoryBus {
 
         // Read from ROM through External Bus
         if (addr >= 0x0000 && addr <= 0x7FFF) {
+            return this.ext.read(addr);
+        }
+
+        // Read from External RAM through External Bus
+        if (addr >= 0xA000 && addr <= 0xBFFF) {
             return this.ext.read(addr);
         }
 

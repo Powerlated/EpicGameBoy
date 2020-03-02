@@ -1,5 +1,6 @@
 import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
+import { hex } from "../../tools/util";
 
 export default interface MBC {
 
@@ -12,16 +13,39 @@ export default interface MBC {
     reset(): void;
 }
 
-export default class MBC {
-    static bankSize = 16384;
 
-    calcBankAddr(addr: number, bank: number): number {
-        return (bank * MBC.bankSize) + (addr - MBC.bankSize);
+export default class MBC {
+    romBank = 0;
+    static romBankSize = 16384;
+    static ramBankSize = 8192;
+
+    calcBankAddrRom(addr: number, bank: number): number {
+        return (bank * MBC.romBankSize) + (addr - 0x4000);
     }
 
     readBank(addr: number, bank: number): number {
         bank %= this.ext.romBanks;
-        let calculated = this.calcBankAddr(addr, bank); 
+        let calculated = this.calcBankAddrRom(addr, bank); 
         return this.ext.rom[calculated];
+    }
+}
+
+export class MBCWithRAM extends MBC {
+    ramBank = 0;
+    enableExternalRam = false;
+    externalRam: Array<number> = new Array(32768).fill(0);
+
+    readBankRam(addr: number, bank: number): number {
+        let calculated = this.calcBankAddrRam(addr, bank);
+        return this.externalRam[calculated];
+    }
+
+    writeBankRam(addr: number, bank: number, value: number) {
+        let calculated = this.calcBankAddrRam(addr, bank);
+        this.externalRam[calculated] = value;
+    }
+    
+    calcBankAddrRam(addr: number, bank: number): number {
+        return (bank * MBC.ramBankSize) + (addr - 0xA000);
     }
 }

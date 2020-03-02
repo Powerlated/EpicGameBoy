@@ -1,4 +1,4 @@
-import MBC from "./mbc";
+import MBC, { MBCWithRAM } from "./mbc";
 
 import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
@@ -8,11 +8,8 @@ enum BankingMode {
     ROM = "ROM", RAM = "RAM"
 }
 
-export default class MBC1 extends MBC implements MBC {
-    romBank = 1;
-    ramBank = 0;
+export default class MBC1 extends MBCWithRAM implements MBC {
     enableExternalRam = false;
-    externalRam: Array<number> = new Array(32768).fill(0xFF);
 
     bankingMode = BankingMode.ROM;
 
@@ -35,7 +32,7 @@ export default class MBC1 extends MBC implements MBC {
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
             if (this.enableExternalRam) {
-                return this.externalRam[this.calcBankAddr(addr, this.ramBank)];
+                return this.externalRam[this.calcBankAddrRam(addr, this.ramBank)];
             } else {
                 return 0xFF;
             }
@@ -80,7 +77,7 @@ export default class MBC1 extends MBC implements MBC {
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF && this.enableExternalRam) {
-            this.externalRam[this.calcBankAddr(addr, this.ramBank)] = value;
+            this.externalRam[this.calcBankAddrRam(addr, this.ramBank)] = value;
             return;
         }
 
