@@ -23,7 +23,11 @@ export default class MBC5 extends MBCWithRAM implements MBC {
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.readBankRam(addr, this.ramBank);
+            if (this.enableExternalRam) {
+                return this.readBankRam(addr, this.ramBank);
+            } else {
+                return 0xFF;
+            }
         }
 
         return 0xFF;
@@ -46,7 +50,9 @@ export default class MBC5 extends MBCWithRAM implements MBC {
         }
         // RAM Bank 00-0F (Read/Write)
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            this.writeBankRam(addr, this.ramBank, value);
+            if (this.enableExternalRam) {
+                this.writeBankRam(addr, this.ramBank, value);
+            }
             return;
         }
         // Low 8 bits of ROM Bank Number (Write)

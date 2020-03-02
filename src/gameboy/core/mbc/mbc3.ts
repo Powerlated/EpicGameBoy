@@ -4,7 +4,7 @@ import ExternalBus from "../externalbus";
 
 // TODO: Implement RTC features in MBC3
 export default class MBC3 extends MBCWithRAM implements MBC {
-    enableRamAndTimer = false;
+    selectRtc = false;
     ext: ExternalBus;
 
     constructor(ext: ExternalBus) {
@@ -23,28 +23,44 @@ export default class MBC3 extends MBCWithRAM implements MBC {
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.readBankRam(addr, this.ramBank);
+            if (this.enableExternalRam) {
+                if (!this.selectRtc) {
+                    return this.readBankRam(addr, this.ramBank);
+                } else {
+                    // TODO: Implement RTC
+                    return 0xFF;
+                }
+            }
+            return 0xFF;
         }
-
         return 0xFF;
     }
 
     write(addr: number, value: number) {
         if (addr >= 0x0000 && addr <= 0x1FFF) {
-            this.enableRamAndTimer = true;
+            this.enableExternalRam = true;
         }
         if (addr >= 0x2000 && addr <= 0x3FFF) {
             // MBC3 - Writing 0 will select 1
             if (value == 0) {
                 this.romBank = 1;
-                return;
             } else {
                 this.romBank = value & 0b1111111; // Whole 7 bits
             }
+            return;
+        }
+        if (addr >= 0x4000 && addr <= 0x5FFF) {
+
         }
         // RAM Bank 00-0F (Read/Write)
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            this.writeBankRam(addr, this.ramBank, value);
+            if (this.enableExternalRam) {
+                if (!this.selectRtc) {
+                    this.writeBankRam(addr, this.ramBank, value);
+                } else {
+                    return;
+                }
+            }
             return;
         }
         // 

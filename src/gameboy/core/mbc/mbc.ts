@@ -33,7 +33,7 @@ export default class MBC {
 export class MBCWithRAM extends MBC {
     ramBank = 0;
     enableExternalRam = false;
-    externalRam: Array<number> = new Array(32768).fill(0);
+    externalRam: Array<number> = new Array(32768).fill(0xFF);
 
     readBankRam(addr: number, bank: number): number {
         let calculated = this.calcBankAddrRam(addr, bank);
