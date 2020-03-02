@@ -104,6 +104,10 @@ function download(filename, text) {
     document.body.removeChild(element);
 }
 
+function downloadSave() {
+    download("emulator.sav", String.fromCharCode.apply(null, gb.bus.ext.mbc.externalRam));
+}
+
 function downloadLog() {
     download("EpicGameBoy.log", cpu.fullLog.join('\n'));
 }
