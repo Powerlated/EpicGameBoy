@@ -1,5 +1,6 @@
 import GameBoy from "../gameboy";
 import { writeDebug } from "../tools/debug";
+import { unTwo8b } from "../tools/util";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -278,7 +279,7 @@ class GPU {
     }
 
     imageDataGameboy = new Uint8ClampedArray(160 * 144 * 4);
-    imageDataTileset = new Uint8ClampedArray(256 * 144 * 4);
+    imageDataTileset = new Uint8ClampedArray(256 * 96 * 4);
 
     drawToCanvasGameboy() {
         let iData = new ImageData(this.imageDataGameboy, 160, 144);
@@ -286,7 +287,7 @@ class GPU {
     }
 
     drawToCanvasTileset() {
-        let iData = new ImageData(this.imageDataTileset, 256, 144);
+        let iData = new ImageData(this.imageDataTileset, 256, 96);
 
         this.ctxTileset.putImageData(iData, 0, 0);
 
@@ -294,16 +295,16 @@ class GPU {
         // 0: Bottom half used, 1: Top half used
         // Draw over unused with transparent yellow
         if (this.lcdControl.bgWindowTiledataSelect__4) {
-            this.ctxTileset.fillRect(0, 72, 256, 71);
+            this.ctxTileset.fillRect(0, 32, 256, 63);
         } else {
-            this.ctxTileset.fillRect(0, 0, 256, 71);
+            this.ctxTileset.fillRect(0, 0, 256, 63);
         }
 
         this.ctxTileset.setLineDash([2]);
         this.ctxTileset.strokeStyle = '#ff0000';
-        this.ctxTileset.strokeRect(0, 0, 256, 71);
+        this.ctxTileset.strokeRect(0, 0, 256, 63);
         this.ctxTileset.strokeStyle = '#0000ff';
-        this.ctxTileset.strokeRect(0, 72, 256, 72);
+        this.ctxTileset.strokeRect(0, 32, 256, 63);
     }
 
     // TODO: Make scanline effects work
@@ -330,8 +331,14 @@ class GPU {
             // Don't bother drawing if WINDOW is overlaying
             if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) break;
 
-            // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
-            let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
+            // Two's Complement on high tileset
+            let tileOffset = 0;
+            if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                tileOffset = 256;
+                if (tile > 127) {
+                    tile = tile - 256;
+                }
+            }
 
             let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
             // Re-map the tile pixel through the palette
@@ -399,8 +406,14 @@ class GPU {
                 // Loop through every single horizontal pixel for this line 
                 for (let i = 0; i < 160; i++) {
                     if (i >= xPos) {
-                        // Offset the tile data lookup based off of BG + Window tile data select (false=8800-97FF, true=8000-8FFF)
-                        let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 256;
+                        // Two's Complement on high tileset
+                        let tileOffset = 0;
+                        if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                            tileOffset = 256;
+                            if (tile > 127) {
+                                tile = tile - 256;
+                            }
+                        }
 
                         let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
                         // Re-map the tile pixel through the palette
@@ -526,7 +539,6 @@ class GPU {
             v1.forEach((v2, i2) => {
                 v2.forEach((pixel, i3) => {
                     if (pixel == undefined) return;
-                    if (i1 > 360) return;
 
                     const WIDTH = 256;
 
@@ -585,10 +597,8 @@ class GPU {
                 let lsb = bytes[0] & mask;
                 let msb = bytes[1] & mask;
 
-                let tileOffset = this.lcdControl.bgWindowTiledataSelect__4 ? 0 : 0;
-
                 // Update tile set
-                this.tileset[tile + tileOffset][y][x] =
+                this.tileset[tile][y][x] =
                     (lsb != 0 ? 1 : 0) +
                     (msb != 0 ? 2 : 0);
             }

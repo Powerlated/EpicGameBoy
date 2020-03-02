@@ -86,7 +86,7 @@ html {
 
 #tileset {
     width: 256px;
-    height: 144px;
+    height: 96px;
 
     image-rendering: -moz-crisp-edges;
     /* Firefox */
