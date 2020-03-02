@@ -134,14 +134,19 @@ class MemoryBus {
             this.ext.write(addr, value);
         }
 
+        // Write to Internal RAM 
+        if (addr >= 0xC000 && addr <= 0xDFFF) {
+            this.memory[addr] = value;
+        }
+
         // Write to Echo RAM
         if (addr >= 0xE000 && addr <= 0xFDFF) {
             this.memory[addr - 8192] = value;
         }
 
-        // Read from External RAM through External Bus
+        // Write from External RAM through External Bus
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.ext.read(addr);
+            this.ext.write(addr, value);
         }
 
         // Sound registers
@@ -245,14 +250,6 @@ class MemoryBus {
                     return;
             }
         }
-
-
-
-        // Write if outside the boot ROM and ROM area
-        if (addr > 0x3FFF) {
-            this.memory[addr] = value;
-            return;
-        }
     }
 
     readMem8(addr: number): number {
@@ -260,8 +257,13 @@ class MemoryBus {
             return this.bootrom[addr];
         }
 
-        // Read from High RAM
-        if (addr >= 0xFF80 && addr <= 0xFFFE) {
+        // Read from ROM through External Bus
+        if (addr >= 0x0000 && addr <= 0x7FFF) {
+            return this.ext.read(addr);
+        }
+
+        // Read from Internal RAM 
+        if (addr >= 0xC000 && addr <= 0xDFFF) {
             return this.memory[addr];
         }
 
@@ -270,14 +272,14 @@ class MemoryBus {
             return this.memory[addr - 8192];
         }
 
-        // Read from ROM through External Bus
-        if (addr >= 0x0000 && addr <= 0x7FFF) {
-            return this.ext.read(addr);
-        }
-
         // Read from External RAM through External Bus
         if (addr >= 0xA000 && addr <= 0xBFFF) {
             return this.ext.read(addr);
+        }
+
+        // Read from High RAM
+        if (addr >= 0xFF80 && addr <= 0xFFFE) {
+            return this.memory[addr];
         }
 
         // Return from VRAM
@@ -352,7 +354,7 @@ class MemoryBus {
                     return 0xFF;
             }
         }
-        return this.memory[addr];
+        return 0xFF;
     }
 
     readMem16(addr: number) {

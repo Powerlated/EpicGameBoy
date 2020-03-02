@@ -57,7 +57,7 @@ export default class InterruptController {
     enabledInterrupts = new InterruptFlag(); // 0xFFFF
     requestedInterrupts = new InterruptFlag(); // 0xFF0F
 
-    // Note: When an interrupt is fired, the master interrupt flag is disabled
+    // Note: When an interrupt is *handled*, the master interrupt flag is disabled
 
     reset() {
         this.masterEnabled = true;

@@ -483,7 +483,7 @@ class GPU {
             if (
                 (xPos >= 8 && xPos <= 168) &&
                 (yPos >= 8 && yPos <= 160) &&
-                (this.lcdcY >= screenYPos + 8 && (this.lcdcY <= (screenYPos + HEIGHT + 8)))
+                (this.lcdcY >= screenYPos + HEIGHT && (this.lcdcY <= (screenYPos + HEIGHT + 8)))
             ) {
                 // TODO: Fix sprite limiting
                 // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline

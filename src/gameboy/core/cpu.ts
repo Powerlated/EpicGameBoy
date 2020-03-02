@@ -217,10 +217,6 @@ export interface Op {
     op: OpFunction, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
 };
 
-type JumpLogEntry = {
-    func: OpFunction;
-};
-
 export default class CPU {
     halted = false;
 
@@ -231,7 +227,7 @@ export default class CPU {
     log: Array<string> = [];
     fullLog: Array<string> = [];
 
-    jumpLog: Array<string> = [];
+    // jumpLog: Array<string> = [];
 
     _r = new Registers(this);
     pc: number = 0x0000;
@@ -384,8 +380,8 @@ export default class CPU {
             if (Disassembler.willJump(ins, this)) {
                 let disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
                 let to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
-                this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
-                this.jumpLog = this.jumpLog.slice(0, 100);
+                // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
+                // this.jumpLog = this.jumpLog.slice(0, 100);
             }
         }
 
@@ -431,19 +427,18 @@ export default class CPU {
             // If servicing any interrupt, disable the master flag
             if ((this.gb.bus.interrupts.requestedInterrupts.numerical & this.gb.bus.interrupts.enabledInterrupts.numerical) > 0) {
                 this.gb.bus.interrupts.masterEnabled = false;
-                // writeDebug("Handling interrupt, disabling IME")
-
-                // Stop
-                // this.khzStop();
             }
 
             if (happened.vblank && enabled.vblank) {
+                // this.jumpLog.unshift(`----- INTERRUPT VBLANK -----`);
                 happened.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
+                // this.jumpLog.unshift(`----- INTERRUPT LCDSTAT -----`);
                 happened.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
+                // this.jumpLog.unshift(`----- INTERRUPT TIMER -----`);
                 happened.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
@@ -824,22 +819,22 @@ export default class CPU {
                 return { op: Ops.ADD_HL_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
 
             /** Reset Vectors */
-            case 0xDF: // RST 18h
-                return { op: Ops.RST, type: 0x18, length: 1 };
-            case 0xE7: // RST 20h
-                return { op: Ops.RST, type: 0x20, length: 1 };
-            case 0xD7: // RST 10h
-                return { op: Ops.RST, type: 0x10, length: 1 };
-            case 0xEF: // RST 28h
-                return { op: Ops.RST, type: 0x28, length: 1 };
             case 0xC7: // RST 00h
                 return { op: Ops.RST, type: 0x00, length: 1 };
             case 0xCF: // RST 08h
                 return { op: Ops.RST, type: 0x08, length: 1 };
-            case 0xFF: // RST 38h
-                return { op: Ops.RST, type: 0x38, length: 1 };
+            case 0xD7: // RST 10h
+                return { op: Ops.RST, type: 0x10, length: 1 };
+            case 0xDF: // RST 18h
+                return { op: Ops.RST, type: 0x18, length: 1 };
+            case 0xE7: // RST 20h
+                return { op: Ops.RST, type: 0x20, length: 1 };
+            case 0xEF: // RST 28h
+                return { op: Ops.RST, type: 0x28, length: 1 };
             case 0xF7: // RST 30h
                 return { op: Ops.RST, type: 0x30, length: 1 };
+            case 0xFF: // RST 38h
+                return { op: Ops.RST, type: 0x38, length: 1 };
 
             /** LD between A and R16 */
             case 0x02: // LD [BC], A
