@@ -148,11 +148,11 @@ class MemoryBus {
                     this.gb.timer.addr_0xFF07 = value;
                     break;
                 case 0xFF40: // LCD Control
-                    console.info(`LCD CONTROL CHANGE`);
+                    writeDebug(`LCD CONTROL CHANGE`);
                     this.gpu.lcdControl.numerical = value;
                     break;
                 case 0xFF41: // LCDC Status
-                    console.info(`LCDC STATUS CHANGE`);
+                    writeDebug(`LCDC STATUS CHANGE`);
                     this.gpu.lcdStatus.numerical = value;
                     break;
                 case 0xFF42:
