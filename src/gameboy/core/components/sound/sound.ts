@@ -2,6 +2,7 @@ import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
 import ToneJsHandler from "./tonejshandler";
 import * as Tone from "tone";
 import GameBoy from "../../../gameboy";
+import { writeDebug } from "../../../tools/debug";
 
 export default class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {
@@ -130,8 +131,7 @@ export default class SoundChip {
                 if (this.pulse1.lengthEnable) {
                     this.pulse1.lengthCounter--;
                     if (this.pulse1.lengthCounter == 0) {
-
-                        console.log("PULSE 1 length become 0")
+                        writeDebug("PULSE 1 length become 0")
                         this.pulse1.enabled = false;
                         this.pulse1.update();
                     }
@@ -166,10 +166,10 @@ export default class SoundChip {
             // TODO: Wave length isn't working in some way or another
             if (this.wave.enabled) {
                 if (this.wave.lengthEnable) {
-                    console.log("WAVE LENGTH: " + this.wave.lengthCounter);
+                    writeDebug("WAVE LENGTH: " + this.wave.lengthCounter);
                     this.wave.lengthCounter--;
                     if (this.wave.lengthCounter <= 0) {
-                        console.log("WAVE EXPIRED");
+                        writeDebug("WAVE EXPIRED");
                         this.wave.playing = false;
                         this.wave.update();
                     }
@@ -283,7 +283,7 @@ export default class SoundChip {
                 break;
             case 0xFF1B: // NR31
                 this.wave.lengthCounter = 256 - value;
-                console.log("SET WAVE LENGTH: " + this.wave.lengthCounter)
+                writeDebug("SET WAVE LENGTH: " + this.wave.lengthCounter)
                 this.wave.update();
                 break;
             case 0xFF1C: // NR32
@@ -298,7 +298,7 @@ export default class SoundChip {
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) != 0;
                 this.wave.lengthEnable = ((value >> 6) & 1) != 0;
-                console.log(this.wave.lengthEnable)
+                writeDebug(this.wave.lengthEnable)
                 this.wave.update();
                 break;
 
