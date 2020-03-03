@@ -476,9 +476,9 @@ class GPU {
 
             // Render sprite only if it is visible on this scanline
             if (
-                (xPos > 0 && xPos < 168) &&
-                (yPos > 0 && yPos < 160) &&
-                (this.lcdcY >= screenYPos - HEIGHT && this.lcdcY <= (screenYPos + HEIGHT + 8))
+                (xPos >= 8 && xPos <= 168) &&
+                (yPos >= 8 && yPos <= 160) &&
+                (this.lcdcY >= screenYPos + 8 && (this.lcdcY <= (screenYPos + HEIGHT + 8)))
             ) {
                 // TODO: Fix sprite limiting
                 // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
@@ -491,8 +491,8 @@ class GPU {
 
                 for (let h = 8; h <= HEIGHT; h += 8)
                     for (let x = 0; x < 8; x++) {
-                        let screenYPos = yPos - 16;
-                        let screenXPos = xPos - 8;
+                        screenYPos = yPos - (24 - h);
+                        screenXPos = xPos - 8;
 
                         screenYPos += y;
                         screenXPos += x;
@@ -503,7 +503,7 @@ class GPU {
                         let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                         // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                        let prePalette = this.tileset[tile][pixelY][pixelX];
+                        let prePalette = this.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
                         let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                         let c = transformColor(pixel);
 
@@ -518,7 +518,6 @@ class GPU {
             }
         }
     }
-
     // 160 x 144
     renderTiles() {
         this.tileset.forEach((v1, i1) => {
