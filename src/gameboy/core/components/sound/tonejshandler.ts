@@ -102,7 +102,7 @@ export default class ToneJsHandler {
         }
 
         // Noise
-        if (this.s.noise.enabled && this.s.noise.shiftClockFrequency != 0) {
+        if (this.s.noise.enabled) {
             if (this.s.noise.updated) {
                 this.noiseVolume.mute = false;
                 this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noise.volume);
