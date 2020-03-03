@@ -248,7 +248,8 @@ class GPU {
                     this.modeClock = 0;
                     this.lcdcY++;
 
-                    if (this.lcdcY > 144) {
+                    // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
+                    if (this.lcdcY >= 144) {
                         // If we're at LCDCy = 144, enter Vblank
                         this.lcdStatus.mode = 1;
                         // Fire the Vblank interrupt
