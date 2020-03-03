@@ -215,10 +215,11 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 3;
 
-                        // Render sprites when entering VRAM mode
-                        if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.renderSprites();
+                        // Render scanline when entering VRAM mode
+                        if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                            this.renderScanline();
                         }
+
                     }
                     break;
 
@@ -229,9 +230,9 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 0;
 
-                        // Render scanline when entering Hblank
-                        if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.renderScanline();
+                        // Render sprites when entering Hblank mode
+                        if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                            this.renderSprites();
                         }
                     }
                     break;
@@ -244,7 +245,7 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdcY++;
 
-                        if (this.lcdcY >= 144) {
+                        if (this.lcdcY > 144) {
                             // If we're at LCDCy = 144, enter Vblank
                             this.lcdStatus.mode = 1;
                             // Fire the Vblank interrupt
@@ -312,10 +313,10 @@ class GPU {
         this.ctxTileset.strokeRect(0, 32, 256, 63);
     }
 
-
     showTileBorders = false;
 
     // TODO: Make scanline effects work
+    // TODO: Implement background transparency
     renderScanline() {
         // writeDebug("Rendering a scanline @ SCROLL Y:" + this.scrY);
 
@@ -477,7 +478,7 @@ class GPU {
             if (
                 (xPos > 0 && xPos < 168) &&
                 (yPos > 0 && yPos < 160) &&
-                (this.lcdcY >= screenYPos - HEIGHT && (this.lcdcY <= (screenYPos + HEIGHT + 8)))
+                (this.lcdcY >= screenYPos - HEIGHT && this.lcdcY <= (screenYPos + HEIGHT + 8))
             ) {
                 // TODO: Fix sprite limiting
                 // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
@@ -490,8 +491,8 @@ class GPU {
 
                 for (let h = 8; h <= HEIGHT; h += 8)
                     for (let x = 0; x < 8; x++) {
-                        screenYPos = yPos - (24 - h);
-                        screenXPos = xPos - 8;
+                        let screenYPos = yPos - 16;
+                        let screenXPos = xPos - 8;
 
                         screenYPos += y;
                         screenXPos += x;
@@ -501,10 +502,8 @@ class GPU {
 
                         let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
-                        let tileOffset = 0;
-
                         // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                        let prePalette = this.tileset[tile + tileOffset + ((h / 8) - 1)][pixelY][pixelX];
+                        let prePalette = this.tileset[tile][pixelY][pixelX];
                         let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
                         let c = transformColor(pixel);
 
@@ -608,6 +607,9 @@ class GPU {
 
         this.scrY = 0;
         this.scrX = 0;
+
+        this.windowYpos = 0;
+        this.windowXpos = 0;
 
         this.lcdcY = 0; // 0xFF44 - Current scanning line
         this.modeClock = 0;
