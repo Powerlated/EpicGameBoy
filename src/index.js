@@ -43,7 +43,7 @@ function loadTetris() {
         array[i] = raw.charCodeAt(i);
     }
 
-    gb.bus.replaceRom(array);
+    gb.bus.ext.replaceRom(array);
 }
 
 function loadPokeyellow() {
@@ -56,7 +56,7 @@ function loadPokeyellow() {
         array[i] = raw.charCodeAt(i);
     }
 
-    gb.bus.replaceRom(array);
+    gb.bus.ext.replaceRom(array);
 }
 
 let disassemblyP = document.getElementById('disassembly-output');
@@ -89,12 +89,13 @@ function executeAtPc() {
  * Downloads file
  * 
  * @argument {string} filename 
- * @argument {string} text 
+ * @argument {Uint8Array} arr 
  */
-function download(filename, text) {
-    var element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-    element.setAttribute('download', filename);
+function download(filename, arr) {
+    let element = document.createElement('a');
+    let blob = new Blob([arr.buffer], { type: 'application/octet-stream' });
+    element.href = window.URL.createObjectURL(blob);
+    element.download = filename;
 
     element.style.display = 'none';
     document.body.appendChild(element);
@@ -105,7 +106,7 @@ function download(filename, text) {
 }
 
 function downloadSave() {
-    download("emulator.sav", String.fromCharCode.apply(null, gb.bus.ext.mbc.externalRam));
+    download(`${gb.bus.ext.romTitle}.sav`, gb.bus.ext.mbc.externalRam);
 }
 
 function downloadLog() {
@@ -208,7 +209,7 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
         var arrayBuffer = this.result;
         var array = new Uint8Array(arrayBuffer);
 
-        gb.bus.replaceRom(array);
+        gb.bus.ext.replaceRom(array);
         // cpu.khz()
         // gb.bus.gpu.frameExecute();
     };
@@ -344,7 +345,7 @@ function dropHandler(ev) {
         var arrayBuffer = this.result;
         var array = new Uint8Array(arrayBuffer);
 
-        gb.bus.replaceRom(array);
+        gb.bus.ext.replaceRom(array);
     };
     reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
 }
