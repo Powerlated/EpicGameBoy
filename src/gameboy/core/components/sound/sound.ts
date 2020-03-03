@@ -155,6 +155,7 @@ export default class SoundChip {
                 }
             }
 
+            // TODO: Wave length isn't working in some way or another
             if (this.wave.enabled) {
                 if (this.wave.lengthEnable) {
                     console.log("WAVE LENGTH: " + this.wave.lengthCounter);
@@ -187,7 +188,7 @@ export default class SoundChip {
         this.clockMain %= CLOCK_MAIN_STEPS;
     }
 
-    soundRegisters = new Array(65536).fill(0);
+    soundRegisters = new Uint8Array(65536).fill(0);
 
     write(addr: number, value: number) {
         let dutyCycle = 0;

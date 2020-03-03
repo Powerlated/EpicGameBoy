@@ -103,13 +103,20 @@ export function startDebugging() {
     // @ts-check
     if (!IS_NODE) {
         let lastFrameCount = 0;
-        let fps = 0;
+        let lastCyclesCount = 0;
 
         setInterval(() => {
             let gpu = ((window as any).gb.gpu as GPU);
             (window as any).fps = gpu.totalFrameCount - lastFrameCount;
             lastFrameCount = gpu.totalFrameCount;
         }, 1000);
+
+        setInterval(() => {
+            let cpu = ((window as any).gb.cpu as CPU);
+            (window as any).cyclesPerSecond = cpu.cycles - lastCyclesCount;
+            lastCyclesCount = cpu.cycles;
+        }, 1000);
+
 
 
         updateDebug();
@@ -154,6 +161,7 @@ function updateDebug() {
     let gb = ((window as any).gb as GameBoy);
     let cpu = ((window as any).cpu as CPU);
     let fps = (window as any).fps;
+    let cyclesPerSecond = (window as any).cyclesPerSecond;
     let gpu = ((window as any).gb.gpu as GPU);
     let displaySerial = (window as any).displaySerial;
     let r = cpu.gb.bus.interrupts.requestedInterrupts;
@@ -162,6 +170,7 @@ function updateDebug() {
         `
                 Total Instructions Executed: ${cpu.totalI}
                 Total Cycles: ${cpu.cycles}
+                Cycles Per Second: ${cyclesPerSecond}
 
                 Halted: ${cpu.halted}
 
