@@ -39,7 +39,7 @@ class LCDCRegister {
 }
 
 class LCDStatusRegister {
-    // https://gbdev.gg8.se/wiki/articles/Video_Display#FF41_-_STAT_-_LCDC_Status_.28R.2FW.29
+    // https://gbdev.gg.8se/wiki/articles/Video_Display#FF41_-_STAT_-_LCDC_Status_.28R.2FW.29
     lyCoincidenceInterrupt6 = false; // Bit 6 - LYC=LY Coincidence Interrupt (1=Enable) (Read/Write)
     mode2OamInterrupt_____5 = false; // Bit 5 - Mode 2 OAM Interrupt         (1=Enable) (Read/Write)
     mode1VblankInterrupt__4 = false; // Bit 4 - Mode 1 V-Blank Interrupt     (1=Enable) (Read/Write)
@@ -230,6 +230,10 @@ class GPU {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 0;
 
+                        if (this.lcdStatus.mode0HblankInterrupt__3) {
+                            this.gb.bus.interrupts.requestLCDstatus();
+                        }
+
                         // Render sprites when entering Hblank mode
                         if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.renderSprites();
@@ -252,6 +256,10 @@ class GPU {
                             this.gb.bus.interrupts.requestVblank();
                             this.totalFrameCount++;
 
+                            if (this.lcdStatus.mode1VblankInterrupt__4) {
+                                this.gb.bus.interrupts.requestLCDstatus();
+                            }
+
                             // Draw to the canvas
                             if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
                                 this.drawToCanvasGameboy();
@@ -260,6 +268,9 @@ class GPU {
                         else {
                             // Enter back into OAM mode if not Vblank
                             this.lcdStatus.mode = 2;
+                            if (this.lcdStatus.mode2OamInterrupt_____5) {
+                                this.gb.bus.interrupts.requestLCDstatus();
+                            }
                         }
                     }
                     break;
