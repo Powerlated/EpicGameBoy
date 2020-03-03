@@ -193,7 +193,17 @@ class MemoryBus {
         }
     }
 
+    cheats: Map<number, number> = new Map();
+
+    addCheat(addr: number, value: number) {
+        this.cheats.set(addr, value);
+    }
+
     readMem8(addr: number): number {
+        if (this.cheats.has(addr)) {
+            return this.cheats.get(addr)!;
+        }
+
         if (addr < 0x100 && this.bootromEnabled) {
             return this.bootrom[addr];
         }
