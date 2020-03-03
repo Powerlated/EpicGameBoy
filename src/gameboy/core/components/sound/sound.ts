@@ -315,6 +315,9 @@ export default class SoundChip {
                 this.noise.update();
                 break;
             case 0xFF22: // NR43
+                this.noise.shiftClockFrequency = (value >> 4) & 0b111;
+                this.noise.counterStep = ((value >> 3) & 1) != 0
+                this.noise.envelopeSweep = (value & 0b111);
                 this.noise.update();
                 break;
             case 0xFF23: // NR44
@@ -415,15 +418,11 @@ export default class SoundChip {
         this.wave = new WaveChannel();
         this.noise = new NoiseChannel();
 
+        this.tjs.step();
+
+
         this.clockMain = 0;
         this.clockEnvelope1 = 0;
         this.clockEnvelope2 = 0;
-    }
-
-    setMuted(muted: boolean) {
-        this.tjs.pulseOsc1.mute = muted;
-        this.tjs.pulseOsc2.mute = muted;
-        this.tjs.waveVolume.mute = muted;
-        this.tjs.noiseVolume.mute = muted;
     }
 }

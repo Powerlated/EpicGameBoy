@@ -32,13 +32,13 @@ export default class GameBoy {
     speedStop() {
         this.speedIntervals.forEach(i => {clearInterval(i)});
         this.cpu.stopNow = true;
-        this.soundChip.setMuted(true);
+        this.soundChip.tjs.setMuted(true);
     }
 
     speed() {
         this.cpu.debugging = false;
         this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
-        this.soundChip.setMuted(false);
+        this.soundChip.tjs.setMuted(false);
     }
 
     frame() {

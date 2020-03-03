@@ -164,7 +164,7 @@ export class NoiseChannel implements BasicChannel {
     lengthEnable = false;
     lengthCounter = 0;
 
-    volume = 0; // 4-bit value 0-15
+    volume = 0; 
     volumeEnvelopeUp = false;
     volumeEnvelopeSweep = 4;
     volumeEnvelopeStart = 0;
@@ -173,6 +173,9 @@ export class NoiseChannel implements BasicChannel {
     outputRight = false;
 
     triggered = false;
+    shiftClockFrequency = 0;
+    counterStep = false;
+    envelopeSweep = 0;
 
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;

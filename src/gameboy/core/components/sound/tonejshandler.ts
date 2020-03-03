@@ -13,11 +13,14 @@ export default class ToneJsHandler {
     noiseSrc: Tone.BufferSource;
     noiseVolume: Tone.Volume;
 
+    masterVolume: Tone.Volume;
+
     s: SoundChip;
 
     constructor(s: SoundChip) {
         let highPass = new Tone.Filter(160, 'highpass', -12);
         let bitCrush = new Tone.BitCrusher(4);
+        this.masterVolume = new Tone.Volume();
 
         this.s = s;
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
@@ -44,6 +47,7 @@ export default class ToneJsHandler {
         this.noiseSrc.loop = true;
         this.noiseVolume = new Tone.Volume();
         this.noiseVolume.mute = true;
+        this.noiseVolume.volume.value = -1000;
         this.noiseSrc.chain(this.noiseVolume, Tone.Master);
         this.noiseSrc.start();
     }
@@ -98,7 +102,7 @@ export default class ToneJsHandler {
         }
 
         // Noise
-        if (this.s.noise.enabled) {
+        if (this.s.noise.enabled && this.s.noise.shiftClockFrequency != 0) {
             if (this.s.noise.updated) {
                 this.noiseVolume.mute = false;
                 this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noise.volume);
@@ -117,5 +121,11 @@ export default class ToneJsHandler {
 
             this.s.wave.waveTableUpdated = false;
         }
+    }
+
+    setMuted(muted: boolean) {
+        this.pulseOsc1.mute = muted;
+        this.pulseOsc2.mute = muted;
+        this.waveVolume.mute = muted;
     }
 }
