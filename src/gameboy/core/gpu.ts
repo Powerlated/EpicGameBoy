@@ -504,37 +504,40 @@ class GPU {
                         screenYPos += y;
                         screenXPos += x;
 
-                        let pixelX = flags.xFlip ? 7 - x : x;
-                        let pixelY = flags.yFlip ? 7 - y : y;
+                        if (screenXPos >= 0 && screenYPos >= 0 && screenXPos < 160 && screenYPos < 144) {
 
-                        let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+                            let pixelX = flags.xFlip ? 7 - x : x;
+                            let pixelY = flags.yFlip ? 7 - y : y;
 
-                        // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                        let prePalette = this.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                        let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
-                        let c = transformColor(pixel);
+                            let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+
+                            // Offset tile by +1 if rendering the top half of an 8x16 sprite
+                            let prePalette = this.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
+                            let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
+                            let c = transformColor(pixel);
 
 
-                        // Simulate transparency before transforming through object palette
-                        if (prePalette != 0) {
-                            this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
-                            this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
-                            this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
-                            this.imageGameboy.data[canvasIndex + 3] = 255;
-                        }
-
-                        // Border debug
-                        if (this.showBorders && (pixelX == 0 || pixelX == 7 || pixelY == 0 || pixelY == 7)) {
-                            if (this.lcdControl.spriteSize______2) {
-                                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                                this.imageGameboy.data[canvasIndex + 1] = 0;
-                                this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                            // Simulate transparency before transforming through object palette
+                            if (prePalette != 0) {
+                                this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
+                                this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
+                                this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
                                 this.imageGameboy.data[canvasIndex + 3] = 255;
-                            } else {
-                                this.imageGameboy.data[canvasIndex + 0] = 0;
-                                this.imageGameboy.data[canvasIndex + 1] = 0xFF;
-                                this.imageGameboy.data[canvasIndex + 2] = 0;
-                                this.imageGameboy.data[canvasIndex + 3] = 255;
+                            }
+
+                            // Border debug
+                            if (this.showBorders && (pixelX == 0 || pixelX == 7 || pixelY == 0 || pixelY == 7)) {
+                                if (this.lcdControl.spriteSize______2) {
+                                    this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                                    this.imageGameboy.data[canvasIndex + 1] = 0;
+                                    this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                                } else {
+                                    this.imageGameboy.data[canvasIndex + 0] = 0;
+                                    this.imageGameboy.data[canvasIndex + 1] = 0xFF;
+                                    this.imageGameboy.data[canvasIndex + 2] = 0;
+                                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                                }
                             }
                         }
                     }
