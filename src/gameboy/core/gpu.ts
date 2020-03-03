@@ -291,16 +291,16 @@ class GPU {
         }
     }
 
-    imageDataGameboy = new Uint8ClampedArray(160 * 144 * 4);
-    imageDataTileset = new Uint8ClampedArray(256 * 96 * 4);
+    imageGameboyArr = new Uint8ClampedArray(160 * 144 * 4);
+    imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
+    imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
 
     drawToCanvasGameboy() {
-        let iData = new ImageData(this.imageDataGameboy, 160, 144);
-        this.ctxGameboy.putImageData(iData, 0, 0);
+        this.ctxGameboy.putImageData(this.imageGameboy, 0, 0);
     }
 
     drawToCanvasTileset() {
-        let iData = new ImageData(this.imageDataTileset, 256, 96);
+        let iData = new ImageData(this.imageTilesetArr, 256, 96);
 
         this.ctxTileset.putImageData(iData, 0, 0);
 
@@ -368,18 +368,18 @@ class GPU {
             if (!this.lcdControl.bgWindowPriority0) c = 0xFFFFFF;
 
             // Plot the pixel to canvas
-            this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
-            this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
-            this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
-            this.imageDataGameboy[canvasIndex + 3] = 255;
+            this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
+            this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
+            this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
+            this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
             // Scroll X/Y debug
             if (this.showBorders && (((mapOffset + lineoffs) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                this.imageDataGameboy[canvasIndex + 0] = 0xFF;
-                this.imageDataGameboy[canvasIndex + 1] = 0;
-                this.imageDataGameboy[canvasIndex + 2] = 0;
-                this.imageDataGameboy[canvasIndex + 3] = 255;
+                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                this.imageGameboy.data[canvasIndex + 1] = 0;
+                this.imageGameboy.data[canvasIndex + 2] = 0;
+                this.imageGameboy.data[canvasIndex + 3] = 255;
             }
 
             canvasIndex += 4;
@@ -432,18 +432,18 @@ class GPU {
                         if (!this.lcdControl.bgWindowPriority0) c = 0xFFFFFF;
 
                         // Plot the pixel to canvas
-                        this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
-                        this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
-                        this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
-                        this.imageDataGameboy[canvasIndex + 3] = 255;
+                        this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
+                        this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
+                        this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
                         // Window X debug
                         if (this.showBorders && (((mapOffset + lineoffs) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                            this.imageDataGameboy[canvasIndex + 0] = 0;
-                            this.imageDataGameboy[canvasIndex + 1] = 0;
-                            this.imageDataGameboy[canvasIndex + 2] = 0xFF;
-                            this.imageDataGameboy[canvasIndex + 3] = 255;
+                            this.imageGameboy.data[canvasIndex + 0] = 0;
+                            this.imageGameboy.data[canvasIndex + 1] = 0;
+                            this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                            this.imageGameboy.data[canvasIndex + 3] = 255;
                         }
                         canvasIndex += 4;
 
@@ -483,8 +483,8 @@ class GPU {
 
             // Render sprite only if it is visible on this scanline
             if (
-                (xPos >= 8 && xPos <= 168) &&
-                (yPos >= 8 && yPos <= 160) &&
+                (xPos > 0 && xPos <= 168) &&
+                (yPos > 0 && yPos <= 160) &&
                 (this.lcdcY + 8 >= screenYPos && (this.lcdcY <= (screenYPos + HEIGHT + 8)))
             ) {
                 // TODO: Fix sprite limiting
@@ -517,24 +517,24 @@ class GPU {
 
                         // Simulate transparency before transforming through object palette
                         if (prePalette != 0) {
-                            this.imageDataGameboy[canvasIndex + 0] = (c >> 0) & 0xFF;
-                            this.imageDataGameboy[canvasIndex + 1] = (c >> 8) & 0xFF;
-                            this.imageDataGameboy[canvasIndex + 2] = (c >> 16) & 0xFF;
-                            this.imageDataGameboy[canvasIndex + 3] = 255;
+                            this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
+                            this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
+                            this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
+                            this.imageGameboy.data[canvasIndex + 3] = 255;
                         }
 
                         // Border debug
                         if (this.showBorders && (pixelX == 0 || pixelX == 7 || pixelY == 0 || pixelY == 7)) {
                             if (this.lcdControl.spriteSize______2) {
-                                this.imageDataGameboy[canvasIndex + 0] = 0xFF;
-                                this.imageDataGameboy[canvasIndex + 1] = 0;
-                                this.imageDataGameboy[canvasIndex + 2] = 0xFF;
-                                this.imageDataGameboy[canvasIndex + 3] = 255;
+                                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                                this.imageGameboy.data[canvasIndex + 1] = 0;
+                                this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                                this.imageGameboy.data[canvasIndex + 3] = 255;
                             } else {
-                                this.imageDataGameboy[canvasIndex + 0] = 0;
-                                this.imageDataGameboy[canvasIndex + 1] = 0xFF;
-                                this.imageDataGameboy[canvasIndex + 2] = 0;
-                                this.imageDataGameboy[canvasIndex + 3] = 255;
+                                this.imageGameboy.data[canvasIndex + 0] = 0;
+                                this.imageGameboy.data[canvasIndex + 1] = 0xFF;
+                                this.imageGameboy.data[canvasIndex + 2] = 0;
+                                this.imageGameboy.data[canvasIndex + 3] = 255;
                             }
                         }
                     }
@@ -556,10 +556,10 @@ class GPU {
 
                     let c = transformColor(this.bgPaletteData.lookup(pixel));
 
-                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 0] = (c >> 0) & 0xFF;
-                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 1] = (c >> 8) & 0xFF;
-                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 2] = (c >> 16) & 0xFF;
-                    this.imageDataTileset[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = (c >> 0) & 0xFF;
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = (c >> 8) & 0xFF;
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = (c >> 16) & 0xFF;
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
         });
@@ -578,14 +578,14 @@ class GPU {
 
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
 
         return this.vram[index];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        // if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
+        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
 
         this.vram[index] = value;
 

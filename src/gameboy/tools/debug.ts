@@ -140,7 +140,7 @@ let p1obj1 = document.getElementById('palette1-obj1')!;
 let p2obj1 = document.getElementById('palette2-obj1')!;
 let p3obj1 = document.getElementById('palette3-obj1')!;
 
-let memoryMapData = new Uint8ClampedArray(256 * 256 * 4);
+let memoryMapImg = new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256);
 
 let cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
 let ctxMemoryMap = cMemoryMap.getContext("2d")!;
@@ -253,14 +253,14 @@ function updateDebug() {
             // Canvas Index
             let ci = ((y * 256) + x) * 4;
 
-            memoryMapData[ci + 0] = c;
-            memoryMapData[ci + 1] = c;
-            memoryMapData[ci + 2] = c;
-            memoryMapData[ci + 3] = 0xFF;
+            memoryMapImg.data[ci + 0] = c;
+            memoryMapImg.data[ci + 1] = c;
+            memoryMapImg.data[ci + 2] = c;
+            memoryMapImg.data[ci + 3] = 0xFF;
         }
     }
 
-    let data = new ImageData(memoryMapData, 256, 256);
+    let data = new ImageData(memoryMapImg.data, 256, 256);
     ctxMemoryMap.putImageData(data, 0, 0);
 }
 
