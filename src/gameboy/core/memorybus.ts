@@ -28,10 +28,10 @@ class MemoryBus {
     cpu: CPU;
     gpu: GPU;
 
-    ext = new ExternalBus();
+    ext: ExternalBus;
 
-    memory = new Uint8Array(0xFFFF + 1).fill(0);
-    bootrom = new Uint8Array(0xFF + 1).fill(0);
+    memory = new Uint8Array(65536).fill(0);
+    bootrom = new Uint8Array(256).fill(0);
 
     interrupts = new InterruptController(this);
     joypad = new JoypadRegister();
@@ -43,66 +43,7 @@ class MemoryBus {
         this.gb = gb;
         this.cpu = gb.cpu;
         this.gpu = gb.gpu;
-    }
-
-    updateMBC() {
-        switch (this.ext.rom[0x147]) {
-            case 0x01: case 0x02: case 0x03:
-                this.ext.mbc = new MBC1(this.ext);
-                break;
-            case 0x05: case 0x06:
-                // this.mbc = new MBC2(this);
-                break;
-            case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
-                this.ext.mbc = new MBC3(this.ext);
-                break;
-            case 0x19: case 0x1A: case 0x1B: case 0x1B:
-            case 0x1C: case 0x1D: case 0x1E:
-                this.ext.mbc = new MBC5(this.ext);
-                break;
-            case 0x20:
-                // this.mbc = new MBC6(this);
-                break;
-            case 0x22:
-                // this.mbc = new MBC7(this);
-                break;
-            case 0x00: case 0x08:
-            case 0x09: case 0x0B:
-            case 0x0C: case 0x0D:
-            default:
-                this.ext.mbc = new NullMBC(this.ext);
-                break;
-        }
-        let banks = 0;
-        switch (this.ext.rom[0x148]) {
-            case 0x00: banks = 2; break;
-            case 0x01: banks = 4; break;
-            case 0x02: banks = 8; break;
-            case 0x03: banks = 16; break;
-            case 0x04: banks = 32; break;
-            case 0x05: banks = 64; break;
-            case 0x06: banks = 128; break;
-            case 0x07: banks = 256; break;
-            case 0x08: banks = 512; break;
-            case 0x52: banks = 72; break;
-            case 0x53: banks = 80; break;
-            case 0x54: banks = 96; break;
-        }
-        this.ext.romBanks = banks;
-        console.log("Banks: " + banks);
-        console.log(this.ext.mbc);
-    }
-
-    replaceRom(rom: Uint8Array) {
-        console.info("Replaced ROM");
-        this.ext.rom.forEach((v, i, a) => {
-            a[i] = 0;
-        });
-        rom.forEach((v, i) => {
-            this.ext.rom[i] = v;
-        });
-        this.updateMBC();
-        this.gb.reset();
+        this.ext = new ExternalBus(this.gb);
     }
 
     loadSave(ram: Uint8Array) {
@@ -117,7 +58,7 @@ class MemoryBus {
 
     serialOut: Array<number> = [];
 
-    writeMem(addr: number, value: number) {
+    writeMem8(addr: number, value: number) {
         if (value > 255) {
             alert(`
         WriteMem8(0x${value.toString(16)})

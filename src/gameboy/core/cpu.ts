@@ -307,7 +307,7 @@ export default class CPU {
 
     writeMem8(addr: number, value: number) {
         this.cycles += 4;
-        this.gb.bus.writeMem(addr, value);
+        this.gb.bus.writeMem8(addr, value);
     }
 
 
@@ -354,7 +354,7 @@ export default class CPU {
             this._r.sp = 0xFFFE;
 
             // Make a write to disable the bootrom
-            this.gb.bus.writeMem(0xFF50, 1);
+            this.gb.bus.writeMem8(0xFF50, 1);
         }
     }
 
@@ -633,16 +633,6 @@ export default class CPU {
             case 0x2E: // LD L, N8
                 return { op: Ops.LD_R8_N8, type: R8.L, length: 2 };
 
-            /** LD R16, N16 */
-            case 0x01: // LD BC, N16
-                return { op: Ops.LD_R16_N16, type: R16.BC, length: 3 };
-            case 0x11: // LD DE, N16
-                return { op: Ops.LD_R16_N16, type: R16.DE, length: 3 };
-            case 0x21: // LD HL, N16
-                return { op: Ops.LD_R16_N16, type: R16.HL, length: 3 };
-            case 0x31: // LD SP, N16
-                return { op: Ops.LD_R16_N16, type: R16.SP, length: 3 };
-
             /** PUSH R16 */
             case 0xF5: // PUSH AF 
                 return { op: Ops.PUSH_R16, type: R16.AF, length: 1, cyclesOffset: 4 };
@@ -719,6 +709,16 @@ export default class CPU {
             case 0x3B: // DEC SP
                 return { op: Ops.DEC_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
 
+            /** LD R16, N16 */
+            case 0x01: // LD BC, N16
+                return { op: Ops.LD_R16_N16, type: R16.BC, length: 3 };
+            case 0x11: // LD DE, N16
+                return { op: Ops.LD_R16_N16, type: R16.DE, length: 3 };
+            case 0x21: // LD HL, N16
+                return { op: Ops.LD_R16_N16, type: R16.HL, length: 3 };
+            case 0x31: // LD SP, N16
+                return { op: Ops.LD_R16_N16, type: R16.SP, length: 3 };
+
             /** Arithmetic */
             case 0xC6: // ADD A, N8
                 return { op: Ops.ADD_A_N8, length: 2 };
@@ -728,7 +728,6 @@ export default class CPU {
                 return { op: Ops.SUB_A_N8, length: 2 };
             case 0xDE: // SBC A, N8
                 return { op: Ops.SBC_A_N8, length: 2 };
-
 
             /** RET */
             case 0xC9: // RET
@@ -961,7 +960,6 @@ export default class CPU {
             (upperNybble & 0b11) * 2 :
             ((upperNybble & 0b11) * 2) + 1;
 
-
         let cyclesOffset = 0;
 
         let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
@@ -982,11 +980,7 @@ export default class CPU {
             bit = null!;
             // 0x40 - 0xF0
         } else {
-            switch (upperNybble >> 2) {
-                case 0x1: op = Ops.BIT_R8; break;
-                case 0x2: op = Ops.RES_R8; break;
-                case 0x3: op = Ops.SET_R8; break;
-            }
+            op = [op, Ops.BIT_R8, Ops.RES_R8, Ops.SET_R8][upperNybble >> 2];
         }
 
 
