@@ -65,6 +65,7 @@ export class PulseChannel implements BasicChannel {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
+        this.update();
     }
 
     updated = false;
@@ -83,7 +84,7 @@ export class WaveChannel implements BasicChannel {
 
     volume = 0;
     oldVolume = 0;
-    
+
     playing = true;
 
     waveTable: Array<number> = new Array(32).fill(0);
@@ -148,6 +149,7 @@ export class WaveChannel implements BasicChannel {
         if (this.lengthCounter == 0) {
             this.lengthCounter = 256;
         }
+        this.update();
     }
 
     updated = false;
@@ -209,6 +211,7 @@ export class NoiseChannel implements BasicChannel {
 
     trigger() {
         this.enabled = true;
+        this.update();
     }
 
     updated = false;

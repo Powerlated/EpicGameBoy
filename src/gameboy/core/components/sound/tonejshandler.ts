@@ -56,45 +56,53 @@ export default class ToneJsHandler {
         // frequencyHz check is for removing loud noises when frequency is zeroed
 
         // Pulse 1
-        if (this.s.pulse1.enabled && this.s.pulse1.frequencyLower != 0 && this.s.pulse1.updated) {
-            this.pulsePan1.pan.value = this.s.pulse1.pan;
-            this.pulseOsc1.mute = false;
-            this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulse1.volume);
-            this.pulseOsc1.frequency.value = this.s.pulse1.frequencyHz;
-            this.pulseOsc1.width.value = SoundChip.widths[this.s.pulse1.width];
+        if (this.s.pulse1.enabled && this.s.pulse1.frequencyLower != 0) {
+            if (this.s.pulse1.updated) {
+                this.pulsePan1.pan.value = this.s.pulse1.pan;
+                this.pulseOsc1.mute = false;
+                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulse1.volume);
+                this.pulseOsc1.frequency.value = this.s.pulse1.frequencyHz;
+                this.pulseOsc1.width.value = SoundChip.widths[this.s.pulse1.width];
+            }
         } else {
             this.pulseOsc1.mute = true;
         }
 
         // Pulse 2
-        if (this.s.pulse2.enabled && this.s.pulse2.frequencyLower != 0 && this.s.pulse2.updated) {
-            this.pulsePan2.pan.value = this.s.pulse2.pan;
-            this.pulseOsc2.mute = false;
-            this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulse2.volume);
-            this.pulseOsc2.frequency.value = this.s.pulse2.frequencyHz;
-            this.pulseOsc2.width.value = SoundChip.widths[this.s.pulse2.width];
+        if (this.s.pulse2.enabled && this.s.pulse2.frequencyLower != 0) {
+            if (this.s.pulse2.updated) {
+                this.pulsePan2.pan.value = this.s.pulse2.pan;
+                this.pulseOsc2.mute = false;
+                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulse2.volume);
+                this.pulseOsc2.frequency.value = this.s.pulse2.frequencyHz;
+                this.pulseOsc2.width.value = SoundChip.widths[this.s.pulse2.width];
+            }
         } else {
             this.pulseOsc2.mute = true;
         }
 
         // Wave
-        if (this.s.wave.enabled && this.s.wave.frequencyLower != 0 && this.s.wave.updated) {
-            this.wavePan.pan.value = this.s.wave.pan;
-            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
-            if (this.s.wave.playing) {
-                this.waveVolume.mute = false;   
-            } else { 
-                this.waveVolume.mute = true;
+        if (this.s.wave.enabled && this.s.wave.playing && this.s.wave.frequencyLower != 0) {
+            if (this.s.wave.updated) {
+                this.wavePan.pan.value = this.s.wave.pan;
+                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+                if (this.s.wave.playing) {
+                    this.waveVolume.mute = false;
+                } else {
+                    this.waveVolume.mute = true;
+                }
+                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.wave.volume);
             }
-            this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.wave.volume);
         } else {
             this.waveVolume.mute = true;
         }
-        
+
         // Noise
-        if (this.s.noise.enabled && this.s.noise.updated) {
-            this.noiseVolume.mute = false;
-            this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noise.volume);
+        if (this.s.noise.enabled) {
+            if (this.s.noise.updated) {
+                this.noiseVolume.mute = false;
+                this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noise.volume);
+            }
         } else {
             this.noiseVolume.mute = true;
         }

@@ -77,6 +77,7 @@ export default class SoundChip {
                     } else {
                         this.pulse1.volume--;
                     }
+                    this.pulse1.update();
                 }
             }
             this.clockEnvelope1 = 0;
@@ -90,6 +91,7 @@ export default class SoundChip {
                     } else {
                         this.pulse2.volume--;
                     }
+                    this.pulse2.update();
                 }
             }
             this.clockEnvelope2 = 0;
@@ -103,6 +105,7 @@ export default class SoundChip {
                     } else {
                         this.noise.volume--;
                     }
+                    this.noise.update();
                 }
             }
             this.clockEnvelopeNoise = 0;
@@ -127,7 +130,10 @@ export default class SoundChip {
                 if (this.pulse1.lengthEnable) {
                     this.pulse1.lengthCounter--;
                     if (this.pulse1.lengthCounter == 0) {
+
+                        console.log("PULSE 1 length become 0")
                         this.pulse1.enabled = false;
+                        this.pulse1.update();
                     }
                 }
                 if (this.pulse1.freqSweepTime != 0) {
@@ -139,6 +145,7 @@ export default class SoundChip {
                         this.pulse1.freqSweepUp == false ? freq += diff : freq -= diff;
                         this.pulse1.frequencyLower = freq & 0xFF;
                         this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
+                        this.pulse1.update();
                         // writeDebug("abs(Range): " + diff);
                         // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
                     }
@@ -151,6 +158,7 @@ export default class SoundChip {
                     this.pulse2.lengthCounter--;
                     if (this.pulse2.lengthCounter == 0) {
                         this.pulse2.enabled = false;
+                        this.pulse2.update();
                     }
                 }
             }
@@ -160,9 +168,10 @@ export default class SoundChip {
                 if (this.wave.lengthEnable) {
                     console.log("WAVE LENGTH: " + this.wave.lengthCounter);
                     this.wave.lengthCounter--;
-                    if (this.wave.lengthCounter == 0) {
+                    if (this.wave.lengthCounter <= 0) {
                         console.log("WAVE EXPIRED");
                         this.wave.playing = false;
+                        this.wave.update();
                     }
                 }
             }
@@ -172,6 +181,7 @@ export default class SoundChip {
                     this.noise.lengthCounter--;
                     if (this.noise.lengthCounter == 0) {
                         this.noise.enabled = false;
+                        this.noise.update();
                     }
                 }
             }
@@ -181,7 +191,18 @@ export default class SoundChip {
             // #endregion
 
             // Update Tone.js
-            this.tjs.step();
+            if (
+                this.pulse1.updated ||
+                this.pulse2.updated ||
+                this.wave.updated ||
+                this.noise.updated
+            ) {
+                this.tjs.step();
+                this.pulse1.updated = false;
+                this.pulse2.updated = false;
+                this.wave.updated = false;
+                this.noise.updated = false;
+            }
         }
 
 
@@ -262,6 +283,7 @@ export default class SoundChip {
                 break;
             case 0xFF1B: // NR31
                 this.wave.lengthCounter = 256 - value;
+                console.log("SET WAVE LENGTH: " + this.wave.lengthCounter)
                 this.wave.update();
                 break;
             case 0xFF1C: // NR32
@@ -276,6 +298,7 @@ export default class SoundChip {
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) != 0;
                 this.wave.lengthEnable = ((value >> 6) & 1) != 0;
+                console.log(this.wave.lengthEnable)
                 this.wave.update();
                 break;
 
@@ -372,13 +395,13 @@ export default class SoundChip {
 
         if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
 
-        if (addr == 0xFF52) { // NR52
-            return 0;
+        if (addr == 0xFF26) { // NR52
+            i = 0;
             if (this.enabled) i |= (1 << 7);
-            if (this.noise) i |= (1 << 3);
-            if (this.wave) i |= (1 << 2);
-            if (this.pulse2) i |= (1 << 1);
-            if (this.pulse1) i |= (1 << 0);
+            if (this.noise.enabled) i |= (1 << 3);
+            if (this.wave.enabled) i |= (1 << 2);
+            if (this.pulse2.enabled) i |= (1 << 1);
+            if (this.pulse1.enabled) i |= (1 << 0);
         }
 
         return i;
@@ -398,7 +421,6 @@ export default class SoundChip {
     }
 
     setMuted(muted: boolean) {
-        this.enabled = !muted;
         this.tjs.pulseOsc1.mute = muted;
         this.tjs.pulseOsc2.mute = muted;
         this.tjs.waveVolume.mute = muted;
