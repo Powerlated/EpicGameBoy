@@ -131,7 +131,7 @@ export default class SoundChip {
                 if (this.pulse1.lengthEnable) {
                     this.pulse1.lengthCounter--;
                     if (this.pulse1.lengthCounter == 0) {
-                        writeDebug("PULSE 1 length become 0")
+                        writeDebug("PULSE 1 length become 0");
                         this.pulse1.enabled = false;
                         this.pulse1.update();
                     }
@@ -166,10 +166,8 @@ export default class SoundChip {
             // TODO: Wave length isn't working in some way or another
             if (this.wave.enabled) {
                 if (this.wave.lengthEnable) {
-                    writeDebug("WAVE LENGTH: " + this.wave.lengthCounter);
                     this.wave.lengthCounter--;
                     if (this.wave.lengthCounter <= 0) {
-                        writeDebug("WAVE EXPIRED");
                         this.wave.playing = false;
                         this.wave.update();
                     }
@@ -282,8 +280,7 @@ export default class SoundChip {
                 this.wave.update();
                 break;
             case 0xFF1B: // NR31
-                this.wave.lengthCounter = 256 - value;
-                writeDebug("SET WAVE LENGTH: " + this.wave.lengthCounter)
+                this.wave.lengthCounter = value;
                 this.wave.update();
                 break;
             case 0xFF1C: // NR32
@@ -297,8 +294,8 @@ export default class SoundChip {
             case 0xFF1E: // NR34
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) != 0;
-                this.wave.lengthEnable = ((value >> 6) & 1) != 0;
-                writeDebug(this.wave.lengthEnable)
+                this.wave.lengthEnable = ((value >> 6) & 1) == 0;
+                writeDebug(this.wave.lengthEnable);
                 this.wave.update();
                 break;
 
@@ -316,7 +313,7 @@ export default class SoundChip {
                 break;
             case 0xFF22: // NR43
                 this.noise.shiftClockFrequency = (value >> 4) & 0b111;
-                this.noise.counterStep = ((value >> 3) & 1) != 0
+                this.noise.counterStep = ((value >> 3) & 1) != 0;
                 this.noise.envelopeSweep = (value & 0b111);
                 this.noise.update();
                 break;
