@@ -90,6 +90,8 @@ class Ops {
         cpu.writeMem8(cpu._r.sp, pcLowerByte);
 
         cpu.pc = vector - 1;
+
+        cpu.cycles += 4;
     }
 
     static LD_A_iN16(cpu: CPU, n16: number) {
@@ -196,6 +198,8 @@ class Ops {
 
 
     static RET(cpu: CPU, cc: CC) {
+        cpu.cycles += 4; // Branch decision?
+
         if (cc == CC.Z && !cpu._r._f.zero) return;
         if (cc == CC.NZ && cpu._r._f.zero) return;
         if (cc == CC.C && !cpu._r._f.carry) return;
