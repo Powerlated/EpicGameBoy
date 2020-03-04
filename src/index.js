@@ -97,6 +97,7 @@ function download(filename, arr) {
 function downloadSave() {
     download(`${gb.bus.ext.romTitle}.sav`, gb.bus.ext.mbc.externalRam);
 }
+window.downloadSave = downloadSave;
 
 function downloadLog() {
     download("EpicGameBoy.log", cpu.fullLog.join('\n'));

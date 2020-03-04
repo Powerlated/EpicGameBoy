@@ -225,8 +225,6 @@ export class NoiseChannel implements BasicChannel {
             // return Math.round(Math.random());
         // });
 
-        console.log(waveTable)
-
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
         let ac = (Tone.context as any as AudioContext);
