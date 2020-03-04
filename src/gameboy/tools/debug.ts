@@ -97,6 +97,10 @@ function test() {
     cpu.reset();
 }
 
+export let DebugSettings = {
+    highlight: 0
+};
+
 
 export function startDebugging() {
     let debugP = document.getElementById('debug')!;
@@ -247,10 +251,17 @@ function updateDebug() {
             // Canvas Index
             let ci = ((y * 256) + x) * 4;
 
-            memoryMapImg.data[ci + 0] = c;
-            memoryMapImg.data[ci + 1] = c;
-            memoryMapImg.data[ci + 2] = c;
-            memoryMapImg.data[ci + 3] = 0xFF;
+            if (c == DebugSettings.highlight) {
+                memoryMapImg.data[ci + 0] = 0xFF;
+                memoryMapImg.data[ci + 1] = 0;
+                memoryMapImg.data[ci + 2] = 0;
+                memoryMapImg.data[ci + 3] = 0xFF;
+            } else {
+                memoryMapImg.data[ci + 0] = c;
+                memoryMapImg.data[ci + 1] = c;
+                memoryMapImg.data[ci + 2] = c;
+                memoryMapImg.data[ci + 3] = 0xFF;
+            }
         }
     }
 

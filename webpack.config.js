@@ -31,3 +31,8 @@ module.exports = {
         usedExports: false
     }
 };
+
+config.devServer = {
+    hot: false,
+    inline: false,
+};

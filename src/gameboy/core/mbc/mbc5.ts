@@ -45,7 +45,7 @@ export default class MBC5 extends MBCWithRAM implements MBC {
         }
         // Change RAM bank
         if (addr >= 0x4000 && addr <= 0x5FFF) {
-            this.ramBank = value;
+            this.ramBank = value & 3;
             return;
         }
         // RAM Bank 00-0F (Read/Write)
