@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
 
 module.exports = {
-    entry: './src/index.js',
+    entry: './src/webpack-entry.js',
     module: {
         rules: [
             {
@@ -24,4 +24,7 @@ module.exports = {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
     },
+    optimization: {
+        usedExports: false
+    }
 };

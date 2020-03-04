@@ -2,8 +2,8 @@ import 'file-loader?name=[name].[ext]!./index.html';
 import ROMS_BASE64 from './roms';
 import GameBoy from './gameboy/gameboy';
 import { startDebugging } from './gameboy/tools/debug';
-import Disassembler from './gameboy/tools/disassembler'
-import Tone from 'tone'
+import Disassembler from './gameboy/tools/disassembler';
+import Tone from 'tone';
 import './index.css';
 
 init();
@@ -27,8 +27,8 @@ function loadDefaultBootRom() {
     disassemble(cpu);
 }
 
-function loadTetris() {
-    let raw = atob(ROMS_BASE64.tetris);
+function loadRom(rom) {
+    let raw = atob(ROMS_BASE64[rom]);
     let rawLength = raw.length;
 
     let array = new Uint8Array(new ArrayBuffer(4194304));
@@ -40,18 +40,8 @@ function loadTetris() {
     gb.bus.ext.replaceRom(array);
 }
 
-function loadPokeyellow() {
-    let raw = atob(ROMS_BASE64.pokeyellow);
-    let rawLength = raw.length;
-
-    let array = new Uint8Array(new ArrayBuffer(4194304));
-
-    for (let i = 0; i < rawLength; i++) {
-        array[i] = raw.charCodeAt(i);
-    }
-
-    gb.bus.ext.replaceRom(array);
-}
+window.loadDefaultBootRom = loadDefaultBootRom;
+window.loadRom = loadRom;
 
 let disassemblyP = document.getElementById('disassembly-output');
 let lastDisassembly = "";
@@ -235,8 +225,7 @@ function init() {
     window.cpu = gb.cpu;
     window.gb = gb;
 
-    loadTetris();
-    loadPokeyellow();
+    loadRom('pokeyellow');
     startDebugging();
 
     repeatDisassemble();
