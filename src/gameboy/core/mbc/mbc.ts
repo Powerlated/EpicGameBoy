@@ -34,6 +34,7 @@ export class MBCWithRAM extends MBC {
     ramBank = 0;
     enableExternalRam = false;
     externalRam: Uint8Array = new Uint8Array(32768).fill(0xFF);
+    externalRamDirty = false;
 
     readBankRam(addr: number, bank: number): number {
         let calculated = this.calcBankAddrRam(addr, bank);
@@ -43,6 +44,7 @@ export class MBCWithRAM extends MBC {
     writeBankRam(addr: number, bank: number, value: number) {
         let calculated = this.calcBankAddrRam(addr, bank);
         this.externalRam[calculated] = value;
+        this.externalRamDirty = true;
     }
     
     calcBankAddrRam(addr: number, bank: number): number {

@@ -17,6 +17,8 @@ export default class GameBoy {
 
     constructor() {
         writeDebug("New gameboy!");
+
+        setInterval(() => { this.bus.ext.saveGameSram(); }, 1000);
     }
 
     step() {
@@ -30,7 +32,7 @@ export default class GameBoy {
     speedIntervals: Array<number> = [];
 
     speedStop() {
-        this.speedIntervals.forEach(i => {clearInterval(i)});
+        this.speedIntervals.forEach(i => { clearInterval(i); });
         this.cpu.stopNow = true;
         this.soundChip.tjs.setMuted(true);
     }

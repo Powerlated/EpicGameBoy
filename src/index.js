@@ -5,7 +5,12 @@ import { startDebugging } from './gameboy/tools/debug';
 import Disassembler from './gameboy/tools/disassembler';
 import Tone from 'tone';
 import './index.css';
+import { get, set } from 'idb-keyval';
+import { saveSram, loadSram } from './gameboy/localstorage';
+window.saveSram = saveSram;
+window.loadSram = loadSram;
 
+set
 init();
 
 function loadDefaultBootRom() {
@@ -347,7 +352,9 @@ function dropHandler(ev) {
     };
     reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
 }
+window.dropHandler = dropHandler;
 
 function dragOverHandler(ev) {
     ev.preventDefault();
 }
+window.dragOverHandler = dragOverHandler;

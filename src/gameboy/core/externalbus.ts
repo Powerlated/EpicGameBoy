@@ -5,6 +5,7 @@ import MBC1 from "./mbc/mbc1";
 import MBC3 from "./mbc/mbc3";
 import MBC5 from "./mbc/mbc5";
 import GameBoy from "../gameboy";
+import { loadSram, saveSram } from "../localstorage";
 
 export default class ExternalBus {
     mbc: MBC | MBCWithRAM;
@@ -12,7 +13,7 @@ export default class ExternalBus {
     rom = new Uint8Array(4194304).fill(0xFF);
     gb: GameBoy;
 
-    romTitle: String = "";
+    romTitle: string = "";
 
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -42,6 +43,31 @@ export default class ExternalBus {
         console.log(titleDecoded);
 
         this.romTitle = titleDecoded;
+
+        let m = this.mbc as MBCWithRAM;
+        if (m instanceof MBCWithRAM) {
+            let sram = loadSram(this.romTitle);
+            if (sram) {
+                m.externalRam.forEach((v, i, a) => {
+                    a[i] = 0;
+                });
+                sram.forEach((v: number, i: number) => {
+                    m.externalRam[i] = v;
+                });
+                console.log(`Loaded SRAM for "${this.romTitle}"`);
+            } else {
+                console.log("Did not find save, not loading SRAM.");
+            }
+        }
+    }
+
+    saveGameSram() {
+        let m = this.mbc as MBCWithRAM;
+        if (m instanceof MBCWithRAM && m.externalRamDirty == true) {
+            console.log("Flushing SRAM")
+            saveSram(this.romTitle, m.externalRam);
+            m.externalRamDirty = false;
+        }
     }
 
     updateMBC() {
