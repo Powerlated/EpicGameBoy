@@ -62,8 +62,8 @@
         <button onclick="gb.speed()">Speed Execute</button>
         <button onclick="gb.speedStop();">Halt Execute</button>
         <button onclick="gb.frame()">Render Frame</button>
-        <button onclick="gb.bus.gpu.executeUntilVblank()">Execute until vblank</button>
         <button onclick="gb.reset()">Reset</button>
+        <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
 
         <div style="display: none">
             <label for="enableLogging">Enable Logging</label>
@@ -79,11 +79,6 @@
 
             <input id="enableDebugger" autocomplete="off" type="checkbox" checked>
             <label for="enableDebugger">Debugger</label>
-
-
-            <div>
-                <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
-            </div>
         </div>
 
         <div>
@@ -122,8 +117,5 @@
         </div>
     </div>
 
-    <script src="roms.js"></script>
-    <script src="../lib/require.js"></script>
-    <script src="gameboy.js"></script>
-    <script src="index.js"></script>
+    <script src="./bundle.js"></script>
 </body>

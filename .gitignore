@@ -15,3 +15,5 @@ src/gameboy.js
 src/gameboy.js.map
 
 out/
+
+dist/

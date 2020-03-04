@@ -215,7 +215,7 @@ class GPU {
                     this.lcdStatus.mode = 3;
 
                     // Render scanline when entering VRAM mode
-                    if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                    if ((this.totalFrameCount % this.gb.speedMul) == 0) {
                         this.renderScanline();
                     }
 
@@ -261,7 +261,7 @@ class GPU {
                         }
 
                         // Draw to the canvas
-                        if (!IS_NODE && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                        if ((this.totalFrameCount % this.gb.speedMul) == 0) {
                             this.drawToCanvasGameboy();
                         }
                     }
@@ -571,12 +571,10 @@ class GPU {
     constructor(gb: GameBoy) {
         this.gb = gb;
 
-        if (!IS_NODE) {
-            let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
-            let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
-            this.ctxTileset = cTileset.getContext("2d")!;
-            this.ctxGameboy = cGameboy.getContext("2d")!;
-        }
+        let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
+        let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
+        this.ctxTileset = cTileset.getContext("2d")!;
+        this.ctxGameboy = cGameboy.getContext("2d")!;
     }
 
     read(index: number): number {

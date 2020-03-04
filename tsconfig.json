@@ -1,8 +1,7 @@
 {
     "compilerOptions": {
         "target": "ES2020",
-        "module": "amd",
-        "outFile": "src/gameboy.js",
+        "module": "ES6",
         "sourceMap": true,
         "strict": true
     },

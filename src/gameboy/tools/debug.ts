@@ -101,28 +101,22 @@ function test() {
 export function startDebugging() {
     let debugP = document.getElementById('debug')!;
     // @ts-check
-    if (!IS_NODE) {
-        let lastFrameCount = 0;
-        let lastCyclesCount = 0;
+    let lastFrameCount = 0;
+    let lastCyclesCount = 0;
 
-        setInterval(() => {
-            let gpu = ((window as any).gb.gpu as GPU);
-            (window as any).fps = gpu.totalFrameCount - lastFrameCount;
-            lastFrameCount = gpu.totalFrameCount;
-        }, 1000);
+    setInterval(() => {
+        let gpu = ((window as any).gb.gpu as GPU);
+        (window as any).fps = gpu.totalFrameCount - lastFrameCount;
+        lastFrameCount = gpu.totalFrameCount;
+    }, 1000);
 
-        setInterval(() => {
-            let cpu = ((window as any).gb.cpu as CPU);
-            (window as any).cyclesPerSecond = cpu.cycles - lastCyclesCount;
-            lastCyclesCount = cpu.cycles;
-        }, 1000);
+    setInterval(() => {
+        let cpu = ((window as any).gb.cpu as CPU);
+        (window as any).cyclesPerSecond = cpu.cycles - lastCyclesCount;
+        lastCyclesCount = cpu.cycles;
+    }, 1000);
 
-
-
-        updateDebug();
-    } else {
-        writeDebug("Running in node, not updating DEBUG");
-    }
+    updateDebug();
 }
 
 let p0bg = document.getElementById('palette0-bg')!;

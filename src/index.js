@@ -1,18 +1,12 @@
-requirejs.config({
-    paths: {
-        '*': './gameboy',
-        'tone': '../lib/Tone'
-    }
-});
+import 'file-loader?name=[name].[ext]!./index.html';
+import ROMS_BASE64 from './roms';
+import GameBoy from './gameboy/gameboy';
+import { startDebugging } from './gameboy/tools/debug';
+import Disassembler from './gameboy/tools/disassembler'
+import Tone from 'tone'
+import './index.css';
 
-requirejs(['tone', 'gameboy', 'tools/debug'], (Tone, GameBoy, Debug) => {
-    window.GameBoy = GameBoy;
-    window.Disassembler = GameBoy.Disassembler;
-    window.startDebugging = Debug.startDebugging;
-    window.Tone = Tone;
-
-    init();
-});
+init();
 
 function loadDefaultBootRom() {
     let raw = atob(ROMS_BASE64.bootrom);
@@ -20,7 +14,7 @@ function loadDefaultBootRom() {
 
     let array = new Uint8Array(new ArrayBuffer(256));
 
-    for (i = 0; i < rawLength; i++) {
+    for (let i = 0; i < rawLength; i++) {
         array[i] = raw.charCodeAt(i);
     }
 
@@ -39,7 +33,7 @@ function loadTetris() {
 
     let array = new Uint8Array(new ArrayBuffer(4194304));
 
-    for (i = 0; i < rawLength; i++) {
+    for (let i = 0; i < rawLength; i++) {
         array[i] = raw.charCodeAt(i);
     }
 
@@ -52,7 +46,7 @@ function loadPokeyellow() {
 
     let array = new Uint8Array(new ArrayBuffer(4194304));
 
-    for (i = 0; i < rawLength; i++) {
+    for (let i = 0; i < rawLength; i++) {
         array[i] = raw.charCodeAt(i);
     }
 
@@ -237,7 +231,7 @@ function repeatDisassemble() {
 }
 
 function init() {
-    let gb = new GameBoy.GameBoy();
+    let gb = new GameBoy();
     window.cpu = gb.cpu;
     window.gb = gb;
 
@@ -253,6 +247,21 @@ function init() {
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
 
     document.onkeydown = function (e) {
+        if (e.getModifierState("Shift")) {
+            if (e.key == "D") {
+                document.querySelector('#enableDebugger').click();
+                e.preventDefault();
+            }
+            if (e.key == "T") {
+                document.querySelector('#drawTileset').click();
+                e.preventDefault();
+            }
+            if (e.key == "B") {
+                document.querySelector('#big-screen').click();
+                e.preventDefault();
+            }
+        }
+
         if (block.includes(e.key))
             e.preventDefault();
 
