@@ -397,6 +397,8 @@ export default class CPU {
         }
     }
 
+    minDebug = false;
+
     executeInstruction() {
         let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
         let isCB = pcTriplet[0] == 0xCB;
@@ -414,13 +416,14 @@ export default class CPU {
 
         if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
-
-        if (Disassembler.isControlFlow(ins)) {
-            if (Disassembler.willJump(ins, this)) {
-                let disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
-                let to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
-                // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
-                // this.jumpLog = this.jumpLog.slice(0, 100);
+        if (this.minDebug) {
+            if (Disassembler.isControlFlow(ins)) {
+                if (Disassembler.willJump(ins, this)) {
+                    let disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
+                    let to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
+                    // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
+                    // this.jumpLog = this.jumpLog.slice(0, 100);
+                }
             }
         }
 
