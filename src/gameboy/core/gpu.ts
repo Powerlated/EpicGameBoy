@@ -229,7 +229,8 @@ class GPU {
                             this.gb.bus.interrupts.requestLCDstatus();
                         }
 
-                        this.renderScanline();
+                        if ((this.totalFrameCount % this.gb.speedMul) == 0)
+                            this.renderScanline();
                     }
                     break;
 
