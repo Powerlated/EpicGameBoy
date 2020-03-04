@@ -4,13 +4,11 @@ import { o8b, o16b, unTwo8b, do8b, do16b } from '../tools/util';
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {
         cpu.pc--;
-        cpu.gb.speedStop();
     }
 
 
     static INVALID_OPCODE(cpu: CPU) {
         cpu.pc--;
-        cpu.gb.speedStop();
     }
 
     // #region INSTRUCTIONS
