@@ -4,7 +4,7 @@ import { unTwo8b } from "../tools/util";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
-    lcdDisplayEnable7 = true; // Bit 7 - LCD Display Enable             (0=Off, 1=On)
+    lcdDisplayEnable7 = false; // Bit 7 - LCD Display Enable             (0=Off, 1=On)
     windowTilemapSelect___6 = false; // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
     enableWindow____5 = false; // Bit 5 - Window Display Enable          (0=Off, 1=On)
     bgWindowTiledataSelect__4 = false; // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
@@ -200,94 +200,97 @@ class GPU {
     step() {
         // TODO: FIX: THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
         // You don't have to be cycle-accurate for everything
-        this.modeClock += this.gb.cpu.lastInstructionCycles;
-        switch (this.lcdStatus.mode) {
-            // Read from OAM - Scanline active
-            case 2:
-                if (this.lYCompare == this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
-                    writeDebug("Coincidence");
-                    this.lcdStatus.coincidenceFlag_______2 = true;
-                    this.gb.bus.interrupts.requestLCDstatus();
-                }
 
-                if (this.modeClock >= 80) {
-                    this.modeClock = 0;
-                    this.lcdStatus.mode = 3;
-
-                    // Render scanline when entering VRAM mode
-                    if ((this.totalFrameCount % this.gb.speedMul) == 0) {
-                        this.renderScanline();
-                    }
-
-                }
-                break;
-
-            // Read from VRAM - Scanline active
-            case 3:
-
-                if (this.modeClock >= 172) {
-                    this.modeClock = 0;
-                    this.lcdStatus.mode = 0;
-
-                    if (this.lcdStatus.mode0HblankInterrupt__3) {
+        if (this.lcdControl.lcdDisplayEnable7) {
+            this.modeClock += this.gb.cpu.lastInstructionCycles;
+            switch (this.lcdStatus.mode) {
+                // Read from OAM - Scanline active
+                case 2:
+                    if (this.lYCompare == this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
+                        writeDebug("Coincidence");
+                        this.lcdStatus.coincidenceFlag_______2 = true;
                         this.gb.bus.interrupts.requestLCDstatus();
                     }
 
-                    // Render sprites when entering Hblank mode
-                    if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                        this.renderSprites();
-                    }
-                }
-                break;
+                    if (this.modeClock >= 80) {
+                        this.modeClock = 0;
+                        this.lcdStatus.mode = 3;
 
-
-            // Hblank
-            case 0:
-                if (this.modeClock >= 204) {
-
-                    this.modeClock = 0;
-                    this.lcdcY++;
-
-                    // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
-                    if (this.lcdcY >= 144) {
-                        // If we're at LCDCy = 144, enter Vblank
-                        this.lcdStatus.mode = 1;
-                        // Fire the Vblank interrupt
-                        this.gb.bus.interrupts.requestVblank();
-                        this.totalFrameCount++;
-
-                        if (this.lcdStatus.mode1VblankInterrupt__4) {
-                            this.gb.bus.interrupts.requestLCDstatus();
-                        }
-
-                        // Draw to the canvas
+                        // Render scanline when entering VRAM mode
                         if ((this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.drawToCanvasGameboy();
+                            this.renderScanline();
                         }
+
                     }
-                    else {
-                        // Enter back into OAM mode if not Vblank
-                        this.lcdStatus.mode = 2;
-                        if (this.lcdStatus.mode2OamInterrupt_____5) {
+                    break;
+
+                // Read from VRAM - Scanline active
+                case 3:
+
+                    if (this.modeClock >= 172) {
+                        this.modeClock = 0;
+                        this.lcdStatus.mode = 0;
+
+                        if (this.lcdStatus.mode0HblankInterrupt__3) {
                             this.gb.bus.interrupts.requestLCDstatus();
                         }
+
+                        // Render sprites when entering Hblank mode
+                        if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
+                            this.renderSprites();
+                        }
                     }
-                }
-                break;
+                    break;
 
-            // Vblank
-            case 1:
-                if (this.modeClock >= 456) {
-                    this.modeClock = 0;
 
-                    this.lcdcY++;
+                // Hblank
+                case 0:
+                    if (this.modeClock >= 204) {
 
-                    if (this.lcdcY >= 154) {
-                        this.lcdStatus.mode = 2;
-                        this.lcdcY = 0;
+                        this.modeClock = 0;
+                        this.lcdcY++;
+
+                        // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
+                        if (this.lcdcY >= 144) {
+                            // If we're at LCDCy = 144, enter Vblank
+                            this.lcdStatus.mode = 1;
+                            // Fire the Vblank interrupt
+                            this.gb.bus.interrupts.requestVblank();
+                            this.totalFrameCount++;
+
+                            if (this.lcdStatus.mode1VblankInterrupt__4) {
+                                this.gb.bus.interrupts.requestLCDstatus();
+                            }
+
+                            // Draw to the canvas
+                            if ((this.totalFrameCount % this.gb.speedMul) == 0) {
+                                this.drawToCanvasGameboy();
+                            }
+                        }
+                        else {
+                            // Enter back into OAM mode if not Vblank
+                            this.lcdStatus.mode = 2;
+                            if (this.lcdStatus.mode2OamInterrupt_____5) {
+                                this.gb.bus.interrupts.requestLCDstatus();
+                            }
+                        }
                     }
-                }
-                break;
+                    break;
+
+                // Vblank
+                case 1:
+                    if (this.modeClock >= 456) {
+                        this.modeClock = 0;
+
+                        this.lcdcY++;
+
+                        if (this.lcdcY >= 154) {
+                            this.lcdStatus.mode = 2;
+                            this.lcdcY = 0;
+                        }
+                    }
+                    break;
+            }
         }
     }
 
