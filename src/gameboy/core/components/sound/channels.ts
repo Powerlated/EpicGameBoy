@@ -164,7 +164,7 @@ export class NoiseChannel implements BasicChannel {
     lengthEnable = false;
     lengthCounter = 0;
 
-    volume = 0; 
+    volume = 0;
     volumeEnvelopeUp = false;
     volumeEnvelopeSweep = 4;
     volumeEnvelopeStart = 0;
@@ -195,10 +195,32 @@ export class NoiseChannel implements BasicChannel {
     }
 
     get buffer(): AudioBuffer {
-        let waveTable = new Array(4800).fill(0);
+        let seed = 0xFC;
+        let period = 0;
+
+        function lfsr(p: number) {
+            if (period > p) {
+                let b0 = ((seed >> 0) & 1);
+                let b1 = ((seed >> 2) & 1);
+
+                seed >>= 1;
+
+                let xor = b0 ^ b1;
+
+                seed |= xor << 14;
+
+                period = 0;
+            }
+            period++;
+
+            return seed;
+        }
+
+        let waveTable = new Array(48000).fill(0);
         waveTable = waveTable.map((v, i) => {
-            return Math.round(Math.random());
+            return Math.round(((lfsr(7) & 1) * 2) - 1) * 1;
         });
+        console.log(waveTable)
 
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
