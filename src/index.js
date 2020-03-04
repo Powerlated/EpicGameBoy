@@ -1,16 +1,3 @@
-import 'file-loader?name=[name].[ext]!./index.html';
-import ROMS_BASE64 from './roms';
-import GameBoy from './gameboy/gameboy';
-import { startDebugging } from './gameboy/tools/debug';
-import Disassembler from './gameboy/tools/disassembler';
-import Tone from 'tone';
-import './index.css';
-import { get, set } from 'idb-keyval';
-import { saveSram, loadSram } from './gameboy/localstorage';
-window.saveSram = saveSram;
-window.loadSram = loadSram;
-
-set
 init();
 
 function loadDefaultBootRom() {
@@ -45,9 +32,6 @@ function loadRom(rom) {
     gb.bus.ext.replaceRom(array);
 }
 
-window.loadDefaultBootRom = loadDefaultBootRom;
-window.loadRom = loadRom;
-
 let disassemblyP = document.getElementById('disassembly-output');
 let lastDisassembly = "";
 
@@ -73,8 +57,6 @@ function executeAtPc() {
 
     disassemble(cpu);
 }
-window.executeAtPc = executeAtPc;
-
 /** 
  * Downloads file
  * 
@@ -98,7 +80,6 @@ function download(filename, arr) {
 function downloadSave() {
     download(`${gb.bus.ext.romTitle}.sav`, gb.bus.ext.mbc.externalRam);
 }
-window.downloadSave = downloadSave;
 
 function downloadLog() {
     download("EpicGameBoy.log", cpu.fullLog.join('\n'));
@@ -354,9 +335,7 @@ function dropHandler(ev) {
     };
     reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
 }
-window.dropHandler = dropHandler;
 
 function dragOverHandler(ev) {
     ev.preventDefault();
 }
-window.dragOverHandler = dragOverHandler;
