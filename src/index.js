@@ -73,6 +73,7 @@ function executeAtPc() {
 
     disassemble(cpu);
 }
+window.executeAtPc = executeAtPc;
 
 /** 
  * Downloads file
