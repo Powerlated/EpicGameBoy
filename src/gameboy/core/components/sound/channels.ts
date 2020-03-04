@@ -217,9 +217,14 @@ export class NoiseChannel implements BasicChannel {
         }
 
         let waveTable = new Array(48000).fill(0);
+        // TODO: Hook LFSR into the rest of the sound chip
+        // waveTable = waveTable.map((v, i) => {
+        //     return Math.round(((lfsr(7) & 1) * 2) - 1) * 1;
+        // });
         waveTable = waveTable.map((v, i) => {
-            return Math.round(((lfsr(7) & 1) * 2) - 1) * 1;
+            return Math.round(Math.random());
         });
+
         console.log(waveTable)
 
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
