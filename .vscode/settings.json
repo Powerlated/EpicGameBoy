@@ -9,6 +9,7 @@
         "**/node_modules": true,
         "**/bower_components": true,
         "**/*.code-search": true,
-        "**/lib": true
+        "**/lib": true,
+        "dist/": true
     }
 }
