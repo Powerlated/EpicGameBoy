@@ -215,12 +215,6 @@ class GPU {
                     if (this.modeClock >= 80) {
                         this.modeClock = 0;
                         this.lcdStatus.mode = 3;
-
-                        // Render scanline when entering VRAM mode
-                        if ((this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.renderScanline();
-                        }
-
                     }
                     break;
 
@@ -235,10 +229,7 @@ class GPU {
                             this.gb.bus.interrupts.requestLCDstatus();
                         }
 
-                        // Render sprites when entering Hblank mode
-                        if (this.lcdControl.spriteDisplay___1 && (this.totalFrameCount % this.gb.speedMul) == 0) {
-                            this.renderSprites();
-                        }
+                        this.renderScanline();
                     }
                     break;
 
@@ -325,9 +316,15 @@ class GPU {
 
     showBorders = false;
 
-    // TODO: Make scanline effects work
     // TODO: Implement background transparency
     renderScanline() {
+        this.renderVram();
+
+        if (this.lcdControl.spriteDisplay___1)
+            this.renderSprites();
+    }
+
+    renderVram() {
         // writeDebug("Rendering a scanline @ SCROLL Y:" + this.scrY);
 
         let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
