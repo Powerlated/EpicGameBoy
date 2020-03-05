@@ -62,13 +62,13 @@ export default class SoundChip {
         if (!this.enabled) return;
 
         // #region CLOCK
-        const CLOCK_MAIN_STEPS = 16384;
-        const CLOCK_ENVELOPE_STEPS = 16384;
+        const CLOCK_MAIN_STEPS = 65536;
+        const CLOCK_ENVELOPE_STEPS = 65536;
 
-        this.clockMain += this.gb.cpu.lastInstructionCycles / 4;
-        this.clockEnvelope1 += (this.gb.cpu.lastInstructionCycles / 4) / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
-        this.clockEnvelope2 += (this.gb.cpu.lastInstructionCycles / 4) / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
-        this.clockEnvelopeNoise += (this.gb.cpu.lastInstructionCycles / 4) / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as needed
+        this.clockMain += this.gb.cpu.lastInstructionCycles;
+        this.clockEnvelope1 += this.gb.cpu.lastInstructionCycles / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
+        this.clockEnvelope2 += this.gb.cpu.lastInstructionCycles / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
+        this.clockEnvelopeNoise += this.gb.cpu.lastInstructionCycles / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as needed
 
         if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
             if (this.pulse1.volumeEnvelopeSweep != 0) {

@@ -29,10 +29,9 @@ module.exports = {
     },
     optimization: {
         usedExports: false
+    },
+    devServer: {
+        hot: false,
+        inline: false,
     }
-};
-
-config.devServer = {
-    hot: false,
-    inline: false,
 };

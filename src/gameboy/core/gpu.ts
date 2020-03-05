@@ -189,6 +189,8 @@ class GPU {
     ctxGameboy!: CanvasRenderingContext2D;
     ctxTileset!: CanvasRenderingContext2D;
 
+    cycles = 0;
+
     clearScreen() {
         var c = document.getElementById("gameboy");
         var ctx = (c as any).getContext("2d");
@@ -212,25 +214,24 @@ class GPU {
                         this.gb.bus.interrupts.requestLCDstatus();
                     }
 
+                    if ((this.totalFrameCount % this.gb.speedMul) == 0)
+                        this.renderScanline();
+
                     if (this.modeClock >= 80) {
-                        this.modeClock = 0;
+                        this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
                     }
                     break;
 
                 // Read from VRAM - Scanline active
                 case 3:
-
                     if (this.modeClock >= 172) {
-                        this.modeClock = 0;
+                        this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
 
                         if (this.lcdStatus.mode0HblankInterrupt__3) {
                             this.gb.bus.interrupts.requestLCDstatus();
                         }
-
-                        if ((this.totalFrameCount % this.gb.speedMul) == 0)
-                            this.renderScanline();
                     }
                     break;
 
@@ -238,8 +239,7 @@ class GPU {
                 // Hblank
                 case 0:
                     if (this.modeClock >= 204) {
-
-                        this.modeClock = 0;
+                        this.modeClock -= 204;
                         this.lcdcY++;
 
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
@@ -272,13 +272,13 @@ class GPU {
                 // Vblank
                 case 1:
                     if (this.modeClock >= 456) {
-                        this.modeClock = 0;
+                        this.modeClock -= 456;
 
                         this.lcdcY++;
 
                         if (this.lcdcY >= 154) {
-                            this.lcdStatus.mode = 2;
                             this.lcdcY = 0;
+                            this.lcdStatus.mode = 2;
                         }
                     }
                     break;
@@ -331,10 +331,10 @@ class GPU {
         let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
         let x = (this.scrX) & 0b111;                // CORRECT
 
-        let mapBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+        let mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
         let mapIndex = ((Math.floor((this.lcdcY + this.scrY) / 8) * 32) & 1023);
-        let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+        let mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
         let lineoffs = this.scrX >> 3;
 
@@ -346,7 +346,7 @@ class GPU {
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < 160; i++) {
             // Don't bother drawing if WINDOW is overlaying
-            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) break;
+            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) continue;
 
             // Two's Complement on high tileset
             let tileOffset = 0;
