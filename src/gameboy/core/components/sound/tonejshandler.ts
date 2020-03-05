@@ -1,6 +1,27 @@
 import SoundChip from "./sound";
 import * as Tone from "tone";
 
+function convertVolume(v: number) {
+    let base = -18;
+    let mute = 0;
+    if (v == 0) mute = -10000;
+    return base + mute + (6 * Math.log(v / 16));
+}
+
+function convertVolumeWave(v: number) {
+    switch (v) {
+        case 0: v = 0; break;
+        case 1: v = 16; break;
+        case 2: v = 8; break;
+        case 3: v = 4; break;
+    }
+
+    let base = -24;
+    let mute = 0;
+    if (v == 0) mute = -10000;
+    return base + mute + (10 * Math.log(v / 16));
+}
+
 export default class ToneJsHandler {
     pulseOsc1: Tone.PulseOscillator;
     pulsePan1: Tone.Panner;
@@ -64,7 +85,7 @@ export default class ToneJsHandler {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
-                this.pulseOsc1.volume.value = SoundChip.convertVolume(this.s.pulse1.volume);
+                this.pulseOsc1.volume.value = convertVolume(this.s.pulse1.volume);
                 this.pulseOsc1.frequency.value = this.s.pulse1.frequencyHz;
                 this.pulseOsc1.width.value = SoundChip.widths[this.s.pulse1.width];
             }
@@ -77,7 +98,7 @@ export default class ToneJsHandler {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
-                this.pulseOsc2.volume.value = SoundChip.convertVolume(this.s.pulse2.volume);
+                this.pulseOsc2.volume.value = convertVolume(this.s.pulse2.volume);
                 this.pulseOsc2.frequency.value = this.s.pulse2.frequencyHz;
                 this.pulseOsc2.width.value = SoundChip.widths[this.s.pulse2.width];
             }
@@ -89,13 +110,13 @@ export default class ToneJsHandler {
         if (this.s.wave.enabled && this.s.wave.playing && this.s.wave.frequencyLower != 0) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
-                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440 / 4;
                 if (this.s.wave.playing) {
                     this.waveVolume.mute = false;
                 } else {
                     this.waveVolume.mute = true;
                 }
-                this.waveVolume.volume.value = SoundChip.convertVolumeWave(this.s.wave.volume);
+                this.waveVolume.volume.value = convertVolumeWave(this.s.wave.volume);
             }
         } else {
             this.waveVolume.mute = true;
@@ -105,7 +126,7 @@ export default class ToneJsHandler {
         if (this.s.noise.enabled) {
             if (this.s.noise.updated) {
                 this.noiseVolume.mute = false;
-                this.noiseVolume.volume.value = SoundChip.convertVolume(this.s.noise.volume);
+                this.noiseVolume.volume.value = convertVolume(this.s.noise.volume);
             }
         } else {
             this.noiseVolume.mute = true;
@@ -115,7 +136,7 @@ export default class ToneJsHandler {
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
-            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440 / 4;
             this.waveSrc.loop = true;
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 

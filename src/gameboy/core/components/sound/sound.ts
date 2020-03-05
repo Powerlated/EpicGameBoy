@@ -9,27 +9,6 @@ export default class SoundChip {
         return v0 * (1 - t) + v1 * t;
     }
 
-    static convertVolume(v: number) {
-        let base = -18;
-        let mute = 0;
-        if (v == 0) mute = -10000;
-        return base + mute + (6 * Math.log(v / 16));
-    }
-
-    static convertVolumeWave(v: number) {
-        switch (v) {
-            case 0: v = 0; break;
-            case 1: v = 16; break;
-            case 2: v = 8; break;
-            case 3: v = 4; break;
-        }
-
-        let base = -18;
-        let mute = 0;
-        if (v == 0) mute = -10000;
-        return base + mute + (10 * Math.log(v / 16));
-    }
-
     // 0 = 50% Duty Cycle
     // static widths = [0.125, 0.25, 0.50, 0.75]; // WRONG
     // static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT

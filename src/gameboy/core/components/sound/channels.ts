@@ -126,8 +126,7 @@ export class WaveChannel implements BasicChannel {
             sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
         }
 
-        let waveTable = this.waveTable.map(v => { return (v - 8) / 8; });
-        waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
+        let waveTable = this.waveTable.map(v => { return (v - 8) / 4; });
 
         // Output all zeroes if frequency binary is zero
         if (this.frequencyHz == 32) {
