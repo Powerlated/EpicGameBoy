@@ -74,6 +74,8 @@ export default class Timer {
         this.control.running = false;
 
         this.c.mainClock = 0;
+        this.c.internal = 0;
+        this.counterOverflowTtime = 0;
     }
 
     // Divider

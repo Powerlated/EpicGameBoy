@@ -292,6 +292,10 @@ export default class CPU {
         this.time = 0;
         this.pc = 0;
         this.cycles = 0;
+        this.haltBug = false;
+        this.halted = false;
+        this.scheduleEnableInterruptsForNextTick = false;
+        this.lastInstructionCycles = 0;
     }
 
     // #endregion
@@ -349,7 +353,7 @@ export default class CPU {
 
     checkBootrom() {
         if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
-            writeDebug("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
+            console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
 
             this._r.af = 0x01B0;
