@@ -342,6 +342,18 @@ export default class SoundChip {
 
     read(addr: number): number {
         let i = this.soundRegisters[addr];
+
+        if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
+
+        if (addr == 0xFF26) { // NR52
+            i = 0;
+            if (this.enabled) i |= (1 << 7);
+            if (this.noise.enabled) i |= (1 << 3);
+            if (this.wave.enabled) i |= (1 << 2);
+            if (this.pulse2.enabled) i |= (1 << 1);
+            if (this.pulse1.enabled) i |= (1 << 0);
+        }
+
         switch (addr & 0xFF) {
             case 0x10: i |= 0x80; break;
             case 0x11: i |= 0x3F; break;
@@ -369,18 +381,7 @@ export default class SoundChip {
 
             case 0x24: i |= 0x00; break;
             case 0x25: i |= 0x00; break;
-            case 0x26: i |= 0x70; break;
-        }
-
-        if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
-
-        if (addr == 0xFF26) { // NR52
-            i = 0;
-            if (this.enabled) i |= (1 << 7);
-            if (this.noise.enabled) i |= (1 << 3);
-            if (this.wave.enabled) i |= (1 << 2);
-            if (this.pulse2.enabled) i |= (1 << 1);
-            if (this.pulse1.enabled) i |= (1 << 0);
+            case 0x26: i |= 0xFF; break;
         }
 
         return i;

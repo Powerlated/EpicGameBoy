@@ -27,33 +27,35 @@ export default class Timer {
         // Get the mtime
         const BASE = 16;
 
-        this.c.clock += this.gb.cpu.lastInstructionCycles;
-        // 4194304hz Divide by 4 = 262144hz
-        if (this.c.clock >= 16) {
-            this.c.mainClock++;
-            this.c.clock -= 16;
+        for (let i = 0; i < this.gb.cpu.lastInstructionCycles; i++) {
 
-            this.c.divClock++;
-            // Divide by 16 again for 16834hz div clock
-            if (this.c.divClock == 16) {
-                this.divider++;
-                this.divider &= 0xFF;
-                this.c.divClock = 0;
-            }
+            // 4194304hz Divide by 16 = 262144hz
+            if (this.c.clock >= 16) {
+                this.c.clock = 0;
 
-            if (this.control.running) {
-                if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
-                    this.counter++;
-                    this.c.mainClock = 0;
+                this.c.divClock++;
+                // Divide by 16 again for 16834hz div clock
+                if (this.c.divClock >= 16) {
+                    this.divider++;
+                    this.divider &= 0xFF;
+                    this.c.divClock = 0;
                 }
 
-                if (this.counter >= 256) {
+                if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
+                    if (this.control.running) {
+                        this.counter++;
+                    }
+                    this.c.mainClock = 0;
+                }
+                this.c.mainClock++;
+
+                if (this.counter > 255) {
                     this.gb.bus.interrupts.requestTimer();
                     this.counter = this.modulo;
                 }
             }
+            this.c.clock++;
         }
-
     }
 
     reset() {
@@ -75,14 +77,18 @@ export default class Timer {
     }
     set addr_0xFF04(i: number) {
         // Resets to 0 when written to
+        this.c.mainClock = 0;
+        this.c.clock = 0;
         this.divider = 0;
     }
 
-    // Counter
+    // Counter / TIMA
     get addr_0xFF05(): number {
         return this.counter;
     }
     set addr_0xFF05(i: number) {
+        this.c.mainClock = 0;
+        this.c.clock = 0;
         this.counter = i;
     }
 

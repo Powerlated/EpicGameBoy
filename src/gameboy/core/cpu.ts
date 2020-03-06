@@ -312,11 +312,6 @@ export default class CPU {
 
 
     step() {
-        if (this.scheduleEnableInterruptsForNextTick) {
-            this.scheduleEnableInterruptsForNextTick = false;
-            this.gb.bus.interrupts.masterEnabled = true;
-        }
-
         if (this.breakpoints.has(this.pc)) {
             this.gb.speedStop();
             return;
@@ -339,7 +334,14 @@ export default class CPU {
         if (this.gb.bus.interrupts.requestedInterrupts.numerical > 0 && this.halted == true) {
             this.halted = false;
         }
-        this.serviceInterrupts();
+        
+         this.serviceInterrupts();
+
+        if (this.scheduleEnableInterruptsForNextTick) {
+            this.scheduleEnableInterruptsForNextTick = false;
+            console.log("ENABLED MASTER")
+            this.gb.bus.interrupts.masterEnabled = true;
+        }
     }
 
     checkBootrom() {

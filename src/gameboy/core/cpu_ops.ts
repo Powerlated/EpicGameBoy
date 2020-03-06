@@ -29,8 +29,6 @@ class Ops {
     // EI - 0xFB
     static EI(cpu: CPU) {
         cpu.scheduleEnableInterruptsForNextTick = true;
-
-        // writeDebug("Enabled interrupts");
     }
 
     // HALT - 0x76
