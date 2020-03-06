@@ -1,6 +1,6 @@
 import GameBoy from "../gameboy";
 import Ops from "../core/cpu_ops";
-import GPU, { transformColor } from "../core/gpu";
+import GPU, { colors } from "../core/gpu";
 import CPU, { R8 } from "../core/cpu";
 import { hex, pad, hexN } from "./util";
 
@@ -225,21 +225,24 @@ function updateDebug() {
     // H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
     // L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
 
+    function c(i: number[]) {
+        return i[0] | (i[1] << 8) | (i[2] << 16);
+    }
 
-    p0bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade0), 6);
-    p1bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade1), 6);
-    p2bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade2), 6);
-    p3bg.style.backgroundColor = hexN(transformColor(gpu.bgPaletteData.shade3), 6);
+    p0bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[0]]), 6);
+    p1bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[1]]), 6);
+    p2bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[2]]), 6);
+    p3bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[3]]), 6);
 
-    p0obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade0), 6);
-    p1obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade1), 6);
-    p2obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade2), 6);
-    p3obj0.style.backgroundColor = hexN(transformColor(gpu.objPaletteData0.shade3), 6);
+    p0obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[0]]), 6);
+    p1obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[1]]), 6);
+    p2obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[2]]), 6);
+    p3obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[3]]), 6);
 
-    p0obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade0), 6);
-    p1obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade1), 6);
-    p2obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade2), 6);
-    p3obj1.style.backgroundColor = hexN(transformColor(gpu.objPaletteData1.shade3), 6);
+    p0obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[0]]), 6);
+    p1obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[1]]), 6);
+    p2obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[2]]), 6);
+    p3obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[3]]), 6);
 
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
@@ -258,8 +261,8 @@ function updateDebug() {
     //     }
     // }
 
-    let data = new ImageData(memoryMapImg.data, 256, 256);
-    ctxMemoryMap.putImageData(data, 0, 0);
+    // let data = new ImageData(memoryMapImg.data, 256, 256);
+    // ctxMemoryMap.putImageData(data, 0, 0);
 }
 
 export let logDebug = false;

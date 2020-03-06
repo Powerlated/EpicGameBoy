@@ -113,46 +113,31 @@ class OAMFlags {
 
 
 class PaletteData {
-    shade3 = 0; // Bit 7-6 
-    shade2 = 0; // Bit 5-4
-    shade1 = 0; // Bit 3-2
-    shade0 = 0; // Bit 1-0
+    shades = new Array(4).fill(0);
 
     get numerical(): number {
         let n = 0;
-        this.shade3 = this.shade3 | n << 6;
-        this.shade2 = this.shade2 | n << 4;
-        this.shade1 = this.shade1 | n << 2;
-        this.shade0 = this.shade0 | n << 0;
+        n |= n | (this.shades[3] << 6);
+        n |= n | (this.shades[2] << 4);
+        n |= n | (this.shades[1] << 2);
+        n |= n | (this.shades[0] << 0);
         return n;
     }
 
     set numerical(i: number) {
-        this.shade3 = (i >> 6) & 0b11;
-        this.shade2 = (i >> 4) & 0b11;
-        this.shade1 = (i >> 2) & 0b11;
-        this.shade0 = (i >> 0) & 0b11;
-    }
-
-    lookup(index: number) {
-        switch (index) {
-            case 3: return this.shade3;
-            case 2: return this.shade2;
-            case 1: return this.shade1;
-            case 0: return this.shade0;
-            default: return 0;
-        }
+        this.shades[3] = (i >> 6) & 0b11;
+        this.shades[2] = (i >> 4) & 0b11;
+        this.shades[1] = (i >> 2) & 0b11;
+        this.shades[0] = (i >> 0) & 0b11;
     }
 }
 
-export function transformColor(color: number): number[] {
-    switch (color) {
-        case 3: return [0x00, 0x00, 0x00]; // [255, 255, 255]
-        case 2: return [0x60, 0x60, 0x60]; // [192, 192, 192]
-        case 1: return [0xC0, 0xC0, 0xC0]; // [96, 96, 96]
-        default: return [0xFF, 0xFF, 0xFF]; // [0, 0, 0]
-    }
-}
+export let colors: number[][] = [
+    [0xFF, 0xFF, 0xFF],
+    [0xC0, 0xC0, 0xC0],
+    [0x60, 0x60, 0x60],
+    [0x00, 0x00, 0x00],
+];
 
 class GPU {
     gb: GameBoy;
@@ -328,6 +313,16 @@ class GPU {
     renderVram() {
         // writeDebug("Rendering a scanline @ SCROLL Y:" + this.scrY);
 
+        if (this.lcdControl.bgWindowPriority0) {
+            this.renderBg();
+        }
+
+        if (this.lcdControl.enableWindow____5) {
+            this.renderWindow();
+        }
+    }
+
+    renderBg() {
         let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
         let x = (this.scrX) & 0b111;                // CORRECT
 
@@ -358,9 +353,9 @@ class GPU {
                     }
                 }
 
-                let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
+                let pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
                 // Re-map the tile pixel through the palette
-                let c = transformColor(pixel);
+                let c = colors[pixel];
 
                 if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
 
@@ -393,10 +388,6 @@ class GPU {
                     // if (GPU._bgtile == 1 && tile < 128) tile += 256;
                 }
             }
-
-        if (this.lcdControl.enableWindow____5) {
-            this.renderWindow();
-        }
     }
 
     renderWindow() {
@@ -430,9 +421,9 @@ class GPU {
                         }
                     }
 
-                    let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
+                    let pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
                     // Re-map the tile pixel through the palette
-                    let c = transformColor(pixel);
+                    let c = colors[pixel];
 
                     if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
 
@@ -516,8 +507,8 @@ class GPU {
 
                             // Offset tile by +1 if rendering the top half of an 8x16 sprite
                             let prePalette = this.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                            let pixel = flags.paletteNumberDMG ? this.objPaletteData1.lookup(prePalette) : this.objPaletteData0.lookup(prePalette);
-                            let c = transformColor(pixel);
+                            let pixel = flags.paletteNumberDMG ? this.objPaletteData1.shades[prePalette] : this.objPaletteData0.shades[prePalette];
+                            let c = colors[pixel];
 
 
                             // Simulate transparency before transforming through object palette
@@ -560,7 +551,7 @@ class GPU {
                     let row = Math.floor(((i1 * 8) + i3) / WIDTH);
                     let y = i2 + (row * 8);
 
-                    let c = transformColor(this.bgPaletteData.lookup(pixel));
+                    let c = colors[this.bgPaletteData.shades[pixel]];
 
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
