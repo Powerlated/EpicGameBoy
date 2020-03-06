@@ -244,19 +244,19 @@ function updateDebug() {
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
 
-    for (let y = 0; y < 256; y++) {
-        for (let x = 0; x < 256; x++) {
-            let c = gb.bus.readMem8((y * 256) + x);
+    // for (let y = 0; y < 256; y++) {
+    //     for (let x = 0; x < 256; x++) {
+    //         let c = gb.bus.readMem8((y * 256) + x);
 
-            // Canvas Index
-            let ci = ((y * 256) + x) * 4;
+    //         // Canvas Index
+    //         let ci = ((y * 256) + x) * 4;
 
-            memoryMapImg.data[ci + 0] = c;
-            memoryMapImg.data[ci + 1] = c;
-            memoryMapImg.data[ci + 2] = c;
-            memoryMapImg.data[ci + 3] = 0xFF;
-        }
-    }
+    //         memoryMapImg.data[ci + 0] = c;
+    //         memoryMapImg.data[ci + 1] = c;
+    //         memoryMapImg.data[ci + 2] = c;
+    //         memoryMapImg.data[ci + 3] = 0xFF;
+    //     }
+    // }
 
     let data = new ImageData(memoryMapImg.data, 256, 256);
     ctxMemoryMap.putImageData(data, 0, 0);

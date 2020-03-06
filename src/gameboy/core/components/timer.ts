@@ -1,21 +1,23 @@
 import GameBoy from "../../gameboy";
+import { hex } from "../../tools/util";
 
 export default class Timer {
-    static TimerSpeeds = [64, 1, 4, 16]; // In terms of 262144hz division 
+    static TimerSpeeds = [1024, 16, 64, 256]; // In terms of 262144hz division 
 
     gb: GameBoy;
 
     divider = 0;
-    counter = 0;
+    counter = 0; // TIMA
     modulo = 0;
     control = {
         speed: 0,
         running: false
     };
 
+    counterOverflowTtime= 4;
+
     c = {
-        clock: 0,
-        divClock: 0,
+        internal: 0,
         mainClock: 0
     };
 
@@ -23,38 +25,45 @@ export default class Timer {
         this.gb = gb;
     }
 
+    /**
+     * DIV has a lower byte that increments every T-cycle.
+     * 
+     * When counter (TIMA) overflows, it stays 0x00 for a full M-cycle before
+     * firing the interrupt and reloading with modulo. 
+     */
     step() {
         // Get the mtime
         const BASE = 16;
 
         for (let i = 0; i < this.gb.cpu.lastInstructionCycles; i++) {
+            this.c.internal++;
+            if (this.c.internal >= 256) {
+                this.divider++;
+                this.divider &= 0xFF;
+                this.c.internal = 0;
+            }
 
-            // 4194304hz Divide by 16 = 262144hz
-            if (this.c.clock >= 16) {
-                this.c.clock = 0;
-
-                this.c.divClock++;
-                // Divide by 16 again for 16834hz div clock
-                if (this.c.divClock >= 16) {
-                    this.divider++;
-                    this.divider &= 0xFF;
-                    this.c.divClock = 0;
-                }
-
-                if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
-                    if (this.control.running) {
-                        this.counter++;
-                    }
-                    this.c.mainClock = 0;
-                }
-                this.c.mainClock++;
-
-                if (this.counter > 255) {
-                    this.gb.bus.interrupts.requestTimer();
-                    this.counter = this.modulo;
+            this.c.mainClock++; this.c.mainClock &= 0xFFFF;
+            if (this.c.mainClock % Timer.TimerSpeeds[this.control.speed] == 0) {
+                if (this.control.running) {
+                    this.counter++;
                 }
             }
-            this.c.clock++;
+
+            if (this.counter >= 256) {
+                this.counterOverflowTtime = 4;
+                this.counter = 0;
+            }
+
+            if (this.counterOverflowTtime > 0) {
+                if (this.counterOverflowTtime == 1) {
+                    console.log("Reloading TIMA")
+                    this.counter = this.modulo;
+                    this.gb.bus.interrupts.requestTimer();
+                    this.counter++;
+                }
+                this.counterOverflowTtime--;
+            }
         }
     }
 
@@ -66,8 +75,6 @@ export default class Timer {
         this.control.speed = 0;
         this.control.running = false;
 
-        this.c.clock = 0;
-        this.c.divClock = 0;
         this.c.mainClock = 0;
     }
 
@@ -78,17 +85,16 @@ export default class Timer {
     set addr_0xFF04(i: number) {
         // Resets to 0 when written to
         this.c.mainClock = 0;
-        this.c.clock = 0;
         this.divider = 0;
     }
 
     // Counter / TIMA
     get addr_0xFF05(): number {
+        console.log(`PC: ${hex(this.gb.cpu.pc, 4)} Read from 0xFF05 TIMA: ${this.counter}`);
         return this.counter;
     }
     set addr_0xFF05(i: number) {
         this.c.mainClock = 0;
-        this.c.clock = 0;
         this.counter = i;
     }
 

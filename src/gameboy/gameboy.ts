@@ -39,6 +39,7 @@ export default class GameBoy {
 
     speed() {
         this.cpu.debugging = false;
+        this.cpu.stopNow = false;
         this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
         this.soundChip.tjs.setMuted(false);
     }
