@@ -336,9 +336,9 @@ class GPU {
         let mapIndex = ((Math.floor((this.lcdcY + this.scrY) / 8) * 32) & 1023);
         let mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
-        let lineoffs = this.scrX >> 3;
+        let lineOffset = this.scrX >> 3;
 
-        let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
+        let tile = this.vram[mapOffset + lineOffset]; // Add line offset to get correct starting tile
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
@@ -371,7 +371,7 @@ class GPU {
 
 
             // Scroll X/Y debug
-            if (this.showBorders && (((mapOffset + lineoffs) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+            if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
                 this.imageGameboy.data[canvasIndex + 0] = 0xFF;
                 this.imageGameboy.data[canvasIndex + 1] = 0;
                 this.imageGameboy.data[canvasIndex + 2] = 0;
@@ -384,34 +384,33 @@ class GPU {
             x++;
             if (x == 8) {
                 x = 0;
-                lineoffs++;
-                lineoffs %= 32; // Wrap around after 32 tiles (width of tilemap) 
-                tile = this.vram[mapOffset + lineoffs];
+                lineOffset++;
+                lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
+                tile = this.vram[mapOffset + lineOffset];
                 // if (GPU._bgtile == 1 && tile < 128) tile += 256;
             }
         }
 
         if (this.lcdControl.enableWindow____5) {
-            let y = (this.lcdcY + this.windowYpos) & 0b111; // CORRECT
+            let y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
 
             // Make sure window is onscreen Y
             if (this.lcdcY >= this.windowYpos) {
-                let x = xPos & 0b111;                // CORRECT
+                let adjXpos= xPos + this.windowXpos;
+                let x = adjXpos & 0b111;                // CORRECT
 
                 let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
 
-                let mapIndex = ((Math.floor((this.lcdcY + this.windowYpos) / 8) * 32) & 1023);
+                let mapIndex = ((Math.floor((this.lcdcY - this.windowYpos) / 8) * 32) & 1023);
                 let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-                let lineoffs = xPos >> 3;
-
-                let tile = this.vram[mapOffset + lineoffs]; // Add line offset to get correct starting tile
+                let tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
 
                 let canvasIndex = 160 * 4 * (this.lcdcY);
 
                 // Loop through every single horizontal pixel for this line 
                 for (let i = 0; i < 160; i++) {
-                    if (i >= xPos) {
+                    if (i >= adjXpos) {
                         // Two's Complement on high tileset
                         let tileOffset = 0;
                         if (!this.lcdControl.bgWindowTiledataSelect__4) {
@@ -435,7 +434,7 @@ class GPU {
 
 
                         // Window X debug
-                        if (this.showBorders && (((mapOffset + lineoffs) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+                        if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
                             this.imageGameboy.data[canvasIndex + 0] = 0;
                             this.imageGameboy.data[canvasIndex + 1] = 0;
                             this.imageGameboy.data[canvasIndex + 2] = 0xFF;
@@ -447,12 +446,12 @@ class GPU {
                         x++;
                         if (x == 8) {
                             x = 0;
-                            lineoffs++;
+                            lineOffset++;
                             // If going offscreen, just exit the loop
-                            if (lineoffs > 32) {
+                            if (lineOffset > 32) {
                                 break;
                             }
-                            tile = this.vram[mapOffset + lineoffs];
+                            tile = this.vram[mapOffset + lineOffset];
                             // if (GPU._bgtile == 1 && tile < 128) tile += 256;
                         }
                     }
