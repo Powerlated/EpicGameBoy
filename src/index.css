@@ -99,3 +99,14 @@ html {
     outline-width: thick;
     outline-color: black;
 }
+
+.interactive {
+    display: flex;
+    flex-direction: row;
+}
+
+#shortcuts {
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+}

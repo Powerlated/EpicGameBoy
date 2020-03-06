@@ -21,7 +21,7 @@
             <span class="code" id="breakpoints"></span>
 
             <canvas class="debug" id="tileset" width="256" height="96"></canvas>
-            <canvas class="debug" id="memory-map" width="256" height="256"></canvas>
+            <canvas display="none" class="debug" id="memory-map" width="256" height="256"></canvas>
 
             <div id="palette" class="debug">
                 <label>Palette</label>
@@ -58,62 +58,68 @@
 
 
     <div class="interactive">
-        <button onclick="executeAtPc()">Execute at PC</button>
-        <button onclick="gb.speed()">Speed Execute</button>
-        <button onclick="gb.speedStop();">Halt Execute</button>
-        <button onclick="gb.frame()">Render Frame</button>
-        <button onclick="gb.reset()">Reset</button>
-        <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
+        <div class="interactive-panel">
+            <button onclick="executeAtPc()">Execute at PC</button>
+            <button onclick="gb.speed()">Speed Execute</button>
+            <button onclick="gb.speedStop();">Halt Execute</button>
+            <button onclick="gb.frame()">Render Frame</button>
+            <button onclick="gb.reset()">Reset</button>
+            <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
 
-        <div style="display: none">
-            <label for="enableLogging">Enable Logging</label>
-            <input id="enableLogging" autocomplete="off" type="checkbox">
+            <div style="display: none">
+                <label for="enableLogging">Enable Logging</label>
+                <input id="enableLogging" autocomplete="off" type="checkbox">
+            </div>
+
+            <div>
+                <input id="drawTileset" autocomplete="off" type="checkbox">
+                <label for="drawTileset">Draw Tileset</label>
+
+                <input id="displaySerialInput" autocomplete="off" type="checkbox">
+                <label for="displaySerialInput">Display Serial</label>
+
+                <input id="enableDebugger" autocomplete="off" type="checkbox" checked>
+                <label for="enableDebugger">Debugger</label>
+            </div>
+
+            <div>
+                <label for="gameromInput">Open Game ROM</label>
+                <input id="gameromInput" autocomplete="off" type="file">
+            </div>
+
+            <div>
+                <label for="saveInput">Load Save</label>
+                <input id="saveInput" autocomplete="off" type="file">
+            </div>
+
+            <div>
+                <button onclick="downloadSave()">Download Save</button>
+            </div>
+
+            <div style="display: none">
+                <label for="bootromInput">Open Boot ROM</label>
+                <input id="bootromInput" autocomplete="off" type="file">
+            </div>
+
+            <div>
+                <label for="haltInput">Halt at 0x</label>
+                <input id="haltInput" autocomplete="off" pattern="[a-fA-F\d]+" />
+            </div>
+
+
+            <div style="display: none">
+                <label for="halt2Input">Halt when executed</label>
+                <input id="halt2Input" type="number" />
+            </div>
+
+
+            <div style="display: none">
+                <button onclick="downloadLog()">Download Log</button>
+            </div>
         </div>
-
-        <div>
-            <input id="drawTileset" autocomplete="off" type="checkbox">
-            <label for="drawTileset">Draw Tileset</label>
-
-            <input id="displaySerialInput" autocomplete="off" type="checkbox">
-            <label for="displaySerialInput">Display Serial</label>
-
-            <input id="enableDebugger" autocomplete="off" type="checkbox" checked>
-            <label for="enableDebugger">Debugger</label>
-        </div>
-
-        <div>
-            <label for="gameromInput">Open Game ROM</label>
-            <input id="gameromInput" autocomplete="off" type="file">
-        </div>
-
-        <div>
-            <label for="saveInput">Load Save</label>
-            <input id="saveInput" autocomplete="off" type="file">
-        </div>
-
-        <div>
-            <button onclick="downloadSave()">Download Save</button>
-        </div>
-
-        <div style="display: none">
-            <label for="bootromInput">Open Boot ROM</label>
-            <input id="bootromInput" autocomplete="off" type="file">
-        </div>
-
-        <div>
-            <label for="haltInput">Halt at 0x</label>
-            <input id="haltInput" autocomplete="off" pattern="[a-fA-F\d]+" />
-        </div>
-
-
-        <div style="display: none">
-            <label for="halt2Input">Halt when executed</label>
-            <input id="halt2Input" type="number" />
-        </div>
-
-
-        <div style="display: none">
-            <button onclick="downloadLog()">Download Log</button>
+        <div class="interactive-panel" id="shortcuts">
+            <b>SHIFT+B: Big Screen</b>
+            <b>SHIFT+D: Debugger</b>
         </div>
     </div>
 
