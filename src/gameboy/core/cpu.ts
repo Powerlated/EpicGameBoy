@@ -219,6 +219,7 @@ export interface Op {
 
 export default class CPU {
     halted = false;
+    haltBug = false;
 
     gb: GameBoy;
 
@@ -312,6 +313,11 @@ export default class CPU {
 
 
     step() {
+        if (this.scheduleEnableInterruptsForNextTick) {
+            this.scheduleEnableInterruptsForNextTick = false;
+            this.gb.bus.interrupts.masterEnabled = true;
+        }
+
         if (this.breakpoints.has(this.pc)) {
             this.gb.speedStop();
             return;
@@ -330,18 +336,15 @@ export default class CPU {
             this.lastInstructionCycles = this.cycles - c;
         }
 
+
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if (this.gb.bus.interrupts.requestedInterrupts.numerical > 0 && this.halted == true) {
+        if ((this.gb.bus.interrupts.requestedInterrupts.numerical &
+            this.gb.bus.interrupts.enabledInterrupts.numerical) && this.halted == true) {
             this.halted = false;
         }
-        
-         this.serviceInterrupts();
 
-        if (this.scheduleEnableInterruptsForNextTick) {
-            this.scheduleEnableInterruptsForNextTick = false;
-            console.log("ENABLED MASTER")
-            this.gb.bus.interrupts.masterEnabled = true;
-        }
+        this.serviceInterrupts();
+        this.haltBug = false;
     }
 
     checkBootrom() {
@@ -451,9 +454,10 @@ export default class CPU {
             }
         }
 
-
-        this.pc += ins.length;
-        this.pc &= 0xFFFF;
+        if (!this.haltBug) {
+            this.pc += ins.length;
+            this.pc &= 0xFFFF;
+        }
 
         this.totalI++;
 
@@ -475,21 +479,26 @@ export default class CPU {
 
             if (happened.vblank && enabled.vblank) {
                 // this.jumpLog.unshift(`----- INTERRUPT VBLANK -----`);
-                happened.vblank = false;
+                if (!this.haltBug)
+                    happened.vblank = false;
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
                 // this.jumpLog.unshift(`----- INTERRUPT LCDSTAT -----`);
-                happened.lcdStat = false;
+                if (!this.haltBug)
+                    happened.lcdStat = false;
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
                 // this.jumpLog.unshift(`----- INTERRUPT TIMER -----`);
-                happened.timer = false;
+                if (!this.haltBug)
+                    happened.timer = false;
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
-                happened.serial = false;
+                if (!this.haltBug)
+                    happened.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && enabled.joypad) {
-                happened.joypad = false;
+                if (!this.haltBug)
+                    happened.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }

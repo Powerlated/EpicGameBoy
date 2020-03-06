@@ -1,4 +1,4 @@
-import CPU, { R8, R16, CC } from './cpu'
+import CPU, { R8, R16, CC } from './cpu';
 import { o8b, o16b, unTwo8b, do8b, do16b } from '../tools/util';
 
 class Ops {
@@ -33,7 +33,21 @@ class Ops {
 
     // HALT - 0x76
     static HALT(cpu: CPU) {
-        cpu.halted = true;
+
+        if (
+            (cpu.gb.bus.interrupts.enabledInterrupts.numerical &
+                cpu.gb.bus.interrupts.requestedInterrupts.numerical &
+                0x1F) != 0
+        ) {
+            // HALT bug
+            cpu.haltBug = true;
+            cpu.pc++; cpu.pc &= 0xFFFF;
+        } else (cpu.gb.bus.interrupts.enabledInterrupts.numerical &
+            cpu.gb.bus.interrupts.requestedInterrupts.numerical &
+            0x1F) == 0;
+        {
+            cpu.halted = true;
+        }
     }
 
     static STOP(cpu: CPU) {
