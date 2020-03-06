@@ -145,12 +145,12 @@ class PaletteData {
     }
 }
 
-export function transformColor(color: number): number {
+export function transformColor(color: number): number[] {
     switch (color) {
-        case 3: return 0x000000; // [255, 255, 255]
-        case 2: return 0x606060; // [192, 192, 192]
-        case 1: return 0xC0C0C0; // [96, 96, 96]
-        default: return 0xFFFFFF; // [0, 0, 0]
+        case 3: return [0x00, 0x00, 0x00]; // [255, 255, 255]
+        case 2: return [0x60, 0x60, 0x60]; // [192, 192, 192]
+        case 1: return [0xC0, 0xC0, 0xC0]; // [96, 96, 96]
+        default: return [0xFF, 0xFF, 0xFF]; // [0, 0, 0]
     }
 }
 
@@ -163,7 +163,7 @@ class GPU {
     totalFrameCount = 0;
 
     // [tile][row][pixel]
-    tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
+    tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0)));
 
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
@@ -361,17 +361,12 @@ class GPU {
             // Re-map the tile pixel through the palette
             let c = transformColor(pixel);
 
-            // Write olive green color when LCD is disabled
-            if (!this.lcdControl.lcdDisplayEnable7) {
-                c = 0x0f380f;
-            }
-
-            if (!this.lcdControl.bgWindowPriority0) c = 0xFFFFFF;
+            if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
 
             // Plot the pixel to canvas
-            this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
-            this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
-            this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
+            this.imageGameboy.data[canvasIndex + 0] = c[0]
+            this.imageGameboy.data[canvasIndex + 1] = c[1]
+            this.imageGameboy.data[canvasIndex + 2] = c[2];
             this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
@@ -430,12 +425,12 @@ class GPU {
                         // Re-map the tile pixel through the palette
                         let c = transformColor(pixel);
 
-                        if (!this.lcdControl.bgWindowPriority0) c = 0xFFFFFF;
+                        if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
 
                         // Plot the pixel to canvas
-                        this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
-                        this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
-                        this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
+                        this.imageGameboy.data[canvasIndex + 0] = c[0]
+                        this.imageGameboy.data[canvasIndex + 1] = c[1]
+                        this.imageGameboy.data[canvasIndex + 2] = c[2];
                         this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
@@ -520,9 +515,9 @@ class GPU {
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette != 0) {
-                                this.imageGameboy.data[canvasIndex + 0] = (c >> 0) & 0xFF;
-                                this.imageGameboy.data[canvasIndex + 1] = (c >> 8) & 0xFF;
-                                this.imageGameboy.data[canvasIndex + 2] = (c >> 16) & 0xFF;
+                                this.imageGameboy.data[canvasIndex + 0] = c[0]
+                                this.imageGameboy.data[canvasIndex + 1] = c[1]
+                                this.imageGameboy.data[canvasIndex + 2] = c[2];
                                 this.imageGameboy.data[canvasIndex + 3] = 255;
                             }
 
@@ -560,9 +555,9 @@ class GPU {
 
                     let c = transformColor(this.bgPaletteData.lookup(pixel));
 
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = (c >> 0) & 0xFF;
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = (c >> 8) & 0xFF;
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = (c >> 16) & 0xFF;
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1]
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2]
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
@@ -620,7 +615,7 @@ class GPU {
         this.totalFrameCount = 0;
 
         // [tile][row][pixel]
-        this.tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => Array(8).fill(0)));
+        this.tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0)));
 
         this.lcdControl = new LCDCRegister();
         this.lcdStatus = new LCDStatusRegister();
