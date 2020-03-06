@@ -110,7 +110,7 @@ export default class ToneJsHandler {
         if (this.s.wave.enabled && this.s.wave.playing && this.s.wave.frequencyLower != 0) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
-                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440 / 4;
+                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
                 if (this.s.wave.playing) {
                     this.waveVolume.mute = false;
                 } else {
@@ -136,7 +136,7 @@ export default class ToneJsHandler {
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
-            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440 / 4;
+            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
             this.waveSrc.loop = true;
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 

@@ -225,7 +225,7 @@ function updateDebug() {
     // H: ${hex(cpu._r.h, 2)} ${pad(cpu._r.h.toString(2), 8, '0')}
     // L: ${hex(cpu._r.l, 2)} ${pad(cpu._r.l.toString(2), 8, '0')}
 
-    function c(i: number[]) {
+    function c(i: Uint8Array) {
         return i[0] | (i[1] << 8) | (i[2] << 16);
     }
 

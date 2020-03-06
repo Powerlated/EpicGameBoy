@@ -1,4 +1,5 @@
 import GameBoy from "../gameboy";
+import GPUCanvas from "./canvas";
 import { writeDebug } from "../tools/debug";
 import { unTwo8b } from "../tools/util";
 
@@ -11,7 +12,7 @@ class LCDCRegister {
     bgTilemapSelect_3 = false; // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
     spriteSize______2 = false; // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
     spriteDisplay___1 = false; // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
-    bgWindowPriority0 = false; // Bit 0 - BG/Window Display/Priority     (0=Off, 1=On)
+    bgWindowEnable0 = false; // Bit 0 - BG/Window Display/Priority     (0=Off, 1=On)
 
     get numerical(): number {
         let flagN = 0;
@@ -22,7 +23,7 @@ class LCDCRegister {
         if (this.bgTilemapSelect_3) flagN = flagN | 0b00001000;
         if (this.spriteSize______2) flagN = flagN | 0b00000100;
         if (this.spriteDisplay___1) flagN = flagN | 0b00000010;
-        if (this.bgWindowPriority0) flagN = flagN | 0b00000001;
+        if (this.bgWindowEnable0) flagN = flagN | 0b00000001;
         return flagN;
     }
 
@@ -34,7 +35,7 @@ class LCDCRegister {
         this.bgTilemapSelect_3 = (i & (1 << 3)) != 0;
         this.spriteSize______2 = (i & (1 << 2)) != 0;
         this.spriteDisplay___1 = (i & (1 << 1)) != 0;
-        this.bgWindowPriority0 = (i & (1 << 0)) != 0;
+        this.bgWindowEnable0 = (i & (1 << 0)) != 0;
     }
 }
 
@@ -113,7 +114,7 @@ class OAMFlags {
 
 
 class PaletteData {
-    shades = new Array(4).fill(0);
+    shades = new Uint8Array(4).fill(0);
 
     get numerical(): number {
         let n = 0;
@@ -132,11 +133,11 @@ class PaletteData {
     }
 }
 
-export let colors: number[][] = [
-    [0xFF, 0xFF, 0xFF],
-    [0xC0, 0xC0, 0xC0],
-    [0x60, 0x60, 0x60],
-    [0x00, 0x00, 0x00],
+export let colors: Uint8Array[] = [
+    new Uint8Array([0xFF, 0xFF, 0xFF]),
+    new Uint8Array([0xC0, 0xC0, 0xC0]),
+    new Uint8Array([0x60, 0x60, 0x60]),
+    new Uint8Array([0x00, 0x00, 0x00]),
 ];
 
 class GPU {
@@ -171,17 +172,9 @@ class GPU {
     modeClock: number = 0;
     frameClock: number = 0;
 
-    ctxGameboy!: CanvasRenderingContext2D;
-    ctxTileset!: CanvasRenderingContext2D;
-
     cycles = 0;
 
-    clearScreen() {
-        var c = document.getElementById("gameboy");
-        var ctx = (c as any).getContext("2d");
 
-        ctx.clearRect(0, 0, (c as any).width, (c as any).height);
-    }
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -241,7 +234,7 @@ class GPU {
 
                             // Draw to the canvas
                             if ((this.totalFrameCount % this.gb.speedMul) == 0) {
-                                this.drawToCanvasGameboy();
+                                this.canvas.drawGameboy();
                             }
                         }
                         else {
@@ -268,6 +261,10 @@ class GPU {
                     }
                     break;
             }
+        } else {
+            this.modeClock = 0;
+            this.lcdStatus.mode = 0;
+            this.lcdcY = 0;
         }
     }
 
@@ -275,36 +272,13 @@ class GPU {
     imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
     imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
 
-    drawToCanvasGameboy() {
-        this.ctxGameboy.putImageData(this.imageGameboy, 0, 0);
-    }
-
-    drawToCanvasTileset() {
-        let iData = new ImageData(this.imageTilesetArr, 256, 96);
-
-        this.ctxTileset.putImageData(iData, 0, 0);
-
-        this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
-        // 0: Bottom half used, 1: Top half used
-        // Draw over unused with transparent yellow
-        if (this.lcdControl.bgWindowTiledataSelect__4) {
-            this.ctxTileset.fillRect(0, 32, 256, 63);
-        } else {
-            this.ctxTileset.fillRect(0, 0, 256, 63);
-        }
-
-        this.ctxTileset.setLineDash([2]);
-        this.ctxTileset.strokeStyle = '#ff0000';
-        this.ctxTileset.strokeRect(0, 0, 256, 63);
-        this.ctxTileset.strokeStyle = '#0000ff';
-        this.ctxTileset.strokeRect(0, 32, 256, 63);
-    }
-
     showBorders = false;
 
     // TODO: Implement background transparency
     renderScanline() {
-        this.renderVram();
+        if (this.lcdControl.bgWindowEnable0) {
+            this.renderVram();
+        }
 
         if (this.lcdControl.spriteDisplay___1)
             this.renderSprites();
@@ -312,23 +286,21 @@ class GPU {
 
     renderVram() {
         // writeDebug("Rendering a scanline @ SCROLL Y:" + this.scrY);
-
-        if (this.lcdControl.bgWindowPriority0) {
-            this.renderBg();
-        }
-
+        this.renderBg();
         if (this.lcdControl.enableWindow____5) {
             this.renderWindow();
         }
     }
 
     renderBg() {
+        const d = this.imageGameboy.data;
+
         let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
         let x = (this.scrX) & 0b111;                // CORRECT
 
         let mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
-        let mapIndex = ((((this.lcdcY + this.scrY) / 8) | 0) * 32) & 1023;
+        let mapIndex = (((this.lcdcY + this.scrY) >> 3) * 32) & 1023;
         let mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
         let lineOffset = this.scrX >> 3;
@@ -357,21 +329,19 @@ class GPU {
                 // Re-map the tile pixel through the palette
                 let c = colors[pixel];
 
-                if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
-
                 // Plot the pixel to canvas
-                this.imageGameboy.data[canvasIndex + 0] = c[0];
-                this.imageGameboy.data[canvasIndex + 1] = c[1];
-                this.imageGameboy.data[canvasIndex + 2] = c[2];
-                this.imageGameboy.data[canvasIndex + 3] = 255;
+                d[canvasIndex + 0] = c[0];
+                d[canvasIndex + 1] = c[1];
+                d[canvasIndex + 2] = c[2];
+                d[canvasIndex + 3] = 255;
 
 
                 // Scroll X/Y debug
                 if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                    this.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                    this.imageGameboy.data[canvasIndex + 1] = 0;
-                    this.imageGameboy.data[canvasIndex + 2] = 0;
-                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                    d[canvasIndex + 0] = 0xFF;
+                    d[canvasIndex + 1] = 0;
+                    d[canvasIndex + 2] = 0;
+                    d[canvasIndex + 3] = 255;
                 }
 
                 canvasIndex += 4;
@@ -382,8 +352,6 @@ class GPU {
                     x = 0;
                     lineOffset++;
                     lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
-                    lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
-                    lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
                     tile = this.vram[mapOffset + lineOffset];
                     // if (GPU._bgtile == 1 && tile < 128) tile += 256;
                 }
@@ -391,6 +359,8 @@ class GPU {
     }
 
     renderWindow() {
+        const d = this.imageGameboy.data;
+
         let xPos = this.windowXpos - 14;
         let lineOffset = this.windowXpos >> 3;
         let y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
@@ -402,7 +372,7 @@ class GPU {
 
             let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
 
-            let mapIndex = ((((this.lcdcY - this.windowYpos) / 8) | 0) * 32) & 1023;
+            let mapIndex = (((this.lcdcY - this.windowYpos) >> 3) * 32) & 1023;
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
             let tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
@@ -425,21 +395,21 @@ class GPU {
                     // Re-map the tile pixel through the palette
                     let c = colors[pixel];
 
-                    if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
+                    if (!this.lcdControl.bgWindowEnable0) c = new Uint8Array([0xFF, 0xFF, 0xFF]);
 
                     // Plot the pixel to canvas
-                    this.imageGameboy.data[canvasIndex + 0] = c[0];
-                    this.imageGameboy.data[canvasIndex + 1] = c[1];
-                    this.imageGameboy.data[canvasIndex + 2] = c[2];
-                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                    d[canvasIndex + 0] = c[0];
+                    d[canvasIndex + 1] = c[1];
+                    d[canvasIndex + 2] = c[2];
+                    d[canvasIndex + 3] = 255;
 
 
                     // Window X debug
                     if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                        this.imageGameboy.data[canvasIndex + 0] = 0;
-                        this.imageGameboy.data[canvasIndex + 1] = 0;
-                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                        this.imageGameboy.data[canvasIndex + 3] = 255;
+                        d[canvasIndex + 0] = 0;
+                        d[canvasIndex + 1] = 0;
+                        d[canvasIndex + 2] = 0xFF;
+                        d[canvasIndex + 3] = 255;
                     }
                     canvasIndex += 4;
 
@@ -562,13 +532,13 @@ class GPU {
         });
     }
 
+    canvas = new GPUCanvas(this);
+
     constructor(gb: GameBoy) {
         this.gb = gb;
 
         let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
-        let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
-        this.ctxTileset = cTileset.getContext("2d")!;
-        this.ctxGameboy = cGameboy.getContext("2d")!;
+        this.canvas.ctxTileset = cTileset.getContext("2d")!;
     }
 
     read(index: number): number {
