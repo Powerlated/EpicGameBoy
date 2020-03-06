@@ -14,7 +14,7 @@ export default class Timer {
         running: false
     };
 
-    counterOverflowTtime= 4;
+    counterOverflowTtime = 4;
 
     c = {
         internal: 0,
@@ -45,7 +45,7 @@ export default class Timer {
 
             this.c.mainClock++; this.c.mainClock &= 0xFFFF;
             if (this.c.mainClock % Timer.TimerSpeeds[this.control.speed] == 0) {
-                if (this.control.running) {
+                if (this.control.running && this.counterOverflowTtime == 0) {
                     this.counter++;
                 }
             }
@@ -57,10 +57,9 @@ export default class Timer {
 
             if (this.counterOverflowTtime > 0) {
                 if (this.counterOverflowTtime == 1) {
-                    console.log("Reloading TIMA")
+                    console.log("Reloading TIMA");
                     this.counter = this.modulo;
                     this.gb.bus.interrupts.requestTimer();
-                    this.counter++;
                 }
                 this.counterOverflowTtime--;
             }
@@ -85,7 +84,9 @@ export default class Timer {
     set addr_0xFF04(i: number) {
         // Resets to 0 when written to
         this.c.mainClock = 0;
+        this.c.internal = 0;
         this.divider = 0;
+        this.counterOverflowTtime = 0;
     }
 
     // Counter / TIMA
@@ -94,8 +95,8 @@ export default class Timer {
         return this.counter;
     }
     set addr_0xFF05(i: number) {
-        this.c.mainClock = 0;
-        this.counter = i;
+        if (this.counterOverflowTtime == 0)
+            this.counter = i;
     }
 
     // Modulo
