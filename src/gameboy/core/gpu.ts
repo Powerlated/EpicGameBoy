@@ -333,7 +333,7 @@ class GPU {
 
         let mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
-        let mapIndex = ((Math.floor((this.lcdcY + this.scrY) / 8) * 32) & 1023);
+        let mapIndex = ((((this.lcdcY + this.scrY) / 8) | 0) * 32) & 1023;
         let mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
         let lineOffset = this.scrX >> 3;
@@ -344,122 +344,130 @@ class GPU {
 
         let xPos = this.windowXpos - 7;
         // Loop through every single horizontal pixel for this line 
-        for (let i = 0; i < 160; i++) {
-            // Don't bother drawing if WINDOW is overlaying
-            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) continue;
+        if (!(this.lcdControl.enableWindow____5 && xPos == 0 && this.windowYpos == 0))
+            for (let i = 0; i < 160; i++) {
+                // Don't bother drawing if WINDOW is overlaying
+                if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) break;
 
-            // Two's Complement on high tileset
-            let tileOffset = 0;
-            if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                tileOffset = 256;
-                if (tile > 127) {
-                    tile = tile - 256;
+                // Two's Complement on high tileset
+                let tileOffset = 0;
+                if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                    tileOffset = 256;
+                    if (tile > 127) {
+                        tile = tile - 256;
+                    }
+                }
+
+                let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
+                // Re-map the tile pixel through the palette
+                let c = transformColor(pixel);
+
+                if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
+
+                // Plot the pixel to canvas
+                this.imageGameboy.data[canvasIndex + 0] = c[0];
+                this.imageGameboy.data[canvasIndex + 1] = c[1];
+                this.imageGameboy.data[canvasIndex + 2] = c[2];
+                this.imageGameboy.data[canvasIndex + 3] = 255;
+
+
+                // Scroll X/Y debug
+                if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+                    this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                    this.imageGameboy.data[canvasIndex + 1] = 0;
+                    this.imageGameboy.data[canvasIndex + 2] = 0;
+                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                }
+
+                canvasIndex += 4;
+
+                // When this tile ends, read another
+                x++;
+                if (x == 8) {
+                    x = 0;
+                    lineOffset++;
+                    lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
+                    lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
+                    lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
+                    tile = this.vram[mapOffset + lineOffset];
+                    // if (GPU._bgtile == 1 && tile < 128) tile += 256;
                 }
             }
 
-            let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
-            // Re-map the tile pixel through the palette
-            let c = transformColor(pixel);
-
-            if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
-
-            // Plot the pixel to canvas
-            this.imageGameboy.data[canvasIndex + 0] = c[0]
-            this.imageGameboy.data[canvasIndex + 1] = c[1]
-            this.imageGameboy.data[canvasIndex + 2] = c[2];
-            this.imageGameboy.data[canvasIndex + 3] = 255;
-
-
-            // Scroll X/Y debug
-            if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                this.imageGameboy.data[canvasIndex + 1] = 0;
-                this.imageGameboy.data[canvasIndex + 2] = 0;
-                this.imageGameboy.data[canvasIndex + 3] = 255;
-            }
-
-            canvasIndex += 4;
-
-            // When this tile ends, read another
-            x++;
-            if (x == 8) {
-                x = 0;
-                lineOffset++;
-                lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
-                tile = this.vram[mapOffset + lineOffset];
-                // if (GPU._bgtile == 1 && tile < 128) tile += 256;
-            }
-        }
-
         if (this.lcdControl.enableWindow____5) {
-            let y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
+            this.renderWindow();
+        }
+    }
 
-            // Make sure window is onscreen Y
-            if (this.lcdcY >= this.windowYpos) {
-                let adjXpos= xPos + this.windowXpos;
-                let x = adjXpos & 0b111;                // CORRECT
+    renderWindow() {
+        let xPos = this.windowXpos - 14;
+        let lineOffset = this.windowXpos >> 3;
+        let y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
 
-                let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
+        // Make sure window is onscreen Y
+        if (this.lcdcY >= this.windowYpos) {
+            let adjXpos = xPos + this.windowXpos;
+            let x = adjXpos & 0b111;                // CORRECT
 
-                let mapIndex = ((Math.floor((this.lcdcY - this.windowYpos) / 8) * 32) & 1023);
-                let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+            let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
 
-                let tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
+            let mapIndex = ((((this.lcdcY - this.windowYpos) / 8) | 0) * 32) & 1023;
+            let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-                let canvasIndex = 160 * 4 * (this.lcdcY);
+            let tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
 
-                // Loop through every single horizontal pixel for this line 
-                for (let i = 0; i < 160; i++) {
-                    if (i >= adjXpos) {
-                        // Two's Complement on high tileset
-                        let tileOffset = 0;
-                        if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                            tileOffset = 256;
-                            if (tile > 127) {
-                                tile = tile - 256;
-                            }
+            let canvasIndex = 160 * 4 * (this.lcdcY);
+
+            // Loop through every single horizontal pixel for this line 
+            for (let i = 0; i < 160; i++) {
+                if (i >= adjXpos) {
+                    // Two's Complement on high tileset
+                    let tileOffset = 0;
+                    if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                        tileOffset = 256;
+                        if (tile > 127) {
+                            tile = tile - 256;
                         }
+                    }
 
-                        let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
-                        // Re-map the tile pixel through the palette
-                        let c = transformColor(pixel);
+                    let pixel = this.bgPaletteData.lookup(this.tileset[tile + tileOffset][y][x]);
+                    // Re-map the tile pixel through the palette
+                    let c = transformColor(pixel);
 
-                        if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
+                    if (!this.lcdControl.bgWindowPriority0) c = [0xFF, 0xFF, 0xFF];
 
-                        // Plot the pixel to canvas
-                        this.imageGameboy.data[canvasIndex + 0] = c[0]
-                        this.imageGameboy.data[canvasIndex + 1] = c[1]
-                        this.imageGameboy.data[canvasIndex + 2] = c[2];
+                    // Plot the pixel to canvas
+                    this.imageGameboy.data[canvasIndex + 0] = c[0];
+                    this.imageGameboy.data[canvasIndex + 1] = c[1];
+                    this.imageGameboy.data[canvasIndex + 2] = c[2];
+                    this.imageGameboy.data[canvasIndex + 3] = 255;
+
+
+                    // Window X debug
+                    if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+                        this.imageGameboy.data[canvasIndex + 0] = 0;
+                        this.imageGameboy.data[canvasIndex + 1] = 0;
+                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
                         this.imageGameboy.data[canvasIndex + 3] = 255;
+                    }
+                    canvasIndex += 4;
 
-
-                        // Window X debug
-                        if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                            this.imageGameboy.data[canvasIndex + 0] = 0;
-                            this.imageGameboy.data[canvasIndex + 1] = 0;
-                            this.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                            this.imageGameboy.data[canvasIndex + 3] = 255;
+                    // When this tile ends, read another
+                    x++;
+                    if (x == 8) {
+                        x = 0;
+                        lineOffset++;
+                        // If going offscreen, just exit the loop
+                        if (lineOffset > 32) {
+                            break;
                         }
-                        canvasIndex += 4;
-
-                        // When this tile ends, read another
-                        x++;
-                        if (x == 8) {
-                            x = 0;
-                            lineOffset++;
-                            // If going offscreen, just exit the loop
-                            if (lineOffset > 32) {
-                                break;
-                            }
-                            tile = this.vram[mapOffset + lineOffset];
-                            // if (GPU._bgtile == 1 && tile < 128) tile += 256;
-                        }
+                        tile = this.vram[mapOffset + lineOffset];
+                        // if (GPU._bgtile == 1 && tile < 128) tile += 256;
                     }
                 }
             }
         }
     }
-
 
     renderSprites() {
         let spriteCount = 0;
@@ -514,8 +522,8 @@ class GPU {
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette != 0) {
-                                this.imageGameboy.data[canvasIndex + 0] = c[0]
-                                this.imageGameboy.data[canvasIndex + 1] = c[1]
+                                this.imageGameboy.data[canvasIndex + 0] = c[0];
+                                this.imageGameboy.data[canvasIndex + 1] = c[1];
                                 this.imageGameboy.data[canvasIndex + 2] = c[2];
                                 this.imageGameboy.data[canvasIndex + 3] = 255;
                             }
@@ -555,8 +563,8 @@ class GPU {
                     let c = transformColor(this.bgPaletteData.lookup(pixel));
 
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1]
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2]
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2];
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
