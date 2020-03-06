@@ -57,7 +57,6 @@ export default class Timer {
 
             if (this.counterOverflowTtime > 0) {
                 if (this.counterOverflowTtime == 1) {
-                    console.log("Reloading TIMA");
                     this.counter = this.modulo;
                     this.gb.bus.interrupts.requestTimer();
                 }
@@ -91,7 +90,6 @@ export default class Timer {
 
     // Counter / TIMA
     get addr_0xFF05(): number {
-        console.log(`PC: ${hex(this.gb.cpu.pc, 4)} Read from 0xFF05 TIMA: ${this.counter}`);
         return this.counter;
     }
     set addr_0xFF05(i: number) {
