@@ -428,8 +428,8 @@ export default class CPU {
         if (this.minDebug) {
             if (Disassembler.isControlFlow(ins)) {
                 if (Disassembler.willJump(ins, this)) {
-                    let disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
-                    let to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
+                    let disasm = Disassembler.disassembleOp(ins, new Uint8Array(pcTriplet), this.pc, this);
+                    let to = Disassembler.willJumpTo(ins,  new Uint8Array(pcTriplet), this.pc, this);
                     // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
                     // this.jumpLog = this.jumpLog.slice(0, 100);
                 }

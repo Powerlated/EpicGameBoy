@@ -293,8 +293,6 @@ class GPU {
     }
 
     renderBg() {
-        const d = this.imageGameboy.data;
-
         let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
         let x = (this.scrX) & 0b111;                // CORRECT
 
@@ -311,56 +309,52 @@ class GPU {
 
         let xPos = this.windowXpos - 7;
         // Loop through every single horizontal pixel for this line 
-        if (!(this.lcdControl.enableWindow____5 && xPos == 0 && this.windowYpos == 0))
-            for (let i = 0; i < 160; i++) {
-                // Don't bother drawing if WINDOW is overlaying
-                if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) break;
+        for (let i = 0; i < 160; i++) {
+            // Don't bother drawing if WINDOW is overlaying
+            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) break;
 
-                // Two's Complement on high tileset
-                let tileOffset = 0;
-                if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                    tileOffset = 256;
-                    if (tile > 127) {
-                        tile = tile - 256;
-                    }
-                }
-
-                let pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
-                // Re-map the tile pixel through the palette
-                let c = colors[pixel];
-
-                // Plot the pixel to canvas
-                d[canvasIndex + 0] = c[0];
-                d[canvasIndex + 1] = c[1];
-                d[canvasIndex + 2] = c[2];
-                d[canvasIndex + 3] = 255;
-
-
-                // Scroll X/Y debug
-                if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                    d[canvasIndex + 0] = 0xFF;
-                    d[canvasIndex + 1] = 0;
-                    d[canvasIndex + 2] = 0;
-                    d[canvasIndex + 3] = 255;
-                }
-
-                canvasIndex += 4;
-
-                // When this tile ends, read another
-                x++;
-                if (x == 8) {
-                    x = 0;
-                    lineOffset++;
-                    lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
-                    tile = this.vram[mapOffset + lineOffset];
-                    // if (GPU._bgtile == 1 && tile < 128) tile += 256;
+            // Two's Complement on high tileset
+            let tileOffset = 0;
+            if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                tileOffset = 256;
+                if (tile > 127) {
+                    tile = tile - 256;
                 }
             }
+
+            let pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
+            // Re-map the tile pixel through the palette
+            let c = colors[pixel];
+
+            // Plot the pixel to canvas
+            this.imageGameboy.data[canvasIndex + 0] = c[0];
+            this.imageGameboy.data[canvasIndex + 1] = c[1];
+            this.imageGameboy.data[canvasIndex + 2] = c[2];
+            this.imageGameboy.data[canvasIndex + 3] = 255;
+
+
+            // Scroll X/Y debug
+            if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                this.imageGameboy.data[canvasIndex + 1] = 0;
+                this.imageGameboy.data[canvasIndex + 2] = 0;
+                this.imageGameboy.data[canvasIndex + 3] = 255;
+            }
+
+            canvasIndex += 4;
+
+            // When this tile ends, read another
+            x++;
+            if (x == 8) {
+                x = 0;
+                lineOffset++;
+                lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
+                tile = this.vram[mapOffset + lineOffset];
+            }
+        }
     }
 
     renderWindow() {
-        const d = this.imageGameboy.data;
-
         let xPos = this.windowXpos - 14;
         let lineOffset = this.windowXpos >> 3;
         let y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
@@ -379,6 +373,8 @@ class GPU {
 
             let canvasIndex = 160 * 4 * (this.lcdcY);
 
+            const shades = this.bgPaletteData.shades;
+
             // Loop through every single horizontal pixel for this line 
             for (let i = 0; i < 160; i++) {
                 if (i >= adjXpos) {
@@ -391,25 +387,25 @@ class GPU {
                         }
                     }
 
-                    let pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
+                    let pixel = shades[this.tileset[tile + tileOffset][y][x]];
                     // Re-map the tile pixel through the palette
                     let c = colors[pixel];
 
                     if (!this.lcdControl.bgWindowEnable0) c = new Uint8Array([0xFF, 0xFF, 0xFF]);
 
                     // Plot the pixel to canvas
-                    d[canvasIndex + 0] = c[0];
-                    d[canvasIndex + 1] = c[1];
-                    d[canvasIndex + 2] = c[2];
-                    d[canvasIndex + 3] = 255;
+                    this.imageGameboy.data[canvasIndex + 0] = c[0];
+                    this.imageGameboy.data[canvasIndex + 1] = c[1];
+                    this.imageGameboy.data[canvasIndex + 2] = c[2];
+                    this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
                     // Window X debug
                     if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
-                        d[canvasIndex + 0] = 0;
-                        d[canvasIndex + 1] = 0;
-                        d[canvasIndex + 2] = 0xFF;
-                        d[canvasIndex + 3] = 255;
+                        this.imageGameboy.data[canvasIndex + 0] = 0;
+                        this.imageGameboy.data[canvasIndex + 1] = 0;
+                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
                     }
                     canvasIndex += 4;
 

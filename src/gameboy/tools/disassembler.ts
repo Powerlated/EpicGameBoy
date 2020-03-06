@@ -27,7 +27,7 @@ export default class Disassembler {
         }
     };
 
-    static willJumpTo = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU): number => {
+    static willJumpTo = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU): number => {
         switch (ins.op) {
             case Ops.JP_N16:
             case Ops.CALL_N16:
@@ -48,8 +48,8 @@ export default class Disassembler {
         }
     };
 
-    static disassembleOp = (ins: Op, pcTriplet: Array<number>, disasmPc: number, cpu: CPU) => {
-        const HARDCODE_DECODE = (ins: Op, pcTriplet: Array<number>) => {
+    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU) => {
+        const HARDCODE_DECODE = (ins: Op, pcTriplet: Uint8Array) => {
             const LD = "LD";
             const RST = "RST";
             const CP = "CP";
@@ -70,7 +70,7 @@ export default class Disassembler {
                 case Ops.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
                 case Ops.LD_A_iHLinc: return [LD, "A,(HL+)"];
                 case Ops.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
-                case Ops.LD_HL_SPaddE8: return [LD, `HL,(SP+${unTwo8b(pcTriplet[1])})`]
+                case Ops.LD_HL_SPaddE8: return [LD, `HL,(SP+${unTwo8b(pcTriplet[1])})`];
                 case Ops.JP_HL: return ["JP", "HL"];
                 case Ops.ADD_HL_R16: return ["ADD HL,", ins.type];
                 default: return null;
@@ -154,7 +154,7 @@ export default class Disassembler {
 
         for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
             let isCB = cpu.gb.bus.readMem8(disasmPc) == 0xCB;
-            let pcTriplet = [cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)];
+            let pcTriplet = new Uint8Array([cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)]);
 
 
             // Pre-increment PC for 0xCB prefix
@@ -162,7 +162,7 @@ export default class Disassembler {
             let controlFlow = Disassembler.isControlFlow(ins);
 
             // Decode hexadecimal triplet 
-            function decodeHex(pcTriplet: Array<number>) {
+            function decodeHex(pcTriplet: Uint8Array) {
                 let i0 = hexN_LC(pcTriplet[0], 2);
                 let i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
                 let i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
