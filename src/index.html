@@ -60,8 +60,8 @@
     <div class="interactive">
         <div class="interactive-panel">
             <button onclick="executeAtPc()">Execute at PC</button>
-            <button onclick="gb.speed()">Speed Execute</button>
-            <button onclick="gb.speedStop();">Halt Execute</button>
+            <button onclick="gb.speed()">Run</button>
+            <button onclick="gb.speedStop();">Stop</button>
             <button onclick="gb.frame()">Render Frame</button>
             <button onclick="gb.reset()">Reset</button>
             <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
@@ -117,9 +117,15 @@
                 <button onclick="downloadLog()">Download Log</button>
             </div>
         </div>
-        <div class="interactive-panel" id="shortcuts">
+        <div class="interactive-panel shortcuts">
             <b>SHIFT+B: Big Screen</b>
             <b>SHIFT+D: Debugger</b>
+        </div>
+        <div class="interactive-panel shortcuts">
+            <button onclick="loadRom('pokeyellow')">Load Pokemon Yellow</button>
+            <button onclick="loadRom('pokegold')">Load Pokemon Gold</button>
+            <button onclick="loadRom('tetris')">Load Tetris</button>
+            <button onclick="loadRom('pocket')">Load Pocket</button>
         </div>
     </div>
 
