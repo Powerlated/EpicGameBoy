@@ -63,10 +63,10 @@ export default class ExternalBus {
 
     saveGameSram() {
         let m = this.mbc as MBCWithRAM;
-        if (m instanceof MBCWithRAM && m.externalRamDirty == true) {
-            console.log("Flushing SRAM")
+        if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
+            console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`)
             saveSram(this.romTitle, m.externalRam);
-            m.externalRamDirty = false;
+            m.externalRamDirtyBytes = 0;
         }
     }
 
