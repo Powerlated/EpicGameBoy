@@ -443,8 +443,6 @@ class GPU {
 
             // Render sprite only if it is visible on this scanline
             if (
-                (xPos > 0 && xPos <= 168) &&
-                (yPos > 0 && yPos <= 160) &&
                 (this.lcdcY + 8 >= screenYPos && (this.lcdcY <= (screenYPos + HEIGHT + 8)))
             ) {
                 // TODO: Fix sprite limiting
@@ -477,13 +475,15 @@ class GPU {
                             let c = colors[pixel];
 
 
+                            if (flags.behindBG && this.imageGameboy.data[canvasIndex] != colors[this.bgPaletteData.shades[0]][1]) continue;
+
                             // Simulate transparency before transforming through object palette
                             if (prePalette != 0) {
-                                this.imageGameboy.data[canvasIndex + 0] = c[0];
-                                this.imageGameboy.data[canvasIndex + 1] = c[1];
-                                this.imageGameboy.data[canvasIndex + 2] = c[2];
-                                this.imageGameboy.data[canvasIndex + 3] = 255;
-                            }
+                                    this.imageGameboy.data[canvasIndex + 0] = c[0];
+                                    this.imageGameboy.data[canvasIndex + 1] = c[1];
+                                    this.imageGameboy.data[canvasIndex + 2] = c[2];
+                                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                                }
 
                             // Border debug
                             if (this.showBorders && (pixelX == 0 || pixelX == 7 || pixelY == 0 || pixelY == 7)) {
