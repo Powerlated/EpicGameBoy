@@ -34,9 +34,9 @@ namespace DMSharp
 
             this.updateMBC();
             this.gb.Reset();
-            var title = new ArraySegment<byte>(rom, 0x134, 0x143).Array;
-            var titleDecoded = System.Text.Encoding.UTF8.GetString(title).ToCharArray();
-            Console.WriteLine(titleDecoded);
+            var title = new ArraySegment<byte>(rom, 0x134, 0xF);
+            var titleDecoded = System.Text.Encoding.UTF8.GetString(title);
+            Console.WriteLine("Title: " + titleDecoded);
 
             this.romTitle = new string(titleDecoded);
         }
@@ -117,7 +117,6 @@ namespace DMSharp
             }
             this.romBanks = banks;
             Console.WriteLine("Banks: " + banks);
-            Console.WriteLine(this.mbc);
         }
     }
 }

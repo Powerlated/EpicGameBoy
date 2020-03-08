@@ -56,22 +56,10 @@ namespace DMSharp
             }
         }
 
-        byte[] serialOut;
+        public List<byte> serialOut = new List<byte>();
 
         public void WriteMem8(ushort addr, byte value)
         {
-            if (value > 255)
-            {
-                //         alert("
-                // WriteMem8(0x${ value.toString(16)})
-
-                // PC: 0x${ this.gb.cpu.pc.toString(16)}
-                //     Opcode: 0x${ this.readMem8(this.gb.cpu.pc).toString(16)}
-                //     Op: ${ this.gb.cpu.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
-
-                // ");
-            }
-
             // ROM Write (MBC Control)
             if (addr >= 0x0000 && addr <= 0x7FFF)
             {
@@ -148,7 +136,7 @@ namespace DMSharp
                         break;
                     case 0xFF01:
                         // console.info("[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: " + hex(value, 2));
-                        this.serialOut.Append(value);
+                        this.serialOut.Add(value);
                         break;
                     case 0xFF04: // Timer divider
                         this.gb.timer.addr_0xFF04 = value;

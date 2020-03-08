@@ -98,7 +98,7 @@ namespace DMSharp
 
         public bool playing = true;
 
-        public byte[] waveTable = new byte[16];
+        public byte[] waveTable = new byte[32];
         public bool waveTableUpdated = false;
 
         public bool restartSound = false;

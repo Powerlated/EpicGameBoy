@@ -287,7 +287,7 @@ namespace DMSharp
             cpu._r._f.half_carry = (signedVal & 0xF) + (cpu._r.sp & 0xF) > 0xF;
             cpu._r._f.carry = (signedVal & 0xFF) + (cpu._r.sp & 0xFF) > 0xFF;
 
-            cpu._r.hl = (byte)((sbyte)(signedVal) + cpu._r.sp);
+            cpu._r.hl = (ushort)(signedVal + cpu._r.sp);
         }
 
         // LD [$FF00+u8],A

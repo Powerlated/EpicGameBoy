@@ -13,7 +13,7 @@ namespace DMSharp
         public R16 r16 = R16.NONE;
         public R8 r8 = R8.NONE;
         public R8 r8_2 = R8.NONE;
-        public int numtype = 0;
+        public ushort numtype = 0;
         public byte imm8 = 0;
         public ushort imm16 = 0;
 
@@ -45,13 +45,12 @@ namespace DMSharp
         {
             this.r16 = r16;
         }
-        public Options(int numtype) {
+        public Options(ushort numtype) {
             this.numtype = numtype;
         }
     }
 
     public delegate void Executor(CPU cpu, Options opts);
-
 
     public class Instruction
     {
@@ -66,12 +65,14 @@ namespace DMSharp
         {
             this.executor = e;
             this.opts = options;
+            this.length = length;
         }
 
         public Instruction(Executor e, int length)
         {
             this.executor = e;
             this.opts = new Options();
+            this.length = length;
         }
     }
 }

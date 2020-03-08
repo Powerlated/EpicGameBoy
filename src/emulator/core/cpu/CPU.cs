@@ -1,158 +1,9 @@
 using System.Collections.Generic;
 using System;
+using static Util;
 
 namespace DMSharp
 {
-    public enum R16
-    {
-        AF, BC, DE, HL, SP, NONE
-    }
-
-    public enum R8
-    {
-        A, B, C, D, E, F, H, L, iHL, NONE
-    }
-    public enum CC
-    {
-        C, NC, Z, NZ, NONE
-    }
-
-    public class Registers
-    {
-        public CPU cpu;
-
-        internal FlagsRegister _f = new FlagsRegister();
-
-        internal byte f
-        {
-            get
-            {
-                byte flagN = 0;
-                if (this._f.zero)
-                {
-                    flagN = (byte)(flagN | 0b10000000);
-                }
-                if (this._f.negative)
-                {
-                    flagN = (byte)(flagN | 0b01000000);
-                }
-                if (this._f.half_carry)
-                {
-                    flagN = (byte)(flagN | 0b00100000);
-                }
-                if (this._f.carry)
-                {
-                    flagN = (byte)(flagN | 0b00010000);
-                }
-                return flagN;
-            }
-
-            set
-            {
-                this._f.zero = (value & (1 << 7)) != 0;
-                this._f.negative = (value & (1 << 6)) != 0;
-                this._f.half_carry = (value & (1 << 5)) != 0;
-                this._f.carry = (value & (1 << 4)) != 0;
-            }
-        }
-
-
-        internal byte a;
-        internal byte b;
-        internal byte c;
-        internal byte d;
-        internal byte e;
-        internal byte h;
-        internal byte l;
-
-        internal ushort sp;
-
-        internal ushort af
-        {
-            get
-            {
-                return (ushort)(this.a << 8 | this.f);
-            }
-            set
-            {
-                this.a = (byte)((value & 0xFF00) >> 8);
-                this.f = (byte)(value & 0xFF);
-            }
-
-        }
-
-        internal ushort bc
-        {
-            get
-            {
-                return (ushort)(this.b << 8 | this.c);
-            }
-            set
-            {
-                this.b = (byte)((value & 0xFF00) >> 8);
-                this.c = (byte)(value & 0xFF);
-            }
-        }
-
-        internal ushort de
-        {
-            get
-            {
-                return (ushort)(this.d << 8 | this.e);
-            }
-            set
-            {
-                this.d = (byte)((value & 0xFF00) >> 8);
-                this.e = (byte)(value & 0xFF);
-            }
-
-        }
-
-        internal ushort hl
-        {
-            get
-            {
-                return (ushort)(this.h << 8 | this.l);
-            }
-            set
-            {
-                this.h = (byte)((value & 0xFF00) >> 8);
-                this.l = (byte)(value & 0xFF);
-            }
-        }
-
-        public Registers(CPU cpu)
-        {
-            this.a = 0;
-            this.b = 0;
-            this.c = 0;
-            this.d = 0;
-            this.e = 0;
-
-            this.h = 0;
-            this.l = 0;
-            this.sp = 0;
-
-            this.cpu = cpu;
-        }
-    }
-
-    class FlagsRegister
-    {
-        internal bool zero;
-        internal bool negative;
-        internal bool half_carry;
-        internal bool carry;
-
-        public FlagsRegister()
-        {
-            this.zero = false;
-            this.negative = false;
-            this.half_carry = false;
-            this.carry = false;
-        }
-    }
-
     public class CPU
     {
         internal bool halted = false;
@@ -357,7 +208,7 @@ namespace DMSharp
             }
         }
 
-        bool minDebug = false;
+        public bool minDebug = false;
 
         void executeInstruction()
         {
@@ -383,19 +234,20 @@ namespace DMSharp
 
             // this.cycles += ins.cyclesOffset;
 
-            // if (this.minDebug)
-            // {
-            //     if (Disassembler.isControlFlow(ins))
-            //     {
-            //         if (Disassembler.willJump(ins, this))
-            //         {
-            //             string disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
-            //             byte to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
-            //             // this.jumpLog.unshift(`[${Util.Hex(this.pc, 4)}] ${disasm} => ${Util.Hex(to, 4)}`);
-            //             // this.jumpLog = this.jumpLog.slice(0, 100);
-            //         }
-            //     }
-            // }
+            if (this.minDebug)
+            {
+                if (Disassembler.isControlFlow(ins))
+                {
+                    if (Disassembler.willJump(ins, this))
+                    {
+                        string disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
+                        ushort to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
+                        Console.WriteLine($"[PC: {Hex(this.pc, 4)}] ${disasm}");
+                        // this.jumpLog.unshift(`[${Util.Hex(this.pc, 4)}] ${disasm} => ${Util.Hex(to, 4)}`);
+                        // this.jumpLog = this.jumpLog.slice(0, 100);
+                    }
+                }
+            }
 
 
             if (ins.length == 3)
@@ -900,21 +752,21 @@ namespace DMSharp
 
                 /** Reset Vectors */
                 case 0xC7: // RST 00h
-                    return new Instruction(Ops.RST, 1, new Options(0x00));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x00));
                 case 0xCF: // RST 08h
-                    return new Instruction(Ops.RST, 1, new Options(0x08));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x08));
                 case 0xD7: // RST 10h
-                    return new Instruction(Ops.RST, 1, new Options(0x10));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x10));
                 case 0xDF: // RST 18h
-                    return new Instruction(Ops.RST, 1, new Options(0x18));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x18));
                 case 0xE7: // RST 20h
-                    return new Instruction(Ops.RST, 1, new Options(0x20));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x20));
                 case 0xEF: // RST 28h
-                    return new Instruction(Ops.RST, 1, new Options(0x28));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x28));
                 case 0xF7: // RST 30h
-                    return new Instruction(Ops.RST, 1, new Options(0x30));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x30));
                 case 0xFF: // RST 38h
-                    return new Instruction(Ops.RST, 1, new Options(0x38));
+                    return new Instruction(Ops.RST, 1, new Options((ushort)0x38));
 
                 /** LD between A and R16 */
                 case 0x02: // LD [BC], A

@@ -44,9 +44,12 @@ namespace DMSharp
 
 
             this.clockMain += this.gb.cpu.lastInstructionCycles;
-            this.clockEnvelope1 += this.gb.cpu.lastInstructionCycles / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
-            this.clockEnvelope2 += this.gb.cpu.lastInstructionCycles / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
-            this.clockEnvelopeNoise += this.gb.cpu.lastInstructionCycles / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as need
+            if (this.pulse1.volumeEnvelopeSweep > 0)
+                this.clockEnvelope1 += this.gb.cpu.lastInstructionCycles / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
+            if (this.pulse2.volumeEnvelopeSweep > 0)
+                this.clockEnvelope2 += this.gb.cpu.lastInstructionCycles / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
+            if (this.noise.volumeEnvelopeSweep > 0)
+                this.clockEnvelopeNoise += this.gb.cpu.lastInstructionCycles / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as need
 
             // 4194304hz Divide by 65536 = 64hz
             if (this.clockMain >= CLOCK_MAIN_STEPS)
@@ -354,8 +357,9 @@ namespace DMSharp
                 case 0xFF3E:
                 case 0xFF3F:
                     var BASE = 0xFF30;
-                    this.wave.waveTable[((addr - BASE) * 2) + 0] = (byte)(value >> 4);
-                    this.wave.waveTable[((addr - BASE) * 2) + 1] = (byte)(value & 0xF);
+                    var index = ((addr - BASE) * 2);
+                    this.wave.waveTable[index + 0] = (byte)(value >> 4);
+                    this.wave.waveTable[index + 1] = (byte)(value & 0xF);
                     this.wave.waveTableUpdated = true;
                     this.wave.Update();
                     break;
