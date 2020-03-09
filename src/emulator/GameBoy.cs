@@ -13,6 +13,9 @@ namespace DMSharp
         public MemoryBus bus;
         public SoundChip soundChip;
 
+        public JoypadRegister joypad = new JoypadRegister();
+
+
         public Timer timer;
 
         public int speedMul = 1;

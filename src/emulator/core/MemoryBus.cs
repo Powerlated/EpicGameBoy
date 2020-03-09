@@ -28,9 +28,6 @@ namespace DMSharp
         public byte[] memory = Enumerable.Repeat((byte)0, 65536).ToArray();
         public byte[] bootrom = Enumerable.Repeat((byte)0, 256).ToArray();
 
-
-        public JoypadRegister joypad = new JoypadRegister();
-
         public bool bootromEnabled = true;
         public bool bootromLoaded = false;
 
@@ -132,7 +129,7 @@ namespace DMSharp
                 switch (addr)
                 {
                     case 0xFF00: // Joypad write
-                        this.joypad.numerical = value;
+                        this.gb.joypad.numerical = value;
                         break;
                     case 0xFF01:
                         // console.info("[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: " + hex(value, 2));
@@ -282,7 +279,7 @@ namespace DMSharp
                 {
                     case 0xFF00: // Joypad read
                                  // Util.WriteDebug("Polled joypad")
-                        return (byte)(this.joypad.numerical | 0b11000000);
+                        return (byte)(this.gb.joypad.numerical | 0b11000000);
                     case 0xFF01:
                         // console.info("SERIAL PORT READ");
                         return 0xFF;

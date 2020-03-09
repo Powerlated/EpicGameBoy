@@ -13,7 +13,7 @@ namespace DMSharpEmulator
             // var b = getByteArrayFromFile(filename2);
             //  Array.Copy(b, gb.bus.bootrom, b.Length);
 
-            var gamePath = "./pocket.gb";
+            var gamePath = "./pokeyellow.gbc";
             var c = getByteArrayFromFile(gamePath);
             gb.bus.ext.ReplaceRom(c);
 

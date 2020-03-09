@@ -260,7 +260,7 @@ namespace DMSharp
                 var mapIndex = (((this.lcdcY - this.windowYpos) >> 3) * 32) & 1023;
                 var mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-                var tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
+                int tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
 
                 var canvasIndex = 160 * 3 * (this.lcdcY);
 
@@ -278,15 +278,13 @@ namespace DMSharp
                             tileOffset = 256;
                             if (tile > 127)
                             {
-                                tile = (byte)(tile - 256);
+                                tile = tile - 256;
                             }
                         }
 
                         var pixel = shades[this.tileset[tile + tileOffset, y, x]];
-                        // Re-map the tile pixel through the palette
+                        // Re-map the tile pixel through the pavarte
                         var c = colors[pixel];
-
-                        if (!this.lcdControl.bgWindowEnable0) c = new byte[] { 0xFF, 0xFF, 0xFF };
 
                         // Plot the pixel to canvas
                         this.imageGameboy[canvasIndex + 0] = c[0];

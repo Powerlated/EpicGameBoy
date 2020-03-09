@@ -42,12 +42,58 @@ namespace DMSharpEmulator
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             KeyboardState input = Keyboard.GetState();
+
+            if (input.IsKeyUp(Key.Z))
+                gb.joypad.b = false;
+            if (input.IsKeyUp(Key.X))
+                gb.joypad.a = false;
+            if (input.IsKeyUp(Key.Enter))
+                gb.joypad.start = false;
+            if (input.IsKeyUp(Key.BackSpace))
+                gb.joypad.select = false;
+            if (input.IsKeyUp(Key.Left))
+                gb.joypad.left = false;
+            if (input.IsKeyUp(Key.Up))
+                gb.joypad.up = false;
+            if (input.IsKeyUp(Key.Right))
+                gb.joypad.right = false;
+            if (input.IsKeyUp(Key.Down))
+                gb.joypad.down = false;
+
+            if (input.IsKeyDown(Key.Z))
+                gb.joypad.b = true;
+            if (input.IsKeyDown(Key.X))
+                gb.joypad.a = true;
+            if (input.IsKeyDown(Key.Enter))
+                gb.joypad.start = true;
+            if (input.IsKeyDown(Key.BackSpace))
+                gb.joypad.select = true;
+            if (input.IsKeyDown(Key.Left))
+                gb.joypad.left = true;
+            if (input.IsKeyDown(Key.Up))
+                gb.joypad.up = true;
+            if (input.IsKeyDown(Key.Right))
+                gb.joypad.right = true;
+            if (input.IsKeyDown(Key.Down))
+                gb.joypad.down = true;
+
+
             gb.frame();
+
+
+
+
 
             if (input.IsKeyDown(Key.Escape))
             {
                 Exit();
             }
+
+            if (input.IsKeyDown(Key.ControlLeft) && input.IsKeyDown(Key.R))
+            {
+                gb.Reset();
+            }
+
             base.OnUpdateFrame(e);
         }
 
