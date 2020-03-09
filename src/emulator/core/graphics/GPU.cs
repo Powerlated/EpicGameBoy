@@ -48,7 +48,8 @@ namespace DMSharp
 
         public bool showBorders = false;
 
-        public byte[] imageGameboy = new byte[160 * 144 * 4];
+        public byte[] imageGameboy = new byte[160 * 144 * 3];
+        public byte[] imageGameboyOut = new byte[160 * 144 * 3];
 
         // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
         public void Step()
@@ -70,8 +71,7 @@ namespace DMSharp
                             this.gb.interrupts.requestLCDstatus();
                         }
 
-                        if ((this.totalFrameCount % this.gb.speedMul) == 0)
-                            this.renderScanline();
+                        this.renderScanline();
 
                         if (this.modeClock >= 80)
                         {
@@ -116,11 +116,7 @@ namespace DMSharp
                                     this.gb.interrupts.requestLCDstatus();
                                 }
 
-                                // Draw to the canvas
-                                if ((this.totalFrameCount % this.gb.speedMul) == 0)
-                                {
-                                    // this.canvas.drawGameboy();
-                                }
+                                Array.Copy(this.imageGameboy, this.imageGameboyOut, imageGameboy.Length);
                             }
                             else
                             {
@@ -195,7 +191,7 @@ namespace DMSharp
 
             int tile = this.vram[mapOffset + lineOffset]; // Add line offset to get correct starting tile
 
-            var canvasIndex = 160 * 4 * (this.lcdcY);
+            var canvasIndex = 160 * 3 * (this.lcdcY);
 
             var xPos = this.windowXpos - 7;
             // Loop through every single horizontal pixel for this line 
@@ -223,7 +219,6 @@ namespace DMSharp
                 this.imageGameboy[canvasIndex + 0] = c[0];
                 this.imageGameboy[canvasIndex + 1] = c[1];
                 this.imageGameboy[canvasIndex + 2] = c[2];
-                this.imageGameboy[canvasIndex + 3] = 255;
 
 
                 // Scroll X/Y debug
@@ -232,10 +227,9 @@ namespace DMSharp
                     this.imageGameboy[canvasIndex + 0] = 0xFF;
                     this.imageGameboy[canvasIndex + 1] = 0;
                     this.imageGameboy[canvasIndex + 2] = 0;
-                    this.imageGameboy[canvasIndex + 3] = 255;
                 }
 
-                canvasIndex += 4;
+                canvasIndex += 3;
 
                 // When this tile ends, read another
                 x++;
@@ -268,7 +262,7 @@ namespace DMSharp
 
                 var tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
 
-                var canvasIndex = 160 * 4 * (this.lcdcY);
+                var canvasIndex = 160 * 3 * (this.lcdcY);
 
                 var shades = this.bgPaletteData.shades;
 
@@ -298,8 +292,6 @@ namespace DMSharp
                         this.imageGameboy[canvasIndex + 0] = c[0];
                         this.imageGameboy[canvasIndex + 1] = c[1];
                         this.imageGameboy[canvasIndex + 2] = c[2];
-                        this.imageGameboy[canvasIndex + 3] = 255;
-
 
                         // Window X debug
                         if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0)))
@@ -307,9 +299,8 @@ namespace DMSharp
                             this.imageGameboy[canvasIndex + 0] = 0;
                             this.imageGameboy[canvasIndex + 1] = 0;
                             this.imageGameboy[canvasIndex + 2] = 0xFF;
-                            this.imageGameboy[canvasIndex + 3] = 255;
                         }
-                        canvasIndex += 4;
+                        canvasIndex += 3;
 
                         // When this tile ends, read another
                         x++;
@@ -377,7 +368,7 @@ namespace DMSharp
                                 var pixelX = flags.xFlip ? 7 - x : x;
                                 var pixelY = flags.yFlip ? 7 - y : y;
 
-                                var canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+                                var canvasIndex = ((screenYPos * 160) + screenXPos) * 3;
 
                                 // Offset tile by +1 if rendering the top half of an 8x16 sprite
                                 var prePalette = this.tileset[tile + ((h / 8) - 1), pixelY, pixelX];
@@ -393,7 +384,6 @@ namespace DMSharp
                                     this.imageGameboy[canvasIndex + 0] = c[0];
                                     this.imageGameboy[canvasIndex + 1] = c[1];
                                     this.imageGameboy[canvasIndex + 2] = c[2];
-                                    this.imageGameboy[canvasIndex + 3] = 255;
                                 }
 
                                 // Border debug
@@ -404,14 +394,12 @@ namespace DMSharp
                                         this.imageGameboy[canvasIndex + 0] = 0xFF;
                                         this.imageGameboy[canvasIndex + 1] = 0;
                                         this.imageGameboy[canvasIndex + 2] = 0xFF;
-                                        this.imageGameboy[canvasIndex + 3] = 255;
                                     }
                                     else
                                     {
                                         this.imageGameboy[canvasIndex + 0] = 0;
                                         this.imageGameboy[canvasIndex + 1] = 0xFF;
                                         this.imageGameboy[canvasIndex + 2] = 0;
-                                        this.imageGameboy[canvasIndex + 3] = 255;
                                     }
                                 }
                             }

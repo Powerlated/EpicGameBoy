@@ -7,26 +7,25 @@ namespace DMSharpEmulator
 {
     class DMSharpEmulator
     {
+        static GameBoy gb = new GameBoy();
         public static void Main(string[] args)
         {
+            // var b = getByteArrayFromFile(filename2);
+            //  Array.Copy(b, gb.bus.bootrom, b.Length);
 
-            using (Game game = new Game(160 * 2, 144 * 2, "DMSharp"))
+            var gamePath = "./pokeyellow.gbc";
+            var c = getByteArrayFromFile(gamePath);
+            gb.bus.ext.ReplaceRom(c);
+
+            using (Game game = new Game(160 * 4, 144 * 4, "DMSharp", gb))
             {
                 //Run takes a double, which is how many frames per second it should strive to reach.
                 //You can leave that out and it'll just update as fast as the hardware will allow it.
-                game.Run(60.0);
+                game.VSync = OpenTK.VSyncMode.On;
+                game.Run(60.0, 60.0);
             }
-            // var filename = "./gb-test-roms/cpu_instrs/cpu_instrs.gb";
-            // // var filename = "./gb-test-roms/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb";
+            // gb.cpu.minDebug = true;
 
-            // var filename2 = "./dmg_boot.bin";
-
-            // var c = getByteArrayFromFile(filename);
-            // var b = getByteArrayFromFile(filename2);
-            // var gb = new GameBoy();
-            // gb.bus.ext.ReplaceRom(c);
-            // // gb.cpu.minDebug = true;
-            // Array.Copy(b, gb.bus.bootrom, b.Length);
             // gb.bus.bootromLoaded = false;
             // // gb.cpu.logging = true;
             // // gb.cpu.debugging = true;

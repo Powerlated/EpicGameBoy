@@ -50,10 +50,16 @@ public class Shader : IDisposable
         GL.AttachShader(Handle, FragmentShader);
 
         GL.LinkProgram(Handle);
+
     }
     public void Use()
     {
         GL.UseProgram(Handle);
+    }
+
+    public int GetAttribLocation(string attribName)
+    {
+        return GL.GetAttribLocation(Handle, attribName);
     }
 
     private bool disposedValue = false;

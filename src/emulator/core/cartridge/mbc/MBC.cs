@@ -41,7 +41,7 @@ namespace DMSharp
         public void writeBankRam(ushort addr, byte value, byte bank)
         {
             var calculated = this.calcBankAddrRam(addr, bank);
-            this.externalRam[calculated] = value;
+            this.externalRam[calculated % 32768] = value;
             this.externalRamDirtyBytes++;
         }
 
