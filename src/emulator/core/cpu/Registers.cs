@@ -54,11 +54,11 @@ namespace DMSharp
         {
             get
             {
-                return (ushort)(this.a << 8 | this.f);
+                return (ushort)((this.a << 8) | this.f);
             }
             set
             {
-                this.a = (byte)((value & 0xFF00) >> 8);
+                this.a = (byte)(value >> 8);
                 this.f = (byte)(value & 0xFF);
             }
 
@@ -68,11 +68,11 @@ namespace DMSharp
         {
             get
             {
-                return (ushort)(this.b << 8 | this.c);
+                return (ushort)((this.b << 8) | this.c);
             }
             set
             {
-                this.b = (byte)((value & 0xFF00) >> 8);
+                this.b = (byte)(value >> 8);
                 this.c = (byte)(value & 0xFF);
             }
         }
@@ -81,11 +81,11 @@ namespace DMSharp
         {
             get
             {
-                return (ushort)(this.d << 8 | this.e);
+                return (ushort)((this.d << 8) | this.e);
             }
             set
             {
-                this.d = (byte)((value & 0xFF00) >> 8);
+                this.d = (byte)(value >> 8);
                 this.e = (byte)(value & 0xFF);
             }
 
@@ -95,11 +95,11 @@ namespace DMSharp
         {
             get
             {
-                return (ushort)(this.h << 8 | this.l);
+                return (ushort)((this.h << 8) | this.l);
             }
             set
             {
-                this.h = (byte)((value & 0xFF00) >> 8);
+                this.h = (byte)(value >> 8);
                 this.l = (byte)(value & 0xFF);
             }
         }

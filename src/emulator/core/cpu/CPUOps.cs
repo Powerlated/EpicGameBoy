@@ -118,7 +118,7 @@ namespace DMSharp
             cpu._r.sp = (ushort)(cpu._r.sp - 1);
             cpu.WriteMem8(cpu._r.sp, pcLowerByte);
 
-            cpu.pc = (byte)(opts.numtype - 1);
+            cpu.pc = (ushort)(opts.numtype - 1);
 
             cpu.cycles += 4;
         }
@@ -164,7 +164,7 @@ namespace DMSharp
 
         public static void LD_iR16_A(CPU cpu, Options opts)
         {
-            cpu.WriteMem8(cpu.getReg16((R16)opts.r16), cpu._r.a);
+            cpu.WriteMem8(cpu.getReg16(opts.r16), cpu._r.a);
         }
 
         // Store value in register A into address opts.imm16
@@ -179,7 +179,7 @@ namespace DMSharp
         {
             ushort value = cpu.getReg16(opts.r16);
             byte upperByte = (byte)(value >> 8);
-            byte lowerByte = (byte)(value & 0b11111111);
+            byte lowerByte = (byte)(value & 0xFF);
 
             cpu._r.sp = (ushort)(cpu._r.sp - 1);
             cpu.WriteMem8(cpu._r.sp, upperByte);
@@ -192,11 +192,11 @@ namespace DMSharp
         public static void POP_R16(CPU cpu, Options opts)
         {
             byte lowerByte = cpu.FetchMem8(cpu._r.sp);
-            cpu._r.sp = (byte)(cpu._r.sp + 1);
+            cpu._r.sp = (ushort)(cpu._r.sp + 1);
             byte upperByte = cpu.FetchMem8(cpu._r.sp);
-            cpu._r.sp = (byte)(cpu._r.sp + 1);
+            cpu._r.sp = (ushort)(cpu._r.sp + 1);
 
-            cpu.setReg16(opts.r16, (byte)((upperByte << 8) | lowerByte));
+            cpu.setReg16(opts.r16, (ushort)((upperByte << 8) | lowerByte));
         }
 
         // CALL opts.imm16 - 0xCD
@@ -252,7 +252,7 @@ namespace DMSharp
             byte stackLowerByte = cpu.FetchMem8((cpu._r.sp++));
             byte stackUpperByte = cpu.FetchMem8((cpu._r.sp++));
 
-            byte returnAddress = (byte)(((stackUpperByte << 8) | stackLowerByte) - 1);
+            ushort returnAddress = (ushort)(((stackUpperByte << 8) | stackLowerByte) - 1);
             // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
             cpu.pc = returnAddress;
@@ -294,7 +294,7 @@ namespace DMSharp
         public static void LD_iFF00plusN8_A(CPU cpu, Options opts)
         {
             byte value = cpu._r.a;
-            cpu.WriteMem8((byte)(0xFF00 + opts.imm8), value);
+            cpu.WriteMem8((ushort)(0xFF00 + opts.imm8), value);
             // writeDebug(0xFF00 + u8);
         }
 
@@ -302,7 +302,7 @@ namespace DMSharp
         public static void LD_iFF00plusC_A(CPU cpu, Options opts)
         {
             byte value = cpu._r.a;
-            cpu.WriteMem8((byte)(0xFF00 + cpu._r.c), value);
+            cpu.WriteMem8((ushort)(0xFF00 + cpu._r.c), value);
         }
 
         public static void LD_R8_N8(CPU cpu, Options opts)
@@ -474,7 +474,7 @@ namespace DMSharp
             ushort r16Value = cpu.getReg16(opts.r16);
 
             ushort newValue = (ushort)(r16Value + cpu._r.hl);
-            bool didOverflow = (r16Value + cpu._r.hl) > 0xFF;
+            bool didOverflow = (r16Value + cpu._r.hl) > 0xFFFF;
 
             // Set flag
             cpu._r._f.negative = false;

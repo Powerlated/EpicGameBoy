@@ -1,4 +1,7 @@
+using System.Runtime.InteropServices;
+using System.Data;
 using System.Collections.Generic;
+using System.Text;
 using System;
 using static Util;
 
@@ -11,9 +14,9 @@ namespace DMSharp
 
         internal GameBoy gb;
 
-        bool logging = false;
-        string[] log = new string[] { };
-        string[] fullLog = new string[] { };
+        public bool logging = false;
+        public List<string> log = new List<string>();
+        public List<string> fullLog = new List<string>();
 
         // jumpLog: Array<string> = [];
 
@@ -130,8 +133,7 @@ namespace DMSharp
             this.checkBootrom();
 
             // Run the debug information collector
-            // if (this.debugging)
-            // this.stepDebug();
+            this.stepDebug();
 
             if (this.halted == false)
             {
@@ -229,7 +231,7 @@ namespace DMSharp
 
             // if (ins.op == null)
             // {
-            //     alert($"Implementation error: { (isCB ? Util.Hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : Util.Hex(this.gb.bus.readMem8(this.pc), 2))} is a null op");
+            //     alert($"Implementation error: { (isCB ? Util.Hex((0xCB << 8 | this.gb.bus.ReadMem8(this.pc + 1)), 4) : Util.Hex(this.gb.bus.ReadMem8(this.pc), 2))} is a null op");
             // }
 
             // this.cycles += ins.cyclesOffset;
@@ -242,8 +244,8 @@ namespace DMSharp
                     {
                         string disasm = Disassembler.disassembleOp(ins, pcTriplet, this.pc, this);
                         ushort to = Disassembler.willJumpTo(ins, pcTriplet, this.pc, this);
-                        Console.WriteLine($"[PC: {Hex(this.pc, 4)}] ${disasm}");
-                        // this.jumpLog.unshift(`[${Util.Hex(this.pc, 4)}] ${disasm} => ${Util.Hex(to, 4)}`);
+                        Console.WriteLine($"[PC: {Hex(this.pc, 4)}] {disasm} -> {Hex(to, 4)}");
+                        // this.jumpLog.unshift(`[{Util.Hex(this.pc, 4)}] {disasm} => {Util.Hex(to, 4)}`);
                         // this.jumpLog = this.jumpLog.slice(0, 100);
                     }
                 }
@@ -270,7 +272,6 @@ namespace DMSharp
             if (!this.haltBug)
             {
                 this.pc = (ushort)(this.pc + ins.length);
-                this.pc &= 0xFFFF;
             }
 
             this.totalI++;
@@ -330,113 +331,107 @@ namespace DMSharp
             }
         }
 
-        /* 
-            stepDebug()
+
+        void stepDebug()
+        {
+            byte[] pcTriplet = {
+                this.gb.bus.ReadMem8(this.pc),
+                this.gb.bus.ReadMem8((ushort)(this.pc + 1)),
+                this.gb.bus.ReadMem8((ushort)(this.pc + 2))
+            };
+
+            var isCB = this.gb.bus.ReadMem8(this.pc) == 0xCB;
+
+            var ins = isCB ? this.cbOpcode(this.gb.bus.ReadMem8((ushort)(this.pc + 1))) : this.rgOpcode(this.gb.bus.ReadMem8(this.pc));
+
+            var opcode = isCB ? this.gb.bus.ReadMem8((ushort)(this.pc + 1)) : this.gb.bus.ReadMem8(this.pc);
+
+            if (opcode == this.lastOpcode)
             {
-                let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
+                this.lastOpcodeReps++;
+            }
+            else
+            {
+                this.lastOpcodeReps = 0;
+            }
+            this.lastOpcode = opcode;
 
-                let ins = isCB ? this.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : this.rgOpcode(this.gb.bus.readMem8(this.pc));
+            // if ((ins.op.length == 1 && (!ins.type)) || (ins.op.length == 2 && (!ins.type || !ins.type2))) {
+            //     alert("[Arg length 1 || 2] Implementation error: {ins.op.name} 0x{this.fetchMem8(this.pc).toString(16)}");
+            // }
+            // if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
+            //     alert("[Arg length 3] Implementation error: {ins.op.name} 0x{this.fetchMem8(this.pc).toString(16)}");
+            // }
 
-                if (!ins.op)
+            var insDebug = "";
+            var operandDebug = "";
+
+
+            if (this.debugging)
+            {
+                Util.WriteDebug($"PC: {this.pc}");
+                Util.WriteDebug($"[OPcode: {Util.Hex(this.gb.bus.ReadMem16((ushort)this.pc), 2)}, OP: {ins.executor.Method.Name}] {(isCB ? "[0xCB Prefix] " : "")} Executing op: " + Hex(this.gb.bus.ReadMem8(this.pc), 2));
+                Util.WriteDebug("Instruction " + ins.length);
+            }
+
+            if (this.debugging || this.logging)
+            {
+                if (ins.length == 3)
                 {
-                    alert($"[DEBUGGER] Implementation error: ${ (isCB ? Util.Hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : Util.Hex(this.gb.bus.readMem8(this.pc), 2))} is a null op");
+                    insDebug = $"{HexN_LC(this.gb.bus.ReadMem8(this.pc), 2)} {HexN_LC(this.gb.bus.ReadMem8((ushort)(this.pc + 1)), 2)} {HexN_LC(this.gb.bus.ReadMem8((ushort)(this.pc + 2)), 2)}";
+                    operandDebug = $"{Util.Hex(this.gb.bus.ReadMem16((ushort)(this.pc + 1)), 4)}";
                 }
-
-                let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
-
-                if (opcode == this.lastOpcode)
+                else if (ins.length == 2)
                 {
-                    this.lastOpcodeReps++;
+                    insDebug = $"{HexN_LC(this.gb.bus.ReadMem8(this.pc), 2)} {HexN_LC(this.gb.bus.ReadMem8((ushort)(this.pc + 1)), 2)} ..";
+                    operandDebug = $"{Util.Hex(this.gb.bus.ReadMem8((ushort)(this.pc + 1)), 2)}";
                 }
                 else
                 {
-                    this.lastOpcodeReps = 0;
+                    insDebug = $"{HexN_LC(this.gb.bus.ReadMem8(this.pc), 2)} .. ..";
                 }
-                this.lastOpcode = opcode;
-
-                if (!ins)
-                {
-                    console.error("Reading error at: 0x" + this.pc.toString(16));
-                }
-
-                if (ins.length == undefined)
-                {
-                    alert($"[{ins.op.name}] Op has no length specified.`");
-                }
-
-                // if ((ins.op.length == 1 && (!ins.type)) || (ins.op.length == 2 && (!ins.type || !ins.type2))) {
-                //     alert(`[Arg length 1 || 2] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
-                // }
-                // if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
-                //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
-                // }
-
-                let insDebug = "";
-                let operandDebug = "";
-
-
-                if (this.debugging)
-                {
-                    console.debug(`PC: ${ this.pc}`);
-                    Debug.WriteDebug(`[OPcode: ${ Util.Hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ ins.op.name}] ${ isCB ? "[0xCB Prefix] " : ""}
-                    Executing op: 0x` +pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
-                    Debug.WriteDebug("Instruction " ) ins.length);
-                }
-
-                if (this.debugging || this.logging)
-                {
-                    if (ins.length == 3)
-                    {
-                        insDebug = `${ hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${ hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ${ hexN_LC(this.gb.bus.readMem8(this.pc + 2), 2)}`;
-                        operandDebug = `${ Util.Hex(this.gb.bus.readMem16(this.pc + 1), 4)}`;
-                    }
-                    else if (ins.length == 2)
-                    {
-                        insDebug = `${ hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${ hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)}
-                        ..`;
-                        operandDebug = `${ Util.Hex(this.gb.bus.readMem8(this.pc + 1), 2)}`;
-                    }
-                    else
-                    {
-                        insDebug = `${ hexN_LC(this.gb.bus.readMem8(this.pc), 2)}
-                        ....`;
-                    }
-                    this.currentIns = `${ ins.op.name} ${ ins.type == undefined ? "" : ins.type}${ ins.type2 == undefined ? "" : ins.type2}`;
-                }
-
-                if (this.logging)
-                {
-
-                    let flags = `${ this._r._f.zero ? 'Z' : '-'}${ this._r._f.negative ? 'N' : '-'}${ this._r._f.half_carry ? 'H' : '-'}${ this._r._f.carry ? 'C' : '-'}`;
-
-                    // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
-                    // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
-
-                    this.log.push(`A:${ hexN(this._r.a, 2)}
-                F:${ flags}
-                BC:${ hexN(this._r.bc, 4)}
-                DE:${ hexN_LC(this._r.de, 4)}
-                HL:${
-                        hexN_LC(this._r.hl, 4)
-                            }
-                SP:${ hexN_LC(this._r.sp, 4)}
-                PC:${ hexN_LC(this.pc, 4)}`);
-                    this.fullLog.push(`A:${ hexN(this._r.a, 2)}
-                F:${ flags}
-                BC:${ hexN(this._r.bc, 4)}
-                DE:${ hexN_LC(this._r.de, 4)}
-                HL:${
-                        hexN_LC(this._r.hl, 4)
-                            }
-                SP:${ hexN_LC(this._r.sp, 4)}
-                PC:${ hexN_LC(this.pc, 4)}
-                    (cy: ${ this.cycles}) |[00]0x${ hexN_LC(this.pc, 4)}: ${ r_pad(insDebug, 8, ' ')} ${ this.currentIns} ${ operandDebug}`);
-                }
-
-                this.lastOperandDebug = operandDebug;
-                this.lastInstructionDebug = insDebug;
+                this.currentIns = $"{ins.executor.Method.Name} {(ins.opts.r8 == R8.NONE ? "" : ins.opts.r8.ToString())}{(ins.opts.r8_2 == R8.NONE ? "" : ins.opts.r8_2.ToString())}";
             }
-         */
+
+            if (this.logging)
+            {
+
+                var flags = $"{(this._r._f.zero ? 'Z' : '-')}{(this._r._f.negative ? 'N' : '-')}{(this._r._f.half_carry ? 'H' : '-')}{(this._r._f.carry ? 'C' : '-')}";
+
+                // this.log.push("A:{HexN(this._r.a, 2)} F:{flags} BC:{HexN(this._r.bc, 4)} DE:{HexN_LC(this._r.de, 4)} HL:{HexN_LC(this._r.hl, 4)
+                // } SP:{HexN_LC(this._r.sp, 4)} PC:{HexN_LC(this.pc, 4)} (cy: {this.cycles})");
+
+                var sb1 = new StringBuilder();
+                sb1.Append($"A:{HexN(this._r.a, 2)} ");
+                sb1.Append($"F:{flags} ");
+                sb1.Append($"BC:{HexN(this._r.bc, 4)} ");
+                sb1.Append($"DE:{HexN_LC(this._r.de, 4)} ");
+                sb1.Append($"HL:{HexN_LC(this._r.hl, 4)} ");
+                sb1.Append($"SP:{HexN_LC(this._r.sp, 4)} ");
+                sb1.Append($"PC:{HexN_LC(this.pc, 4)} ");
+                sb1.Append(Disassembler.disassembleOp(ins, pcTriplet, this.pc, this));
+                this.log.Add(sb1.ToString());
+
+                var sb2 = new StringBuilder();
+                sb2.Append($"A:{HexN(this._r.a, 2)} ");
+                sb2.Append($"F:{flags} ");
+                sb2.Append($"BC:{HexN(this._r.bc, 4)} ");
+                sb2.Append($"DE:{HexN_LC(this._r.de, 4)} ");
+                sb2.Append($"HL:{HexN_LC(this._r.hl, 4)} ");
+                sb2.Append($"SP:{HexN_LC(this._r.sp, 4)} ");
+                sb2.Append($"PC:{HexN_LC(this.pc, 4)} ");
+                sb2.Append($"(ins: {this.totalI}) ");
+                sb2.Append($"|[00]0x{ HexN_LC(this.pc, 4)}: ");
+                sb2.Append($"{RightPad(insDebug, 8, ' ')} ");
+                sb2.Append($"{this.currentIns} ");
+                sb2.Append($"{operandDebug}");
+                this.fullLog.Add(sb2.ToString());
+            }
+
+            this.lastOperandDebug = operandDebug;
+            this.lastInstructionDebug = insDebug;
+        }
+
         void jumpToInterrupt(ushort vector)
         {
             byte pcUpperByte = (byte)((this.pc) >> 8);
@@ -484,7 +479,7 @@ namespace DMSharp
                 case R8.H: return this._r.h;
                 case R8.L: return this._r.l;
                 case R8.iHL: return this.FetchMem8(this._r.hl);
-                default: return 0xFF;
+                default: throw new ArgumentException();
             }
         }
 
@@ -497,7 +492,7 @@ namespace DMSharp
                 case R16.DE: return this._r.de;
                 case R16.HL: return this._r.hl;
                 case R16.SP: return this._r.sp;
-                default: return 0xFF;
+                default: throw new ArgumentException();
             }
         }
 
@@ -513,6 +508,7 @@ namespace DMSharp
                 case R8.H: this._r.h = i; break;
                 case R8.L: this._r.l = i; break;
                 case R8.iHL: this.WriteMem8(this._r.hl, i); break;
+                default: throw new ArgumentException();
             }
         }
 
@@ -533,8 +529,8 @@ namespace DMSharp
 
             Executor e = Ops.LD_HL_SPaddE8;
             int upperNybble = id >> 4;
-            int lowerNybble = id & 0b1111;
 
+            int lowerNybble = id & 0b1111;
             switch (id)
             {
                 /** JR */
@@ -683,13 +679,13 @@ namespace DMSharp
                     return new Instruction(Ops.ADD_SP_E8, 2);
 
                 /** A rotate */
-                case 0x07: // RLC A
+                case 0x07: // RLCA
                     return new Instruction(Ops.RLCA, 1);
-                case 0x0F: // RRC A
+                case 0x0F: // RRCA
                     return new Instruction(Ops.RRCA, 1);
-                case 0x1F: // RR A
+                case 0x1F: // RRA
                     return new Instruction(Ops.RRA, 1);
-                case 0x17: // RL A
+                case 0x17: // RLA
                     return new Instruction(Ops.RLA, 1);
 
                 /** A ops */
@@ -926,7 +922,7 @@ namespace DMSharp
             }
 
 
-            return new Instruction(op, 2, new Options(type));
+            return new Instruction(op, 2, new Options(type, (ushort)bit));
         }
     }
 }

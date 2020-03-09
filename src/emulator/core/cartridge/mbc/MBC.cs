@@ -8,9 +8,9 @@ namespace DMSharp
         public static int romBankSize = 16384;
         public static int ramBankSize = 8192;
 
-        public byte calcBankAddrRom(ushort addr, ushort bank)
+        public int calcBankAddrRom(ushort addr, ushort bank)
         {
-            return (byte)((bank * MBC.romBankSize) + (addr - 0x4000));
+            return (bank * MBC.romBankSize) + (addr - 0x4000);
         }
 
         public byte readBank(ushort addr, ushort bank)
@@ -45,9 +45,9 @@ namespace DMSharp
             this.externalRamDirtyBytes++;
         }
 
-        public byte calcBankAddrRam(ushort addr, byte bank)
+        public int calcBankAddrRam(ushort addr, byte bank)
         {
-            return (byte)((bank * MBC.ramBankSize) + (addr - 0xA000));
+            return (bank * MBC.ramBankSize) + (addr - 0xA000);
         }
     }
 }

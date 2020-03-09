@@ -27,11 +27,16 @@ static class Util
 
     public static string Hex(long i, int digits)
     {
-        return $"0x{Pad(i.ToString("X"), digits, '0').ToUpper()}";
+        return $"0x{i.ToString("X").ToUpper().PadLeft(digits, '0')}";
     }
 
     public static string HexN(long i, int digits)
     {
-        return $"{Pad(i.ToString("X"), digits, '0').ToUpper()}";
+        return i.ToString("X").ToUpper().PadLeft(digits, '0');
+    }
+
+    public static string HexN_LC(long i, int digits)
+    {
+        return i.ToString("X").ToLower().PadLeft(digits, '0');
     }
 }

@@ -26,7 +26,8 @@ class Disassembler
             Ops.RET,
             Ops.RETI,
             Ops.RST,
-            Ops.JR_E8};
+            Ops.JR_E8
+        };
         return allowed.Contains(ins.executor);
     }
 
@@ -60,34 +61,36 @@ class Disassembler
 
     public static string disassembleOp(Instruction ins, byte[] pcTriplet, ushort disasmPc, CPU cpu)
     {
+        var dict = new Dictionary<Executor, string[]>();
+        string LD = "LD";
+        string RST = "RST";
+        string CP = "CP";
+        string ADC = "ADC";
+        var doublet = pcTriplet[1] | pcTriplet[2] << 8;
+        dict.Add(Ops.LD_iHLdec_A, new[] { LD, $"(HL-),A" });
+        dict.Add(Ops.LD_iHLinc_A, new[] { LD, $"(HL+),A" });
+        dict.Add(Ops.LD_iFF00plusC_A, new[] { LD, $"($FF00+C),A" });
+        dict.Add(Ops.LD_iFF00plusN8_A, new[] { LD, $"($FF00 +${ HexN(pcTriplet[1], 2)}),A" });
+        dict.Add(Ops.LD_A_iFF00plusC, new[] { LD, $"A,($FF00+C)" });
+        dict.Add(Ops.LD_A_iFF00plusN8, new[] { LD, $"A, ($FF00 +${ HexN(pcTriplet[1], 2)})" });
+        dict.Add(Ops.LD_R8_R8, new[] { LD, $"{ins.opts.r8.ToString()},{ins.opts.r8_2.ToString()}" });
+        dict.Add(Ops.LD_A_iR16, new[] { LD, $"A, ({ins.opts.r16})" });
+        dict.Add(Ops.LD_iR16_A, new[] { LD, $"({ins.opts.r16}), A" });
+        dict.Add(Ops.CP_A_N8, new[] { CP, $"${ HexN(pcTriplet[1], 2)}" });
+        dict.Add(Ops.ADC_A_R8, new[] { ADC, $"A,${ HexN(pcTriplet[1], 2)}" });
+        dict.Add(Ops.LD_iN16_SP, new[] { LD, $"(${ HexN(doublet, 4)}),SP" });
+        dict.Add(Ops.LD_A_iHLinc, new[] { LD, $"A,(HL+)" });
+        dict.Add(Ops.LD_iN16_A, new[] { LD, $"(${ HexN(doublet, 4)}),A" });
+        dict.Add(Ops.LD_HL_SPaddE8, new[] { LD, $"HL, (SP +{(ushort)(pcTriplet[1])})" });
+        dict.Add(Ops.LD_R16_N16, new[] {LD, $"{ins.opts.r16}, ${HexN(doublet, 4)}"});
+        dict.Add(Ops.JP_HL, new[] { "JP", "HL" });
+        dict.Add(Ops.ADD_HL_R16, new[] { "ADD HL,", ins.opts.r16.ToString() });
+
         (string[] decoded, bool success) HARDCODE_DECODE(Instruction ins, byte[] pcTriplet)
         {
-            var dict = new Dictionary<Executor, string[]>();
-            string LD = "LD";
-            string RST = "RST";
-            string CP = "CP";
-            string ADC = "ADC";
-            var doublet = pcTriplet[1] | pcTriplet[2] << 8;
-            dict.Add(Ops.LD_iHLdec_A, new[] { LD, $"(HL-),A" });
-            dict.Add(Ops.LD_iHLinc_A, new[] { LD, $"(HL+),A" });
-            dict.Add(Ops.LD_iFF00plusC_A, new[] { LD, $"($FF00+C),A" });
-            dict.Add(Ops.LD_iFF00plusN8_A, new[] { LD, $"($FF00 +${ HexN(pcTriplet[1], 2)}),A" });
-            dict.Add(Ops.LD_A_iFF00plusC, new[] { LD, $"A,($FF00+C)" });
-            dict.Add(Ops.LD_A_iFF00plusN8, new[] { LD, $"A, ($FF00 +${ HexN(pcTriplet[1], 2)})" });
-            dict.Add(Ops.LD_R8_R8, new[] { LD, $"{ins.opts.r8.ToString()},{ins.opts.r8_2.ToString()}" });
-            dict.Add(Ops.LD_A_iR16, new[] { LD, $"A, ({ins.opts.r8})" });
-            dict.Add(Ops.CP_A_N8, new[] { CP, $"${ HexN(pcTriplet[1], 2)}" });
-            dict.Add(Ops.ADC_A_R8, new[] { ADC, $"A,${ HexN(pcTriplet[1], 2)}" });
-            dict.Add(Ops.LD_iN16_SP, new[] { LD, $"(${ HexN(doublet, 4)}),SP" });
-            dict.Add(Ops.LD_A_iHLinc, new[] { LD, $"A,(HL+)" });
-            dict.Add(Ops.LD_iN16_A, new[] { LD, $"(${ HexN(doublet, 4)}),A" });
-            dict.Add(Ops.LD_HL_SPaddE8, new[] { LD, $"HL, (SP +{(ushort)(pcTriplet[1])})" });
-            dict.Add(Ops.JP_HL, new[] { "JP", "HL" });
-            dict.Add(Ops.ADD_HL_R16, new[] { "ADD HL,", ins.opts.r16.ToString() });
-
             if (dict.ContainsKey(ins.executor))
             {
-                return (dict[ins.executor], false);
+                return (dict[ins.executor], true);
             }
             return (new[] { "???", "???" }, false);
         }
@@ -98,9 +101,11 @@ class Disassembler
 
         var t1 = ins.opts.r8;
         var t2 = ins.opts.r8_2;
-    
+
         var t1s = ins.opts.r8.ToString();
         var t2s = ins.opts.r8_2.ToString();
+        var r16 = ins.opts.r16;
+        var n = ins.opts.numtype;
 
 
         var operandAndType = "";
@@ -108,23 +113,27 @@ class Disassembler
         // Detect bottom 3/4 of 0xCB table
         if (isCB && pcTriplet[1] > 0x30)
         {
-            operandAndType = (t2 != R8.NONE ? t2s : "") + (!isCB && (t2 != R8.NONE || ins.length > 1) ? "," : "") + (t1 != R8.NONE ? t1s : "");
+            operandAndType = n + ", " + (t1 != R8.NONE ? t1s : "");
         }
         else if (!block)
         {
             // Regular operations, block if hardcode decoded
-            operandAndType = t1 != R8.NONE ? (t1 != R8.NONE ? t1s : "") + (t2 != R8.NONE|| ins.length > 1 ? "," : "") : "" + (t2 != R8.NONE ? t2s : "");
+            operandAndType =  (t1 != R8.NONE ? t1s : "") + ((t1 != R8.NONE && t2 != R8.NONE) ? "," : "")  + (t2 != R8.NONE ? t2s : "");
+            if (r16 != R16.NONE) {
+                operandAndType += r16.ToString();
+            }
+            
         }
 
         // Instructions with type 2
-        if (t2 == R8.NONE && !block)
+        if (t2 == R8.NONE && !block && !isCB)
         {
             if (ins.length == 2)
             {
                 if (ins.executor != Ops.JR_E8)
                 {
                     // Regular operation
-                    operandAndType += "$" + HexN(cpu.gb.bus.ReadMem8((ushort)(disasmPc + 1)), 2);
+                    operandAndType += " $" + HexN(cpu.gb.bus.ReadMem8((ushort)(disasmPc + 1)), 2);
                 }
                 else
                 {

@@ -117,6 +117,7 @@ namespace DMSharp
             }
             this.romBanks = banks;
             Console.WriteLine("Banks: " + banks);
+            Console.WriteLine("MBC: " + mbc);
         }
     }
 }

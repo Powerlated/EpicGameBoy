@@ -7,25 +7,29 @@ class DMSharpEmulator
     public static void Main(string[] args)
     {
 
-        var filename = "./gb-test-roms/cpu_instrs/individual/09-op r,r.gb";
-        var filename2 = "./dmg_boot.bin";
+        var filename = "./gb-test-roms/cpu_instrs/cpu_instrs.gb";
+        // var filename = "./gb-test-roms/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb";
 
+        var filename2 = "./dmg_boot.bin";
 
         var c = getByteArrayFromFile(filename);
         var b = getByteArrayFromFile(filename2);
         var gb = new GameBoy();
         gb.bus.ext.ReplaceRom(c);
-        gb.cpu.minDebug = true;
+        // gb.cpu.minDebug = true;
         Array.Copy(b, gb.bus.bootrom, b.Length);
-        gb.bus.bootromLoaded = true;
-        var doTimes = 1000;
+        gb.bus.bootromLoaded = false;
+        // gb.cpu.logging = true;
+        // gb.cpu.debugging = true;
+        var doTimes = 52050850;
 
         var startTime = TimeSpan.FromTicks(DateTime.Now.Ticks).TotalSeconds;
         for (var i = 0; i < doTimes; i++)
         {
             gb.Step();
-            // Console.WriteLine(gb.cpu.lastInstruction);
         }
+
+        System.IO.File.WriteAllLines("DMSharp.log", gb.cpu.log);
 
         var serial = System.Text.Encoding.UTF8.GetString(gb.bus.serialOut.ToArray());
         Console.WriteLine($"Serial: {serial}");
