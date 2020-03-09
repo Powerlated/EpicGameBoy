@@ -185,6 +185,8 @@ namespace DMSharp
             cpu.WriteMem8(cpu._r.sp, upperByte);
             cpu._r.sp = (ushort)(cpu._r.sp - 1);
             cpu.WriteMem8(cpu._r.sp, lowerByte);
+
+            cpu.cycles += 4; // Internal time
         }
 
         /*  PUSH r16 - 0xC1
@@ -288,6 +290,7 @@ namespace DMSharp
             cpu._r._f.carry = (signedVal & 0xFF) + (cpu._r.sp & 0xFF) > 0xFF;
 
             cpu._r.hl = (ushort)(signedVal + cpu._r.sp);
+            cpu.cycles += 4; // Internal time
         }
 
         // LD [$FF00+u8],A
@@ -360,6 +363,7 @@ namespace DMSharp
             cpu._r._f.carry = ((value & 0xFF) + (cpu._r.sp & 0xFF)) > 0xFF;
 
             cpu._r.sp = (ushort)(cpu._r.sp + value);
+            cpu.cycles += 8; // Internal time
         }
 
         // JR
@@ -377,6 +381,7 @@ namespace DMSharp
 
         public static void LD_SP_HL(CPU cpu, Options opts)
         {
+            cpu.cycles += 4; // Internal time
             cpu._r.sp = cpu._r.hl;
         }
 
@@ -483,6 +488,8 @@ namespace DMSharp
 
             // Set register values
             cpu._r.hl = newValue;
+
+            cpu.cycles += 4; // Internal time
         }
 
         public static void SUB_A_R8(CPU cpu, Options opts)
@@ -682,6 +689,7 @@ namespace DMSharp
         public static void INC_R16(CPU cpu, Options opts)
         {
             cpu.setReg16(opts.r16, (ushort)(cpu.getReg16(opts.r16) + 1));
+            cpu.cycles += 4; // Internal time
         }
 
         public static void DEC_R8(CPU cpu, Options opts)
@@ -701,6 +709,7 @@ namespace DMSharp
         public static void DEC_R16(CPU cpu, Options opts)
         {
             cpu.setReg16(opts.r16, (ushort)(cpu.getReg16(opts.r16) - 1));
+            cpu.cycles += 4; // Internal time
         }
 
         public static void CCF(CPU cpu, Options opts)

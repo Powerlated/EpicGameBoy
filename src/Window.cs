@@ -78,6 +78,11 @@ namespace DMSharpEmulator
                 gb.joypad.down = true;
 
 
+            if (input.IsKeyDown(Key.Tab))
+                gb.speedMul = 8;
+            if (input.IsKeyUp(Key.Tab))
+                gb.speedMul = 1;
+
             gb.frame();
 
 

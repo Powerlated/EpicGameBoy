@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace DMSharp
 {
@@ -55,6 +56,7 @@ namespace DMSharp
 
         public List<byte> serialOut = new List<byte>();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteMem8(ushort addr, byte value)
         {
             // ROM Write (MBC Control)
@@ -200,6 +202,7 @@ namespace DMSharp
             this.cheats.Add(addr, value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte ReadMem8(ushort addr)
         {
             if (this.cheats.ContainsKey(addr))
@@ -335,8 +338,7 @@ namespace DMSharp
             this.bootromEnabled = true;
 
             // Zero out memory
-            Array.Clear(this.memory, 0, this.memory.Length);
-
+            Array.Fill<byte>(this.memory, 0);
             this.ext.mbc.Reset();
         }
     }

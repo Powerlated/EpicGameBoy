@@ -34,23 +34,25 @@ class Disassembler
     public static ushort willJumpTo(Instruction ins, byte[] pcTriplet, ushort disasmPc, CPU cpu)
     {
         var dict = new Dictionary<Executor, Func<ushort>>();
-        dict.Add(Ops.CALL_N16, () => (ushort)(pcTriplet[1] | pcTriplet[2] << 8));
-        dict.Add(Ops.JP_N16, () => (ushort)(pcTriplet[1] | pcTriplet[2] << 8));
-        dict.Add(Ops.JP_HL, () => cpu._r.hl);
-        dict.Add(Ops.RET, () =>
+        var ex = ins.executor;
+        if (ex == Ops.CALL_N16)
+            return (ushort)(pcTriplet[1] | pcTriplet[2] << 8);
+        if (ex == Ops.JP_N16) return (ushort)(pcTriplet[1] | pcTriplet[2] << 8);
+        if (ex == Ops.JP_HL) return cpu._r.hl;
+        if (ex == Ops.RET)
         {
             var stackLowerByte = cpu.gb.bus.ReadMem8((ushort)(cpu._r.sp));
             var stackUpperByte = cpu.gb.bus.ReadMem8((ushort)(cpu._r.sp + 1));
             return (ushort)(((stackUpperByte << 8) | stackLowerByte) - 1);
-        });
-        dict.Add(Ops.RETI, () =>
+        }
+        if (ex == Ops.RETI)
         {
             var stackLowerByte = cpu.gb.bus.ReadMem8((ushort)(cpu._r.sp));
             var stackUpperByte = cpu.gb.bus.ReadMem8((ushort)(cpu._r.sp + 1));
             return (ushort)(((stackUpperByte << 8) | stackLowerByte) - 1);
-        });
-        dict.Add(Ops.JR_E8, () => (ushort)(disasmPc + (pcTriplet[1]) + 2));
-        dict.Add(Ops.RST, () => ins.opts.numtype);
+        }
+        if (ex == Ops.JR_E8) return (ushort)(disasmPc + (pcTriplet[1]) + 2);
+        if (ex == Ops.RST) return ins.opts.numtype;
 
         if (dict.ContainsKey(ins.executor))
         {
@@ -61,37 +63,53 @@ class Disassembler
 
     public static string disassembleOp(Instruction ins, byte[] pcTriplet, ushort disasmPc, CPU cpu)
     {
-        var dict = new Dictionary<Executor, string[]>();
-        string LD = "LD";
-        string RST = "RST";
-        string CP = "CP";
-        string ADC = "ADC";
-        var doublet = pcTriplet[1] | pcTriplet[2] << 8;
-        dict.Add(Ops.LD_iHLdec_A, new[] { LD, $"(HL-),A" });
-        dict.Add(Ops.LD_iHLinc_A, new[] { LD, $"(HL+),A" });
-        dict.Add(Ops.LD_iFF00plusC_A, new[] { LD, $"($FF00+C),A" });
-        dict.Add(Ops.LD_iFF00plusN8_A, new[] { LD, $"($FF00 +${ HexN(pcTriplet[1], 2)}),A" });
-        dict.Add(Ops.LD_A_iFF00plusC, new[] { LD, $"A,($FF00+C)" });
-        dict.Add(Ops.LD_A_iFF00plusN8, new[] { LD, $"A, ($FF00 +${ HexN(pcTriplet[1], 2)})" });
-        dict.Add(Ops.LD_R8_R8, new[] { LD, $"{ins.opts.r8.ToString()},{ins.opts.r8_2.ToString()}" });
-        dict.Add(Ops.LD_A_iR16, new[] { LD, $"A, ({ins.opts.r16})" });
-        dict.Add(Ops.LD_iR16_A, new[] { LD, $"({ins.opts.r16}), A" });
-        dict.Add(Ops.CP_A_N8, new[] { CP, $"${ HexN(pcTriplet[1], 2)}" });
-        dict.Add(Ops.ADC_A_R8, new[] { ADC, $"A,${ HexN(pcTriplet[1], 2)}" });
-        dict.Add(Ops.LD_iN16_SP, new[] { LD, $"(${ HexN(doublet, 4)}),SP" });
-        dict.Add(Ops.LD_A_iHLinc, new[] { LD, $"A,(HL+)" });
-        dict.Add(Ops.LD_iN16_A, new[] { LD, $"(${ HexN(doublet, 4)}),A" });
-        dict.Add(Ops.LD_HL_SPaddE8, new[] { LD, $"HL, (SP +{(ushort)(pcTriplet[1])})" });
-        dict.Add(Ops.LD_R16_N16, new[] {LD, $"{ins.opts.r16}, ${HexN(doublet, 4)}"});
-        dict.Add(Ops.JP_HL, new[] { "JP", "HL" });
-        dict.Add(Ops.ADD_HL_R16, new[] { "ADD HL,", ins.opts.r16.ToString() });
+
 
         (string[] decoded, bool success) HARDCODE_DECODE(Instruction ins, byte[] pcTriplet)
         {
-            if (dict.ContainsKey(ins.executor))
-            {
-                return (dict[ins.executor], true);
-            }
+            string LD = "LD";
+            string RST = "RST";
+            string CP = "CP";
+            string ADC = "ADC";
+            var ex = ins.executor;
+            var doublet = pcTriplet[1] | pcTriplet[2] << 8;
+            if (ex == Ops.LD_iHLdec_A)
+                return (new[] { LD, $"(HL-),A" }, true);
+            if (ex == Ops.LD_iHLinc_A)
+                return (new[] { LD, $"(HL+),A" }, true);
+            if (ex == Ops.LD_iFF00plusC_A)
+                return (new[] { LD, $"($FF00+C),A" }, true);
+            if (ex == Ops.LD_iFF00plusN8_A)
+                return (new[] { LD, $"($FF00 +$(new[] { HexN(pcTriplet[1], 2)}, true)),A" }, true);
+            if (ex == Ops.LD_A_iFF00plusC)
+                return (new[] { LD, $"A,($FF00+C)" }, true);
+            if (ex == Ops.LD_A_iFF00plusN8)
+                return (new[] { LD, $"A, ($FF00 +$(new[] { HexN(pcTriplet[1], 2)}, true))" }, true);
+            if (ex == Ops.LD_R8_R8)
+                return (new[] { LD, $"(new[] {ins.opts.r8.ToString()}, true),(new[] {ins.opts.r8_2.ToString()}, true)" }, true);
+            if (ex == Ops.LD_A_iR16)
+                return (new[] { LD, $"A, ((new[] {ins.opts.r16}, true))" }, true);
+            if (ex == Ops.LD_iR16_A)
+                return (new[] { LD, $"((new[] {ins.opts.r16}, true)), A" }, true);
+            if (ex == Ops.CP_A_N8)
+                return (new[] { CP, $"$(new[] { HexN(pcTriplet[1], 2)}, true)" }, true);
+            if (ex == Ops.ADC_A_R8)
+                return (new[] { ADC, $"A,$(new[] { HexN(pcTriplet[1], 2)}, true)" }, true);
+            if (ex == Ops.LD_iN16_SP)
+                return (new[] { LD, $"($(new[] { HexN(doublet, 4)}, true)),SP" }, true);
+            if (ex == Ops.LD_A_iHLinc)
+                return (new[] { LD, $"A,(HL+)" }, true);
+            if (ex == Ops.LD_iN16_A)
+                return (new[] { LD, $"($(new[] { HexN(doublet, 4)}, true)),A" }, true);
+            if (ex == Ops.LD_HL_SPaddE8)
+                return (new[] { LD, $"HL, (SP +(new[] {(ushort)(pcTriplet[1])}, true))" }, true);
+            if (ex == Ops.LD_R16_N16)
+                return (new[] { LD, $"(new[] {ins.opts.r16}, true), $(new[] {HexN(doublet, 4)}, true)" }, true);
+            if (ex == Ops.JP_HL)
+                return (new[] { "JP", "HL" }, true);
+            if (ex == Ops.ADD_HL_R16)
+                return (new[] { "ADD HL,", ins.opts.r16.ToString() }, true);
+
             return (new[] { "???", "???" }, false);
         }
         var isCB = pcTriplet[0] == 0xCB;
@@ -118,11 +136,12 @@ class Disassembler
         else if (!block)
         {
             // Regular operations, block if hardcode decoded
-            operandAndType =  (t1 != R8.NONE ? t1s : "") + ((t1 != R8.NONE && t2 != R8.NONE) ? "," : "")  + (t2 != R8.NONE ? t2s : "");
-            if (r16 != R16.NONE) {
+            operandAndType = (t1 != R8.NONE ? t1s : "") + ((t1 != R8.NONE && t2 != R8.NONE) ? "," : "") + (t2 != R8.NONE ? t2s : "");
+            if (r16 != R16.NONE)
+            {
                 operandAndType += r16.ToString();
             }
-            
+
         }
 
         // Instructions with type 2

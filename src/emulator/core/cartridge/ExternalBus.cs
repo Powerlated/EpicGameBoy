@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace DMSharp
 {
@@ -16,11 +17,13 @@ namespace DMSharp
             this.mbc = new NullMBC(this);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte Read(ushort addr)
         {
             return this.mbc.Read(addr);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ushort addr, byte value)
         {
             this.mbc.Write(addr, value);

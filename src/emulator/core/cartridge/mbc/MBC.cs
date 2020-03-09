@@ -1,3 +1,4 @@
+using System.Linq;
 
 namespace DMSharp
 {
@@ -29,7 +30,7 @@ namespace DMSharp
     {
         public byte ramBank = 0;
         public bool enableExternalRam = false;
-        public byte[] externalRam = new byte[32768];
+        public byte[] externalRam = Enumerable.Repeat((byte)0xFF, 32768).ToArray();
         public int externalRamDirtyBytes = 0;
 
         public byte readBankRam(ushort addr, byte bank)

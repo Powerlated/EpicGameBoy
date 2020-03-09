@@ -141,7 +141,7 @@ namespace DMSharp
                     if (this.pulse1.freqSweepTime != 0)
                     {
                         // writeDebug("Frequency sweep")
-                        if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime)
+                        if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime && this.pulse1.freqSweepShiftNum > 0)
                         {
                             this.clockPulse1FreqSweep = 0;
                             var freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;

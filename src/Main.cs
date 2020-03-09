@@ -13,7 +13,9 @@ namespace DMSharpEmulator
             // var b = getByteArrayFromFile(filename2);
             //  Array.Copy(b, gb.bus.bootrom, b.Length);
 
-            var gamePath = "./pokeyellow.gbc";
+            // var gamePath = "./gb-test-roms/cpu_instrs/cpu_instrs.gb";
+            var gamePath = "./pokegold.gbc";
+            // var gamePath = "./Pokemon - Blue Version (UE) [S][!].gb";
             var c = getByteArrayFromFile(gamePath);
             gb.bus.ext.ReplaceRom(c);
 

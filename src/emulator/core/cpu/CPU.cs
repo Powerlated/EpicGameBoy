@@ -133,7 +133,7 @@ namespace DMSharp
             this.checkBootrom();
 
             // Run the debug information collector
-            this.stepDebug();
+            // this.stepDebug();
 
             if (this.halted == false)
             {

@@ -8,6 +8,7 @@ namespace DMSharp
         public MBC3(ExternalBus ext)
         {
             this.ext = ext;
+            this.romBank = 1;
         }
 
         public override byte Read(ushort addr)

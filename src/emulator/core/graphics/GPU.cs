@@ -21,7 +21,7 @@ namespace DMSharp
         long totalFrameCount = 0;
 
         // [tile][row][pixel]
-        public int[,,] tileset = new int[1024, 8, 8];
+        public byte[,,] tileset = new byte[8192, 8, 8];
 
         public LCDCRegister lcdControl = new LCDCRegister(); // 0xFF40
         public LCDStatusRegister lcdStatus = new LCDStatusRegister(); // 0xFF41
@@ -71,8 +71,6 @@ namespace DMSharp
                             this.gb.interrupts.requestLCDstatus();
                         }
 
-                        this.renderScanline();
-
                         if (this.modeClock >= 80)
                         {
                             this.modeClock -= 80;
@@ -86,6 +84,9 @@ namespace DMSharp
                         {
                             this.modeClock -= 172;
                             this.lcdStatus.mode = 0;
+
+                            if (this.totalFrameCount % this.gb.speedMul == 0)
+                                this.renderScanline();
 
                             if (this.lcdStatus.mode0HblankInterrupt__3)
                             {
@@ -116,7 +117,8 @@ namespace DMSharp
                                     this.gb.interrupts.requestLCDstatus();
                                 }
 
-                                Array.Copy(this.imageGameboy, this.imageGameboyOut, imageGameboy.Length);
+                                if (this.totalFrameCount % this.gb.speedMul == 0)
+                                    Array.Copy(this.imageGameboy, this.imageGameboyOut, imageGameboy.Length);
                             }
                             else
                             {
@@ -184,7 +186,7 @@ namespace DMSharp
 
             var mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
-            var mapIndex = (((this.lcdcY + this.scrY) >> 3) * 32) & 1023;
+            var mapIndex = (((this.lcdcY + this.scrY) >> 3) << 5) & 1023;
             var mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
             var lineOffset = this.scrX >> 3;
@@ -257,7 +259,7 @@ namespace DMSharp
 
                 var mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
 
-                var mapIndex = (((this.lcdcY - this.windowYpos) >> 3) * 32) & 1023;
+                var mapIndex = (((this.lcdcY - this.windowYpos) >> 3) << 5) & 1023;
                 var mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
                 int tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
@@ -283,7 +285,7 @@ namespace DMSharp
                         }
 
                         var pixel = shades[this.tileset[tile + tileOffset, y, x]];
-                        // Re-map the tile pixel through the pavarte
+                        // Re-map the tile pixel through the palette
                         var c = colors[pixel];
 
                         // Plot the pixel to canvas
@@ -461,8 +463,8 @@ namespace DMSharp
                 index &= 0xFFFE;
 
                 // Work out which tile and row was updated
-                int tile = (index / 16);
-                int y = (index % 16) / 2;
+                int tile = (index >> 4);
+                int y = (index % 16) >> 1;
 
                 for (var x = 0; x < 8; x++)
                 {
@@ -475,8 +477,8 @@ namespace DMSharp
 
                     // Update tile set
                     this.tileset[tile, y, x] =
-                        (lsb != 0 ? 1 : 0) +
-                        (msb != 0 ? 2 : 0);
+                        (byte)((lsb != 0 ? 1 : 0) +
+                        (msb != 0 ? 2 : 0));
                 }
                 // Write to tile map
             }
@@ -485,9 +487,6 @@ namespace DMSharp
         public void Reset()
         {
             this.totalFrameCount = 0;
-
-            // [tile][row][pixel]
-            this.tileset = new int[1024, 8, 8];
 
             this.lcdControl = new LCDCRegister();
             this.lcdStatus = new LCDStatusRegister();
@@ -505,8 +504,8 @@ namespace DMSharp
             this.lcdcY = 0;
             this.modeClock = 0;
 
-            Array.Clear(this.vram, 0, this.vram.Length);
-            Array.Clear(this.oam, 0, this.oam.Length);
+            Array.Fill<byte>(this.vram, 0xFF);
+            Array.Fill<byte>(this.oam, 0xFF);
         }
 
         // Source must be < 0xA000
@@ -518,7 +517,7 @@ namespace DMSharp
                 // If $FE00, read from external bus 
                 if (startAddr == 0xFE00)
                 {
-                    this.oam[i] = this.gb.bus.ext.Read((ushort)(startAddr + i));
+                    this.oam[i] = this.gb.bus.ext.mbc.Read((ushort)(startAddr + i));
                 }
                 else
                 { // General bus read
