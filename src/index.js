@@ -82,7 +82,19 @@ function downloadSave() {
 }
 
 function downloadLog() {
-    download("EpicGameBoy.log", cpu.fullLog.join('\n'));
+    function downloadText(filename, text) {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+      
+        element.style.display = 'none';
+        document.body.appendChild(element);
+      
+        element.click();
+      
+        document.body.removeChild(element);
+      }
+    downloadText("EpicGameBoy.log", gb.cpu.log.join('\n'));
 }
 
 document.querySelector('#enableLogging').addEventListener('change', function (e) {
@@ -106,8 +118,8 @@ document.querySelector('#drawTileset').addEventListener('change', function (e) {
 function startDrawingTiles() {
     drawTilesetInterval = setInterval(() => {
         gb.gpu.renderTiles();
-        gb.gpu.drawToCanvasTileset();
-    }, 10);
+        gb.gpu.canvas.drawTileset();
+    }, 100);
 }
 function stopDrawingTiles() {
     clearInterval(drawTilesetInterval);

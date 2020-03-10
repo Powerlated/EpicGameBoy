@@ -332,7 +332,7 @@ export default class CPU {
         this.checkBootrom();
 
         // Run the debug information collector
-        if (this.debugging)
+        if (this.debugging || this.logging)
             this.stepDebug();
 
         if (this.halted == false) {

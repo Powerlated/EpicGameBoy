@@ -1,14 +1,16 @@
 import GPU from "./gpu";
 
 export default class GPUCanvas {
-    ctxGameboy!: CanvasRenderingContext2D;
-    ctxTileset!: CanvasRenderingContext2D;
+    ctxGameboy: CanvasRenderingContext2D;
+    ctxTileset: CanvasRenderingContext2D;
 
     gpu: GPU;
 
     constructor(gpu: GPU) {
         let cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
         this.ctxGameboy = cGameboy.getContext("2d")!;
+        let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
+        this.ctxTileset = cTileset.getContext("2d")!;
         let gl = this.ctxGameboy;
         this.gpu = gpu;
     }
@@ -28,7 +30,7 @@ export default class GPUCanvas {
         this.ctxGameboy.putImageData(this.gpu.imageGameboy, 0, 0);
     }
 
-    drawToTileset() {
+    drawTileset() {
         let iData = new ImageData(this.gpu.imageTilesetArr, 256, 96);
 
         this.ctxTileset.putImageData(iData, 0, 0);

@@ -192,10 +192,10 @@ class GPU {
                         this.gb.bus.interrupts.requestLCDstatus();
                     }
 
-                    if ((this.totalFrameCount % this.gb.speedMul) == 0)
-                        this.renderScanline();
-
                     if (this.modeClock >= 80) {
+                        if ((this.totalFrameCount % this.gb.speedMul) == 0)
+                            this.renderScanline();
+
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
                     }
@@ -479,11 +479,11 @@ class GPU {
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette != 0) {
-                                    this.imageGameboy.data[canvasIndex + 0] = c[0];
-                                    this.imageGameboy.data[canvasIndex + 1] = c[1];
-                                    this.imageGameboy.data[canvasIndex + 2] = c[2];
-                                    this.imageGameboy.data[canvasIndex + 3] = 255;
-                                }
+                                this.imageGameboy.data[canvasIndex + 0] = c[0];
+                                this.imageGameboy.data[canvasIndex + 1] = c[1];
+                                this.imageGameboy.data[canvasIndex + 2] = c[2];
+                                this.imageGameboy.data[canvasIndex + 3] = 255;
+                            }
 
                             // Border debug
                             if (this.showBorders && (pixelX == 0 || pixelX == 7 || pixelY == 0 || pixelY == 7)) {
