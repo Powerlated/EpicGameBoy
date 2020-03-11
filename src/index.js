@@ -86,14 +86,14 @@ function downloadLog() {
         var element = document.createElement('a');
         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
         element.setAttribute('download', filename);
-      
+
         element.style.display = 'none';
         document.body.appendChild(element);
-      
+
         element.click();
-      
+
         document.body.removeChild(element);
-      }
+    }
     downloadText("EpicGameBoy.log", gb.cpu.log.join('\n'));
 }
 
@@ -236,6 +236,11 @@ function init() {
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
 
     document.onkeydown = function (e) {
+        if (e.key == "s") {
+            gb.step();
+            e.preventDefault();
+        }
+
         if (e.getModifierState("Shift")) {
             if (e.key == "D") {
                 document.querySelector('#enableDebugger').click();
@@ -249,10 +254,11 @@ function init() {
                 document.querySelector('#big-screen').click();
                 e.preventDefault();
             }
-        }
+
 
         if (block.includes(e.key))
             e.preventDefault();
+        }
 
         switch (e.key) {
             case "ArrowLeft":

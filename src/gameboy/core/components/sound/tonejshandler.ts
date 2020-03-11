@@ -2,7 +2,7 @@ import SoundChip from "./sound";
 import * as Tone from "tone";
 
 function convertVolume(v: number) {
-    let base = -18;
+    let base = -12;
     let mute = 0;
     if (v == 0) mute = -10000;
     return base + mute + (6 * Math.log(v / 16));
@@ -16,7 +16,7 @@ function convertVolumeWave(v: number) {
         case 3: v = 4; break;
     }
 
-    let base = -24;
+    let base = -20      ;
     let mute = 0;
     if (v == 0) mute = -10000;
     return base + mute + (10 * Math.log(v / 16));

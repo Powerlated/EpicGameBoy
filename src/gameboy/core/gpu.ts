@@ -555,8 +555,8 @@ class GPU {
             index &= 0xFFFE;
 
             // Work out which tile and row was updated
-            let tile = Math.floor(index / 16);
-            let y = Math.floor((index % 16) / 2);
+            let tile = index >> 4;
+            let y = (index & 0xF) >> 1;
 
             for (var x = 0; x < 8; x++) {
                 // Find bit index for this pixel

@@ -417,11 +417,6 @@ export default class CPU {
         // Lookup decoded
         let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
         this.cycles += 4; // Decoding time penalty
-        let opcode = isCB ? pcTriplet[1] : pcTriplet[0];
-
-        if (!ins.op) {
-            alert(`Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
-        }
 
         if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
