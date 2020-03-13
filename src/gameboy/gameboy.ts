@@ -1,4 +1,4 @@
-import CPU from './core/cpu';
+import CPU from './cpu/cpu';
 import GPU from './core/gpu';
 import MemoryBus from './core/memorybus';
 import Disassembler from './tools/disassembler';

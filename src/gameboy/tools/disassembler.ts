@@ -1,7 +1,8 @@
-import CPU, { CC, Op } from "../core/cpu";
+import CPU, { CC, Op } from "../cpu/cpu";
 
-import Ops from "../core/cpu_ops";
+import Ops from "../cpu/cpu_ops";
 import { unTwo8b, hexN, hexN_LC, pad } from "./util";
+import Decoder from "../cpu/decoder";
 
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {
@@ -158,7 +159,7 @@ export default class Disassembler {
 
 
             // Pre-increment PC for 0xCB prefix
-            let ins = isCB ? cpu.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : cpu.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
+            let ins = isCB ? Decoder.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : Decoder.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
             let controlFlow = Disassembler.isControlFlow(ins);
 
             // Decode hexadecimal triplet 

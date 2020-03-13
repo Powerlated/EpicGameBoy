@@ -1,7 +1,7 @@
 import GameBoy from "../gameboy";
-import Ops from "../core/cpu_ops";
+import Ops from "../cpu/cpu_ops";
 import GPU, { colors } from "../core/gpu";
-import CPU, { R8 } from "../core/cpu";
+import CPU, { R8 } from "../cpu/cpu";
 import { hex, pad, hexN } from "./util";
 
 function test() {

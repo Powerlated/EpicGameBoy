@@ -113,7 +113,7 @@ class Ops {
     }
 
     static LD_iHL_R8(cpu: CPU, r8: R8) {
-        cpu.writeMem8(cpu._r.hl, cpu.getReg(r8));
+        cpu.writeMem8(cpu._r.hl, cpu.getReg8(r8));
     }
 
     static ADD_iHL(cpu: CPU, ) {
@@ -121,7 +121,7 @@ class Ops {
     }
 
     static CP_A_iHL(cpu: CPU) {
-        let u8 = cpu.fetchMem8(cpu.getReg(R16.HL));
+        let u8 = cpu.fetchMem8(cpu.getReg16(R16.HL));
         cpu._r._f.zero = cpu._r.a - u8 == 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (u8 & 0xF) > 0xF;
@@ -137,7 +137,7 @@ class Ops {
     }
 
     static LD_iR16_A(cpu: CPU, r16: R16) {
-        cpu.writeMem8(cpu.getReg(r16), cpu._r.a);
+        cpu.writeMem8(cpu.getReg16(r16), cpu._r.a);
     }
 
     // Store value in register A into address n16
@@ -148,7 +148,7 @@ class Ops {
     /*  PUSH r16 - 0xC5
         Push register r16 onto the stack. */
     static PUSH_R16(cpu: CPU, r16: R16) {
-        let value = cpu.getReg(r16);
+        let value = cpu.getReg16(r16);
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
@@ -166,7 +166,7 @@ class Ops {
         let upperByte = cpu.fetchMem8(cpu._r.sp);
         cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
 
-        cpu.setReg(r16, (upperByte << 8) | lowerByte);
+        cpu.setReg16(r16, (upperByte << 8) | lowerByte);
     }
 
     // CALL n16 - 0xCD
@@ -233,12 +233,11 @@ class Ops {
 
     // LD A,(R16)
     static LD_A_iR16(cpu: CPU, r16: R16) {
-        cpu.setReg(R8.A, cpu.fetchMem8(cpu.getReg(r16)));
-
+        cpu.setReg8(R8.A, cpu.fetchMem8(cpu.getReg16(r16)));
     }
 
     static LD_R16_A(cpu: CPU, t: R8) {
-        cpu.writeMem8(cpu.fetchMem8(cpu.getReg(t)), cpu._r.a);
+        cpu.writeMem8(cpu.fetchMem8(cpu.getReg8(t)), cpu._r.a);
     }
 
     static LD_HL_SPaddE8(cpu: CPU, e8: number) {
@@ -266,17 +265,17 @@ class Ops {
     }
 
     static LD_R8_N8(cpu: CPU, r8: R8, n8: number) {
-        cpu.setReg(r8, n8);
+        cpu.setReg8(r8, n8);
     }
 
     // Store value in register on the right into register on the left
     static LD_R8_R8(cpu: CPU, r8: R8, r8_2: R8) {
-        cpu.setReg(r8, cpu.getReg(r8_2));
+        cpu.setReg8(r8, cpu.getReg8(r8_2));
     }
 
     // LD r16,n16 - 0x21, 
     static LD_R16_N16(cpu: CPU, r16: R16, n16: number) {
-        cpu.setReg(r16, n16);
+        cpu.setReg16(r16, n16);
     }
 
 
@@ -332,7 +331,7 @@ class Ops {
 
     // ADD A, r8
     static ADD_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) > 0xF;
 
         let newValue = (value + cpu._r.a) & 0xFF;
@@ -366,7 +365,7 @@ class Ops {
 
     // ADC A, r8
     static ADC_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let newValue = (value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
         let didOverflow = ((value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
@@ -399,7 +398,7 @@ class Ops {
     }
 
     static ADD_HL_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let newValue = (value + cpu._r.hl) & 0xFFFF;
         let didOverflow = ((value + cpu._r.hl) >> 8) != 0;
@@ -415,7 +414,7 @@ class Ops {
     }
 
     static ADD_HL_R16(cpu: CPU, r16: R16) {
-        let r16Value = cpu.getReg(r16);
+        let r16Value = cpu.getReg16(r16);
 
         let newValue = (r16Value + cpu._r.hl) & 0xFFFF;
         let didOverflow = ((r16Value + cpu._r.hl) >> 16) != 0;
@@ -430,7 +429,7 @@ class Ops {
     }
 
     static SUB_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let newValue = (cpu._r.a - value) & 0xFF;
 
@@ -461,7 +460,7 @@ class Ops {
     }
 
     static SBC_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let newValue = (cpu._r.a - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
@@ -491,7 +490,7 @@ class Ops {
     }
 
     static AND_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let final = value & cpu._r.a;
         cpu._r.a = final;
@@ -516,7 +515,7 @@ class Ops {
     }
 
     static OR_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let final = value | cpu._r.a;
         cpu._r.a = final;
@@ -540,7 +539,7 @@ class Ops {
     }
 
     static XOR_A_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let final = value ^ cpu._r.a;
         cpu._r.a = final;
@@ -565,7 +564,7 @@ class Ops {
 
     // CP A,r8
     static CP_A_R8(cpu: CPU, t: R8) {
-        let r8 = cpu.getReg(t);
+        let r8 = cpu.getReg8(t);
 
         let newValue = (cpu._r.a - r8) & 0xFF;
         let didOverflow = ((cpu._r.a - r8) >> 8) != 0;
@@ -595,12 +594,12 @@ class Ops {
     }
 
     static INC_R8(cpu: CPU, t: R8) {
-        let target = cpu.getReg(t);
+        let target = cpu.getReg8(t);
 
         let newValue = (target + 1) & 0xFF;
         let didOverflow = ((target + 1) >> 8) != 0;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         // UNMODIFIED cpu._r._f.carry = didOverflow;
         cpu._r._f.zero = newValue == 0;
@@ -611,15 +610,15 @@ class Ops {
 
     // Increment in register r16
     static INC_R16(cpu: CPU, r16: R16) {
-        cpu.setReg(r16, (cpu.getReg(r16) + 1) & 0xFFFF);
+        cpu.setReg16(r16, (cpu.getReg16(r16) + 1) & 0xFFFF);
     }
 
     static DEC_R8(cpu: CPU, t: R8) {
-        let target = cpu.getReg(t);
+        let target = cpu.getReg8(t);
 
         let newValue = (target - 1) & 0xFF;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         // UNMODIFIED cpu._r._f.carry = didOverflow;
         cpu._r._f.zero = newValue == 0;
@@ -628,7 +627,7 @@ class Ops {
     }
 
     static DEC_R16(cpu: CPU, tt: R16) {
-        cpu.setReg(tt, (cpu.getReg(tt) - 1) & 0xFFFF);
+        cpu.setReg16(tt, (cpu.getReg16(tt) - 1) & 0xFFFF);
     }
 
     static CCF(cpu: CPU, ) {
@@ -654,7 +653,7 @@ class Ops {
     // #region 0xCB Opcodes
 
     static BIT_R8(cpu: CPU, t: R8, selectedBit: number) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         cpu._r._f.zero = (value & (1 << selectedBit)) == 0;
         cpu._r._f.negative = false;
@@ -662,21 +661,21 @@ class Ops {
     }
 
     static RES_R8(cpu: CPU, t: R8, selectedBit: number) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
         let mask = 0b1 << selectedBit;
 
         let final = value & ~(mask);
 
-        cpu.setReg(t, final);
+        cpu.setReg8(t, final);
     }
 
     static SET_R8(cpu: CPU, t: R8, selectedBit: number) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
         let mask = 0b1 << selectedBit;
 
         let final = value |= mask;
 
-        cpu.setReg(t, final);
+        cpu.setReg8(t, final);
     }
 
     // Rotate A right through carry
@@ -698,13 +697,13 @@ class Ops {
 
     // Rotate TARGET right through carry
     static RR_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let carryMask = (cpu._r.f & 0b00010000) << 3;
 
         let newValue = ((value >> 1) | carryMask) & 0xFF;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -730,13 +729,13 @@ class Ops {
 
     // Rotate TARGET left through carry
     static RL_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let carryMask = (cpu._r.f & 0b00010000) >> 4;
 
         let newValue = ((value << 1) | carryMask) & 0xFF;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -762,12 +761,12 @@ class Ops {
 
     // Rotate TARGET right
     static RRC_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let rightmostBit = (value & 1) << 7;
         let newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -793,13 +792,13 @@ class Ops {
 
     // Rotate TARGET left
     static RLC_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let leftmostBit = (value & 0b10000000) >> 7;
 
         let newValue = ((value << 1) | leftmostBit) & 0xFF;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -809,12 +808,12 @@ class Ops {
 
     // Shift TARGET right
     static SRA_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let leftmostBit = value & 0b10000000;
         let newValue = (value >> 1) | leftmostBit;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -824,12 +823,12 @@ class Ops {
 
     // Shift TARGET left 
     static SLA_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let newValue = (value << 1) & 0xFF;
         let didOverflow = ((value << 1) >> 8) != 0;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -839,11 +838,11 @@ class Ops {
 
     // Shift right logic register
     static SRL_R8(cpu: CPU, t: R8) {
-        let value = cpu.getReg(t);
+        let value = cpu.getReg8(t);
 
         let newValue = (value >> 1) & 0xFF;
 
-        cpu.setReg(t, newValue);
+        cpu.setReg8(t, newValue);
 
         cpu._r._f.zero = newValue == 0;
         cpu._r._f.negative = false;
@@ -853,12 +852,12 @@ class Ops {
 
     // SWAP 
     static SWAP_R8(cpu: CPU, r8: R8) {
-        let value = cpu.getReg(r8);
+        let value = cpu.getReg8(r8);
 
         let lowerNybble = value & 0b00001111;
         let upperNybble = (value >> 4) & 0b00001111;
 
-        cpu.setReg(r8, (lowerNybble << 4) | upperNybble);
+        cpu.setReg8(r8, (lowerNybble << 4) | upperNybble);
 
         cpu._r._f.zero = value == 0;
         cpu._r._f.negative = false;

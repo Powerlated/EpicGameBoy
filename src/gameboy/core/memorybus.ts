@@ -1,6 +1,6 @@
 import GameBoy from "../gameboy";
 
-import CPU from "./cpu";
+import CPU from "../cpu/cpu";
 
 import GPU from "./gpu";
 import MBC3 from "./mbc/mbc3";
@@ -13,6 +13,7 @@ import { hex } from "../tools/util";
 import InterruptController from "./components/interrupt-controller";
 import { JoypadRegister } from "./components/joypad";
 import MBC5 from "./mbc/mbc5";
+import Decoder from "../cpu/decoder";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -65,8 +66,7 @@ class MemoryBus {
         
         PC: 0x${this.gb.cpu.pc.toString(16)}
         Opcode: 0x${this.readMem8(this.gb.cpu.pc).toString(16)}
-        Op: ${this.gb.cpu.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
-
+        Op: ${Decoder.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
         `);
         }
 
@@ -204,12 +204,12 @@ class MemoryBus {
             return this.cheats.get(addr)!;
         }
 
-        if (addr < 0x100 && this.bootromEnabled) {
+        if (this.bootromEnabled && addr < 0x100) {
             return this.bootrom[addr];
         }
 
         // Read from ROM through External Bus
-        if (addr >= 0x0000 && addr <= 0x7FFF) {
+        if (addr <= 0x7FFF) {
             return this.ext.read(addr);
         }
 
