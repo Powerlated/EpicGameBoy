@@ -1,5 +1,5 @@
 import CPU, { R8, R16, CC } from './cpu';
-import { unTwo8b, do8b, do16b } from '../tools/util';
+import { unTwo8b } from '../tools/util';
 
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {
@@ -336,7 +336,7 @@ class Ops {
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) > 0xF;
 
         let newValue = (value + cpu._r.a) & 0xFF;
-        let didOverflow = do8b(value + cpu._r.a);
+        let didOverflow = ((value + cpu._r.a) >> 8) != 0;
 
         // Set register values
         cpu._r.a = newValue;
@@ -352,7 +352,7 @@ class Ops {
         let value = n8;
 
         let newValue = (value + cpu._r.a) & 0xFF;
-        let didOverflow = do8b(value + cpu._r.a);
+        let didOverflow = ((value + cpu._r.a) >> 8) != 0;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -369,7 +369,7 @@ class Ops {
         let value = cpu.getReg(t);
 
         let newValue = (value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
-        let didOverflow = do8b(value + cpu._r.a + (cpu._r._f.carry ? 1 : 0));
+        let didOverflow = ((value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -386,7 +386,7 @@ class Ops {
         let value = n8;
 
         let newValue = (value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
-        let didOverflow = do8b(value + cpu._r.a + (cpu._r._f.carry ? 1 : 0));
+        let didOverflow = ((value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -402,7 +402,7 @@ class Ops {
         let value = cpu.getReg(t);
 
         let newValue = (value + cpu._r.hl) & 0xFFFF;
-        let didOverflow = do16b(value + cpu._r.hl);
+        let didOverflow = ((value + cpu._r.hl) >> 8) != 0;
 
         // Set register values
         cpu._r.hl = newValue;
@@ -418,7 +418,7 @@ class Ops {
         let r16Value = cpu.getReg(r16);
 
         let newValue = (r16Value + cpu._r.hl) & 0xFFFF;
-        let didOverflow = do16b(r16Value + cpu._r.hl);
+        let didOverflow = ((r16Value + cpu._r.hl) >> 16) != 0;
 
         // Set flag
         cpu._r._f.negative = false;
@@ -568,7 +568,7 @@ class Ops {
         let r8 = cpu.getReg(t);
 
         let newValue = (cpu._r.a - r8) & 0xFF;
-        let didOverflow = do8b(cpu._r.a - r8);
+        let didOverflow = ((cpu._r.a - r8) >> 8) != 0;
 
         // DO not set register values for CP
 
@@ -584,7 +584,7 @@ class Ops {
         let value = n8;
 
         let newValue = (cpu._r.a - value) & 0xFF;
-        let didOverflow = do8b(cpu._r.a - value);
+        let didOverflow = ((cpu._r.a - value) >> 8) != 0;
 
 
         // Set flags
@@ -598,7 +598,7 @@ class Ops {
         let target = cpu.getReg(t);
 
         let newValue = (target + 1) & 0xFF;
-        let didOverflow = do8b(target + 1);
+        let didOverflow = ((target + 1) >> 8) != 0;
 
         cpu.setReg(t, newValue);
 
@@ -827,7 +827,7 @@ class Ops {
         let value = cpu.getReg(t);
 
         let newValue = (value << 1) & 0xFF;
-        let didOverflow = do8b(value << 1);
+        let didOverflow = ((value << 1) >> 8) != 0;
 
         cpu.setReg(t, newValue);
 
