@@ -4,7 +4,7 @@ import * as Tone from "tone";
 function convertVolume(v: number) {
     let base = -12;
     let mute = 0;
-    if (v == 0) mute = -10000;
+    if (v === 0) mute = -10000;
     return base + mute + (6 * Math.log(v / 16));
 }
 
@@ -18,7 +18,7 @@ function convertVolumeWave(v: number) {
 
     let base = -18;
     let mute = 0;
-    if (v == 0) mute = -10000;
+    if (v === 0) mute = -10000;
     return base + mute + (10 * Math.log(v / 16));
 }
 
@@ -132,7 +132,7 @@ export default class ToneJsHandler {
             this.noiseVolume.mute = true;
         }
 
-        if (this.s.wave.waveTableUpdated == true) {
+        if (this.s.wave.waveTableUpdated === true) {
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });

@@ -109,7 +109,7 @@ export default class SoundChip {
             if (this.pulse1.enabled) {
                 if (this.pulse1.lengthEnable) {
                     this.pulse1.lengthCounter--;
-                    if (this.pulse1.lengthCounter == 0) {
+                    if (this.pulse1.lengthCounter === 0) {
                         writeDebug("PULSE 1 length become 0");
                         this.pulse1.enabled = false;
                         this.pulse1.update();
@@ -121,7 +121,7 @@ export default class SoundChip {
                         this.clockPulse1FreqSweep = 0;
                         let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
                         let diff = freq / (2 ^ this.pulse1.freqSweepShiftNum);
-                        this.pulse1.freqSweepUp == false ? freq += diff : freq -= diff;
+                        this.pulse1.freqSweepUp === false ? freq += diff : freq -= diff;
                         this.pulse1.frequencyLower = freq & 0xFF;
                         this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
                         this.pulse1.update();
@@ -135,7 +135,7 @@ export default class SoundChip {
             if (this.pulse2.enabled) {
                 if (this.pulse2.lengthEnable) {
                     this.pulse2.lengthCounter--;
-                    if (this.pulse2.lengthCounter == 0) {
+                    if (this.pulse2.lengthCounter === 0) {
                         this.pulse2.enabled = false;
                         this.pulse2.update();
                     }
@@ -156,7 +156,7 @@ export default class SoundChip {
             if (this.noise.enabled) {
                 if (this.noise.lengthEnable) {
                     this.noise.lengthCounter--;
-                    if (this.noise.lengthCounter == 0) {
+                    if (this.noise.lengthCounter === 0) {
                         this.noise.enabled = false;
                         this.noise.update();
                     }
@@ -194,7 +194,7 @@ export default class SoundChip {
             // Pulse 1
             case 0xFF10: // NR10
                 this.pulse1.freqSweepTime = (value & 0b01110000) >> 4; // in 128ths of a second (0-7)
-                this.pulse1.freqSweepUp = ((value >> 3) & 1) == 0; // 0 == Add, 1 = Sub
+                this.pulse1.freqSweepUp = ((value >> 3) & 1) === 0; // 0 === Add, 1 = Sub
                 this.pulse1.freqSweepShiftNum = (value & 0b111); // 0-7; 
                 this.pulse1.update();
                 break;
@@ -206,7 +206,7 @@ export default class SoundChip {
             case 0xFF12: // NR12
                 this.pulse1.volume = (value >> 4) & 0xF;
                 this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
-                this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
+                this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse1.volumeEnvelopeSweep = value & 0b111;
                 this.pulse1.update();
                 break;
@@ -231,7 +231,7 @@ export default class SoundChip {
             case 0xFF17: // NR22
                 this.pulse2.volume = (value >> 4) & 0xF;
                 this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
-                this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
+                this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse2.volumeEnvelopeSweep = value & 0b111;
                 this.pulse2.update();
                 break;
@@ -271,7 +271,7 @@ export default class SoundChip {
             case 0xFF1E: // NR34
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) != 0;
-                this.wave.lengthEnable = ((value >> 6) & 1) == 0;
+                this.wave.lengthEnable = ((value >> 6) & 1) === 0;
                 writeDebug(this.wave.lengthEnable);
                 this.wave.update();
                 break;
@@ -284,7 +284,7 @@ export default class SoundChip {
             case 0xFF21: // NR42
                 this.noise.volume = (value >> 4) & 0xF;
                 this.noise.volumeEnvelopeStart = (value >> 4) & 0xF;
-                this.noise.volumeEnvelopeUp = ((value >> 3) & 1) == 1;
+                this.noise.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.noise.volumeEnvelopeSweep = value & 0b111;
                 this.noise.update();
                 break;
@@ -312,15 +312,15 @@ export default class SoundChip {
 
             // Panning
             case 0xFF25:
-                this.noise.outputRight = (((value >> 7) & 1) == 1);
-                this.wave.outputRight = (((value >> 6) & 1) == 1);
-                this.pulse2.outputRight = (((value >> 5) & 1) == 1);
-                this.pulse1.outputRight = (((value >> 4) & 1) == 1);
+                this.noise.outputRight = (((value >> 7) & 1) === 1);
+                this.wave.outputRight = (((value >> 6) & 1) === 1);
+                this.pulse2.outputRight = (((value >> 5) & 1) === 1);
+                this.pulse1.outputRight = (((value >> 4) & 1) === 1);
 
-                this.noise.outputLeft = (((value >> 3) & 1) == 1);
-                this.wave.outputLeft = (((value >> 2) & 1) == 1);
-                this.pulse2.outputLeft = (((value >> 1) & 1) == 1);
-                this.pulse1.outputLeft = (((value >> 0) & 1) == 1);
+                this.noise.outputLeft = (((value >> 3) & 1) === 1);
+                this.wave.outputLeft = (((value >> 2) & 1) === 1);
+                this.pulse2.outputLeft = (((value >> 1) & 1) === 1);
+                this.pulse1.outputLeft = (((value >> 0) & 1) === 1);
 
                 break;
 
@@ -343,7 +343,7 @@ export default class SoundChip {
 
         if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
 
-        if (addr == 0xFF26) { // NR52
+        if (addr === 0xFF26) { // NR52
             i = 0;
             if (this.enabled) i |= (1 << 7);
             if (this.noise.enabled) i |= (1 << 3);

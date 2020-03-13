@@ -145,7 +145,7 @@ let ctxMemoryMap = cMemoryMap.getContext("2d")!;
 
 function updateDebug() {
     requestAnimationFrame(updateDebug);
-    if ((window as any).globalDebug == false) return;
+    if ((window as any).globalDebug === false) return;
     let debugP = document.getElementById('debug')!;
     let lastDebugText = "";
     let gb = ((window as any).gb as GameBoy);

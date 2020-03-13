@@ -44,7 +44,7 @@ class Ops {
             cpu.pc++; cpu.pc &= 0xFFFF;
         } else (cpu.gb.bus.interrupts.enabledInterrupts.numerical &
             cpu.gb.bus.interrupts.requestedInterrupts.numerical &
-            0x1F) == 0;
+            0x1F) === 0;
         {
             cpu.halted = true;
         }
@@ -76,7 +76,7 @@ class Ops {
             }
         }
 
-        cpu._r._f.zero = cpu._r.a == 0;
+        cpu._r._f.zero = cpu._r.a === 0;
         cpu._r._f.half_carry = false;
     }
 
@@ -122,7 +122,7 @@ class Ops {
 
     static CP_A_iHL(cpu: CPU) {
         let u8 = cpu.fetchMem8(cpu.getReg16(R16.HL));
-        cpu._r._f.zero = cpu._r.a - u8 == 0;
+        cpu._r._f.zero = cpu._r.a - u8 === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (u8 & 0xF) > 0xF;
         cpu._r._f.carry = u8 > cpu._r.a;
@@ -171,10 +171,10 @@ class Ops {
 
     // CALL n16 - 0xCD
     static CALL_N16(cpu: CPU, cc: CC, u16: number) {
-        if (cc == CC.Z && !cpu._r._f.zero) return;
-        if (cc == CC.NZ && cpu._r._f.zero) return;
-        if (cc == CC.C && !cpu._r._f.carry) return;
-        if (cc == CC.NC && cpu._r._f.carry) return;
+        if (cc === CC.Z && !cpu._r._f.zero) return;
+        if (cc === CC.NZ && cpu._r._f.zero) return;
+        if (cc === CC.C && !cpu._r._f.carry) return;
+        if (cc === CC.NC && cpu._r._f.carry) return;
 
         let pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
         let pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
@@ -192,10 +192,10 @@ class Ops {
     }
 
     static JP_N16(cpu: CPU, cc: CC, n16: number) {
-        if (cc == CC.Z && !cpu._r._f.zero) return;
-        if (cc == CC.NZ && cpu._r._f.zero) return;
-        if (cc == CC.C && !cpu._r._f.carry) return;
-        if (cc == CC.NC && cpu._r._f.carry) return;
+        if (cc === CC.Z && !cpu._r._f.zero) return;
+        if (cc === CC.NZ && cpu._r._f.zero) return;
+        if (cc === CC.C && !cpu._r._f.carry) return;
+        if (cc === CC.NC && cpu._r._f.carry) return;
 
         cpu.pc = n16 - 3;
 
@@ -210,10 +210,10 @@ class Ops {
     static RET(cpu: CPU, cc: CC) {
         cpu.cycles += 4; // Branch decision?
 
-        if (cc == CC.Z && !cpu._r._f.zero) return;
-        if (cc == CC.NZ && cpu._r._f.zero) return;
-        if (cc == CC.C && !cpu._r._f.carry) return;
-        if (cc == CC.NC && cpu._r._f.carry) return;
+        if (cc === CC.Z && !cpu._r._f.zero) return;
+        if (cc === CC.NZ && cpu._r._f.zero) return;
+        if (cc === CC.C && !cpu._r._f.carry) return;
+        if (cc === CC.NC && cpu._r._f.carry) return;
 
         let stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
         let stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
@@ -315,10 +315,10 @@ class Ops {
 
     // JR
     static JR_E8(cpu: CPU, cc: CC, n8: number) {
-        if (cc == CC.Z && !cpu._r._f.zero) return;
-        if (cc == CC.NZ && cpu._r._f.zero) return;
-        if (cc == CC.C && !cpu._r._f.carry) return;
-        if (cc == CC.NC && cpu._r._f.carry) return;
+        if (cc === CC.Z && !cpu._r._f.zero) return;
+        if (cc === CC.NZ && cpu._r._f.zero) return;
+        if (cc === CC.C && !cpu._r._f.carry) return;
+        if (cc === CC.NC && cpu._r._f.carry) return;
 
         cpu.pc += unTwo8b(n8);
 
@@ -342,7 +342,7 @@ class Ops {
 
         // Set flags
         cpu._r._f.carry = didOverflow;
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
     }
 
@@ -354,7 +354,7 @@ class Ops {
         let didOverflow = ((value + cpu._r.a) >> 8) != 0;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) > 0xF;
         cpu._r._f.carry = didOverflow;
@@ -371,7 +371,7 @@ class Ops {
         let didOverflow = ((value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) + (cpu._r._f.carry ? 1 : 0) > 0xF;
         cpu._r._f.carry = didOverflow;
@@ -388,7 +388,7 @@ class Ops {
         let didOverflow = ((value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) + (cpu._r._f.carry ? 1 : 0) > 0xF;
         cpu._r._f.carry = didOverflow;
@@ -408,7 +408,7 @@ class Ops {
 
         // Set flags
         cpu._r._f.carry = didOverflow;
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) > 0xF;
     }
@@ -434,7 +434,7 @@ class Ops {
         let newValue = (cpu._r.a - value) & 0xFF;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (value & 0xF) > (cpu._r.a & 0xF);
         cpu._r._f.carry = value > cpu._r.a;
@@ -450,7 +450,7 @@ class Ops {
         let newValue = (cpu._r.a - value) & 0xFF;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (value & 0xF) > (cpu._r.a & 0xF);
         cpu._r._f.carry = value > cpu._r.a;
@@ -465,7 +465,7 @@ class Ops {
         let newValue = (cpu._r.a - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (value & 0xF) > (cpu._r.a & 0xF) - (cpu._r._f.carry ? 1 : 0);
         cpu._r._f.carry = value > cpu._r.a - (cpu._r._f.carry ? 1 : 0);
@@ -480,7 +480,7 @@ class Ops {
         let newValue = (cpu._r.a - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
         // Set flags
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (value & 0xF) > (cpu._r.a & 0xF) - (cpu._r._f.carry ? 1 : 0);
         cpu._r._f.carry = value > cpu._r.a - (cpu._r._f.carry ? 1 : 0);
@@ -496,7 +496,7 @@ class Ops {
         cpu._r.a = final;
 
         // Set flags
-        cpu._r._f.zero = cpu._r.a == 0;
+        cpu._r._f.zero = cpu._r.a === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = true;
         cpu._r._f.carry = false;
@@ -508,7 +508,7 @@ class Ops {
         let final = value & cpu._r.a;
         cpu._r.a = final;
 
-        cpu._r._f.zero = cpu._r.a == 0;
+        cpu._r._f.zero = cpu._r.a === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = true;
         cpu._r._f.carry = false;
@@ -520,7 +520,7 @@ class Ops {
         let final = value | cpu._r.a;
         cpu._r.a = final;
 
-        cpu._r._f.zero = final == 0;
+        cpu._r._f.zero = final === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = false;
@@ -532,7 +532,7 @@ class Ops {
         let final = value | cpu._r.a;
         cpu._r.a = final;
 
-        cpu._r._f.zero = final == 0;
+        cpu._r._f.zero = final === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = false;
@@ -544,7 +544,7 @@ class Ops {
         let final = value ^ cpu._r.a;
         cpu._r.a = final;
 
-        cpu._r._f.zero = final == 0;
+        cpu._r._f.zero = final === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = false;
@@ -556,7 +556,7 @@ class Ops {
         let final = value ^ cpu._r.a;
         cpu._r.a = final;
 
-        cpu._r._f.zero = final == 0;
+        cpu._r._f.zero = final === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = false;
@@ -573,7 +573,7 @@ class Ops {
 
         // Set flags
         cpu._r._f.carry = r8 > cpu._r.a;
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) - (r8 & 0xF) < 0;
     }
@@ -588,7 +588,7 @@ class Ops {
 
         // Set flags
         cpu._r._f.carry = value > cpu._r.a;
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (cpu._r.a & 0xF) - (n8 & 0xF) < 0;
     }
@@ -602,7 +602,7 @@ class Ops {
         cpu.setReg8(t, newValue);
 
         // UNMODIFIED cpu._r._f.carry = didOverflow;
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
     }
@@ -621,7 +621,7 @@ class Ops {
         cpu.setReg8(t, newValue);
 
         // UNMODIFIED cpu._r._f.carry = didOverflow;
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
     }
@@ -655,7 +655,7 @@ class Ops {
     static BIT_R8(cpu: CPU, t: R8, selectedBit: number) {
         let value = cpu.getReg8(t);
 
-        cpu._r._f.zero = (value & (1 << selectedBit)) == 0;
+        cpu._r._f.zero = (value & (1 << selectedBit)) === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = true;
     }
@@ -705,7 +705,7 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = !!(value & 1);
@@ -724,7 +724,7 @@ class Ops {
         cpu._r._f.zero = false;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
-        cpu._r._f.carry = (value >> 7) == 1;
+        cpu._r._f.carry = (value >> 7) === 1;
     }
 
     // Rotate TARGET left through carry
@@ -737,10 +737,10 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
-        cpu._r._f.carry = (value >> 7) == 1;
+        cpu._r._f.carry = (value >> 7) === 1;
     }
 
     // Rotate A right
@@ -755,7 +755,7 @@ class Ops {
         cpu._r._f.zero = false;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
-        cpu._r._f.carry = (value & 1) == 1;
+        cpu._r._f.carry = (value & 1) === 1;
     }
 
 
@@ -768,7 +768,7 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = !!(value & 1);
@@ -787,7 +787,7 @@ class Ops {
         cpu._r._f.zero = false;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
-        cpu._r._f.carry = (value >> 7) == 1;
+        cpu._r._f.carry = (value >> 7) === 1;
     }
 
     // Rotate TARGET left
@@ -800,10 +800,10 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
-        cpu._r._f.carry = (value >> 7) == 1;
+        cpu._r._f.carry = (value >> 7) === 1;
     }
 
     // Shift TARGET right
@@ -815,7 +815,7 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = !!(value & 1);
@@ -830,7 +830,7 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = didOverflow;
@@ -844,7 +844,7 @@ class Ops {
 
         cpu.setReg8(t, newValue);
 
-        cpu._r._f.zero = newValue == 0;
+        cpu._r._f.zero = newValue === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = !!(value & 1);
@@ -859,7 +859,7 @@ class Ops {
 
         cpu.setReg8(r8, (lowerNybble << 4) | upperNybble);
 
-        cpu._r._f.zero = value == 0;
+        cpu._r._f.zero = value === 0;
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = false;

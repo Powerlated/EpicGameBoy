@@ -335,7 +335,7 @@ export default class CPU {
         if (this.debugging || this.logging)
             this.stepDebug();
 
-        if (this.halted == false) {
+        if (this.halted === false) {
             this.executeInstruction();
             this.lastInstructionCycles = this.cycles - c;
         }
@@ -343,7 +343,7 @@ export default class CPU {
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
         if ((this.gb.bus.interrupts.requestedInterrupts.numerical &
-            this.gb.bus.interrupts.enabledInterrupts.numerical) && this.halted == true) {
+            this.gb.bus.interrupts.enabledInterrupts.numerical) && this.halted === true) {
             this.halted = false;
         }
 
@@ -352,7 +352,7 @@ export default class CPU {
     }
 
     checkBootrom() {
-        if (this.pc == 0 && this.gb.bus.bootromEnabled == true && this.gb.bus.bootromLoaded == false) {
+        if (this.pc === 0 && this.gb.bus.bootromEnabled === true && this.gb.bus.bootromLoaded === false) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
 
@@ -410,7 +410,7 @@ export default class CPU {
 
     executeInstruction() {
         let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
-        let isCB = pcTriplet[0] == 0xCB;
+        let isCB = pcTriplet[0] === 0xCB;
 
         if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
@@ -432,20 +432,20 @@ export default class CPU {
         }
 
         if (ins.type != undefined) {
-            if (ins.length == 3) {
+            if (ins.length === 3) {
                 ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
                 this.cycles += 8;
-            } else if (ins.length == 2 && (ins.type2 == undefined)) {
+            } else if (ins.length === 2 && (ins.type2 === undefined)) {
                 ins.op(this, ins.type, pcTriplet[1]);
                 this.cycles += 4;
             } else {
                 ins.op(this, ins.type, ins.type2);
             }
         } else {
-            if (ins.length == 3) {
+            if (ins.length === 3) {
                 ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
                 this.cycles += 8;
-            } else if (ins.length == 2) {
+            } else if (ins.length === 2) {
                 ins.op(this, pcTriplet[1]);
                 this.cycles += 4;
             } else {
@@ -501,7 +501,7 @@ export default class CPU {
     }
 
     stepDebug() {
-        let isCB = this.gb.bus.readMem8(this.pc) == 0xCB;
+        let isCB = this.gb.bus.readMem8(this.pc) === 0xCB;
 
         let ins = isCB ? Decoder.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : Decoder.rgOpcode(this.gb.bus.readMem8(this.pc));
 
@@ -511,7 +511,7 @@ export default class CPU {
 
         let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
 
-        if (opcode == this.lastOpcode) {
+        if (opcode === this.lastOpcode) {
             this.lastOpcodeReps++;
         } else {
             this.lastOpcodeReps = 0;
@@ -526,10 +526,10 @@ export default class CPU {
             alert(`[${ins.op.name}] Op has no length specified.`);
         }
 
-        // if ((ins.op.length == 1 && (!ins.type)) || (ins.op.length == 2 && (!ins.type || !ins.type2))) {
+        // if ((ins.op.length === 1 && (!ins.type)) || (ins.op.length === 2 && (!ins.type || !ins.type2))) {
         //     alert(`[Arg length 1 || 2] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
         // }
-        // if (ins.op.length == 3 && (ins.type === undefined || ins.type2 === undefined)) {
+        // if (ins.op.length === 3 && (ins.type ==== undefined || ins.type2 ==== undefined)) {
         //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
         // }
 
@@ -544,16 +544,16 @@ export default class CPU {
         }
 
         if (this.debugging || this.logging) {
-            if (ins.length == 3) {
+            if (ins.length === 3) {
                 insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 2), 2)}`;
                 operandDebug = `${hex(this.gb.bus.readMem16(this.pc + 1), 4)}`;
-            } else if (ins.length == 2) {
+            } else if (ins.length === 2) {
                 insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ..`;
                 operandDebug = `${hex(this.gb.bus.readMem8(this.pc + 1), 2)}`;
             } else {
                 insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} .. ..`;
             }
-            this.currentIns = `${ins.op.name} ${ins.type == undefined ? "" : ins.type}${ins.type2 == undefined ? "" : ins.type2}`;
+            this.currentIns = `${ins.op.name} ${ins.type === undefined ? "" : ins.type}${ins.type2 === undefined ? "" : ins.type2}`;
         }
 
         if (this.logging) {
@@ -602,7 +602,7 @@ export default class CPU {
     }
 
     getReg8(t: R8) {
-        // if (t == undefined) {
+        // if (t === undefined) {
         //     alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: getReg(undefined)`);
         // }
 
@@ -629,10 +629,10 @@ export default class CPU {
     }
 
     setReg8(t: R8, i: number) {
-        // if (t == undefined) {
+        // if (t === undefined) {
         //     alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg(undefined, [any])`);
         // }
-        // if (i == undefined) {
+        // if (i === undefined) {
         //     alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg([any], undefined)`);
         // }
 

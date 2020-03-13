@@ -36,7 +36,7 @@ export default class MBC5 extends MBCWithRAM implements MBC {
     write(addr: number, value: number) {
         // RAM Enable
         if (addr >= 0x0000 && addr <= 0x1FFF) {
-            if ((value & 0xF) == 0x0A) {
+            if ((value & 0xF) === 0x0A) {
                 this.enableExternalRam = true;
             } else {
                 this.enableExternalRam = false;

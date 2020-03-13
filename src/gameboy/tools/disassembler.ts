@@ -6,10 +6,10 @@ import Decoder from "../cpu/decoder";
 
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {
-        if (ins.type == CC.C) return cpu._r._f.carry;
-        if (ins.type == CC.NC) return !cpu._r._f.carry;
-        if (ins.type == CC.Z) return cpu._r._f.zero;
-        if (ins.type == CC.NZ) return !cpu._r._f.zero;
+        if (ins.type === CC.C) return cpu._r._f.carry;
+        if (ins.type === CC.NC) return !cpu._r._f.carry;
+        if (ins.type === CC.Z) return cpu._r._f.zero;
+        if (ins.type === CC.NZ) return !cpu._r._f.zero;
         return true; // Jump by default
     };
 
@@ -78,7 +78,7 @@ export default class Disassembler {
             }
         };
 
-        let isCB = pcTriplet[0] == 0xCB;
+        let isCB = pcTriplet[0] === 0xCB;
         let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
         // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
         let block = hardDecoded ? true : false;
@@ -95,7 +95,7 @@ export default class Disassembler {
 
         // Instructions with type 2
         if (isNaN(ins.type2 as any) && !block) {
-            if (ins.length == 2) {
+            if (ins.length === 2) {
                 if (ins.op != Ops.JR_E8) {
                     // Regular operation
                     operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
@@ -103,7 +103,7 @@ export default class Disassembler {
                     // For JR operation, reverse two's complement instead of hex
                     operandAndType += "" + unTwo8b(cpu.gb.bus.readMem8(disasmPc + 1));
                 }
-            } else if (ins.length == 3) {
+            } else if (ins.length === 3) {
                 // 16 bit
                 operandAndType += "$" + hexN(cpu.gb.bus.readMem16(disasmPc + 1), 4);
             }
@@ -154,7 +154,7 @@ export default class Disassembler {
         let disasmPc = cpu.pc;
 
         for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
-            let isCB = cpu.gb.bus.readMem8(disasmPc) == 0xCB;
+            let isCB = cpu.gb.bus.readMem8(disasmPc) === 0xCB;
             let pcTriplet = new Uint8Array([cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)]);
 
 
@@ -175,7 +175,7 @@ export default class Disassembler {
 
             let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, disasmPc, cpu)}`;
 
-            if (i == 0) {
+            if (i === 0) {
                 if (Disassembler.willJump(ins, cpu))
                     nextOpWillJumpTo = Disassembler.willJumpTo(ins, pcTriplet, disasmPc, cpu);
 
@@ -192,8 +192,8 @@ export default class Disassembler {
             let disAsmLineHtml = buildLine(`
                 <span
                     ${BREAKPOINT_GENERATE()}
-                    ${i == 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
-                    ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
+                    ${i === 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
+                    ${nextOpWillJumpTo === disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
                 >
                     ${disasmLine}
                 </span>`);
@@ -212,7 +212,7 @@ export default class Disassembler {
                 let disAsmLineHtml = buildLine(`
                     <span 
                         ${BREAKPOINT_GENERATE()}
-                        ${nextOpWillJumpTo == disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
+                        ${nextOpWillJumpTo === disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
                     >
                         ${Disassembler.disassembledLines[disasmPc]}
                     </span>`);
@@ -242,7 +242,7 @@ export default class Disassembler {
         // Add wrapper to each one
         disassembly = disassembly.map((v, i, a) => {
             return `<span
-                ${v == BLANK_LINE ? "" : HOVER_BG}
+                ${v === BLANK_LINE ? "" : HOVER_BG}
                 >${v}</span><br/>`;
         });
 

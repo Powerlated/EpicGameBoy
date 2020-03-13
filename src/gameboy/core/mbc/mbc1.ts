@@ -44,7 +44,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
     write(addr: number, value: number) {
         // RAM Enable
         if (addr >= 0x0000 && addr <= 0x1FFF) {
-            if ((value & 0xF) == 0x0A) {
+            if ((value & 0xF) === 0x0A) {
                 this.enableExternalRam = true;
             } else {
                 this.enableExternalRam = false;
@@ -56,7 +56,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
             this.romBank &= 0b11100000; // Erase 5 bits
             this.romBank |= (value & 0b00011111); // Whole 5 bits
 
-            if (this.romBank == 0) {
+            if (this.romBank === 0) {
                 this.romBank = 1;
             }
 
@@ -65,7 +65,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
         // RAM Bank Number / Upper Bits of ROM Bank Number
         if (addr >= 0x4000 && addr <= 0x5FFF) {
             value &= 0b11;
-            if (this.bankingMode == BankingMode.RAM) {
+            if (this.bankingMode === BankingMode.RAM) {
                 console.log("Set RAM Bank to: " + value);
                 this.ramBank = value;
             } else {

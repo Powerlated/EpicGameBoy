@@ -53,7 +53,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
         }
         if (addr >= 0x2000 && addr <= 0x3FFF) {
             // MBC3 - Writing 0 will select 1
-            if (value == 0) {
+            if (value === 0) {
                 this.romBank = 1;
             } else {
                 this.romBank = value & 0b1111111; // Whole 7 bits

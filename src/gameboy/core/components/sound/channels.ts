@@ -61,7 +61,7 @@ export class PulseChannel implements BasicChannel {
 
     trigger() {
         this.enabled = true;
-        if (this.lengthCounter == 0) {
+        if (this.lengthCounter === 0) {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
@@ -129,7 +129,7 @@ export class WaveChannel implements BasicChannel {
         let waveTable = this.waveTable.map(v => (v - 8) / 4).flatMap(i => [i, i, i, i]);
 
         // Output all zeroes if frequency binary is zero
-        if (this.frequencyHz == 32) {
+        if (this.frequencyHz === 32) {
             waveTable = new Array(1).fill(0);
         }
 
@@ -145,7 +145,7 @@ export class WaveChannel implements BasicChannel {
 
     trigger() {
         this.enabled = true;
-        if (this.lengthCounter == 0) {
+        if (this.lengthCounter === 0) {
             this.lengthCounter = 256;
         }
         this.update();

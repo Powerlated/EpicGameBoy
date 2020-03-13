@@ -49,7 +49,7 @@ export class JoypadRegister {
     }
 
     set numerical(i: number) {
-        this.selectButtons = ((i >> 5) & 1) == 0; // Bit 5
-        this.selectDpad = ((i >> 4) & 1) == 0; // Bit 4
+        this.selectButtons = ((i >> 5) & 1) === 0; // Bit 5
+        this.selectDpad = ((i >> 4) & 1) === 0; // Bit 4
     }
 }

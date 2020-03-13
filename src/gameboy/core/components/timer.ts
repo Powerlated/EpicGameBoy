@@ -44,8 +44,8 @@ export default class Timer {
             }
 
             this.c.mainClock++; this.c.mainClock &= 0xFFFF;
-            if (this.c.mainClock % Timer.TimerSpeeds[this.control.speed] == 0) {
-                if (this.control.running && this.counterOverflowTtime == 0) {
+            if (this.c.mainClock % Timer.TimerSpeeds[this.control.speed] === 0) {
+                if (this.control.running && this.counterOverflowTtime === 0) {
                     this.counter++;
                 }
             }
@@ -56,7 +56,7 @@ export default class Timer {
             }
 
             if (this.counterOverflowTtime > 0) {
-                if (this.counterOverflowTtime == 1) {
+                if (this.counterOverflowTtime === 1) {
                     this.counter = this.modulo;
                     this.gb.bus.interrupts.requestTimer();
                 }
@@ -95,7 +95,7 @@ export default class Timer {
         return this.counter;
     }
     set addr_0xFF05(i: number) {
-        if (this.counterOverflowTtime == 0)
+        if (this.counterOverflowTtime === 0)
             this.counter = i;
     }
 

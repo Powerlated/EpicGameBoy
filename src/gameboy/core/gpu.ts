@@ -163,7 +163,7 @@ class GPU {
 
     lcdcY = 0; // 0xFF44 - Current scanning line
 
-    lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY == lcdcYCompare 
+    lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY === lcdcYCompare 
 
     windowYpos = 0; // 0xFF4A
     windowXpos = 0; // 0xFF4B
@@ -186,14 +186,14 @@ class GPU {
             switch (this.lcdStatus.mode) {
                 // Read from OAM - Scanline active
                 case 2:
-                    if (this.lYCompare == this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
+                    if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
                         writeDebug("Coincidence");
                         this.lcdStatus.coincidenceFlag_______2 = true;
                         this.gb.bus.interrupts.requestLCDstatus();
                     }
 
                     if (this.modeClock >= 80) {
-                        if ((this.totalFrameCount % this.gb.speedMul) == 0)
+                        if ((this.totalFrameCount % this.gb.speedMul) === 0)
                             this.renderScanline();
 
                         this.modeClock -= 80;
@@ -233,7 +233,7 @@ class GPU {
                             }
 
                             // Draw to the canvas
-                            if ((this.totalFrameCount % this.gb.speedMul) == 0) {
+                            if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                 this.canvas.drawGameboy();
                             }
                         }
@@ -334,7 +334,7 @@ class GPU {
 
 
             // Scroll X/Y debug
-            if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+            if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
                 this.imageGameboy.data[canvasIndex + 0] = 0xFF;
                 this.imageGameboy.data[canvasIndex + 1] = 0;
                 this.imageGameboy.data[canvasIndex + 2] = 0;
@@ -345,7 +345,7 @@ class GPU {
 
             // When this tile ends, read another
             x++;
-            if (x == 8) {
+            if (x === 8) {
                 x = 0;
                 lineOffset++;
                 lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
@@ -401,7 +401,7 @@ class GPU {
 
 
                     // Window X debug
-                    if (this.showBorders && (((mapOffset + lineOffset) % 32 == 0 && x == 0) || (mapIndex < 16 && y == 0))) {
+                    if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
                         this.imageGameboy.data[canvasIndex + 0] = 0;
                         this.imageGameboy.data[canvasIndex + 1] = 0;
                         this.imageGameboy.data[canvasIndex + 2] = 0xFF;
@@ -411,7 +411,7 @@ class GPU {
 
                     // When this tile ends, read another
                     x++;
-                    if (x == 8) {
+                    if (x === 8) {
                         x = 0;
                         lineOffset++;
                         // If going offscreen, just exit the loop
@@ -419,7 +419,7 @@ class GPU {
                             break;
                         }
                         tile = this.vram[mapOffset + lineOffset];
-                        // if (GPU._bgtile == 1 && tile < 128) tile += 256;
+                        // if (GPU._bgtile === 1 && tile < 128) tile += 256;
                     }
                 }
             }
@@ -486,7 +486,7 @@ class GPU {
                             }
 
                             // Border debug
-                            if (this.showBorders && (pixelX == 0 || pixelX == 7 || pixelY == 0 || pixelY == 7)) {
+                            if (this.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
                                 if (this.lcdControl.spriteSize______2) {
                                     this.imageGameboy.data[canvasIndex + 0] = 0xFF;
                                     this.imageGameboy.data[canvasIndex + 1] = 0;
@@ -509,7 +509,7 @@ class GPU {
         this.tileset.forEach((v1, i1) => {
             v1.forEach((v2, i2) => {
                 v2.forEach((pixel, i3) => {
-                    if (pixel == undefined) return;
+                    if (pixel === undefined) return;
 
                     const WIDTH = 256;
 
@@ -539,14 +539,14 @@ class GPU {
 
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+        if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
 
         return this.vram[index];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode == 3 && this.lcdControl.lcdDisplayEnable7) return;
+        if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return;
 
         this.vram[index] = value;
 
@@ -613,7 +613,7 @@ class GPU {
         // writeDebug(`OAM DMA @ ${hex(startAddr, 4)}`);
         for (let i = 0; i < 0x100; i++) {
             // If $FE00, read from external bus 
-            if (startAddr == 0xFE00) {
+            if (startAddr === 0xFE00) {
                 this.oam[i] = this.gb.bus.ext.read(startAddr + i);
             } else { // General bus read
                 this.oam[i] = this.gb.bus.readMem8(startAddr + i);

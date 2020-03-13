@@ -96,7 +96,7 @@ class MemoryBus {
         }
 
         // SET Interrupt request flags
-        if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
+        if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
             this.interrupts.requestedInterrupts.numerical = value;
         }
 
@@ -107,7 +107,7 @@ class MemoryBus {
         }
 
         // SET Interrupt enable flags
-        if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
+        if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
             this.interrupts.enabledInterrupts.numerical = value;
         }
 
@@ -250,11 +250,11 @@ class MemoryBus {
         }
 
         // GET Interrupt request flags
-        if (addr == INTERRUPT_REQUEST_FLAGS_ADDR) {
+        if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
             return this.interrupts.requestedInterrupts.numerical | 0b11100000;
         }
         // GET Interrupt enable flags
-        if (addr == INTERRUPT_ENABLE_FLAGS_ADDR) {
+        if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
             return this.interrupts.enabledInterrupts.numerical | 0b11100000;
         }
 

@@ -236,21 +236,21 @@ function init() {
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
 
     document.onkeydown = function (e) {
-        if (e.key == "s") {
+        if (e.key === "s") {
             gb.step();
             e.preventDefault();
         }
 
         if (e.getModifierState("Shift")) {
-            if (e.key == "D") {
+            if (e.key === "D") {
                 document.querySelector('#enableDebugger').click();
                 e.preventDefault();
             }
-            if (e.key == "T") {
+            if (e.key === "T") {
                 document.querySelector('#drawTileset').click();
                 e.preventDefault();
             }
-            if (e.key == "B") {
+            if (e.key === "B") {
                 document.querySelector('#big-screen').click();
                 e.preventDefault();
             }
