@@ -16,7 +16,7 @@ function convertVolumeWave(v: number) {
         case 3: v = 4; break;
     }
 
-    let base = -20      ;
+    let base = -18;
     let mute = 0;
     if (v == 0) mute = -10000;
     return base + mute + (10 * Math.log(v / 16));

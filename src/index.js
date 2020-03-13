@@ -254,9 +254,9 @@ function init() {
                 document.querySelector('#big-screen').click();
                 e.preventDefault();
             }
+        }
 
-
-        if (block.includes(e.key))
+        if (block.includes(e.key)) {
             e.preventDefault();
         }
 
@@ -336,7 +336,7 @@ function init() {
     document.querySelector('html').addEventListener('touchstart', () => {
         Tone.start();
     });
-}
+};
 
 function dropHandler(ev) {
     console.log('File(s) dropped');

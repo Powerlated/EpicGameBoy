@@ -143,17 +143,9 @@ let memoryMapImg = new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)
 let cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
 let ctxMemoryMap = cMemoryMap.getContext("2d")!;
 
-let div = 0;
-
 function updateDebug() {
     requestAnimationFrame(updateDebug);
     if ((window as any).globalDebug == false) return;
-    if (div < 2) {
-        div++;
-        return;
-    } else {
-        div = 0;
-    }
     let debugP = document.getElementById('debug')!;
     let lastDebugText = "";
     let gb = ((window as any).gb as GameBoy);
