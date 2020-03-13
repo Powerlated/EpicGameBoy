@@ -1,5 +1,5 @@
 import CPU, { R8, R16, CC } from './cpu';
-import { o8b, o16b, unTwo8b, do8b, do16b } from '../tools/util';
+import { o16b, unTwo8b, do8b, do16b } from '../tools/util';
 
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {
@@ -59,20 +59,20 @@ class Ops {
     static DA_A(cpu: CPU) {
         if (!cpu._r._f.negative) {
             if (cpu._r._f.carry || cpu._r.a > 0x99) {
-                cpu._r.a = o8b(cpu._r.a + 0x60);
+                cpu._r.a = (cpu._r.a + 0x60) & 0xFF;
                 cpu._r._f.carry = true;
             }
             if (cpu._r._f.half_carry || (cpu._r.a & 0x0f) > 0x09) {
-                cpu._r.a = o8b(cpu._r.a + 0x6);
+                cpu._r.a = (cpu._r.a + 0x6) & 0xFF;
             }
         }
         else {
             if (cpu._r._f.carry) {
-                cpu._r.a = o8b(cpu._r.a - 0x60);
+                cpu._r.a = (cpu._r.a - 0x60) & 0xFF;
                 cpu._r._f.carry = true;
             }
             if (cpu._r._f.half_carry) {
-                cpu._r.a = o8b(cpu._r.a - 0x6);
+                cpu._r.a = (cpu._r.a - 0x6) & 0xFF;
             }
         }
 
@@ -117,7 +117,7 @@ class Ops {
     }
 
     static ADD_iHL(cpu: CPU, ) {
-        cpu._r.a = o8b(cpu._r.a + cpu.fetchMem8(cpu._r.hl));
+        cpu._r.a = (cpu._r.a + cpu.fetchMem8(cpu._r.hl)) & 0xFF;
     }
 
     static CP_A_iHL(cpu: CPU) {
@@ -335,7 +335,7 @@ class Ops {
         let value = cpu.getReg(t);
         cpu._r._f.half_carry = (cpu._r.a & 0xF) + (value & 0xF) > 0xF;
 
-        let newValue = o8b(value + cpu._r.a);
+        let newValue = (value + cpu._r.a) & 0xFF;
         let didOverflow = do8b(value + cpu._r.a);
 
         // Set register values
@@ -351,7 +351,7 @@ class Ops {
     static ADD_A_N8(cpu: CPU, n8: number) {
         let value = n8;
 
-        let newValue = o8b(value + cpu._r.a);
+        let newValue = (value + cpu._r.a) & 0xFF;
         let didOverflow = do8b(value + cpu._r.a);
 
         // Set flags
@@ -368,7 +368,7 @@ class Ops {
     static ADC_A_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg(t);
 
-        let newValue = o8b(value + cpu._r.a + (cpu._r._f.carry ? 1 : 0));
+        let newValue = (value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
         let didOverflow = do8b(value + cpu._r.a + (cpu._r._f.carry ? 1 : 0));
 
         // Set flags
@@ -385,7 +385,7 @@ class Ops {
     static ADC_A_N8(cpu: CPU, n8: number) {
         let value = n8;
 
-        let newValue = o8b(value + cpu._r.a + (cpu._r._f.carry ? 1 : 0));
+        let newValue = (value + cpu._r.a + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
         let didOverflow = do8b(value + cpu._r.a + (cpu._r._f.carry ? 1 : 0));
 
         // Set flags
@@ -432,7 +432,7 @@ class Ops {
     static SUB_A_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg(t);
 
-        let newValue = o8b(cpu._r.a - value);
+        let newValue = (cpu._r.a - value) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -448,7 +448,7 @@ class Ops {
     static SUB_A_N8(cpu: CPU, n8: number) {
         let value = n8;
 
-        let newValue = o8b(cpu._r.a - value);
+        let newValue = (cpu._r.a - value) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -463,7 +463,7 @@ class Ops {
     static SBC_A_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg(t);
 
-        let newValue = o8b(cpu._r.a - value - (cpu._r._f.carry ? 1 : 0));
+        let newValue = (cpu._r.a - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -478,7 +478,7 @@ class Ops {
     static SBC_A_N8(cpu: CPU, n8: number) {
         let value = n8;
 
-        let newValue = o8b(cpu._r.a - value - (cpu._r._f.carry ? 1 : 0));
+        let newValue = (cpu._r.a - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue == 0;
@@ -567,7 +567,7 @@ class Ops {
     static CP_A_R8(cpu: CPU, t: R8) {
         let r8 = cpu.getReg(t);
 
-        let newValue = o8b(cpu._r.a - r8);
+        let newValue = (cpu._r.a - r8) & 0xFF;
         let didOverflow = do8b(cpu._r.a - r8);
 
         // DO not set register values for CP
@@ -583,7 +583,7 @@ class Ops {
     static CP_A_N8(cpu: CPU, n8: number) {
         let value = n8;
 
-        let newValue = o8b(cpu._r.a - value);
+        let newValue = (cpu._r.a - value) & 0xFF;
         let didOverflow = do8b(cpu._r.a - value);
 
 
@@ -597,7 +597,7 @@ class Ops {
     static INC_R8(cpu: CPU, t: R8) {
         let target = cpu.getReg(t);
 
-        let newValue = o8b(target + 1);
+        let newValue = (target + 1) & 0xFF;
         let didOverflow = do8b(target + 1);
 
         cpu.setReg(t, newValue);
@@ -617,7 +617,7 @@ class Ops {
     static DEC_R8(cpu: CPU, t: R8) {
         let target = cpu.getReg(t);
 
-        let newValue = o8b(target - 1);
+        let newValue = (target - 1) & 0xFF;
 
         cpu.setReg(t, newValue);
 
@@ -685,7 +685,7 @@ class Ops {
 
         let carryMask = (cpu._r.f & 0b00010000) << 3;
 
-        let newValue = o8b((value >> 1) | carryMask);
+        let newValue = ((value >> 1) | carryMask) & 0xFF;
 
         cpu._r.a = newValue;
 
@@ -702,7 +702,7 @@ class Ops {
 
         let carryMask = (cpu._r.f & 0b00010000) << 3;
 
-        let newValue = o8b((value >> 1) | carryMask);
+        let newValue = ((value >> 1) | carryMask) & 0xFF;
 
         cpu.setReg(t, newValue);
 
@@ -718,7 +718,7 @@ class Ops {
 
         let carryMask = (cpu._r.f & 0b00010000) >> 4;
 
-        let newValue = o8b((value << 1) | carryMask);
+        let newValue = ((value << 1) | carryMask) & 0xFF;
 
         cpu._r.a = newValue;
 
@@ -734,7 +734,7 @@ class Ops {
 
         let carryMask = (cpu._r.f & 0b00010000) >> 4;
 
-        let newValue = o8b((value << 1) | carryMask);
+        let newValue = ((value << 1) | carryMask) & 0xFF;
 
         cpu.setReg(t, newValue);
 
@@ -749,7 +749,7 @@ class Ops {
         let value = cpu._r.a;
 
         let rightmostBit = (value & 1) << 7;
-        let newValue = o8b((value >> 1) | rightmostBit);
+        let newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
         cpu._r.a = newValue;
 
@@ -765,7 +765,7 @@ class Ops {
         let value = cpu.getReg(t);
 
         let rightmostBit = (value & 1) << 7;
-        let newValue = o8b((value >> 1) | rightmostBit);
+        let newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
         cpu.setReg(t, newValue);
 
@@ -781,7 +781,7 @@ class Ops {
 
         let leftmostBit = (value & 0b10000000) >> 7;
 
-        let newValue = o8b((value << 1) | leftmostBit);
+        let newValue = ((value << 1) | leftmostBit) & 0xFF;
 
         cpu._r.a = newValue;
 
@@ -797,7 +797,7 @@ class Ops {
 
         let leftmostBit = (value & 0b10000000) >> 7;
 
-        let newValue = o8b((value << 1) | leftmostBit);
+        let newValue = ((value << 1) | leftmostBit) & 0xFF;
 
         cpu.setReg(t, newValue);
 
@@ -826,7 +826,7 @@ class Ops {
     static SLA_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg(t);
 
-        let newValue = o8b(value << 1);
+        let newValue = (value << 1) & 0xFF;
         let didOverflow = do8b(value << 1);
 
         cpu.setReg(t, newValue);
@@ -841,7 +841,7 @@ class Ops {
     static SRL_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg(t);
 
-        let newValue = o8b(value >> 1);
+        let newValue = (value >> 1) & 0xFF;
 
         cpu.setReg(t, newValue);
 

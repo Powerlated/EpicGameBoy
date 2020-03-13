@@ -22,14 +22,6 @@ export function unTwo16b(n: number): number {
     }
 }
 
-export function o4b(i: number): number {
-    return i & 0xF;
-}
-
-export function o8b(i: number): number {
-    return i & 0xFF;
-}
-
 export function o16b(i: number): number {
     return i & 0xFFFF;
 }
