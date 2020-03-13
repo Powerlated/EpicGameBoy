@@ -2,7 +2,7 @@ import Ops from "./cpu_ops";
 import GameBoy from "../gameboy";
 import Disassembler from "../tools/disassembler";
 import { writeDebug } from "../tools/debug";
-import { hex, pad, hexN_LC, hexN, r_pad, o16b } from "../tools/util";
+import { hex, pad, hexN_LC, hexN, r_pad } from "../tools/util";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "./components/interrupt-controller";
 
 
@@ -424,7 +424,7 @@ export default class CPU {
             if (Disassembler.isControlFlow(ins)) {
                 if (Disassembler.willJump(ins, this)) {
                     let disasm = Disassembler.disassembleOp(ins, new Uint8Array(pcTriplet), this.pc, this);
-                    let to = Disassembler.willJumpTo(ins,  new Uint8Array(pcTriplet), this.pc, this);
+                    let to = Disassembler.willJumpTo(ins, new Uint8Array(pcTriplet), this.pc, this);
                     // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
                     // this.jumpLog = this.jumpLog.slice(0, 100);
                 }
@@ -454,15 +454,12 @@ export default class CPU {
         }
 
         if (!this.haltBug) {
-            this.pc += ins.length;
-            this.pc &= 0xFFFF;
+            this.pc = (this.pc + ins.length) & 0xFFFF;
         }
 
         this.totalI++;
 
         // this.opcodesRan.add(pcTriplet[0]);
-
-
     }
 
     serviceInterrupts() {
@@ -577,12 +574,12 @@ export default class CPU {
     }
 
     jumpToInterrupt(vector: number) {
-        let pcUpperByte = o16b(this.pc) >> 8;
-        let pcLowerByte = o16b(this.pc) & 0xFF;
+        let pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
+        let pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
 
-        this._r.sp = o16b(this._r.sp - 1);
+        this._r.sp = (this._r.sp - 1) & 0xFFFF;
         this.writeMem8(this._r.sp, pcUpperByte);
-        this._r.sp = o16b(this._r.sp - 1);
+        this._r.sp = (this._r.sp - 1) & 0xFFFF;
         this.writeMem8(this._r.sp, pcLowerByte);
 
         this.pc = vector;

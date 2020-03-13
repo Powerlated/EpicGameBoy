@@ -22,10 +22,6 @@ export function unTwo16b(n: number): number {
     }
 }
 
-export function o16b(i: number): number {
-    return i & 0xFFFF;
-}
-
 export function do4b(i: number): boolean {
     return i > 0xF || i < 0;
 }

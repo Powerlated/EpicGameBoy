@@ -1,7 +1,7 @@
 import CPU, { CC, Op } from "../core/cpu";
 
 import Ops from "../core/cpu_ops";
-import { o16b, unTwo8b, hexN, hexN_LC, pad } from "./util";
+import { unTwo8b, hexN, hexN_LC, pad } from "./util";
 
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {
@@ -36,9 +36,9 @@ export default class Disassembler {
                 return cpu._r.hl;
             case Ops.RET:
             case Ops.RETI:
-                let stackLowerByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp));
-                let stackUpperByte = cpu.gb.bus.readMem8(o16b(cpu._r.sp + 1));
-                return o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
+                let stackLowerByte = cpu.gb.bus.readMem8((cpu._r.sp) & 0xFFFF);
+                let stackUpperByte = cpu.gb.bus.readMem8((cpu._r.sp + 1) & 0xFFFF);
+                return (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
             case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction
                 return disasmPc + unTwo8b(pcTriplet[1]) + 2;
@@ -198,7 +198,7 @@ export default class Disassembler {
                 </span>`);
 
             disassembly.push(disAsmLineHtml);
-            disasmPc = o16b(disasmPc + ins.length);
+            disasmPc = (disasmPc + ins.length) & 0xFFFF;
         }
 
         const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span>';
@@ -228,7 +228,7 @@ export default class Disassembler {
                 i++;
             }
 
-            disasmPc = o16b(disasmPc - 1);
+            disasmPc = (disasmPc - 1) & 0xFFFF;
         }
 
         // Prepend the skipped lines to the log

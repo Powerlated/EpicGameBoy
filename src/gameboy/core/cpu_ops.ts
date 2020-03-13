@@ -1,5 +1,5 @@
 import CPU, { R8, R16, CC } from './cpu';
-import { o16b, unTwo8b, do8b, do16b } from '../tools/util';
+import { unTwo8b, do8b, do16b } from '../tools/util';
 
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {
@@ -86,17 +86,17 @@ class Ops {
         let spLowerByte = cpu._r.sp & 0b11111111;
 
         cpu.writeMem8(in16 + 0, spLowerByte);
-        cpu.writeMem8(in16 + 1, o16b(spUpperByte));
+        cpu.writeMem8(in16 + 1, (spUpperByte) & 0xFFFF);
     }
 
 
     static RST(cpu: CPU, vector: number) {
-        let pcUpperByte = o16b(cpu.pc + 1) >> 8;
-        let pcLowerByte = o16b(cpu.pc + 1) & 0xFF;
+        let pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
+        let pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
 
-        cpu._r.sp = o16b(cpu._r.sp - 1);
+        cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, pcUpperByte);
-        cpu._r.sp = o16b(cpu._r.sp - 1);
+        cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, pcLowerByte);
 
         cpu.pc = vector - 1;
@@ -129,11 +129,11 @@ class Ops {
     }
 
     static LD_A_iFF00plusN8(cpu: CPU, n8: number) {
-        cpu._r.a = cpu.fetchMem8(o16b(0xFF00 + n8));
+        cpu._r.a = cpu.fetchMem8((0xFF00 + n8) & 0xFFFF);
     }
 
     static LD_A_iFF00plusC(cpu: CPU) {
-        cpu._r.a = cpu.fetchMem8(o16b(0xFF00 + cpu._r.c));
+        cpu._r.a = cpu.fetchMem8((0xFF00 + cpu._r.c) & 0xFFFF);
     }
 
     static LD_iR16_A(cpu: CPU, r16: R16) {
@@ -152,9 +152,9 @@ class Ops {
         let upperByte = value >> 8;
         let lowerByte = value & 0b11111111;
 
-        cpu._r.sp = o16b(cpu._r.sp - 1);
+        cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, upperByte);
-        cpu._r.sp = o16b(cpu._r.sp - 1);
+        cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, lowerByte);
     }
 
@@ -162,9 +162,9 @@ class Ops {
         Pop off the stack into r16. */
     static POP_R16(cpu: CPU, r16: R16) {
         let lowerByte = cpu.fetchMem8(cpu._r.sp);
-        cpu._r.sp = o16b(cpu._r.sp + 1);
+        cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
         let upperByte = cpu.fetchMem8(cpu._r.sp);
-        cpu._r.sp = o16b(cpu._r.sp + 1);
+        cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
 
         cpu.setReg(r16, (upperByte << 8) | lowerByte);
     }
@@ -176,14 +176,14 @@ class Ops {
         if (cc == CC.C && !cpu._r._f.carry) return;
         if (cc == CC.NC && cpu._r._f.carry) return;
 
-        let pcUpperByte = o16b(cpu.pc + 3) >> 8;
-        let pcLowerByte = o16b(cpu.pc + 3) & 0xFF;
+        let pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
+        let pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
 
         // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
 
-        cpu._r.sp = o16b(cpu._r.sp - 1);
+        cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, pcUpperByte);
-        cpu._r.sp = o16b(cpu._r.sp - 1);
+        cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, pcLowerByte);
 
         cpu.pc = u16 - 3;
@@ -215,10 +215,10 @@ class Ops {
         if (cc == CC.C && !cpu._r._f.carry) return;
         if (cc == CC.NC && cpu._r._f.carry) return;
 
-        let stackLowerByte = cpu.fetchMem8(o16b(cpu._r.sp++));
-        let stackUpperByte = cpu.fetchMem8(o16b(cpu._r.sp++));
+        let stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
+        let stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
 
-        let returnAddress = o16b(((stackUpperByte << 8) | stackLowerByte) - 1);
+        let returnAddress = (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
         // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
         cpu.pc = returnAddress;
@@ -249,20 +249,20 @@ class Ops {
         cpu._r._f.half_carry = (signedVal & 0xF) + (cpu._r.sp & 0xF) > 0xF;
         cpu._r._f.carry = (signedVal & 0xFF) + (cpu._r.sp & 0xFF) > 0xFF;
 
-        cpu._r.hl = o16b(unTwo8b(e8) + cpu._r.sp);
+        cpu._r.hl = (unTwo8b(e8) + cpu._r.sp) & 0xFFFF;
     }
 
     // LD [$FF00+u8],A
     static LD_iFF00plusN8_A(cpu: CPU, u8: number) {
         let value = cpu._r.a;
-        cpu.writeMem8(o16b(0xFF00 + u8), value);
+        cpu.writeMem8((0xFF00 + u8) & 0xFFFF, value);
         // writeDebug(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A
     static LD_iFF00plusC_A(cpu: CPU, ) {
         let value = cpu._r.a;
-        cpu.writeMem8(o16b(0xFF00 + cpu._r.c), value);
+        cpu.writeMem8((0xFF00 + cpu._r.c) & 0xFFFF, value);
     }
 
     static LD_R8_N8(cpu: CPU, r8: R8, n8: number) {
@@ -283,23 +283,23 @@ class Ops {
     // LD [HL+],A | Store value in register A into byte pointed by HL and post-increment HL.  
     static LD_iHLinc_A(cpu: CPU, ) {
         cpu.writeMem8(cpu._r.hl, cpu._r.a);
-        cpu._r.hl = o16b(cpu._r.hl + 1);
+        cpu._r.hl = (cpu._r.hl + 1) & 0xFFFF;
     }
     // LD [HL-],A | Store value in register A into byte pointed by HL and post-decrement HL. 
     static LD_iHLdec_A(cpu: CPU, ) {
         cpu.writeMem8(cpu._r.hl, cpu._r.a);
-        cpu._r.hl = o16b(cpu._r.hl - 1);
+        cpu._r.hl = (cpu._r.hl - 1) & 0xFFFF;
     }
 
     // LD A,[HL+] | Store value in byte pointed by HL into A, then post-increment HL.
     static LD_A_iHLinc(cpu: CPU, ) {
         cpu._r.a = cpu.fetchMem8(cpu._r.hl);
-        cpu._r.hl = o16b(cpu._r.hl + 1);
+        cpu._r.hl = (cpu._r.hl + 1) & 0xFFFF;
     }
     // LD A,[HL-] | Store value in byte pointed by HL into A, then post-decrement HL.
     static LD_A_iHLdec(cpu: CPU, ) {
         cpu._r.a = cpu.fetchMem8(cpu._r.hl);
-        cpu._r.hl = o16b(cpu._r.hl - 1);
+        cpu._r.hl = (cpu._r.hl - 1) & 0xFFFF;
     }
 
     // ADD SP, e8
@@ -311,7 +311,7 @@ class Ops {
         cpu._r._f.half_carry = ((value & 0xF) + (cpu._r.sp & 0xF)) > 0xF;
         cpu._r._f.carry = ((value & 0xFF) + (cpu._r.sp & 0xFF)) > 0xFF;
 
-        cpu._r.sp = o16b(cpu._r.sp + value);
+        cpu._r.sp = (cpu._r.sp + value) & 0xFFFF;
     }
 
     // JR
@@ -401,7 +401,7 @@ class Ops {
     static ADD_HL_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg(t);
 
-        let newValue = o16b(value + cpu._r.hl);
+        let newValue = (value + cpu._r.hl) & 0xFFFF;
         let didOverflow = do16b(value + cpu._r.hl);
 
         // Set register values
@@ -417,7 +417,7 @@ class Ops {
     static ADD_HL_R16(cpu: CPU, r16: R16) {
         let r16Value = cpu.getReg(r16);
 
-        let newValue = o16b(r16Value + cpu._r.hl);
+        let newValue = (r16Value + cpu._r.hl) & 0xFFFF;
         let didOverflow = do16b(r16Value + cpu._r.hl);
 
         // Set flag
@@ -611,7 +611,7 @@ class Ops {
 
     // Increment in register r16
     static INC_R16(cpu: CPU, r16: R16) {
-        cpu.setReg(r16, o16b(cpu.getReg(r16) + 1));
+        cpu.setReg(r16, (cpu.getReg(r16) + 1) & 0xFFFF);
     }
 
     static DEC_R8(cpu: CPU, t: R8) {
@@ -628,7 +628,7 @@ class Ops {
     }
 
     static DEC_R16(cpu: CPU, tt: R16) {
-        cpu.setReg(tt, o16b(cpu.getReg(tt) - 1));
+        cpu.setReg(tt, (cpu.getReg(tt) - 1) & 0xFFFF);
     }
 
     static CCF(cpu: CPU, ) {
