@@ -116,7 +116,7 @@ class Ops {
         cpu.writeMem8(cpu._r.hl, cpu.getReg8(r8));
     }
 
-    static ADD_iHL(cpu: CPU, ) {
+    static ADD_iHL(cpu: CPU) {
         cpu._r.a = (cpu._r.a + cpu.fetchMem8(cpu._r.hl)) & 0xFF;
     }
 
@@ -202,7 +202,7 @@ class Ops {
         cpu.cycles += 4; // Branching takes 4 cycles
     }
 
-    static JP_HL(cpu: CPU, ) {
+    static JP_HL(cpu: CPU) {
         cpu.pc = cpu._r.hl - 1;
     }
 
@@ -226,7 +226,7 @@ class Ops {
         cpu.cycles += 4; // Branching takes 4 cycles
     }
 
-    static RETI(cpu: CPU, ) {
+    static RETI(cpu: CPU) {
         Ops.RET(cpu, CC.UNCONDITIONAL);
         Ops.EI(cpu);
     }
@@ -259,7 +259,7 @@ class Ops {
     }
 
     // LD [$FF00+C],A
-    static LD_iFF00plusC_A(cpu: CPU, ) {
+    static LD_iFF00plusC_A(cpu: CPU) {
         let value = cpu._r.a;
         cpu.writeMem8((0xFF00 + cpu._r.c) & 0xFFFF, value);
     }
@@ -280,23 +280,23 @@ class Ops {
 
 
     // LD [HL+],A | Store value in register A into byte pointed by HL and post-increment HL.  
-    static LD_iHLinc_A(cpu: CPU, ) {
+    static LD_iHLinc_A(cpu: CPU) {
         cpu.writeMem8(cpu._r.hl, cpu._r.a);
         cpu._r.hl = (cpu._r.hl + 1) & 0xFFFF;
     }
     // LD [HL-],A | Store value in register A into byte pointed by HL and post-decrement HL. 
-    static LD_iHLdec_A(cpu: CPU, ) {
+    static LD_iHLdec_A(cpu: CPU) {
         cpu.writeMem8(cpu._r.hl, cpu._r.a);
         cpu._r.hl = (cpu._r.hl - 1) & 0xFFFF;
     }
 
     // LD A,[HL+] | Store value in byte pointed by HL into A, then post-increment HL.
-    static LD_A_iHLinc(cpu: CPU, ) {
+    static LD_A_iHLinc(cpu: CPU) {
         cpu._r.a = cpu.fetchMem8(cpu._r.hl);
         cpu._r.hl = (cpu._r.hl + 1) & 0xFFFF;
     }
     // LD A,[HL-] | Store value in byte pointed by HL into A, then post-decrement HL.
-    static LD_A_iHLdec(cpu: CPU, ) {
+    static LD_A_iHLdec(cpu: CPU) {
         cpu._r.a = cpu.fetchMem8(cpu._r.hl);
         cpu._r.hl = (cpu._r.hl - 1) & 0xFFFF;
     }
@@ -325,7 +325,7 @@ class Ops {
         cpu.cycles += 4; // Branching takes 4 cycles
     }
 
-    static LD_SP_HL(cpu: CPU, ) {
+    static LD_SP_HL(cpu: CPU) {
         cpu._r.sp = cpu._r.hl;
     }
 
@@ -630,20 +630,20 @@ class Ops {
         cpu.setReg16(tt, (cpu.getReg16(tt) - 1) & 0xFFFF);
     }
 
-    static CCF(cpu: CPU, ) {
+    static CCF(cpu: CPU) {
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = !cpu._r._f.carry;
     }
 
-    static SCF(cpu: CPU, ) {
+    static SCF(cpu: CPU) {
         cpu._r._f.negative = false;
         cpu._r._f.half_carry = false;
         cpu._r._f.carry = true;
     }
 
 
-    static CPL(cpu: CPU, ) {
+    static CPL(cpu: CPU) {
         cpu._r.a = cpu._r.a ^ 0b11111111;
 
         cpu._r._f.negative = true;
@@ -679,7 +679,7 @@ class Ops {
     }
 
     // Rotate A right through carry
-    static RRA(cpu: CPU, ) {
+    static RRA(cpu: CPU) {
         let value = cpu._r.a;
 
         let carryMask = (cpu._r.f & 0b00010000) << 3;
@@ -712,7 +712,7 @@ class Ops {
     }
 
     // Rotate A left through carry
-    static RLA(cpu: CPU, ) {
+    static RLA(cpu: CPU) {
         let value = cpu._r.a;
 
         let carryMask = (cpu._r.f & 0b00010000) >> 4;
@@ -744,7 +744,7 @@ class Ops {
     }
 
     // Rotate A right
-    static RRCA(cpu: CPU, ) {
+    static RRCA(cpu: CPU) {
         let value = cpu._r.a;
 
         let rightmostBit = (value & 1) << 7;
@@ -775,7 +775,7 @@ class Ops {
     }
 
     // Rotate A left
-    static RLCA(cpu: CPU, ) {
+    static RLCA(cpu: CPU) {
         let value = cpu._r.a;
 
         let leftmostBit = (value & 0b10000000) >> 7;
@@ -840,7 +840,7 @@ class Ops {
     static SRL_R8(cpu: CPU, t: R8) {
         let value = cpu.getReg8(t);
 
-        let newValue = (value >> 1) & 0xFF;
+        let newValue = value >> 1;
 
         cpu.setReg8(t, newValue);
 

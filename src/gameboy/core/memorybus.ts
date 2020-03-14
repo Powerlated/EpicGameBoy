@@ -73,49 +73,56 @@ class MemoryBus {
         // ROM Write (MBC Control)
         if (addr >= 0x0000 && addr <= 0x7FFF) {
             this.ext.write(addr, value);
+            return;
         }
 
         // Write to Internal RAM 
         if (addr >= 0xC000 && addr <= 0xDFFF) {
-            this.memory[addr] = value;
+            this.memory[addr] = value; 
+            return;
         }
 
         // Write to Echo RAM
         if (addr >= 0xE000 && addr <= 0xFDFF) {
             this.memory[addr - 8192] = value;
+            return;
         }
 
         // Write from External RAM through External Bus
         if (addr >= 0xA000 && addr <= 0xBFFF) {
             this.ext.write(addr, value);
+            return;
         }
 
         // Sound registers
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
             this.gb.soundChip.write(addr, value);
+            return;
         }
 
         // SET Interrupt request flags
         if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
             this.interrupts.requestedInterrupts.numerical = value;
+            return;
         }
 
 
         // Write to High RAM
         if (addr >= 0xFF80 && addr <= 0xFFFE) {
             this.memory[addr] = value;
+            return;
         }
 
         // SET Interrupt enable flags
         if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
             this.interrupts.enabledInterrupts.numerical = value;
+            return;
         }
 
 
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
             // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
-
             this.gpu.write(addr - VRAM_BEGIN, value);
             return;
         }
@@ -124,6 +131,7 @@ class MemoryBus {
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
             this.gpu.oam[addr - 0xFE00] = value;
             writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
+            return;
         }
 
         // Hardware I/O registers
@@ -190,6 +198,7 @@ class MemoryBus {
                 default:
                     return;
             }
+            return;
         }
     }
 

@@ -23,15 +23,15 @@ export function unTwo16b(n: number): number {
 }
 
 export function do4b(i: number): boolean {
-    return i > 0xF || i < 0;
+    return (i ^ 0xF) != 0;
 }
 
 export function do8b(i: number): boolean {
-    return i > 0xFF || i < 0;
+    return (i ^ 0xFF) != 0;
 }
 
 export function do16b(i: number): boolean {
-    return i > 0xFFFF || i < 0;
+    return (i ^ 0xFFFF) != 0;
 }
 
 export function hex(i: any, digits: number) {

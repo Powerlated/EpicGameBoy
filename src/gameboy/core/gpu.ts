@@ -186,11 +186,6 @@ class GPU {
             switch (this.lcdStatus.mode) {
                 // Read from OAM - Scanline active
                 case 2:
-                    if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
-                        writeDebug("Coincidence");
-                        this.lcdStatus.coincidenceFlag_______2 = true;
-                        this.gb.bus.interrupts.requestLCDstatus();
-                    }
 
                     if (this.modeClock >= 80) {
                         if ((this.totalFrameCount % this.gb.speedMul) === 0)
@@ -219,6 +214,11 @@ class GPU {
                     if (this.modeClock >= 204) {
                         this.modeClock -= 204;
                         this.lcdcY++;
+                        this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
+                        if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
+                            writeDebug("Coincidence");
+                            this.gb.bus.interrupts.requestLCDstatus();
+                        }
 
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                         if (this.lcdcY >= 144) {
