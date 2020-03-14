@@ -82,7 +82,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
         }
 
         if (addr >= 0x6000 && addr <= 0x7FFF) {
-            if ((value & 1) != 0) {
+            if ((value & 1) !== 0) {
                 this.bankingMode = BankingMode.RAM;
             } else {
                 this.bankingMode = BankingMode.ROM;

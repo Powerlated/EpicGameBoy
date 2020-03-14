@@ -28,14 +28,14 @@ class LCDCRegister {
     }
 
     set numerical(i: number) {
-        this.lcdDisplayEnable7 = (i & (1 << 7)) != 0;
-        this.windowTilemapSelect___6 = (i & (1 << 6)) != 0;
-        this.enableWindow____5 = (i & (1 << 5)) != 0;
-        this.bgWindowTiledataSelect__4 = (i & (1 << 4)) != 0;
-        this.bgTilemapSelect_3 = (i & (1 << 3)) != 0;
-        this.spriteSize______2 = (i & (1 << 2)) != 0;
-        this.spriteDisplay___1 = (i & (1 << 1)) != 0;
-        this.bgWindowEnable0 = (i & (1 << 0)) != 0;
+        this.lcdDisplayEnable7 = (i & (1 << 7)) !== 0;
+        this.windowTilemapSelect___6 = (i & (1 << 6)) !== 0;
+        this.enableWindow____5 = (i & (1 << 5)) !== 0;
+        this.bgWindowTiledataSelect__4 = (i & (1 << 4)) !== 0;
+        this.bgTilemapSelect_3 = (i & (1 << 3)) !== 0;
+        this.spriteSize______2 = (i & (1 << 2)) !== 0;
+        this.spriteDisplay___1 = (i & (1 << 1)) !== 0;
+        this.bgWindowEnable0 = (i & (1 << 0)) !== 0;
     }
 }
 
@@ -66,11 +66,11 @@ class LCDStatusRegister {
     }
 
     set numerical(i: number) {
-        this.lyCoincidenceInterrupt6 = (i & (1 << 6)) != 0;
-        this.mode2OamInterrupt_____5 = (i & (1 << 5)) != 0;
-        this.mode1VblankInterrupt__4 = (i & (1 << 4)) != 0;
-        this.mode0HblankInterrupt__3 = (i & (1 << 3)) != 0;
-        this.coincidenceFlag_______2 = (i & (1 << 2)) != 0;
+        this.lyCoincidenceInterrupt6 = (i & (1 << 6)) !== 0;
+        this.mode2OamInterrupt_____5 = (i & (1 << 5)) !== 0;
+        this.mode1VblankInterrupt__4 = (i & (1 << 4)) !== 0;
+        this.mode0HblankInterrupt__3 = (i & (1 << 3)) !== 0;
+        this.coincidenceFlag_______2 = (i & (1 << 2)) !== 0;
 
         // this.mode = i & 0b11; // this is read only when numerically setting
     }
@@ -102,11 +102,11 @@ class OAMFlags {
     }
 
     set numerical(i: number) {
-        this.behindBG = (i & (1 << 7)) != 0;
-        this.yFlip = (i & (1 << 6)) != 0;
-        this.xFlip = (i & (1 << 5)) != 0;
-        this.paletteNumberDMG = (i & (1 << 4)) != 0;
-        this.tileVramBank = (i & (1 << 3)) != 0;
+        this.behindBG = (i & (1 << 7)) !== 0;
+        this.yFlip = (i & (1 << 6)) !== 0;
+        this.xFlip = (i & (1 << 5)) !== 0;
+        this.paletteNumberDMG = (i & (1 << 4)) !== 0;
+        this.tileVramBank = (i & (1 << 3)) !== 0;
 
         this.paletteNumberCGB = i & 0b111;
     }
@@ -475,10 +475,10 @@ class GPU {
                             let c = colors[pixel];
 
 
-                            if (flags.behindBG && this.imageGameboy.data[canvasIndex] != colors[this.bgPaletteData.shades[0]][1]) continue;
+                            if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.bgPaletteData.shades[0]][1]) continue;
 
                             // Simulate transparency before transforming through object palette
-                            if (prePalette != 0) {
+                            if (prePalette !== 0) {
                                 this.imageGameboy.data[canvasIndex + 0] = c[0];
                                 this.imageGameboy.data[canvasIndex + 1] = c[1];
                                 this.imageGameboy.data[canvasIndex + 2] = c[2];
@@ -568,8 +568,8 @@ class GPU {
 
                 // Update tile set
                 this.tileset[tile][y][x] =
-                    (lsb != 0 ? 1 : 0) +
-                    (msb != 0 ? 2 : 0);
+                    (lsb !== 0 ? 1 : 0) +
+                    (msb !== 0 ? 2 : 0);
             }
             // Write to tile map
         }

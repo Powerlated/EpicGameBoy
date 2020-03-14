@@ -1,5 +1,5 @@
 export function unTwo4b(n: number): number {
-    if ((n & 0b1000) != 0) {
+    if ((n & 0b1000) !== 0) {
         return n - 16;
     } else {
         return n;
@@ -7,7 +7,7 @@ export function unTwo4b(n: number): number {
 }
 
 export function unTwo8b(n: number): number {
-    if ((n & 0b10000000) != 0) {
+    if ((n & 0b10000000) !== 0) {
         return n - 256;
     } else {
         return n;
@@ -15,7 +15,7 @@ export function unTwo8b(n: number): number {
 }
 
 export function unTwo16b(n: number): number {
-    if ((n & 0b1000000000000000) != 0) {
+    if ((n & 0b1000000000000000) !== 0) {
         return n - 65536;
     } else {
         return n;
@@ -23,15 +23,15 @@ export function unTwo16b(n: number): number {
 }
 
 export function do4b(i: number): boolean {
-    return (i ^ 0xF) != 0;
+    return (i ^ 0xF) !== 0;
 }
 
 export function do8b(i: number): boolean {
-    return (i ^ 0xFF) != 0;
+    return (i ^ 0xFF) !== 0;
 }
 
 export function do16b(i: number): boolean {
-    return (i ^ 0xFFFF) != 0;
+    return (i ^ 0xFFFF) !== 0;
 }
 
 export function hex(i: any, digits: number) {

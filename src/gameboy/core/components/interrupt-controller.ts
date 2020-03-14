@@ -9,11 +9,11 @@ class InterruptFlag {
 
 
     set numerical(i: number) {
-        this.vblank = (i & (1 << 0)) != 0;
-        this.lcdStat = (i & (1 << 1)) != 0;
-        this.timer = (i & (1 << 2)) != 0;
-        this.serial = (i & (1 << 3)) != 0;
-        this.joypad = (i & (1 << 4)) != 0;
+        this.vblank = (i & (1 << 0)) !== 0;
+        this.lcdStat = (i & (1 << 1)) !== 0;
+        this.timer = (i & (1 << 2)) !== 0;
+        this.serial = (i & (1 << 3)) !== 0;
+        this.joypad = (i & (1 << 4)) !== 0;
         return;
     }
 

@@ -318,7 +318,7 @@ export default class Decoder {
             let type = typeTable[lowerNybble & 0b111];
             const OPDEC = upperNybble & 0b11;
 
-            let op = (lowerNybble & HALF_MASK) != 0 ?
+            let op = (lowerNybble & HALF_MASK) !== 0 ?
                 highOps[OPDEC] :
                 lowOps[OPDEC];
 
@@ -335,7 +335,7 @@ export default class Decoder {
 
             const OPDEC = upperNybble & 0b11;
 
-            let type = (lowerNybble & HALF_MASK) != 0 ?
+            let type = (lowerNybble & HALF_MASK) !== 0 ?
                 highTypes[OPDEC] :
                 lowTypes[OPDEC];
 

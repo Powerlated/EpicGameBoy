@@ -90,13 +90,13 @@ export default class Disassembler {
             operandAndType = (ins.type2 ? ins.type2 : "") + (!isCB && (ins.type2 || ins.length > 1) ? "," : "") + (ins.type ? ins.type : "");
         } else if (!block) {
             // Regular operations, block if hardcode decoded
-            operandAndType = ins.type != CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
+            operandAndType = ins.type !== CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
         }
 
         // Instructions with type 2
         if (isNaN(ins.type2 as any) && !block) {
             if (ins.length === 2) {
-                if (ins.op != Ops.JR_E8) {
+                if (ins.op !== Ops.JR_E8) {
                     // Regular operation
                     operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
                 } else {
@@ -111,7 +111,7 @@ export default class Disassembler {
 
         let name;
         // Check if instruction name is hardcoded
-        if (hardDecoded != null) {
+        if (hardDecoded !== null) {
             name = hardDecoded[0] + " ";
             name += hardDecoded[1];
         } else {
@@ -207,7 +207,7 @@ export default class Disassembler {
         disasmPc = cpu.pc;
         let skippedLines = 0;
         for (let i = 0; i < LOGBACK_INSTRUCTIONS;) {
-            if (Disassembler.disassembledLines[disasmPc] != undefined && disasmPc != cpu.pc) {
+            if (Disassembler.disassembledLines[disasmPc] !== undefined && disasmPc !== cpu.pc) {
                 // Color the line background cyan if the next operation will jump there
                 let disAsmLineHtml = buildLine(`
                     <span 

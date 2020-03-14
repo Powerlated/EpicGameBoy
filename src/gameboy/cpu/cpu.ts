@@ -62,10 +62,10 @@ class Registers {
     }
 
     set f(i: number) {
-        this._f.zero = (i & (1 << 7)) != 0;
-        this._f.negative = (i & (1 << 6)) != 0;
-        this._f.half_carry = (i & (1 << 5)) != 0;
-        this._f.carry = (i & (1 << 4)) != 0;
+        this._f.zero = (i & (1 << 7)) !== 0;
+        this._f.negative = (i & (1 << 6)) !== 0;
+        this._f.half_carry = (i & (1 << 5)) !== 0;
+        this._f.carry = (i & (1 << 4)) !== 0;
     }
 
     // The 7 general registers + (HL), check CPU constructor for (HL) get and set initialization
@@ -389,7 +389,7 @@ export default class CPU {
             }
         }
 
-        if (ins.type != undefined) {
+        if (ins.type !== undefined) {
             if (ins.length === 3) {
                 ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
                 this.cycles += 8;

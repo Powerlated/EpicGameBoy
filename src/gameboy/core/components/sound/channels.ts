@@ -38,7 +38,7 @@ export class PulseChannel implements BasicChannel {
     freqSweepShiftNum = 0;
 
     get outputting(): boolean {
-        return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
+        return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
     }
 
     get pan(): number {
@@ -99,7 +99,7 @@ export class WaveChannel implements BasicChannel {
     triggered = false;
 
     get outputting(): boolean {
-        return (this.outputLeft || this.outputRight) && this.frequencyHz != 64;
+        return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
     }
 
     get pan(): number {

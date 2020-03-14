@@ -81,7 +81,7 @@ export default class ToneJsHandler {
         // frequencyHz check is for removing loud noises when frequency is zeroed
 
         // Pulse 1
-        if (this.s.pulse1.enabled && this.s.pulse1.frequencyLower != 0) {
+        if (this.s.pulse1.enabled && this.s.pulse1.frequencyLower !== 0) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
@@ -94,7 +94,7 @@ export default class ToneJsHandler {
         }
 
         // Pulse 2
-        if (this.s.pulse2.enabled && this.s.pulse2.frequencyLower != 0) {
+        if (this.s.pulse2.enabled && this.s.pulse2.frequencyLower !== 0) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
@@ -107,7 +107,7 @@ export default class ToneJsHandler {
         }
 
         // Wave
-        if (this.s.wave.enabled && this.s.wave.playing && this.s.wave.frequencyLower != 0) {
+        if (this.s.wave.enabled && this.s.wave.playing && this.s.wave.frequencyLower !== 0) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
                 this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;

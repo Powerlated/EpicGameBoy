@@ -38,7 +38,7 @@ export default class SoundChip {
     }
 
     step() {
-        if (this.gb.cpu.cycles % this.gb.speedMul != 0) return;
+        if (this.gb.cpu.cycles % this.gb.speedMul !== 0) return;
         if (!this.enabled) return;
 
         // #region CLOCK
@@ -53,8 +53,8 @@ export default class SoundChip {
         // 4194304hz Divide by 65536 = 64hz
         if (this.clockMain >= CLOCK_MAIN_STEPS) {
             if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
-                if (this.pulse1.volumeEnvelopeSweep != 0) {
-                    if (this.pulse1.volume > 0 && this.pulse1.volume < 16 && this.pulse1.frequencyHz != 64) {
+                if (this.pulse1.volumeEnvelopeSweep !== 0) {
+                    if (this.pulse1.volume > 0 && this.pulse1.volume < 16 && this.pulse1.frequencyHz !== 64) {
                         if (this.pulse1.volumeEnvelopeUp) {
                             this.pulse1.volume++;
                         } else {
@@ -67,8 +67,8 @@ export default class SoundChip {
             }
 
             if (this.clockEnvelope2 >= CLOCK_ENVELOPE_STEPS) {
-                if (this.pulse2.volumeEnvelopeSweep != 0) {
-                    if (this.pulse2.volume > 0 && this.pulse2.volume < 16 && this.pulse1.frequencyHz != 64) {
+                if (this.pulse2.volumeEnvelopeSweep !== 0) {
+                    if (this.pulse2.volume > 0 && this.pulse2.volume < 16 && this.pulse1.frequencyHz !== 64) {
                         if (this.pulse2.volumeEnvelopeUp) {
                             this.pulse2.volume++;
                         } else {
@@ -81,7 +81,7 @@ export default class SoundChip {
             }
 
             if (this.clockEnvelopeNoise >= CLOCK_ENVELOPE_STEPS) {
-                if (this.noise.volumeEnvelopeSweep != 0) {
+                if (this.noise.volumeEnvelopeSweep !== 0) {
                     if (this.noise.volume > 0 && this.noise.volume < 16) {
                         if (this.noise.volumeEnvelopeUp) {
                             this.noise.volume++;
@@ -115,7 +115,7 @@ export default class SoundChip {
                         this.pulse1.update();
                     }
                 }
-                if (this.pulse1.freqSweepTime != 0) {
+                if (this.pulse1.freqSweepTime !== 0) {
                     // writeDebug("Frequency sweep")
                     if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime) {
                         this.clockPulse1FreqSweep = 0;
@@ -217,8 +217,8 @@ export default class SoundChip {
                 break;
             case 0xFF14: // NR14
                 this.pulse1.frequencyUpper = value & 0b111;
-                this.pulse1.lengthEnable = ((value >> 6) & 1) != 0;
-                this.pulse1.triggered = ((value >> 7) & 1) != 0;
+                this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
+                this.pulse1.triggered = ((value >> 7) & 1) !== 0;
                 this.pulse1.update();
                 break;
 
@@ -242,14 +242,14 @@ export default class SoundChip {
                 break;
             case 0xFF19: // NR24
                 this.pulse2.frequencyUpper = value & 0b111;
-                this.pulse2.lengthEnable = ((value >> 6) & 1) != 0;
-                this.pulse2.triggered = ((value >> 7) & 1) != 0;
+                this.pulse2.lengthEnable = ((value >> 6) & 1) !== 0;
+                this.pulse2.triggered = ((value >> 7) & 1) !== 0;
                 this.pulse2.update();
                 break;
 
             // Wave
             case 0xFF1A: // NR30
-                if ((value & (1 << 7)) != 0) {
+                if ((value & (1 << 7)) !== 0) {
                     this.wave.playing = true;
                 } else {
                     this.wave.playing = false;
@@ -270,7 +270,7 @@ export default class SoundChip {
                 break;
             case 0xFF1E: // NR34
                 this.wave.frequencyUpper = value & 0b111;
-                this.wave.triggered = ((value >> 7) & 1) != 0;
+                this.wave.triggered = ((value >> 7) & 1) !== 0;
                 this.wave.lengthEnable = ((value >> 6) & 1) === 0;
                 writeDebug(this.wave.lengthEnable);
                 this.wave.update();
@@ -290,13 +290,13 @@ export default class SoundChip {
                 break;
             case 0xFF22: // NR43
                 this.noise.shiftClockFrequency = (value >> 4) & 0b111;
-                this.noise.counterStep = ((value >> 3) & 1) != 0;
+                this.noise.counterStep = ((value >> 3) & 1) !== 0;
                 this.noise.envelopeSweep = (value & 0b111);
                 this.noise.update();
                 break;
             case 0xFF23: // NR44
-                this.noise.triggered = ((value >> 7) & 1) != 0;
-                this.noise.lengthEnable = ((value >> 6) & 1) != 0;
+                this.noise.triggered = ((value >> 7) & 1) !== 0;
+                this.noise.lengthEnable = ((value >> 6) & 1) !== 0;
                 this.noise.update();
                 break;
 
@@ -326,7 +326,7 @@ export default class SoundChip {
 
             // Control
             case 0xFF26: // NR52
-                if (((value >> 7) & 1) != 0) {
+                if (((value >> 7) & 1) !== 0) {
                     this.enabled = true;
                     // writeDebug("Enabled sound");
                 } else {

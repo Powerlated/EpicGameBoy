@@ -118,6 +118,6 @@ export default class Timer {
     }
     set addr_0xFF07(i: number) {
         this.control.speed = i & 0b11; // Bits 0-1
-        this.control.running = (i >> 2) != 0; // Bit 2
+        this.control.running = (i >> 2) !== 0; // Bit 2
     }
 }

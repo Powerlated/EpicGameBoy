@@ -37,7 +37,7 @@ let lastDisassembly = "";
 
 function disassemble(cpu) {
     let disassembly = Disassembler.disassemble(cpu);
-    if (lastDisassembly != disassembly) {
+    if (lastDisassembly !== disassembly) {
         disassemblyP.innerHTML = disassembly;
         lastDisassembly = disassembly;
     }

@@ -39,7 +39,7 @@ class Ops {
                 cpu.gb.bus.interrupts.enabledInterrupts.numerical &
                 cpu.gb.bus.interrupts.requestedInterrupts.numerical &
                 0x1F
-            ) != 0
+            ) !== 0
         ) {
             // HALT bug
             cpu.haltBug = true;
@@ -338,7 +338,7 @@ class Ops {
         cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) + (value & 0xF) > 0xF;
 
         let newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) != 0;
+        let didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) !== 0;
 
         // Set register values
         cpu._r.gen[R8.A] = newValue;
@@ -354,7 +354,7 @@ class Ops {
         let value = n8;
 
         let newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) != 0;
+        let didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) !== 0;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -371,7 +371,7 @@ class Ops {
         let value = cpu._r.gen[t];
 
         let newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
+        let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -388,7 +388,7 @@ class Ops {
         let value = n8;
 
         let newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) != 0;
+        let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -404,7 +404,7 @@ class Ops {
         let value = cpu._r.gen[t];
 
         let newValue = (value + cpu._r.hl) & 0xFFFF;
-        let didOverflow = ((value + cpu._r.hl) >> 8) != 0;
+        let didOverflow = ((value + cpu._r.hl) >> 8) !== 0;
 
         // Set register values
         cpu._r.hl = newValue;
@@ -420,7 +420,7 @@ class Ops {
         let r16Value = cpu.getReg16(r16);
 
         let newValue = (r16Value + cpu._r.hl) & 0xFFFF;
-        let didOverflow = ((r16Value + cpu._r.hl) >> 16) != 0;
+        let didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
 
         // Set flag
         cpu._r._f.negative = false;
@@ -570,7 +570,7 @@ class Ops {
         let r8 = cpu._r.gen[t];
 
         let newValue = (cpu._r.gen[R8.A] - r8) & 0xFF;
-        let didOverflow = ((cpu._r.gen[R8.A] - r8) >> 8) != 0;
+        let didOverflow = ((cpu._r.gen[R8.A] - r8) >> 8) !== 0;
 
         // DO not set register values for CP
 
@@ -586,7 +586,7 @@ class Ops {
         let value = n8;
 
         let newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
-        let didOverflow = ((cpu._r.gen[R8.A] - value) >> 8) != 0;
+        let didOverflow = ((cpu._r.gen[R8.A] - value) >> 8) !== 0;
 
 
         // Set flags
@@ -600,7 +600,7 @@ class Ops {
         let target = cpu._r.gen[t];
 
         let newValue = (target + 1) & 0xFF;
-        let didOverflow = ((target + 1) >> 8) != 0;
+        let didOverflow = ((target + 1) >> 8) !== 0;
 
         cpu._r.gen[t] = newValue;
 
@@ -829,7 +829,7 @@ class Ops {
         let value = cpu._r.gen[t];
 
         let newValue = (value << 1) & 0xFF;
-        let didOverflow = ((value << 1) >> 8) != 0;
+        let didOverflow = ((value << 1) >> 8) !== 0;
 
         cpu._r.gen[t] = newValue;
 
