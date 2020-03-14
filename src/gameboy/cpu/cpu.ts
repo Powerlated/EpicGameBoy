@@ -39,59 +39,6 @@ function overflow16bErr(cpu: CPU, name: string, overflow: any) {
     `);
 }
 
-function check(cpu: CPU) {
-    if (cpu._r.a < 0 || cpu._r.a > 255)
-        overflow8bErr(cpu, "A", cpu._r.a);
-    if (cpu._r.b < 0 || cpu._r.b > 255)
-        overflow8bErr(cpu, "B", cpu._r.b);
-    if (cpu._r.c < 0 || cpu._r.c > 255)
-        overflow8bErr(cpu, "C", cpu._r.c);
-    if (cpu._r.d < 0 || cpu._r.d > 255)
-        overflow8bErr(cpu, "D", cpu._r.d);
-    if (cpu._r.e < 0 || cpu._r.e > 255)
-        overflow8bErr(cpu, "E", cpu._r.e);
-    if (cpu._r.f < 0 || cpu._r.f > 255)
-        overflow8bErr(cpu, "F", cpu._r.f);
-    if (cpu._r.h < 0 || cpu._r.h > 255)
-        overflow8bErr(cpu, "H", cpu._r.h);
-    if (cpu._r.l < 0 || cpu._r.l > 255)
-        overflow8bErr(cpu, "L", cpu._r.l);
-    if (cpu._r.af < 0 || cpu._r.af > 65535)
-        overflow8bErr(cpu, "AF", cpu._r.af);
-    if (cpu._r.bc < 0 || cpu._r.bc > 65535)
-        overflow8bErr(cpu, "BC", cpu._r.bc);
-    if (cpu._r.de < 0 || cpu._r.de > 65535)
-        overflow8bErr(cpu, "DE", cpu._r.de);
-    if (cpu._r.hl < 0 || cpu._r.hl > 65535)
-        overflow8bErr(cpu, "HL", cpu._r.hl);
-
-    if (isNaN(cpu._r.a))
-        undefErr(cpu, "A");
-    if (isNaN(cpu._r.b))
-        undefErr(cpu, "B");
-    if (isNaN(cpu._r.c))
-        undefErr(cpu, "C");
-    if (isNaN(cpu._r.d))
-        undefErr(cpu, "D");
-    if (isNaN(cpu._r.e))
-        undefErr(cpu, "E");
-    if (isNaN(cpu._r.f))
-        undefErr(cpu, "F");
-    if (isNaN(cpu._r.h))
-        undefErr(cpu, "H");
-    if (isNaN(cpu._r.l))
-        undefErr(cpu, "L");
-    if (isNaN(cpu._r.af))
-        undefErr(cpu, "AF");
-    if (isNaN(cpu._r.bc))
-        undefErr(cpu, "BC");
-    if (isNaN(cpu._r.de))
-        undefErr(cpu, "DE");
-    if (isNaN(cpu._r.hl))
-        undefErr(cpu, "HL");
-
-}
-
 class Registers {
     cpu: CPU;
 
@@ -121,58 +68,58 @@ class Registers {
         this._f.carry = (i & (1 << 4)) != 0;
     }
 
-    a: number;
-    b: number;
-    c: number;
-    d: number;
-    e: number;
+    // The 7 general registers + (HL), check CPU constructor for (HL) get and set initialization
+    gen: [number, number, number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0, 0, 0];
 
-    h: number;
-    l: number;
-
-    sp: number;
+    sp = 0;
 
     get af() {
-        return this.a << 8 | this.f;
+        return this.gen[R8.A] << 8 | this.f;
     }
     get bc() {
-        return this.b << 8 | this.c;
+        return this.gen[R8.B] << 8 | this.gen[R8.C];
     }
     get de() {
-        return this.d << 8 | this.e;
+        return this.gen[R8.D] << 8 | this.gen[R8.E];
     }
     get hl() {
-        return this.h << 8 | this.l;
+        return this.gen[R8.H] << 8 | this.gen[R8.L];
     }
 
+    get a() { return this.gen[R8.A]; };
+    get b() { return this.gen[R8.B]; };
+    get c() { return this.gen[R8.C]; };
+    get d() { return this.gen[R8.D]; };
+    get e() { return this.gen[R8.E]; };
+    get h() { return this.gen[R8.H]; };
+    get l() { return this.gen[R8.L]; };
+
+    set a(i: number) { this.gen[R8.A] = i; };
+    set b(i: number) { this.gen[R8.B] = i; };
+    set c(i: number) { this.gen[R8.C] = i; };
+    set d(i: number) { this.gen[R8.D] = i; };
+    set e(i: number) { this.gen[R8.E] = i; };
+    set h(i: number) { this.gen[R8.H] = i; };
+    set l(i: number) { this.gen[R8.L] = i; };
+
     set af(i: number) {
-        this.a = i >> 8;
+        this.gen[R8.A] = i >> 8;
         this.f = i & 0xFF;
     }
     set bc(i: number) {
-        this.b = i >> 8;
-        this.c = i & 0xFF;
+        this.gen[R8.B] = i >> 8;
+        this.gen[R8.C] = i & 0xFF;
     }
     set de(i: number) {
-        this.d = i >> 8;
-        this.e = i & 0xFF;
+        this.gen[R8.D] = i >> 8;
+        this.gen[R8.E] = i & 0xFF;
     }
     set hl(i: number) {
-        this.h = i >> 8;
-        this.l = i & 0xFF;
+        this.gen[R8.H] = i >> 8;
+        this.gen[R8.L] = i & 0xFF;
     }
 
     constructor(cpu: CPU) {
-        this.a = 0;
-        this.b = 0;
-        this.c = 0;
-        this.d = 0;
-        this.e = 0;
-
-        this.h = 0;
-        this.l = 0;
-        this.sp = 0;
-
         this.cpu = cpu;
     }
 }
@@ -192,7 +139,7 @@ class FlagsRegister {
 }
 
 export enum R8 {
-    A = "A", B = "B", C = "C", D = "D", E = "E", H = "H", L = "L", iHL = "(HL)"
+    B = 0, C = 1, D = 2, E = 3, H = 4, L = 5, iHL = 6, A = 7
 }
 
 export enum R16 {
@@ -248,6 +195,17 @@ export default class CPU {
             this.opCacheRg[i] = Decoder.rgOpcode(i);
             this.opCacheCb[i] = Decoder.cbOpcode(i);
         }
+
+        // Make getters and setters for indirect (HL) addressing
+        let cpu = this;
+        Object.defineProperty(this._r.gen, R8.iHL, {
+            get(): number {
+                return cpu.fetchMem8(cpu._r.hl);
+            },
+            set(i: number) {
+                cpu.writeMem8(cpu._r.hl, i);
+            }
+        });
     }
 
     // #region
@@ -275,14 +233,14 @@ export default class CPU {
 
 
     reset() {
-        this._r.a = 0;
-        this._r.b = 0;
-        this._r.c = 0;
-        this._r.d = 0;
-        this._r.e = 0;
-        this._r.f = 0;
-        this._r.h = 0;
-        this._r.l = 0;
+        this._r.gen[R8.A] = 0;
+        this._r.gen[R8.B] = 0;
+        this._r.gen[R8.C] = 0;
+        this._r.gen[R8.D] = 0;
+        this._r.gen[R8.E] = 0;
+        this._r.gen[R8.H] = 0;
+        this._r.gen[R8.L] = 0;
+
         this._r.af = 0;
         this._r.bc = 0;
         this._r.de = 0;
@@ -563,9 +521,9 @@ export default class CPU {
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
 
-            this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
+            this.log.push(`A:${hexN(this._r.gen[R8.A], 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
                 } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
-            this.fullLog.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
+            this.fullLog.push(`A:${hexN(this._r.gen[R8.A], 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
                 } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
         }
 
@@ -601,23 +559,6 @@ export default class CPU {
         this.breakpoints.delete(point);
     }
 
-    getReg8(t: R8) {
-        // if (t === undefined) {
-        //     alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: getReg(undefined)`);
-        // }
-
-        switch (t) {
-            case R8.A: return this._r.a;
-            case R8.B: return this._r.b;
-            case R8.C: return this._r.c;
-            case R8.D: return this._r.d;
-            case R8.E: return this._r.e;
-            case R8.H: return this._r.h;
-            case R8.L: return this._r.l;
-            case R8.iHL: return this.fetchMem8(this._r.hl);
-        }
-    }
-
     getReg16(t: R16) {
         switch (t) {
             case R16.AF: return this._r.af;
@@ -625,26 +566,6 @@ export default class CPU {
             case R16.DE: return this._r.de;
             case R16.HL: return this._r.hl;
             case R16.SP: return this._r.sp;
-        }
-    }
-
-    setReg8(t: R8, i: number) {
-        // if (t === undefined) {
-        //     alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg(undefined, [any])`);
-        // }
-        // if (i === undefined) {
-        //     alert(`[PC ${hex(this.pc, 4)}, opcode: ${hex(this.gb.bus.readMem8(this.pc), 2)}] Implementation error: setReg([any], undefined)`);
-        // }
-
-        switch (t) {
-            case R8.A: this._r.a = i; break;
-            case R8.B: this._r.b = i; break;
-            case R8.C: this._r.c = i; break;
-            case R8.D: this._r.d = i; break;
-            case R8.E: this._r.e = i; break;
-            case R8.H: this._r.h = i; break;
-            case R8.L: this._r.l = i; break;
-            case R8.iHL: this.writeMem8(this._r.hl, i); break;
         }
     }
 
