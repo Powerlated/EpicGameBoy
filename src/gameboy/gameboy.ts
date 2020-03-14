@@ -1,6 +1,6 @@
 import CPU from './cpu/cpu';
 import GPU from './core/gpu';
-import MemoryBus from './core/memorybus';
+import MemoryBus from './memory/memorybus';
 import Disassembler from './tools/disassembler';
 import { writeDebug } from './tools/debug';
 import SoundChip from './core/components/sound/sound';

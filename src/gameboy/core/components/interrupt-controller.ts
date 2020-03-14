@@ -1,4 +1,4 @@
-import MemoryBus from "../memorybus";
+import MemoryBus from "../../memory/memorybus";
 
 class InterruptFlag {
     vblank = false;
