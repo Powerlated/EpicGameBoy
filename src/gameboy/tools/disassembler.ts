@@ -1,8 +1,8 @@
-import CPU, { CC, Op } from "../cpu/cpu";
+import CPU, { CC, Op } from "../core/cpu/cpu";
 
-import Ops from "../cpu/cpu_ops";
+import Ops from "../core/cpu/cpu_ops";
 import { unTwo8b, hexN, hexN_LC, pad } from "./util";
-import Decoder from "../cpu/decoder";
+import Decoder from "../core/cpu/decoder";
 
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {

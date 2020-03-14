@@ -1,9 +1,9 @@
-import CPU from './cpu/cpu';
-import GPU from './core/gpu';
-import MemoryBus from './memory/memorybus';
+import CPU from './core/cpu/cpu';
+import GPU from './core/video/gpu';
+import MemoryBus from './core/memory/memorybus';
 import Disassembler from './tools/disassembler';
 import { writeDebug } from './tools/debug';
-import SoundChip from './core/components/sound/sound';
+import SoundChip from './core/sound/sound';
 import Timer from './core/components/timer';
 
 export default class GameBoy {

@@ -1,7 +1,7 @@
-import GameBoy from "../gameboy";
+import GameBoy from "../../gameboy";
 import GPUCanvas from "./canvas";
-import { writeDebug } from "../tools/debug";
-import { unTwo8b } from "../tools/util";
+import { writeDebug } from "../../tools/debug";
+import { unTwo8b } from "../../tools/util";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register

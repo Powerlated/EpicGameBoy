@@ -1,18 +1,18 @@
-import GameBoy from "../gameboy";
+import GameBoy from "../../gameboy";
 
 import CPU from "../cpu/cpu";
 
-import GPU from "./gpu";
-import MBC3 from "../core/mbc/mbc3";
-import MBC, { MBCWithRAM } from "../core/mbc/mbc";
-import MBC1 from "../core/mbc/mbc1";
-import NullMBC from "../core/mbc/nullmbc";
-import ExternalBus from "../core/externalbus";
-import { writeDebug } from "../tools/debug";
-import { hex } from "../tools/util";
-import InterruptController from "../core/components/interrupt-controller";
-import { JoypadRegister } from "../core/components/joypad";
-import MBC5 from "../core/mbc/mbc5";
+import GPU from "../video/gpu";
+import MBC3 from "./mbc/mbc3";
+import MBC, { MBCWithRAM } from "./mbc/mbc";
+import MBC1 from "./mbc/mbc1";
+import NullMBC from "./mbc/nullmbc";
+import ExternalBus from "../memory/externalbus";
+import { writeDebug } from "../../tools/debug";
+import { hex } from "../../tools/util";
+import InterruptController from "../components/interrupt-controller";
+import { JoypadRegister } from "../components/joypad";
+import MBC5 from "./mbc/mbc5";
 import Decoder from "../cpu/decoder";
 
 const VRAM_BEGIN = 0x8000;
@@ -78,7 +78,7 @@ class MemoryBus {
 
         // Write to Internal RAM 
         if (addr >= 0xC000 && addr <= 0xDFFF) {
-            this.memory[addr] = value; 
+            this.memory[addr] = value;
             return;
         }
 

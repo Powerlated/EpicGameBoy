@@ -1,5 +1,5 @@
 import GameBoy from "./gameboy";
-import { MBCWithRAM } from "./core/mbc/mbc";
+import { MBCWithRAM } from "./core/memory/mbc/mbc";
 
 export function saveSram(name: string, sram: Uint8Array) {
     localStorage.setItem(`sram-${name}`, btoa(String.fromCharCode(...sram)));
