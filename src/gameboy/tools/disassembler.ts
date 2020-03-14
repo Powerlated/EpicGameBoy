@@ -111,7 +111,7 @@ export default class Disassembler {
 
         let name;
         // Check if instruction name is hardcoded
-        if (hardDecoded !== null) {
+        if (hardDecoded != null) {
             name = hardDecoded[0] + " ";
             name += hardDecoded[1];
         } else {
@@ -207,7 +207,7 @@ export default class Disassembler {
         disasmPc = cpu.pc;
         let skippedLines = 0;
         for (let i = 0; i < LOGBACK_INSTRUCTIONS;) {
-            if (Disassembler.disassembledLines[disasmPc] !== undefined && disasmPc !== cpu.pc) {
+            if (Disassembler.disassembledLines[disasmPc] != undefined && disasmPc !== cpu.pc) {
                 // Color the line background cyan if the next operation will jump there
                 let disAsmLineHtml = buildLine(`
                     <span 
