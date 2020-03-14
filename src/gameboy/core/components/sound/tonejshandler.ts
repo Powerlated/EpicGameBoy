@@ -145,9 +145,6 @@ export default class ToneJsHandler {
     }
 
     setMuted(muted: boolean) {
-        this.pulseOsc1.mute = muted;
-        this.pulseOsc2.mute = muted;
-        this.waveVolume.mute = muted;
-        this.noiseVolume.volume.value = -10000;
+        Tone.Master.mute = muted;
     }
 }
