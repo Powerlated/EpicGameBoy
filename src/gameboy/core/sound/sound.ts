@@ -120,8 +120,8 @@ export default class SoundChip {
                     if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime) {
                         this.clockPulse1FreqSweep = 0;
                         let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
-                        let diff = freq / (2 ^ this.pulse1.freqSweepShiftNum);
-                        this.pulse1.freqSweepUp === false ? freq += diff : freq -= diff;
+                        let diff = freq >> this.pulse1.freqSweepShiftNum;
+                        this.pulse1.freqSweepUp ? freq += diff : freq -= diff;
                         this.pulse1.frequencyLower = freq & 0xFF;
                         this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
                         this.pulse1.update();
