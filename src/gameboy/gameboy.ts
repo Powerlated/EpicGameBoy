@@ -5,6 +5,7 @@ import Disassembler from './tools/disassembler';
 import { writeDebug } from './tools/debug';
 import SoundChip from './core/sound/sound';
 import Timer from './core/components/timer';
+import Decoder from './core/cpu/decoder';
 
 export default class GameBoy {
     cpu = new CPU(this);
@@ -70,4 +71,4 @@ export default class GameBoy {
     }
 }
 
-export { GameBoy, CPU, GPU, MemoryBus, Timer, Disassembler }; 
+export { GameBoy, CPU, GPU, MemoryBus, Timer, Disassembler, Decoder }; 

@@ -505,7 +505,7 @@ class Ops {
         cpu._r._f.carry = false;
     }
 
-    static AND_N8(cpu: CPU, n8: number) {
+    static AND_A_N8(cpu: CPU, n8: number) {
         let value = n8;
 
         let final = value & cpu._r.gen[R8.A];

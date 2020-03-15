@@ -1,9 +1,22 @@
-import CPU, { CC, Op } from "../core/cpu/cpu";
+import CPU, { CC, Op, R8, OperandType } from "../core/cpu/cpu";
 
 import Ops from "../core/cpu/cpu_ops";
 import { unTwo8b, hexN, hexN_LC, pad } from "./util";
 import Decoder from "../core/cpu/decoder";
 
+function tr(r8: OperandType) {
+    switch (r8) {
+        case R8.B: return "B";
+        case R8.C: return "C";
+        case R8.D: return "D";
+        case R8.E: return "E";
+        case R8.H: return "H";
+        case R8.L: return "L";
+        case R8.iHL: return "(HL)";
+        case R8.A: return "A";
+        default: return r8;
+    }
+};
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {
         if (ins.type === CC.C) return cpu._r._f.carry;
@@ -51,29 +64,47 @@ export default class Disassembler {
 
     static disassembleOp = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU) => {
         const HARDCODE_DECODE = (ins: Op, pcTriplet: Uint8Array) => {
-            const LD = "LD";
-            const RST = "RST";
-            const CP = "CP";
-            const ADC = "ADC";
             const doublet = pcTriplet[1] | pcTriplet[2] << 8;
             switch (ins.op) {
-                case Ops.LD_iHLdec_A: return [LD, "(HL-),A"];
-                case Ops.LD_iHLinc_A: return [LD, "(HL+),A"];
-                case Ops.LD_iFF00plusC_A: return [LD, "($FF00+C),A"];
-                case Ops.LD_iFF00plusN8_A: return [LD, `($FF00+$${hexN(pcTriplet[1], 2)}),A`];
-                case Ops.LD_A_iFF00plusC: return [LD, "A,($FF00+C)"];
-                case Ops.LD_A_iFF00plusN8: return [LD, `A,($FF00+$${hexN(pcTriplet[1], 2)})`];
-                case Ops.RST: return [RST, `${hexN(ins.type, 2)}h`];
-                case Ops.LD_R8_R8: return [LD, `${ins.type},${ins.type2}`];
-                case Ops.LD_A_iR16: return [LD, `A,(${ins.type})`];
-                case Ops.CP_A_N8: return [CP, `$${hexN(pcTriplet[1], 2)}`];
-                case Ops.ADC_A_R8: return [ADC, `A,$${hexN(pcTriplet[1], 2)}`];
-                case Ops.LD_iN16_SP: return [LD, `($${hexN(doublet, 4)}),SP`];
-                case Ops.LD_A_iHLinc: return [LD, "A,(HL+)"];
-                case Ops.LD_iN16_A: return [LD, `($${hexN(doublet, 4)}),A`];
-                case Ops.LD_HL_SPaddE8: return [LD, `HL,(SP+${unTwo8b(pcTriplet[1])})`];
+                case Ops.LD_iHLdec_A: return ["LD", "(HL-),A"];
+                case Ops.LD_iHLinc_A: return ["LD", "(HL+),A"];
+                case Ops.LD_iFF00plusC_A: return ["LD", "($FF00+C),A"];
+                case Ops.LD_iFF00plusN8_A: return ["LD", `($FF${hexN(pcTriplet[1], 2)}),A`];
+                case Ops.LD_A_iFF00plusC: return ["LD", "A,($FF00+C)"];
+                case Ops.LD_A_iFF00plusN8: return ["LD", `A,($FF${hexN(pcTriplet[1], 2)})`];
+                case Ops.RST: return ["RST", `${hexN(ins.type, 2)}h`];
+                case Ops.LD_A_iR16: return ["LD", `A,(${ins.type})`];
+
+                case Ops.ADD_A_N8: return ["ADD", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.ADC_A_N8: return ["ADC", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.SUB_A_N8: return ["SUB", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.SBC_A_N8: return ["SBC", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.AND_A_N8: return ["AND", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.XOR_A_N8: return ["XOR", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.OR_A_N8: return ["OR", `A,$${hexN(pcTriplet[1], 2)}`];
+                case Ops.CP_A_N8: return ["CP", `A,$${hexN(pcTriplet[1], 2)}`];
+
+                case Ops.ADD_A_R8: return ["ADD", `A,${tr(ins.type!)}`];
+                case Ops.ADC_A_R8: return ["ADC", `A,${tr(ins.type!)}`];
+                case Ops.SUB_A_R8: return ["SUB", `A,${tr(ins.type!)}`];
+                case Ops.SBC_A_R8: return ["SBC", `A,${tr(ins.type!)}`];
+                case Ops.AND_A_R8: return ["AND", `A,${tr(ins.type!)}`];
+                case Ops.XOR_A_R8: return ["XOR", `A,${tr(ins.type!)}`];
+                case Ops.OR_A_R8: return ["OR", `A,${tr(ins.type!)}`];
+                case Ops.CP_A_R8: return ["CP", `A,${tr(ins.type!)}`];
+
+                case Ops.LD_R8_R8: return ["LD", `${tr(ins.type!)},${tr(ins.type2!)}`];
+                case Ops.LD_R8_N8: return ["LD", `${tr(ins.type!)},$${hexN(pcTriplet[1], 2)}`];
+
+                case Ops.LD_iN16_SP: return ["LD", `($${hexN(doublet, 4)}),SP`];
+                case Ops.LD_A_iHLinc: return ["LD", "A,(HL+)"];
+                case Ops.LD_iN16_A: return ["LD", `($${hexN(doublet, 4)}),A`];
+                case Ops.LD_A_iN16: return ["LD", `A,($${hexN(doublet, 4)})`];
+                case Ops.LD_HL_SPaddE8: return ["LD", `HL,(SP+${unTwo8b(pcTriplet[1])})`];
                 case Ops.JP_HL: return ["JP", "HL"];
                 case Ops.ADD_HL_R16: return ["ADD HL,", ins.type];
+
+
                 default: return null;
             }
         };
@@ -87,10 +118,14 @@ export default class Disassembler {
 
         // Detect bottom 3/4 of 0xCB table
         if (isCB && pcTriplet[1] > 0x30) {
-            operandAndType = (ins.type2 ? ins.type2 : "") + (!isCB && (ins.type2 || ins.length > 1) ? "," : "") + (ins.type ? ins.type : "");
+            operandAndType = (ins.type2 ? tr(ins.type2) : "") + ((ins.type2 || ins.length > 1) ? "," : "") + (ins.type ? tr(ins.type) : "");
         } else if (!block) {
             // Regular operations, block if hardcode decoded
-            operandAndType = ins.type !== CC.UNCONDITIONAL ? (ins.type ? ins.type : "") + (ins.type2 || ins.length > 1 ? "," : "") : "" + (ins.type2 ? ins.type2 : "");
+            operandAndType =
+                (ins.type != CC.UNCONDITIONAL ? (
+                    ((ins.type ? tr(ins.type) : "") + (ins.type2 || ins.length > 1 ? "," : ""))
+                ) : "") +
+                (ins.type2 ? tr(ins.type2) : "");
         }
 
         // Instructions with type 2

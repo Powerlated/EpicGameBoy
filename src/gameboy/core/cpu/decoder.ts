@@ -164,7 +164,7 @@ export default class Decoder {
 
             /** A ops */
             case 0xE6: // AND A, N8
-                return { op: Ops.AND_N8, length: 2 };
+                return { op: Ops.AND_A_N8, length: 2 };
             case 0xF6: // OR A, N8
                 return { op: Ops.OR_A_N8, length: 2 };
             case 0xEE: // XOR A, N8

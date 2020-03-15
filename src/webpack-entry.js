@@ -14,4 +14,5 @@ window.startDebugging = startDebugging;
 window.Tone = Tone;
 
 window.GameBoy = GameBoy.GameBoy;
-window.Disassembler = GameBoy.Disassembler
+window.Disassembler = GameBoy.Disassembler;
+window.Decoder = GameBoy.Decoder;
