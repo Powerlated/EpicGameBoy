@@ -68,8 +68,17 @@ class Registers {
         this._f.carry = (i & (1 << 4)) !== 0;
     }
 
-    // The 7 general registers + (HL), check CPU constructor for (HL) get and set initialization
-    gen: [number, number, number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0, 0, 0];
+    // The 7 general registers + (HL)
+    gen: {
+        0: number,
+        1: number,
+        2: number,
+        3: number,
+        4: number,
+        5: number,
+        6: number,
+        7: number;
+    };
 
     sp = 0;
 
@@ -121,6 +130,22 @@ class Registers {
 
     constructor(cpu: CPU) {
         this.cpu = cpu;
+
+        this.gen = {
+            0: 0,
+            1: 0,
+            2: 0,
+            3: 0,
+            4: 0,
+            5: 0,
+            get 6(): number {
+                return cpu.fetchMem8(cpu._r.hl);
+            },
+            set 6(i: number) {
+                cpu.writeMem8(cpu._r.hl, i);
+            },
+            7: 0
+        };
     }
 }
 
@@ -195,17 +220,6 @@ export default class CPU {
             this.opCacheRg[i] = Decoder.rgOpcode(i);
             this.opCacheCb[i] = Decoder.cbOpcode(i);
         }
-
-        // Make getters and setters for indirect (HL) addressing
-        let cpu = this;
-        Object.defineProperty(this._r.gen, R8.iHL, {
-            get(): number {
-                return cpu.fetchMem8(cpu._r.hl);
-            },
-            set(i: number) {
-                cpu.writeMem8(cpu._r.hl, i);
-            }
-        });
     }
 
     // #region

@@ -136,7 +136,7 @@ class Ops {
     }
 
     static LD_A_iFF00plusC(cpu: CPU) {
-        cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + cpu._r.gen[R8.A]) & 0xFFFF);
+        cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + cpu._r.gen[R8.C]) & 0xFFFF);
     }
 
     static LD_iR16_A(cpu: CPU, r16: R16) {
