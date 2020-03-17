@@ -85,8 +85,8 @@ class Ops {
 
     // Load SP into index
     static LD_iN16_SP(cpu: CPU, in16: number) {
-        let spUpperByte = cpu._r.sp >> 8;
-        let spLowerByte = cpu._r.sp & 0b11111111;
+        const spUpperByte = cpu._r.sp >> 8;
+        const spLowerByte = cpu._r.sp & 0b11111111;
 
         cpu.writeMem8(in16 + 0, spLowerByte);
         cpu.writeMem8(in16 + 1, (spUpperByte) & 0xFFFF);
@@ -94,8 +94,8 @@ class Ops {
 
 
     static RST(cpu: CPU, vector: number) {
-        let pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-        let pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
+        const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
+        const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
 
         cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, pcUpperByte);
@@ -124,7 +124,7 @@ class Ops {
     }
 
     static CP_A_iHL(cpu: CPU) {
-        let u8 = cpu.fetchMem8(cpu.getReg16(R16.HL));
+        const u8 = cpu.fetchMem8(cpu.getReg16(R16.HL));
         cpu._r._f.zero = cpu._r.gen[R8.A] - u8 === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) + (u8 & 0xF) > 0xF;
@@ -151,9 +151,9 @@ class Ops {
     /*  PUSH r16 - 0xC5
         Push register r16 onto the stack. */
     static PUSH_R16(cpu: CPU, r16: R16) {
-        let value = cpu.getReg16(r16);
-        let upperByte = value >> 8;
-        let lowerByte = value & 0b11111111;
+        const value = cpu.getReg16(r16);
+        const upperByte = value >> 8;
+        const lowerByte = value & 0b11111111;
 
         cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, upperByte);
@@ -164,9 +164,9 @@ class Ops {
     /*  PUSH r16 - 0xC1
         Pop off the stack into r16. */
     static POP_R16(cpu: CPU, r16: R16) {
-        let lowerByte = cpu.fetchMem8(cpu._r.sp);
+        const lowerByte = cpu.fetchMem8(cpu._r.sp);
         cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-        let upperByte = cpu.fetchMem8(cpu._r.sp);
+        const upperByte = cpu.fetchMem8(cpu._r.sp);
         cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
 
         cpu.setReg16(r16, (upperByte << 8) | lowerByte);
@@ -179,8 +179,8 @@ class Ops {
         if (cc === CC.C && !cpu._r._f.carry) return;
         if (cc === CC.NC && cpu._r._f.carry) return;
 
-        let pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
-        let pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
+        const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
+        const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
 
         // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
 
@@ -218,10 +218,10 @@ class Ops {
         if (cc === CC.C && !cpu._r._f.carry) return;
         if (cc === CC.NC && cpu._r._f.carry) return;
 
-        let stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-        let stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
+        const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
+        const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
 
-        let returnAddress = (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
+        const returnAddress = (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
         // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
         cpu.pc = returnAddress;
@@ -244,7 +244,7 @@ class Ops {
     }
 
     static LD_HL_SPaddE8(cpu: CPU, e8: number) {
-        let signedVal = unTwo8b(e8);
+        const signedVal = unTwo8b(e8);
 
         cpu._r._f.zero = false;
         cpu._r._f.negative = false;
@@ -256,14 +256,14 @@ class Ops {
 
     // LD [$FF00+u8],A
     static LD_iFF00plusN8_A(cpu: CPU, u8: number) {
-        let value = cpu._r.gen[R8.A];
+        const value = cpu._r.gen[R8.A];
         cpu.writeMem8((0xFF00 + u8) & 0xFFFF, value);
         // writeDebug(0xFF00 + u8);
     }
 
     // LD [$FF00+C],A
     static LD_iFF00plusC_A(cpu: CPU) {
-        let value = cpu._r.gen[R8.A];
+        const value = cpu._r.gen[R8.A];
         cpu.writeMem8((0xFF00 + cpu._r.gen[R8.C]) & 0xFFFF, value);
     }
 
@@ -306,7 +306,7 @@ class Ops {
 
     // ADD SP, e8
     static ADD_SP_E8(cpu: CPU, e8: number) {
-        let value = unTwo8b(e8);
+        const value = unTwo8b(e8);
 
         cpu._r._f.zero = false;
         cpu._r._f.negative = false;
@@ -334,11 +334,11 @@ class Ops {
 
     // ADD A, r8
     static ADD_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
         cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) + (value & 0xF) > 0xF;
 
-        let newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) !== 0;
+        const newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
+        const didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) !== 0;
 
         // Set register values
         cpu._r.gen[R8.A] = newValue;
@@ -351,10 +351,10 @@ class Ops {
 
     // ADD A, N8
     static ADD_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) !== 0;
+        const newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
+        const didOverflow = ((value + cpu._r.gen[R8.A]) >> 8) !== 0;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -368,10 +368,10 @@ class Ops {
 
     // ADC A, r8
     static ADC_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
+        const newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
+        const didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -385,10 +385,10 @@ class Ops {
 
     // ADC A, n8
     static ADC_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
-        let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
+        const newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
+        const didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -401,10 +401,10 @@ class Ops {
     }
 
     static ADD_HL_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let newValue = (value + cpu._r.hl) & 0xFFFF;
-        let didOverflow = ((value + cpu._r.hl) >> 8) !== 0;
+        const newValue = (value + cpu._r.hl) & 0xFFFF;
+        const didOverflow = ((value + cpu._r.hl) >> 8) !== 0;
 
         // Set register values
         cpu._r.hl = newValue;
@@ -417,10 +417,10 @@ class Ops {
     }
 
     static ADD_HL_R16(cpu: CPU, r16: R16) {
-        let r16Value = cpu.getReg16(r16);
+        const r16Value = cpu.getReg16(r16);
 
-        let newValue = (r16Value + cpu._r.hl) & 0xFFFF;
-        let didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
+        const newValue = (r16Value + cpu._r.hl) & 0xFFFF;
+        const didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
 
         // Set flag
         cpu._r._f.negative = false;
@@ -432,9 +432,9 @@ class Ops {
     }
 
     static SUB_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
+        const newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -448,9 +448,9 @@ class Ops {
 
 
     static SUB_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
+        const newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -463,9 +463,9 @@ class Ops {
     }
 
     static SBC_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let newValue = (cpu._r.gen[R8.A] - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
+        const newValue = (cpu._r.gen[R8.A] - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -478,9 +478,9 @@ class Ops {
     }
 
     static SBC_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let newValue = (cpu._r.gen[R8.A] - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
+        const newValue = (cpu._r.gen[R8.A] - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
         // Set flags
         cpu._r._f.zero = newValue === 0;
@@ -493,9 +493,9 @@ class Ops {
     }
 
     static AND_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let final = value & cpu._r.gen[R8.A];
+        const final = value & cpu._r.gen[R8.A];
         cpu._r.gen[R8.A] = final;
 
         // Set flags
@@ -506,9 +506,9 @@ class Ops {
     }
 
     static AND_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let final = value & cpu._r.gen[R8.A];
+        const final = value & cpu._r.gen[R8.A];
         cpu._r.gen[R8.A] = final;
 
         cpu._r._f.zero = cpu._r.gen[R8.A] === 0;
@@ -518,9 +518,9 @@ class Ops {
     }
 
     static OR_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let final = value | cpu._r.gen[R8.A];
+        const final = value | cpu._r.gen[R8.A];
         cpu._r.gen[R8.A] = final;
 
         cpu._r._f.zero = final === 0;
@@ -530,9 +530,9 @@ class Ops {
     }
 
     static OR_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let final = value | cpu._r.gen[R8.A];
+        const final = value | cpu._r.gen[R8.A];
         cpu._r.gen[R8.A] = final;
 
         cpu._r._f.zero = final === 0;
@@ -542,9 +542,9 @@ class Ops {
     }
 
     static XOR_A_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let final = value ^ cpu._r.gen[R8.A];
+        const final = value ^ cpu._r.gen[R8.A];
         cpu._r.gen[R8.A] = final;
 
         cpu._r._f.zero = final === 0;
@@ -554,9 +554,9 @@ class Ops {
     }
 
     static XOR_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let final = value ^ cpu._r.gen[R8.A];
+        const final = value ^ cpu._r.gen[R8.A];
         cpu._r.gen[R8.A] = final;
 
         cpu._r._f.zero = final === 0;
@@ -567,10 +567,10 @@ class Ops {
 
     // CP A,r8
     static CP_A_R8(cpu: CPU, t: R8) {
-        let r8 = cpu._r.gen[t];
+        const r8 = cpu._r.gen[t];
 
-        let newValue = (cpu._r.gen[R8.A] - r8) & 0xFF;
-        let didOverflow = ((cpu._r.gen[R8.A] - r8) >> 8) !== 0;
+        const newValue = (cpu._r.gen[R8.A] - r8) & 0xFF;
+        const didOverflow = ((cpu._r.gen[R8.A] - r8) >> 8) !== 0;
 
         // DO not set register values for CP
 
@@ -583,10 +583,10 @@ class Ops {
 
 
     static CP_A_N8(cpu: CPU, n8: number) {
-        let value = n8;
+        const value = n8;
 
-        let newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
-        let didOverflow = ((cpu._r.gen[R8.A] - value) >> 8) !== 0;
+        const newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
+        const didOverflow = ((cpu._r.gen[R8.A] - value) >> 8) !== 0;
 
 
         // Set flags
@@ -597,10 +597,10 @@ class Ops {
     }
 
     static INC_R8(cpu: CPU, t: R8) {
-        let target = cpu._r.gen[t];
+        const target = cpu._r.gen[t];
 
-        let newValue = (target + 1) & 0xFF;
-        let didOverflow = ((target + 1) >> 8) !== 0;
+        const newValue = (target + 1) & 0xFF;
+        const didOverflow = ((target + 1) >> 8) !== 0;
 
         cpu._r.gen[t] = newValue;
 
@@ -617,9 +617,9 @@ class Ops {
     }
 
     static DEC_R8(cpu: CPU, t: R8) {
-        let target = cpu._r.gen[t];
+        const target = cpu._r.gen[t];
 
-        let newValue = (target - 1) & 0xFF;
+        const newValue = (target - 1) & 0xFF;
 
         cpu._r.gen[t] = newValue;
 
@@ -656,7 +656,7 @@ class Ops {
     // #region 0xCB Opcodes
 
     static BIT_R8(cpu: CPU, t: R8, selectedBit: number) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
         cpu._r._f.zero = (value & (1 << selectedBit)) === 0;
         cpu._r._f.negative = false;
@@ -664,30 +664,30 @@ class Ops {
     }
 
     static RES_R8(cpu: CPU, t: R8, selectedBit: number) {
-        let value = cpu._r.gen[t];
-        let mask = 0b1 << selectedBit;
+        const value = cpu._r.gen[t];
+        const mask = 0b1 << selectedBit;
 
-        let final = value & ~(mask);
+        const final = value & ~(mask);
 
         cpu._r.gen[t] = final;
     }
 
     static SET_R8(cpu: CPU, t: R8, selectedBit: number) {
         let value = cpu._r.gen[t];
-        let mask = 0b1 << selectedBit;
+        const mask = 0b1 << selectedBit;
 
-        let final = value |= mask;
+        const final = value |= mask;
 
         cpu._r.gen[t] = final;
     }
 
     // Rotate A right through carry
     static RRA(cpu: CPU) {
-        let value = cpu._r.gen[R8.A];
+        const value = cpu._r.gen[R8.A];
 
-        let carryMask = (cpu._r.f & 0b00010000) << 3;
+        const carryMask = (cpu._r.f & 0b00010000) << 3;
 
-        let newValue = ((value >> 1) | carryMask) & 0xFF;
+        const newValue = ((value >> 1) | carryMask) & 0xFF;
 
         cpu._r.gen[R8.A] = newValue;
 
@@ -700,11 +700,11 @@ class Ops {
 
     // Rotate TARGET right through carry
     static RR_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let carryMask = (cpu._r.f & 0b00010000) << 3;
+        const carryMask = (cpu._r.f & 0b00010000) << 3;
 
-        let newValue = ((value >> 1) | carryMask) & 0xFF;
+        const newValue = ((value >> 1) | carryMask) & 0xFF;
 
         cpu._r.gen[t] = newValue;
 
@@ -716,11 +716,11 @@ class Ops {
 
     // Rotate A left through carry
     static RLA(cpu: CPU) {
-        let value = cpu._r.gen[R8.A];
+        const value = cpu._r.gen[R8.A];
 
-        let carryMask = (cpu._r.f & 0b00010000) >> 4;
+        const carryMask = (cpu._r.f & 0b00010000) >> 4;
 
-        let newValue = ((value << 1) | carryMask) & 0xFF;
+        const newValue = ((value << 1) | carryMask) & 0xFF;
 
         cpu._r.gen[R8.A] = newValue;
 
@@ -732,11 +732,11 @@ class Ops {
 
     // Rotate TARGET left through carry
     static RL_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let carryMask = (cpu._r.f & 0b00010000) >> 4;
+        const carryMask = (cpu._r.f & 0b00010000) >> 4;
 
-        let newValue = ((value << 1) | carryMask) & 0xFF;
+        const newValue = ((value << 1) | carryMask) & 0xFF;
 
         cpu._r.gen[t] = newValue;
 
@@ -748,10 +748,10 @@ class Ops {
 
     // Rotate A right
     static RRCA(cpu: CPU) {
-        let value = cpu._r.gen[R8.A];
+        const value = cpu._r.gen[R8.A];
 
-        let rightmostBit = (value & 1) << 7;
-        let newValue = ((value >> 1) | rightmostBit) & 0xFF;
+        const rightmostBit = (value & 1) << 7;
+        const newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
         cpu._r.gen[R8.A] = newValue;
 
@@ -764,10 +764,10 @@ class Ops {
 
     // Rotate TARGET right
     static RRC_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let rightmostBit = (value & 1) << 7;
-        let newValue = ((value >> 1) | rightmostBit) & 0xFF;
+        const rightmostBit = (value & 1) << 7;
+        const newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
         cpu._r.gen[t] = newValue;
 
@@ -779,11 +779,11 @@ class Ops {
 
     // Rotate A left
     static RLCA(cpu: CPU) {
-        let value = cpu._r.gen[R8.A];
+        const value = cpu._r.gen[R8.A];
 
-        let leftmostBit = (value & 0b10000000) >> 7;
+        const leftmostBit = (value & 0b10000000) >> 7;
 
-        let newValue = ((value << 1) | leftmostBit) & 0xFF;
+        const newValue = ((value << 1) | leftmostBit) & 0xFF;
 
         cpu._r.gen[R8.A] = newValue;
 
@@ -795,11 +795,11 @@ class Ops {
 
     // Rotate TARGET left
     static RLC_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let leftmostBit = (value & 0b10000000) >> 7;
+        const leftmostBit = (value & 0b10000000) >> 7;
 
-        let newValue = ((value << 1) | leftmostBit) & 0xFF;
+        const newValue = ((value << 1) | leftmostBit) & 0xFF;
 
         cpu._r.gen[t] = newValue;
 
@@ -811,10 +811,10 @@ class Ops {
 
     // Shift TARGET right
     static SRA_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let leftmostBit = value & 0b10000000;
-        let newValue = (value >> 1) | leftmostBit;
+        const leftmostBit = value & 0b10000000;
+        const newValue = (value >> 1) | leftmostBit;
 
         cpu._r.gen[t] = newValue;
 
@@ -826,10 +826,10 @@ class Ops {
 
     // Shift TARGET left 
     static SLA_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let newValue = (value << 1) & 0xFF;
-        let didOverflow = ((value << 1) >> 8) !== 0;
+        const newValue = (value << 1) & 0xFF;
+        const didOverflow = ((value << 1) >> 8) !== 0;
 
         cpu._r.gen[t] = newValue;
 
@@ -841,9 +841,9 @@ class Ops {
 
     // Shift right logic register
     static SRL_R8(cpu: CPU, t: R8) {
-        let value = cpu._r.gen[t];
+        const value = cpu._r.gen[t];
 
-        let newValue = value >> 1;
+        const newValue = value >> 1;
 
         cpu._r.gen[t] = newValue;
 
@@ -855,10 +855,10 @@ class Ops {
 
     // SWAP 
     static SWAP_R8(cpu: CPU, r8: R8) {
-        let value = cpu._r.gen[r8];
+        const value = cpu._r.gen[r8];
 
-        let lowerNybble = value & 0b00001111;
-        let upperNybble = (value >> 4) & 0b00001111;
+        const lowerNybble = value & 0b00001111;
+        const upperNybble = (value >> 4) & 0b00001111;
 
         cpu._r.gen[r8] = (lowerNybble << 4) | upperNybble;
 

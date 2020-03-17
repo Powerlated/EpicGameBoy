@@ -4,8 +4,8 @@ import Ops from './cpu_ops';
 export default class Decoder {
     static rgOpcode(id: number): Op {
 
-        let upperNybble = id >> 4;
-        let lowerNybble = id & 0b1111;
+        const upperNybble = id >> 4;
+        const lowerNybble = id & 0b1111;
 
         switch (id) {
             /** JR */
@@ -315,10 +315,10 @@ export default class Decoder {
             const lowOps = [Ops.ADD_A_R8, Ops.SUB_A_R8, Ops.AND_A_R8, Ops.OR_A_R8];
             const highOps = [Ops.ADC_A_R8, Ops.SBC_A_R8, Ops.XOR_A_R8, Ops.CP_A_R8];
 
-            let type = typeTable[lowerNybble & 0b111];
+            const type = typeTable[lowerNybble & 0b111];
             const OPDEC = upperNybble & 0b11;
 
-            let op = (lowerNybble & HALF_MASK) !== 0 ?
+            const op = (lowerNybble & HALF_MASK) !== 0 ?
                 highOps[OPDEC] :
                 lowOps[OPDEC];
 
@@ -331,11 +331,11 @@ export default class Decoder {
             const highTypes = [R8.C, R8.E, R8.L, R8.A];
             const lowTypes = [R8.B, R8.D, R8.H, R8.iHL];
 
-            let type2 = typeTable[lowerNybble & 0b111];
+            const type2 = typeTable[lowerNybble & 0b111];
 
             const OPDEC = upperNybble & 0b11;
 
-            let type = (lowerNybble & HALF_MASK) !== 0 ?
+            const type = (lowerNybble & HALF_MASK) !== 0 ?
                 highTypes[OPDEC] :
                 lowTypes[OPDEC];
 
@@ -345,8 +345,8 @@ export default class Decoder {
     }
 
     static cbOpcode(id: number): Op {
-        let upperNybble = id >> 4;
-        let lowerNybble = id & 0b1111;
+        const upperNybble = id >> 4;
+        const lowerNybble = id & 0b1111;
 
         let op: any;
 
@@ -359,8 +359,8 @@ export default class Decoder {
 
         let cyclesOffset = 0;
 
-        let typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
-        let type = typeTable[lowerNybble & 0b111];
+        const typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
+        const type = typeTable[lowerNybble & 0b111];
 
         if (upperNybble < 0x4) {
             const lowOps = [Ops.RLC_R8, Ops.RL_R8, Ops.SLA_R8, Ops.SWAP_R8];

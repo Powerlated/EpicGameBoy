@@ -55,7 +55,7 @@ export class PulseChannel implements BasicChannel {
     }
 
     get frequencyHz(): number {
-        let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
+        const frequency = (this.frequencyUpper << 8) | this.frequencyLower;
         return 131072 / (2048 - frequency);
     }
 
@@ -116,7 +116,7 @@ export class WaveChannel implements BasicChannel {
     }
 
     get frequencyHz(): number {
-        let frequency = (this.frequencyUpper << 8) | this.frequencyLower;
+        const frequency = (this.frequencyUpper << 8) | this.frequencyLower;
         return (65536 / (2048 - frequency));
     }
 
@@ -133,9 +133,9 @@ export class WaveChannel implements BasicChannel {
             waveTable = new Array(1).fill(0);
         }
 
-        let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
-        let buffering = arrayBuffer.getChannelData(0);
+        const ac = (Tone.context as any as AudioContext);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
+        const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];
         }
@@ -199,12 +199,12 @@ export class NoiseChannel implements BasicChannel {
 
         function lfsr(p: number) {
             if (period > p) {
-                let b0 = ((seed >> 0) & 1);
-                let b1 = ((seed >> 2) & 1);
+                const b0 = ((seed >> 0) & 1);
+                const b1 = ((seed >> 2) & 1);
 
                 seed >>= 1;
 
-                let xor = b0 ^ b1;
+                const xor = b0 ^ b1;
 
                 seed |= xor << 14;
 
@@ -226,9 +226,9 @@ export class NoiseChannel implements BasicChannel {
 
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
-        let ac = (Tone.context as any as AudioContext);
-        let arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
-        let buffering = arrayBuffer.getChannelData(0);
+        const ac = (Tone.context as any as AudioContext);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];
         }

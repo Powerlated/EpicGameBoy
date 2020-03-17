@@ -299,7 +299,7 @@ export default class CPU {
             return;
         };
 
-        let c = this.cycles;
+        const c = this.cycles;
 
         this.checkBootrom();
 
@@ -381,13 +381,13 @@ export default class CPU {
     minDebug = false;
 
     executeInstruction() {
-        let pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
-        let isCB = pcTriplet[0] === 0xCB;
+        const pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
+        const isCB = pcTriplet[0] === 0xCB;
 
         if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
         // Lookup decoded
-        let ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
+        const ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
         this.cycles += 4; // Decoding time penalty
 
         if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
@@ -395,8 +395,8 @@ export default class CPU {
         if (this.minDebug) {
             if (Disassembler.isControlFlow(ins)) {
                 if (Disassembler.willJump(ins, this)) {
-                    let disasm = Disassembler.disassembleOp(ins, new Uint8Array(pcTriplet), this.pc, this);
-                    let to = Disassembler.willJumpTo(ins, new Uint8Array(pcTriplet), this.pc, this);
+                    const disasm = Disassembler.disassembleOp(ins, new Uint8Array(pcTriplet), this.pc, this);
+                    const to = Disassembler.willJumpTo(ins, new Uint8Array(pcTriplet), this.pc, this);
                     // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
                     // this.jumpLog = this.jumpLog.slice(0, 100);
                 }
@@ -436,8 +436,8 @@ export default class CPU {
 
     serviceInterrupts() {
         // Service interrupts
-        let happened = this.gb.bus.interrupts.requestedInterrupts;
-        let enabled = this.gb.bus.interrupts.enabledInterrupts;
+        const happened = this.gb.bus.interrupts.requestedInterrupts;
+        const enabled = this.gb.bus.interrupts.enabledInterrupts;
         if (this.gb.bus.interrupts.masterEnabled) {
 
             // If servicing any interrupt, disable the master flag
@@ -473,15 +473,15 @@ export default class CPU {
     }
 
     stepDebug() {
-        let isCB = this.gb.bus.readMem8(this.pc) === 0xCB;
+        const isCB = this.gb.bus.readMem8(this.pc) === 0xCB;
 
-        let ins = isCB ? Decoder.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : Decoder.rgOpcode(this.gb.bus.readMem8(this.pc));
+        const ins = isCB ? Decoder.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : Decoder.rgOpcode(this.gb.bus.readMem8(this.pc));
 
         if (!ins.op) {
             alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
         }
 
-        let opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
+        const opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
 
         if (opcode === this.lastOpcode) {
             this.lastOpcodeReps++;
@@ -530,7 +530,7 @@ export default class CPU {
 
         if (this.logging) {
 
-            let flags = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
+            const flags = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
 
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
@@ -546,8 +546,8 @@ export default class CPU {
     }
 
     jumpToInterrupt(vector: number) {
-        let pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
-        let pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
+        const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
+        const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
 
         this._r.sp = (this._r.sp - 1) & 0xFFFF;
         this.writeMem8(this._r.sp, pcUpperByte);

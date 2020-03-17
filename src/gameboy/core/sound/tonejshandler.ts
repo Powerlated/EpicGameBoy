@@ -2,7 +2,7 @@ import SoundChip from "./sound";
 import * as Tone from "tone";
 
 function convertVolume(v: number) {
-    let base = -12;
+    const base = -12;
     let mute = 0;
     if (v === 0) mute = -10000;
     return base + mute + (6 * Math.log(v / 16));
@@ -16,7 +16,7 @@ function convertVolumeWave(v: number) {
         case 3: v = 4; break;
     }
 
-    let base = -18;
+    const base = -18;
     let mute = 0;
     if (v === 0) mute = -10000;
     return base + mute + (10 * Math.log(v / 16));
@@ -39,8 +39,8 @@ export default class ToneJsHandler {
     s: SoundChip;
 
     constructor(s: SoundChip) {
-        let highPass = new Tone.Filter(160, 'highpass', -12);
-        let bitCrush = new Tone.BitCrusher(4);
+        const highPass = new Tone.Filter(160, 'highpass', -12);
+        const bitCrush = new Tone.BitCrusher(4);
         this.masterVolume = new Tone.Volume();
 
         this.s = s;

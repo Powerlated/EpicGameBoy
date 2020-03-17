@@ -6,7 +6,7 @@ export function saveSram(name: string, sram: Uint8Array) {
 }
 
 export function loadSram(name: string): Uint8Array | void {
-    let item = localStorage.getItem(`sram-${name}`);
+    const item = localStorage.getItem(`sram-${name}`);
     if (item == undefined) {
         console.info(`SRAM for "${name}" not found in localStorage, not loading.`);
     } else {

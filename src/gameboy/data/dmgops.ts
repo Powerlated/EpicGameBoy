@@ -1,4 +1,4 @@
-let DMG_OPS = {
+const DMG_OPS = {
   "Unprefixed": [
     {
       "Name": "NOP",

@@ -38,15 +38,15 @@ export default class ExternalBus {
         });
         this.updateMBC();
         this.gb.reset();
-        let title = this.rom.slice(0x134, 0x143);
-        let titleDecoded = new TextDecoder("utf-8").decode(title);
+        const title = this.rom.slice(0x134, 0x143);
+        const titleDecoded = new TextDecoder("utf-8").decode(title);
         console.log(titleDecoded);
 
         this.romTitle = titleDecoded;
 
-        let m = this.mbc as MBCWithRAM;
+        const m = this.mbc as MBCWithRAM;
         if (m instanceof MBCWithRAM) {
-            let sram = loadSram(this.romTitle);
+            const sram = loadSram(this.romTitle);
             if (sram) {
                 m.externalRam.forEach((v, i, a) => {
                     a[i] = 0;
@@ -62,7 +62,7 @@ export default class ExternalBus {
     }
 
     saveGameSram() {
-        let m = this.mbc as MBCWithRAM;
+        const m = this.mbc as MBCWithRAM;
         if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
             console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`)
             saveSram(this.romTitle, m.externalRam);

@@ -133,7 +133,7 @@ class PaletteData {
     }
 }
 
-export let colors: Uint8Array[] = [
+export const colors: Uint8Array[] = [
     new Uint8Array([0xFF, 0xFF, 0xFF]),
     new Uint8Array([0xC0, 0xC0, 0xC0]),
     new Uint8Array([0x60, 0x60, 0x60]),
@@ -293,13 +293,13 @@ class GPU {
     }
 
     renderBg() {
-        let y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
+        const y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
         let x = (this.scrX) & 0b111;                // CORRECT
 
-        let mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+        const mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
 
-        let mapIndex = (((this.lcdcY + this.scrY) >> 3) * 32) & 1023;
-        let mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
+        const mapIndex = (((this.lcdcY + this.scrY) >> 3) * 32) & 1023;
+        const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
         let lineOffset = this.scrX >> 3;
 
@@ -307,7 +307,7 @@ class GPU {
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
-        let xPos = this.windowXpos - 7;
+        const xPos = this.windowXpos - 7;
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < 160; i++) {
             // Don't bother drawing if WINDOW is overlaying
@@ -322,9 +322,9 @@ class GPU {
                 }
             }
 
-            let pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
+            const pixel = this.bgPaletteData.shades[this.tileset[tile + tileOffset][y][x]];
             // Re-map the tile pixel through the palette
-            let c = colors[pixel];
+            const c = colors[pixel];
 
             // Plot the pixel to canvas
             this.imageGameboy.data[canvasIndex + 0] = c[0];
@@ -355,19 +355,19 @@ class GPU {
     }
 
     renderWindow() {
-        let xPos = this.windowXpos - 14;
+        const xPos = this.windowXpos - 14;
         let lineOffset = this.windowXpos >> 3;
-        let y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
+        const y = (this.lcdcY - this.windowYpos) & 0b111; // CORRECT
 
         // Make sure window is onscreen Y
         if (this.lcdcY >= this.windowYpos) {
-            let adjXpos = xPos + this.windowXpos;
+            const adjXpos = xPos + this.windowXpos;
             let x = adjXpos & 0b111;                // CORRECT
 
-            let mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
+            const mapBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
 
-            let mapIndex = (((this.lcdcY - this.windowYpos) >> 3) * 32) & 1023;
-            let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+            const mapIndex = (((this.lcdcY - this.windowYpos) >> 3) * 32) & 1023;
+            const mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
             let tile = this.vram[mapOffset]; // Add line offset to get correct starting tile
 
@@ -387,7 +387,7 @@ class GPU {
                         }
                     }
 
-                    let pixel = shades[this.tileset[tile + tileOffset][y][x]];
+                    const pixel = shades[this.tileset[tile + tileOffset][y][x]];
                     // Re-map the tile pixel through the palette
                     let c = colors[pixel];
 
@@ -427,10 +427,10 @@ class GPU {
     }
 
     renderSprites() {
-        let spriteCount = 0;
+        const spriteCount = 0;
         // 40 sprites in total in OAM
         for (let sprite = 0; sprite < 40; sprite++) {
-            let base = sprite * 4;
+            const base = sprite * 4;
 
             const yPos = this.oam[base + 0];
             const xPos = this.oam[base + 1];
@@ -449,10 +449,10 @@ class GPU {
                 // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
                 // spriteCount++;
 
-                let flags = new OAMFlags();
+                const flags = new OAMFlags();
                 flags.numerical = this.oam[base + 3];
 
-                let y = this.lcdcY % 8;
+                const y = this.lcdcY % 8;
 
                 for (let h = 8; h <= HEIGHT; h += 8)
                     for (let x = 0; x < 8; x++) {
@@ -464,15 +464,15 @@ class GPU {
 
                         if (screenXPos >= 0 && screenYPos >= 0 && screenXPos < 160 && screenYPos < 144) {
 
-                            let pixelX = flags.xFlip ? 7 - x : x;
-                            let pixelY = flags.yFlip ? 7 - y : y;
+                            const pixelX = flags.xFlip ? 7 - x : x;
+                            const pixelY = flags.yFlip ? 7 - y : y;
 
-                            let canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+                            const canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                             // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                            let prePalette = this.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                            let pixel = flags.paletteNumberDMG ? this.objPaletteData1.shades[prePalette] : this.objPaletteData0.shades[prePalette];
-                            let c = colors[pixel];
+                            const prePalette = this.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
+                            const pixel = flags.paletteNumberDMG ? this.objPaletteData1.shades[prePalette] : this.objPaletteData0.shades[prePalette];
+                            const c = colors[pixel];
 
 
                             if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.bgPaletteData.shades[0]][1]) continue;
@@ -513,11 +513,11 @@ class GPU {
 
                     const WIDTH = 256;
 
-                    let x = ((i1 * 8) + i3) % WIDTH;
-                    let row = Math.floor(((i1 * 8) + i3) / WIDTH);
-                    let y = i2 + (row * 8);
+                    const x = ((i1 * 8) + i3) % WIDTH;
+                    const row = Math.floor(((i1 * 8) + i3) / WIDTH);
+                    const y = i2 + (row * 8);
 
-                    let c = colors[this.bgPaletteData.shades[pixel]];
+                    const c = colors[this.bgPaletteData.shades[pixel]];
 
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
@@ -533,7 +533,7 @@ class GPU {
     constructor(gb: GameBoy) {
         this.gb = gb;
 
-        let cTileset = document.getElementById("tileset") as HTMLCanvasElement;
+        const cTileset = document.getElementById("tileset") as HTMLCanvasElement;
         this.canvas.ctxTileset = cTileset.getContext("2d")!;
     }
 
@@ -555,16 +555,16 @@ class GPU {
             index &= 0xFFFE;
 
             // Work out which tile and row was updated
-            let tile = index >> 4;
-            let y = (index & 0xF) >> 1;
+            const tile = index >> 4;
+            const y = (index & 0xF) >> 1;
 
             for (var x = 0; x < 8; x++) {
                 // Find bit index for this pixel
-                let bytes = [this.vram[index], this.vram[index + 1]];
+                const bytes = [this.vram[index], this.vram[index + 1]];
 
-                let mask = 0b1 << (7 - x);
-                let lsb = bytes[0] & mask;
-                let msb = bytes[1] & mask;
+                const mask = 0b1 << (7 - x);
+                const lsb = bytes[0] & mask;
+                const msb = bytes[1] & mask;
 
                 // Update tile set
                 this.tileset[tile][y][x] =

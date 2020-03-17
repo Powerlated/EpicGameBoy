@@ -5,8 +5,8 @@ import CPU, { R8 } from "../core/cpu/cpu";
 import { hex, pad, hexN } from "./util";
 
 function test() {
-    let gb = new GameBoy();
-    let cpu = gb.cpu;
+    const gb = new GameBoy();
+    const cpu = gb.cpu;
 
     cpu._r._f.zero = true;
     writeDebug(cpu._r.f);
@@ -97,25 +97,25 @@ function test() {
     cpu.reset();
 }
 
-export let DebugSettings = {
+export const DebugSettings = {
     highlight: 0
 };
 
 
 export function startDebugging() {
-    let debugP = document.getElementById('debug')!;
+    const debugP = document.getElementById('debug')!;
     // @ts-check
     let lastFrameCount = 0;
     let lastCyclesCount = 0;
 
     setInterval(() => {
-        let gpu = ((window as any).gb.gpu as GPU);
+        const gpu = ((window as any).gb.gpu as GPU);
         (window as any).fps = gpu.totalFrameCount - lastFrameCount;
         lastFrameCount = gpu.totalFrameCount;
     }, 1000);
 
     setInterval(() => {
-        let cpu = ((window as any).gb.cpu as CPU);
+        const cpu = ((window as any).gb.cpu as CPU);
         (window as any).cyclesPerSecond = cpu.cycles - lastCyclesCount;
         lastCyclesCount = cpu.cycles;
     }, 1000);
@@ -123,39 +123,39 @@ export function startDebugging() {
     updateDebug();
 }
 
-let p0bg = document.getElementById('palette0-bg')!;
-let p1bg = document.getElementById('palette1-bg')!;
-let p2bg = document.getElementById('palette2-bg')!;
-let p3bg = document.getElementById('palette3-bg')!;
+const p0bg = document.getElementById('palette0-bg')!;
+const p1bg = document.getElementById('palette1-bg')!;
+const p2bg = document.getElementById('palette2-bg')!;
+const p3bg = document.getElementById('palette3-bg')!;
 
-let p0obj0 = document.getElementById('palette0-obj0')!;
-let p1obj0 = document.getElementById('palette1-obj0')!;
-let p2obj0 = document.getElementById('palette2-obj0')!;
-let p3obj0 = document.getElementById('palette3-obj0')!;
+const p0obj0 = document.getElementById('palette0-obj0')!;
+const p1obj0 = document.getElementById('palette1-obj0')!;
+const p2obj0 = document.getElementById('palette2-obj0')!;
+const p3obj0 = document.getElementById('palette3-obj0')!;
 
-let p0obj1 = document.getElementById('palette0-obj1')!;
-let p1obj1 = document.getElementById('palette1-obj1')!;
-let p2obj1 = document.getElementById('palette2-obj1')!;
-let p3obj1 = document.getElementById('palette3-obj1')!;
+const p0obj1 = document.getElementById('palette0-obj1')!;
+const p1obj1 = document.getElementById('palette1-obj1')!;
+const p2obj1 = document.getElementById('palette2-obj1')!;
+const p3obj1 = document.getElementById('palette3-obj1')!;
 
-let memoryMapImg = new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256);
+const memoryMapImg = new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256);
 
-let cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
-let ctxMemoryMap = cMemoryMap.getContext("2d")!;
+const cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
+const ctxMemoryMap = cMemoryMap.getContext("2d")!;
 
 function updateDebug() {
     requestAnimationFrame(updateDebug);
     if ((window as any).globalDebug === false) return;
-    let debugP = document.getElementById('debug')!;
-    let lastDebugText = "";
-    let gb = ((window as any).gb as GameBoy);
-    let cpu = ((window as any).cpu as CPU);
-    let fps = (window as any).fps;
-    let cyclesPerSecond = (window as any).cyclesPerSecond;
-    let gpu = ((window as any).gb.gpu as GPU);
-    let displaySerial = (window as any).displaySerial;
-    let r = cpu.gb.bus.interrupts.requestedInterrupts;
-    let e = cpu.gb.bus.interrupts.enabledInterrupts;
+    const debugP = document.getElementById('debug')!;
+    const lastDebugText = "";
+    const gb = ((window as any).gb as GameBoy);
+    const cpu = ((window as any).cpu as CPU);
+    const fps = (window as any).fps;
+    const cyclesPerSecond = (window as any).cyclesPerSecond;
+    const gpu = ((window as any).gb.gpu as GPU);
+    const displaySerial = (window as any).displaySerial;
+    const r = cpu.gb.bus.interrupts.requestedInterrupts;
+    const e = cpu.gb.bus.interrupts.enabledInterrupts;
     let debugText =
         `
                 Total Instructions Executed: ${cpu.totalI}
@@ -239,12 +239,12 @@ function updateDebug() {
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
 
-    // for (let y = 0; y < 256; y++) {
-    //     for (let x = 0; x < 256; x++) {
-    //         let c = gb.bus.readMem8((y * 256) + x);
+    // for (const y = 0; y < 256; y++) {
+    //     for (const x = 0; x < 256; x++) {
+    //         const c = gb.bus.readMem8((y * 256) + x);
 
     //         // Canvas Index
-    //         let ci = ((y * 256) + x) * 4;
+    //         const ci = ((y * 256) + x) * 4;
 
     //         memoryMapImg.data[ci + 0] = c;
     //         memoryMapImg.data[ci + 1] = c;
@@ -253,11 +253,11 @@ function updateDebug() {
     //     }
     // }
 
-    // let data = new ImageData(memoryMapImg.data, 256, 256);
+    // const data = new ImageData(memoryMapImg.data, 256, 256);
     // ctxMemoryMap.putImageData(data, 0, 0);
 }
 
-export let logDebug = false;
+export const logDebug = false;
 
 export function writeDebug(any: any) {
     if (logDebug)

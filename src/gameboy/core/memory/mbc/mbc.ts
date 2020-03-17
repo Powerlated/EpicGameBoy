@@ -25,7 +25,7 @@ export default class MBC {
 
     readBank(addr: number, bank: number): number {
         bank %= this.ext.romBanks;
-        let calculated = this.calcBankAddrRom(addr, bank);
+        const calculated = this.calcBankAddrRom(addr, bank);
         return this.ext.rom[calculated];
     }
 }
@@ -37,12 +37,12 @@ export class MBCWithRAM extends MBC {
     externalRamDirtyBytes = 0;
 
     readBankRam(addr: number, bank: number): number {
-        let calculated = this.calcBankAddrRam(addr, bank);
+        const calculated = this.calcBankAddrRam(addr, bank);
         return this.externalRam[calculated];
     }
 
     writeBankRam(addr: number, bank: number, value: number) {
-        let calculated = this.calcBankAddrRam(addr, bank);
+        const calculated = this.calcBankAddrRam(addr, bank);
         this.externalRam[calculated] = value;
         this.externalRamDirtyBytes++;
     }

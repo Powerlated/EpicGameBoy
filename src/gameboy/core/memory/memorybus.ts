@@ -49,7 +49,7 @@ class MemoryBus {
 
     loadSave(ram: Uint8Array) {
         console.info("Loaded Save");
-        let mbc = this.ext.mbc as MBCWithRAM;
+        const mbc = this.ext.mbc as MBCWithRAM;
         if (mbc instanceof MBCWithRAM) {
             ram.forEach((v, i) => {
                 mbc.externalRam[i] = v;

@@ -27,7 +27,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
                 if (this.ramBank < 0x8) {
                     return this.readBankRam(addr, this.ramBank);
                 } else {
-                    let d = new Date();
+                    const d = new Date();
                     switch (this.ramBank) {
                         case 0x08: // Seconds 0-59
                             return d.getSeconds();
