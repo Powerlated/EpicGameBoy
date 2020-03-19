@@ -12,7 +12,9 @@ export interface BasicChannel {
 export class PulseChannel implements BasicChannel {
     enabled = false;
 
-    width = 2;
+    playing = true;
+
+    width = 3;
 
     lengthEnable = false;
     lengthCounter = 0;
@@ -43,10 +45,10 @@ export class PulseChannel implements BasicChannel {
 
     get pan(): number {
         if (this.outputLeft && !this.outputRight) {
-            return -0.5;
+            return 0.5;
         }
         if (this.outputRight && !this.outputLeft) {
-            return 0.5;
+            return -0.5;
         }
         if (this.outputLeft && this.outputRight) {
             return 0;
@@ -121,12 +123,12 @@ export class WaveChannel implements BasicChannel {
     }
 
     get buffer(): AudioBuffer {
-        let sampleRate = 56320; // A440 without any division
+        let sampleRate = 112640; // A440 without any division
         if (sampleRate > 384000) {
-            sampleRate = 56320; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
+            sampleRate = 112640; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
         }
 
-        let waveTable = this.waveTable.map(v => (v - 8) / 4).flatMap(i => [i, i, i, i]);
+        let waveTable = this.waveTable.map(v => (v - 8) / 4).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
 
         // Output all zeroes if frequency binary is zero
         if (this.frequencyHz === 32) {
@@ -159,6 +161,8 @@ export class WaveChannel implements BasicChannel {
 
 export class NoiseChannel implements BasicChannel {
     enabled = false;
+
+    playing = true;
 
     lengthEnable = false;
     lengthCounter = 0;
@@ -194,7 +198,7 @@ export class NoiseChannel implements BasicChannel {
     }
 
     get buffer(): AudioBuffer {
-        let seed = 0xFC;
+        let seed = 0xFF;
         let period = 0;
 
         function lfsr(p: number) {
@@ -238,6 +242,9 @@ export class NoiseChannel implements BasicChannel {
 
     trigger() {
         this.enabled = true;
+        if (this.lengthCounter === 0) {
+            this.lengthCounter = 64;
+        }
         this.update();
     }
 

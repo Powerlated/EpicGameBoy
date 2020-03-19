@@ -1,6 +1,9 @@
 import SoundChip from "./sound";
 import * as Tone from "tone";
 
+const widths = [0.5, 0, -0.5, -0.75]; // CORRECT
+// const widths = [0.75, 0.5, 0, 0.5]
+
 function convertVolume(v: number) {
     const base = -12;
     let mute = 0;
@@ -39,7 +42,7 @@ export default class ToneJsHandler {
     s: SoundChip;
 
     constructor(s: SoundChip) {
-        const highPass = new Tone.Filter(160, 'highpass', -12);
+        const highPass = new Tone.Filter(120, 'highpass', -12);
         const bitCrush = new Tone.BitCrusher(4);
         this.masterVolume = new Tone.Volume();
 
@@ -81,26 +84,26 @@ export default class ToneJsHandler {
         // frequencyHz check is for removing loud noises when frequency is zeroed
 
         // Pulse 1
-        if (this.s.pulse1.enabled && this.s.pulse1.frequencyLower !== 0) {
+        if (this.s.pulse1.enabled  && this.s.pulse1.playing && this.s.pulse1.frequencyLower !== 0) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
                 this.pulseOsc1.volume.value = convertVolume(this.s.pulse1.volume);
                 this.pulseOsc1.frequency.value = this.s.pulse1.frequencyHz;
-                this.pulseOsc1.width.value = SoundChip.widths[this.s.pulse1.width];
+                this.pulseOsc1.width.value = widths[this.s.pulse1.width];
             }
         } else {
             this.pulseOsc1.mute = true;
         }
 
         // Pulse 2
-        if (this.s.pulse2.enabled && this.s.pulse2.frequencyLower !== 0) {
+        if (this.s.pulse2.enabled && this.s.pulse2.playing && this.s.pulse2.frequencyLower !== 0) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
                 this.pulseOsc2.volume.value = convertVolume(this.s.pulse2.volume);
                 this.pulseOsc2.frequency.value = this.s.pulse2.frequencyHz;
-                this.pulseOsc2.width.value = SoundChip.widths[this.s.pulse2.width];
+                this.pulseOsc2.width.value = widths[this.s.pulse2.width];
             }
         } else {
             this.pulseOsc2.mute = true;
@@ -110,7 +113,7 @@ export default class ToneJsHandler {
         if (this.s.wave.enabled && this.s.wave.playing && this.s.wave.frequencyLower !== 0) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
-                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
                 if (this.s.wave.playing) {
                     this.waveVolume.mute = false;
                 } else {
@@ -136,7 +139,7 @@ export default class ToneJsHandler {
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
-            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+            this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
             this.waveSrc.loop = true;
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 

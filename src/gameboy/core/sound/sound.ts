@@ -4,15 +4,11 @@ import * as Tone from "tone";
 import GameBoy from "../../gameboy";
 import { writeDebug } from "../../tools/debug";
 
+// TODO: Figure out why wave sound length isn't working in Pokemon Yellow
 export default class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {
         return v0 * (1 - t) + v1 * t;
     }
-
-    // 0 = 50% Duty Cycle
-    // static widths = [0.125, 0.25, 0.50, 0.75]; // WRONG
-    // static widths = [-0.75, -0.5, 0, 0.5]; // CORRECT
-    static widths = [0.5, 0, -0.5, -0.75]; // CORRECT
 
     enabled = false;
 
@@ -28,6 +24,8 @@ export default class SoundChip {
     wave = new WaveChannel();
     noise = new NoiseChannel();
 
+
+
     tjs = new ToneJsHandler(this);
 
     constructor(gb: GameBoy) {
@@ -42,19 +40,22 @@ export default class SoundChip {
         if (!this.enabled) return;
 
         // #region CLOCK
-        const CLOCK_MAIN_STEPS = 65536;
+        const CLOCK_MAIN_STEPS = 16384;
         const CLOCK_ENVELOPE_STEPS = 65536;
 
         this.clockMain += this.gb.cpu.lastInstructionCycles;
-        this.clockEnvelope1 += this.gb.cpu.lastInstructionCycles / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
-        this.clockEnvelope2 += this.gb.cpu.lastInstructionCycles / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
-        this.clockEnvelopeNoise += this.gb.cpu.lastInstructionCycles / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as need
+        if (this.pulse1.volumeEnvelopeSweep > 0)
+            this.clockEnvelope1 += this.gb.cpu.lastInstructionCycles / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
+        if (this.pulse2.volumeEnvelopeSweep > 0)
+            this.clockEnvelope2 += this.gb.cpu.lastInstructionCycles / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
+        if (this.noise.volumeEnvelopeSweep > 0)
+            this.clockEnvelopeNoise += this.gb.cpu.lastInstructionCycles / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as need
 
-        // 4194304hz Divide by 65536 = 64hz
+        // 4194304hz Divide by 16384 = 256hz
         if (this.clockMain >= CLOCK_MAIN_STEPS) {
             if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
                 if (this.pulse1.volumeEnvelopeSweep !== 0) {
-                    if (this.pulse1.volume > 0 && this.pulse1.volume < 16 && this.pulse1.frequencyHz !== 64) {
+                    if (this.pulse1.volume > 0 && this.pulse1.volume < 16) {
                         if (this.pulse1.volumeEnvelopeUp) {
                             this.pulse1.volume++;
                         } else {
@@ -68,7 +69,7 @@ export default class SoundChip {
 
             if (this.clockEnvelope2 >= CLOCK_ENVELOPE_STEPS) {
                 if (this.pulse2.volumeEnvelopeSweep !== 0) {
-                    if (this.pulse2.volume > 0 && this.pulse2.volume < 16 && this.pulse1.frequencyHz !== 64) {
+                    if (this.pulse2.volume > 0 && this.pulse2.volume < 16) {
                         if (this.pulse2.volumeEnvelopeUp) {
                             this.pulse2.volume++;
                         } else {
@@ -107,11 +108,11 @@ export default class SoundChip {
 
             // #region LENGTH
             if (this.pulse1.enabled) {
-                if (this.pulse1.lengthEnable) {
+                if (this.pulse1.lengthCounter > 0) {
                     this.pulse1.lengthCounter--;
-                    if (this.pulse1.lengthCounter === 0) {
+                    if (this.pulse1.lengthCounter === 0 && this.pulse1.lengthEnable) {
                         writeDebug("PULSE 1 length become 0");
-                        this.pulse1.enabled = false;
+                        this.pulse1.playing = false;
                         this.pulse1.update();
                     }
                 }
@@ -133,10 +134,10 @@ export default class SoundChip {
             }
 
             if (this.pulse2.enabled) {
-                if (this.pulse2.lengthEnable) {
+                if (this.pulse2.lengthCounter > 0) {
                     this.pulse2.lengthCounter--;
-                    if (this.pulse2.lengthCounter === 0) {
-                        this.pulse2.enabled = false;
+                    if (this.pulse2.lengthCounter === 0 && this.pulse2.lengthEnable) {
+                        this.pulse2.playing = false;
                         this.pulse2.update();
                     }
                 }
@@ -144,9 +145,9 @@ export default class SoundChip {
 
             // TODO: Wave length isn't working in some way or another
             if (this.wave.enabled) {
-                if (this.wave.lengthEnable) {
+                if (this.wave.lengthCounter > 0) {
                     this.wave.lengthCounter--;
-                    if (this.wave.lengthCounter <= 0) {
+                    if (this.wave.lengthCounter === 0 && this.wave.lengthEnable) {
                         this.wave.playing = false;
                         this.wave.update();
                     }
@@ -157,7 +158,7 @@ export default class SoundChip {
                 if (this.noise.lengthEnable) {
                     this.noise.lengthCounter--;
                     if (this.noise.lengthCounter === 0) {
-                        this.noise.enabled = false;
+                        this.noise.playing = false;
                         this.noise.update();
                     }
                 }
@@ -257,7 +258,7 @@ export default class SoundChip {
                 this.wave.update();
                 break;
             case 0xFF1B: // NR31
-                this.wave.lengthCounter = value;
+                this.wave.lengthCounter = 256 - value;
                 this.wave.update();
                 break;
             case 0xFF1C: // NR32
@@ -271,7 +272,7 @@ export default class SoundChip {
             case 0xFF1E: // NR34
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) !== 0;
-                this.wave.lengthEnable = ((value >> 6) & 1) === 0;
+                this.wave.lengthEnable = ((value >> 6) & 1) !== 0;
                 writeDebug(this.wave.lengthEnable);
                 this.wave.update();
                 break;
@@ -346,10 +347,11 @@ export default class SoundChip {
         if (addr === 0xFF26) { // NR52
             i = 0;
             if (this.enabled) i |= (1 << 7);
-            if (this.noise.enabled) i |= (1 << 3);
-            if (this.wave.enabled) i |= (1 << 2);
-            if (this.pulse2.enabled) i |= (1 << 1);
-            if (this.pulse1.enabled) i |= (1 << 0);
+            if (this.noise.playing) i |= (1 << 3);
+            if (this.wave.playing) i |= (1 << 2);
+            if (this.pulse2.playing) i |= (1 << 1);
+            if (this.pulse1.playing) i |= (1 << 0);
+            return i;
         }
 
         switch (addr & 0xFF) {
