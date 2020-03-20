@@ -188,9 +188,6 @@ class GPU {
                 case 2:
 
                     if (this.modeClock >= 80) {
-                        if ((this.totalFrameCount % this.gb.speedMul) === 0)
-                            this.renderScanline();
-
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
                     }
@@ -201,6 +198,9 @@ class GPU {
                     if (this.modeClock >= 172) {
                         this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
+
+                        if ((this.totalFrameCount % this.gb.speedMul) === 0)
+                            this.renderScanline();
 
                         if (this.lcdStatus.mode0HblankInterrupt__3) {
                             this.gb.bus.interrupts.requestLCDstatus();
@@ -216,7 +216,7 @@ class GPU {
                         this.lcdcY++;
                         this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
                         if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
-                            writeDebug("Coincidence");
+                            // writeDebug("Coincidence");
                             this.gb.bus.interrupts.requestLCDstatus();
                         }
 
@@ -348,7 +348,7 @@ class GPU {
             if (x === 8) {
                 x = 0;
                 lineOffset++;
-                lineOffset %= 32; // Wrap around after 32 tiles (width of tilemap) 
+                lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
                 tile = this.vram[mapOffset + lineOffset];
             }
         }
@@ -452,7 +452,7 @@ class GPU {
                 const flags = new OAMFlags();
                 flags.numerical = this.oam[base + 3];
 
-                const y = this.lcdcY % 8;
+                const y = this.lcdcY & 7;
 
                 for (let h = 8; h <= HEIGHT; h += 8)
                     for (let x = 0; x < 8; x++) {
@@ -462,7 +462,7 @@ class GPU {
                         screenYPos += y;
                         screenXPos += x;
 
-                        if (screenXPos >= 0 && screenYPos >= 0 && screenXPos < 160 && screenYPos < 144) {
+                        if (screenXPos >= 0 && screenYPos >= 0 && screenXPos < 160) {
 
                             const pixelX = flags.xFlip ? 7 - x : x;
                             const pixelY = flags.yFlip ? 7 - y : y;

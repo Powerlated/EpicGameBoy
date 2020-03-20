@@ -12,8 +12,6 @@ export interface BasicChannel {
 export class PulseChannel implements BasicChannel {
     enabled = false;
 
-    playing = true;
-
     width = 3;
 
     lengthEnable = false;
@@ -67,6 +65,7 @@ export class PulseChannel implements BasicChannel {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
+        this.enabled = true;
         this.update();
     }
 
@@ -86,8 +85,6 @@ export class WaveChannel implements BasicChannel {
 
     volume = 0;
     oldVolume = 0;
-
-    playing = true;
 
     waveTable: Array<number> = new Array(32).fill(0);
     waveTableUpdated = false;
@@ -119,7 +116,7 @@ export class WaveChannel implements BasicChannel {
 
     get frequencyHz(): number {
         const frequency = (this.frequencyUpper << 8) | this.frequencyLower;
-        return (65536 / (2048 - frequency));
+        return 65536 / (2048 - frequency);
     }
 
     get buffer(): AudioBuffer {
@@ -150,6 +147,7 @@ export class WaveChannel implements BasicChannel {
         if (this.lengthCounter === 0) {
             this.lengthCounter = 256;
         }
+        this.enabled = true;
         this.update();
     }
 
@@ -161,8 +159,6 @@ export class WaveChannel implements BasicChannel {
 
 export class NoiseChannel implements BasicChannel {
     enabled = false;
-
-    playing = true;
 
     lengthEnable = false;
     lengthCounter = 0;
@@ -245,6 +241,7 @@ export class NoiseChannel implements BasicChannel {
         if (this.lengthCounter === 0) {
             this.lengthCounter = 64;
         }
+        this.enabled = true;
         this.update();
     }
 

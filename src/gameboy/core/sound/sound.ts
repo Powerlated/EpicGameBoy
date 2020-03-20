@@ -112,7 +112,7 @@ export default class SoundChip {
                     this.pulse1.lengthCounter--;
                     if (this.pulse1.lengthCounter === 0 && this.pulse1.lengthEnable) {
                         writeDebug("PULSE 1 length become 0");
-                        this.pulse1.playing = false;
+                        this.pulse1.enabled = false;
                         this.pulse1.update();
                     }
                 }
@@ -137,7 +137,7 @@ export default class SoundChip {
                 if (this.pulse2.lengthCounter > 0) {
                     this.pulse2.lengthCounter--;
                     if (this.pulse2.lengthCounter === 0 && this.pulse2.lengthEnable) {
-                        this.pulse2.playing = false;
+                        this.pulse2.enabled = false;
                         this.pulse2.update();
                     }
                 }
@@ -148,7 +148,7 @@ export default class SoundChip {
                 if (this.wave.lengthCounter > 0) {
                     this.wave.lengthCounter--;
                     if (this.wave.lengthCounter === 0 && this.wave.lengthEnable) {
-                        this.wave.playing = false;
+                        this.wave.enabled = false;
                         this.wave.update();
                     }
                 }
@@ -158,7 +158,7 @@ export default class SoundChip {
                 if (this.noise.lengthEnable) {
                     this.noise.lengthCounter--;
                     if (this.noise.lengthCounter === 0) {
-                        this.noise.playing = false;
+                        this.noise.enabled = false;
                         this.noise.update();
                     }
                 }
@@ -251,9 +251,9 @@ export default class SoundChip {
             // Wave
             case 0xFF1A: // NR30
                 if ((value & (1 << 7)) !== 0) {
-                    this.wave.playing = true;
+                    this.wave.enabled = true;
                 } else {
-                    this.wave.playing = false;
+                    this.wave.enabled = false;
                 }
                 this.wave.update();
                 break;
@@ -273,7 +273,7 @@ export default class SoundChip {
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) !== 0;
                 this.wave.lengthEnable = ((value >> 6) & 1) !== 0;
-                writeDebug(this.wave.lengthEnable);
+                // writeDebug(this.wave.lengthEnable);
                 this.wave.update();
                 break;
 
@@ -347,10 +347,10 @@ export default class SoundChip {
         if (addr === 0xFF26) { // NR52
             i = 0;
             if (this.enabled) i |= (1 << 7);
-            if (this.noise.playing) i |= (1 << 3);
-            if (this.wave.playing) i |= (1 << 2);
-            if (this.pulse2.playing) i |= (1 << 1);
-            if (this.pulse1.playing) i |= (1 << 0);
+            if (this.noise.enabled) i |= (1 << 3);
+            if (this.wave.enabled) i |= (1 << 2);
+            if (this.pulse2.enabled) i |= (1 << 1);
+            if (this.pulse1.enabled) i |= (1 << 0);
             return i;
         }
 
