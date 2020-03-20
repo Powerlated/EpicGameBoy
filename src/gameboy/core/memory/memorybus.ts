@@ -59,6 +59,12 @@ class MemoryBus {
 
     serialOut: Array<number> = [];
 
+    cheats: Map<number, number> = new Map();
+
+    addCheat(addr: number, value: number) {
+        this.cheats.set(addr, value);
+    }
+
     writeMem8(addr: number, value: number) {
         if (value > 255) {
             alert(`
@@ -167,12 +173,6 @@ class MemoryBus {
         }
     }
 
-    cheats: Map<number, number> = new Map();
-
-    addCheat(addr: number, value: number) {
-        this.cheats.set(addr, value);
-    }
-
     readMem8(addr: number): number {
         if (this.cheats.has(addr)) {
             return this.cheats.get(addr)!;
@@ -234,6 +234,7 @@ class MemoryBus {
 
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
+            if (this.gpu.readHwio(addr)) return this.gpu.readHwio(addr)!;
             switch (addr) {
                 case 0xFF00: // Joypad read
                     // writeDebug("Polled joypad")
@@ -249,30 +250,6 @@ class MemoryBus {
                     return this.gb.timer.addr_0xFF06;
                 case 0xFF07: // Timer control
                     return this.gb.timer.addr_0xFF07 | 0b11111000;
-                case 0xFF40:
-                    // console.info(`LCD CONTROL READ`);
-                    return this.gpu.lcdControl.numerical;
-                case 0xFF41:
-                    // console.info(`LCDC STATUS READ`);
-                    return this.gpu.lcdStatus.numerical | 0b10000000;
-                case 0xFF42:
-                    return this.gpu.scrY;
-                case 0xFF43:
-                    return this.gpu.scrX;
-                case 0xFF44:
-                    return this.gpu.lcdcY;
-                case 0xFF45:
-                    return this.gpu.lYCompare;
-                case 0xFF47: // Palette
-                    return this.gpu.bgPaletteData.numerical;
-                case 0xFF48: // Palette OBJ 0
-                    return this.gpu.objPaletteData0.numerical;
-                case 0xFF49: // Palette OBJ 1
-                    return this.gpu.objPaletteData1.numerical;
-                case 0xFF4A: // Window Y Position
-                    return this.gpu.windowYpos;
-                case 0xFF4B: // Window X Position
-                    return this.gpu.windowXpos;
                 case 0xFF50:
                     return 0xFF;
                 default:
