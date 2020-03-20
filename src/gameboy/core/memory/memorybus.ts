@@ -146,6 +146,7 @@ class MemoryBus {
             switch (addr) {
                 case 0xFF00: // Joypad write
                     this.joypad.numerical = value;
+                    break;
                 case 0xFF01:
                     // console.info(`[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);

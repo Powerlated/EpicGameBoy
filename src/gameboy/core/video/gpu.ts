@@ -150,6 +150,7 @@ class GPU {
     totalFrameCount = 0;
 
     renderer = new GPURenderer(this);
+    canvas = new GPUCanvas(this);
 
     // [tile][row][pixel]
     tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0)));
@@ -189,7 +190,6 @@ class GPU {
             switch (this.lcdStatus.mode) {
                 // Read from OAM - Scanline active
                 case 2:
-
                     if (this.modeClock >= 80) {
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
@@ -210,7 +210,6 @@ class GPU {
                         }
                     }
                     break;
-
 
                 // Hblank
                 case 0:
@@ -237,7 +236,7 @@ class GPU {
 
                             // Draw to the canvas
                             if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                                this.canvas.drawGameboy();
+                                this.renderer.gpu.canvas.drawGameboy();
                             }
                         }
                         else {
@@ -271,19 +270,8 @@ class GPU {
         }
     }
 
-    imageGameboyArr = new Uint8ClampedArray(160 * 144 * 4);
-    imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
-    imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
-
-    showBorders = false;
-
-    canvas = new GPUCanvas(this);
-
     constructor(gb: GameBoy) {
         this.gb = gb;
-
-        const cTileset = document.getElementById("tileset") as HTMLCanvasElement;
-        this.canvas.ctxTileset = cTileset.getContext("2d")!;
     }
 
     read(index: number): number {

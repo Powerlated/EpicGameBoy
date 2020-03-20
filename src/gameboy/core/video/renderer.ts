@@ -1,10 +1,20 @@
 import GPU, { colors, OAMFlags } from "./gpu";
+import GPUCanvas from "./canvas";
 
 export class GPURenderer {
     gpu: GPU;
 
+    imageGameboyArr = new Uint8ClampedArray(160 * 144 * 4);
+    imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
+    imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
+
+    showBorders = false;
+
     constructor(gpu: GPU) {
         this.gpu = gpu;
+
+        const cTileset = document.getElementById("tileset") as HTMLCanvasElement;
+        this.gpu.canvas.ctxTileset = cTileset.getContext("2d")!;
     }
 
     // TODO: Implement background transparency
@@ -60,18 +70,18 @@ export class GPURenderer {
             const c = colors[pixel];
 
             // Plot the pixel to canvas
-            this.gpu.imageGameboy.data[canvasIndex + 0] = c[0];
-            this.gpu.imageGameboy.data[canvasIndex + 1] = c[1];
-            this.gpu.imageGameboy.data[canvasIndex + 2] = c[2];
-            this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 0] = c[0];
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 1] = c[1];
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = c[2];
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 3] = 255;
 
 
             // Scroll X/Y debug
-            if (this.gpu.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                this.gpu.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                this.gpu.imageGameboy.data[canvasIndex + 1] = 0;
-                this.gpu.imageGameboy.data[canvasIndex + 2] = 0;
-                this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+            if (this.gpu.renderer.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
+                this.gpu.renderer.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                this.gpu.renderer.imageGameboy.data[canvasIndex + 1] = 0;
+                this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = 0;
+                this.gpu.renderer.imageGameboy.data[canvasIndex + 3] = 255;
             }
 
             canvasIndex += 4;
@@ -127,18 +137,18 @@ export class GPURenderer {
                     if (!this.gpu.lcdControl.bgWindowEnable0) c = new Uint8Array([0xFF, 0xFF, 0xFF]);
 
                     // Plot the pixel to canvas
-                    this.gpu.imageGameboy.data[canvasIndex + 0] = c[0];
-                    this.gpu.imageGameboy.data[canvasIndex + 1] = c[1];
-                    this.gpu.imageGameboy.data[canvasIndex + 2] = c[2];
-                    this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+                    this.imageGameboy.data[canvasIndex + 0] = c[0];
+                    this.imageGameboy.data[canvasIndex + 1] = c[1];
+                    this.imageGameboy.data[canvasIndex + 2] = c[2];
+                    this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
                     // Window X debug
-                    if (this.gpu.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                        this.gpu.imageGameboy.data[canvasIndex + 0] = 0;
-                        this.gpu.imageGameboy.data[canvasIndex + 1] = 0;
-                        this.gpu.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                        this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+                    if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
+                        this.imageGameboy.data[canvasIndex + 0] = 0;
+                        this.imageGameboy.data[canvasIndex + 1] = 0;
+                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
                     }
                     canvasIndex += 4;
 
@@ -208,28 +218,28 @@ export class GPURenderer {
                             const c = colors[pixel];
 
 
-                            if (flags.behindBG && this.gpu.imageGameboy.data[canvasIndex] !== colors[this.gpu.bgPaletteData.shades[0]][1]) continue;
+                            if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.gpu.bgPaletteData.shades[0]][1]) continue;
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette !== 0) {
-                                this.gpu.imageGameboy.data[canvasIndex + 0] = c[0];
-                                this.gpu.imageGameboy.data[canvasIndex + 1] = c[1];
-                                this.gpu.imageGameboy.data[canvasIndex + 2] = c[2];
-                                this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+                                this.imageGameboy.data[canvasIndex + 0] = c[0];
+                                this.imageGameboy.data[canvasIndex + 1] = c[1];
+                                this.imageGameboy.data[canvasIndex + 2] = c[2];
+                                this.imageGameboy.data[canvasIndex + 3] = 255;
                             }
 
                             // Border debug
-                            if (this.gpu.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
+                            if (this.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
                                 if (this.gpu.lcdControl.spriteSize______2) {
-                                    this.gpu.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                                    this.gpu.imageGameboy.data[canvasIndex + 1] = 0;
-                                    this.gpu.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                                    this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+                                    this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                                    this.imageGameboy.data[canvasIndex + 1] = 0;
+                                    this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                                    this.imageGameboy.data[canvasIndex + 3] = 255;
                                 } else {
-                                    this.gpu.imageGameboy.data[canvasIndex + 0] = 0;
-                                    this.gpu.imageGameboy.data[canvasIndex + 1] = 0xFF;
-                                    this.gpu.imageGameboy.data[canvasIndex + 2] = 0;
-                                    this.gpu.imageGameboy.data[canvasIndex + 3] = 255;
+                                    this.imageGameboy.data[canvasIndex + 0] = 0;
+                                    this.imageGameboy.data[canvasIndex + 1] = 0xFF;
+                                    this.imageGameboy.data[canvasIndex + 2] = 0;
+                                    this.imageGameboy.data[canvasIndex + 3] = 255;
                                 }
                             }
                         }
@@ -252,10 +262,10 @@ export class GPURenderer {
 
                     const c = colors[this.gpu.bgPaletteData.shades[pixel]];
 
-                    this.gpu.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
-                    this.gpu.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
-                    this.gpu.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2];
-                    this.gpu.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2];
+                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
                 });
             });
         });
