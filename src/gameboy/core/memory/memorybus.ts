@@ -136,6 +136,7 @@ class MemoryBus {
 
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
+            this.gpu.writeHwio(addr, value);
             switch (addr) {
                 case 0xFF00: // Joypad write
                     this.joypad.numerical = value;
@@ -154,42 +155,6 @@ class MemoryBus {
                     break;
                 case 0xFF07: // Timer control
                     this.gb.timer.addr_0xFF07 = value;
-                    break;
-                case 0xFF40: // LCD Control
-                    writeDebug(`LCD CONTROL CHANGE`);
-                    this.gpu.lcdControl.numerical = value;
-                    break;
-                case 0xFF41: // LCDC Status
-                    writeDebug(`LCDC STATUS CHANGE`);
-                    this.gpu.lcdStatus.numerical = value;
-                    break;
-                case 0xFF42:
-                    this.gpu.scrY = value;
-                    break;
-                case 0xFF43:
-                    this.gpu.scrX = value;
-                    break;
-                case 0xFF44: break;
-                case 0xFF45:
-                    this.gpu.lYCompare = value;
-                    break;
-                case 0xFF46:
-                    this.gpu.oamDma(value << 8);
-                    break;
-                case 0xFF47: // Palette
-                    this.gpu.bgPaletteData.numerical = value;
-                    break;
-                case 0xFF48: // Palette OBJ 0
-                    this.gpu.objPaletteData0.numerical = value;
-                    break;
-                case 0xFF49: // Palette OBJ 1
-                    this.gpu.objPaletteData1.numerical = value;
-                    break;
-                case 0xFF4A: // Window Y Position
-                    this.gpu.windowYpos = value;
-                    break;
-                case 0xFF4B: // Window X Position
-                    this.gpu.windowXpos = value;
                     break;
                 case 0xFF50:
                     writeDebug("Disabled bootrom by write to 0xFF50");

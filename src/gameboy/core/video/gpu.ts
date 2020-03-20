@@ -620,6 +620,48 @@ class GPU {
             }
         }
     }
+
+
+    writeHwio(addr: number, value: number) {
+        switch (addr) {
+            case 0xFF40: // LCD Control
+                writeDebug(`LCD CONTROL CHANGE`);
+                this.lcdControl.numerical = value;
+                break;
+            case 0xFF41: // LCDC Status
+                writeDebug(`LCDC STATUS CHANGE`);
+                this.lcdStatus.numerical = value;
+                break;
+            case 0xFF42:
+                this.scrY = value;
+                break;
+            case 0xFF43:
+                this.scrX = value;
+                break;
+            case 0xFF44: break;
+            case 0xFF45:
+                this.lYCompare = value;
+                break;
+            case 0xFF46:
+                this.oamDma(value << 8);
+                break;
+            case 0xFF47: // Palette
+                this.bgPaletteData.numerical = value;
+                break;
+            case 0xFF48: // Palette OBJ 0
+                this.objPaletteData0.numerical = value;
+                break;
+            case 0xFF49: // Palette OBJ 1
+                this.objPaletteData1.numerical = value;
+                break;
+            case 0xFF4A: // Window Y Position
+                this.windowYpos = value;
+                break;
+            case 0xFF4B: // Window X Position
+                this.windowXpos = value;
+                break;
+        }
+    }
 }
 
 export default GPU;
