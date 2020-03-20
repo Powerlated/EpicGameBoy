@@ -15,10 +15,6 @@ export default class GPUCanvas {
         this.gpu = gpu;
     }
 
-    render() {
-
-    }
-
     clearScreen() {
         var c = document.getElementById("gameboy");
         var ctx = (c as any).getContext("2d");

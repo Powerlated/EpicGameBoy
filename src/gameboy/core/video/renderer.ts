@@ -12,26 +12,20 @@ export class GPURenderer {
 
     constructor(gpu: GPU) {
         this.gpu = gpu;
-
-        const cTileset = document.getElementById("tileset") as HTMLCanvasElement;
-        this.gpu.canvas.ctxTileset = cTileset.getContext("2d")!;
     }
 
     // TODO: Implement background transparency
     renderScanline() {
+        // writeDebug("Rendering a scanline @ SCROLL Y:" + this.gpu.scrY);
         if (this.gpu.lcdControl.bgWindowEnable0) {
-            this.renderVram();
+            this.renderBg();
+            if (this.gpu.lcdControl.enableWindow____5) {
+                this.renderWindow();
+            }
         }
 
-        if (this.gpu.lcdControl.spriteDisplay___1)
+        if (this.gpu.lcdControl.spriteDisplay___1) {
             this.renderSprites();
-    }
-
-    renderVram() {
-        // writeDebug("Rendering a scanline @ SCROLL Y:" + this.gpu.scrY);
-        this.renderBg();
-        if (this.gpu.lcdControl.enableWindow____5) {
-            this.renderWindow();
         }
     }
 

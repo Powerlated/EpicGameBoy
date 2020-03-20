@@ -374,7 +374,12 @@ export default class CPU {
     minDebug = false;
 
     executeInstruction() {
-        const pcTriplet = [this.gb.bus.readMem8(this.pc), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)];
+        const pcTriplet = Uint8Array.of
+            (
+                this.gb.bus.readMem8(this.pc + 0),
+                this.gb.bus.readMem8(this.pc + 1),
+                this.gb.bus.readMem8(this.pc + 2)
+            );
         const isCB = pcTriplet[0] === 0xCB;
 
         if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
