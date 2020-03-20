@@ -235,7 +235,7 @@ class MemoryBus {
 
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            if (this.gpu.readHwio(addr)) return this.gpu.readHwio(addr)!;
+            if (this.gpu.readHwio(addr) != undefined) return this.gpu.readHwio(addr)!;
             switch (addr) {
                 case 0xFF00: // Joypad read
                     // writeDebug("Polled joypad")
