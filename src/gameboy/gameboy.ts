@@ -34,13 +34,11 @@ export default class GameBoy {
 
     speedStop() {
         this.speedIntervals.forEach(i => { clearInterval(i); });
-        this.cpu.stopNow = true;
         this.soundChip.tjs.setMuted(true);
     }
 
     speed() {
         this.cpu.debugging = false;
-        this.cpu.stopNow = false;
         this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
         this.soundChip.tjs.setMuted(false);
     }
@@ -49,14 +47,15 @@ export default class GameBoy {
         let i = 0;
         // const max = 70224; // Full frame GPU timing
         const max = 70224 * this.speedMul; // Full frame GPU timing, double speed
-        if (this.cpu.breakpoints.has(this.cpu.pc) || this.cpu.stopNow) {
-            this.speedStop();
-        }
-        while (i < max && !this.cpu.breakpoints.has(this.cpu.pc) && !this.cpu.stopNow) {
+
+        while (i < max) {
+            if (this.cpu.breakpoints[this.cpu.pc]) {
+                this.speedStop();
+                return;
+            }
             this.step();
             i += this.cpu.lastInstructionCycles;
         }
-        if (this.cpu.stopNow) this.cpu.stopNow = false;
     }
 
 

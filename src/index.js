@@ -47,7 +47,7 @@ function executeAtPc() {
     let cpu = window.cpu;
     let pc = cpu.pc;
     cpu.debugging = false;
-    if (cpu.breakpoints.has(pc)) {
+    if (cpu.breakpoints[pc]) {
         cpu.clearBreakpoint(pc);
         cpu.step();
         cpu.setBreakpoint(pc);

@@ -205,9 +205,7 @@ export default class CPU {
     _r = new Registers(this);
     pc: number = 0x0000;
 
-    breakpoints = new Set<number>();
-
-    stopNow = false;
+    breakpoints = new Array<boolean>(65536).fill(false);
 
     scheduleEnableInterruptsForNextTick = false;
 
@@ -293,11 +291,6 @@ export default class CPU {
             this.scheduleEnableInterruptsForNextTick = false;
             this.gb.bus.interrupts.masterEnabled = true;
         }
-
-        if (this.breakpoints.has(this.pc)) {
-            this.gb.speedStop();
-            return;
-        };
 
         const c = this.cycles;
 
@@ -558,7 +551,7 @@ export default class CPU {
     }
 
     toggleBreakpoint(point: number) {
-        if (!this.breakpoints.has(point)) {
+        if (!this.breakpoints[point]) {
             this.setBreakpoint(point);
         } else {
             this.clearBreakpoint(point);
@@ -566,11 +559,11 @@ export default class CPU {
     }
     setBreakpoint(point: number) {
         writeDebug("Set breakpoint at " + hex(point, 4));
-        this.breakpoints.add(point);
+        this.breakpoints[point] = true;
     }
     clearBreakpoint(point: number) {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
-        this.breakpoints.delete(point);
+        this.breakpoints[point] = false;
     }
 
     getReg16(t: R16) {

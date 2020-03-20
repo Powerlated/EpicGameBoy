@@ -181,7 +181,7 @@ export default class Disassembler {
         const BREAKPOINT_COLOR = "indianred";
 
         const BREAKPOINT_CODE = `style='background-color: ${BREAKPOINT_COLOR}'`;
-        const BREAKPOINT_GENERATE = () => cpu.breakpoints.has(disasmPc) ? BREAKPOINT_CODE : "";
+        const BREAKPOINT_GENERATE = () => cpu.breakpoints[disasmPc] ? BREAKPOINT_CODE : "";
 
         const LOGBACK_INSTRUCTIONS = 16;
         const READAHEAD_INSTRUCTIONS = 32;
