@@ -92,6 +92,7 @@ export class GPURenderer {
                 lineOffset++;
                 lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
                 tile = this.gpu.tilemap[mapOffset + lineOffset];
+                attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
             }
         }
     }
@@ -156,6 +157,7 @@ export class GPURenderer {
                         x = 0;
                         mapOffset++;
                         tile = this.gpu.tilemap[mapOffset];
+                        attr = this.gpu.cgbTileAttrs[mapOffset]; // Update attributes too
                         // if (GPU._bgtile === 1 && tile < 128) tile += 256;
                     }
                 }
