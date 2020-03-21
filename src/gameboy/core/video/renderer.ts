@@ -33,14 +33,14 @@ export class GPURenderer {
         const y = (this.gpu.lcdcY + this.gpu.scrY) & 0b111; // CORRECT
         let x = (this.gpu.scrX) & 0b111;                // CORRECT
 
-        const mapBaseBg = this.gpu.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+        const mapBaseBg = this.gpu.lcdControl.bgTilemapSelect_3 ? 1024 : 0;
 
         const mapIndex = (((this.gpu.lcdcY + this.gpu.scrY) >> 3) * 32) & 1023;
         const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
         let lineOffset = this.gpu.scrX >> 3;
 
-        let tile = this.gpu.vram[mapOffset + lineOffset]; // Add line offset to get correct starting tile
+        let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
 
         let canvasIndex = 160 * 4 * (this.gpu.lcdcY);
 
@@ -86,7 +86,7 @@ export class GPURenderer {
                 x = 0;
                 lineOffset++;
                 lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
-                tile = this.gpu.vram[mapOffset + lineOffset];
+                tile = this.gpu.tilemap[mapOffset + lineOffset];
             }
         }
     }
@@ -101,12 +101,12 @@ export class GPURenderer {
             const adjXpos = xPos + this.gpu.windowXpos;
             let x = adjXpos & 0b111;                // CORRECT
 
-            const mapBase = this.gpu.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
+            const mapBase = this.gpu.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
 
             const mapIndex = (((this.gpu.lcdcY - this.gpu.windowYpos) >> 3) * 32) & 1023;
             const mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-            let tile = this.gpu.vram[mapOffset]; // Add line offset to get correct starting tile
+            let tile = this.gpu.tilemap[mapOffset]; // Add line offset to get correct starting tile
 
             let canvasIndex = 160 * 4 * (this.gpu.lcdcY);
 
@@ -155,7 +155,7 @@ export class GPURenderer {
                         if (lineOffset > 32) {
                             break;
                         }
-                        tile = this.gpu.vram[mapOffset + lineOffset];
+                        tile = this.gpu.tilemap[mapOffset + lineOffset];
                         // if (GPU._bgtile === 1 && tile < 128) tile += 256;
                     }
                 }

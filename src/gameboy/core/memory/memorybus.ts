@@ -129,7 +129,7 @@ class MemoryBus {
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
             // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
-            this.gpu.write(addr - VRAM_BEGIN, value);
+            this.gpu.write(addr, value);
             return;
         }
 
@@ -210,7 +210,7 @@ class MemoryBus {
 
         // Return from VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
-            return this.gpu.read(addr - VRAM_BEGIN);
+            return this.gpu.read(addr);
         }
 
         // TODO: Turning this on causes click noises in Pokemon Gold and other games

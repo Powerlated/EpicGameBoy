@@ -134,6 +134,63 @@ class PaletteData {
     }
 }
 
+class CGBPaletteData {
+    shades = Array<[number, number, number]>(32).fill([0, 0, 0]).map(() => [0, 0, 0]);
+
+    getNumerical(i: number): number {
+        let r = this.shades[i][0];
+        let g = this.shades[i][1];
+        let b = this.shades[i][2];
+
+        return (r << 0) | (g << 5) | (b << 10);
+    }
+
+    setNumerical(i: number, v: number) {
+        i &= 31;
+
+        let r = ((v >> 0) & 31);
+        let g = ((v >> 5) & 31);
+        let b = ((v >> 10) & 31);
+
+        this.shades[i][0] = r;
+        this.shades[i][1] = g;
+        this.shades[i][2] = b;
+    }
+}
+
+class CGBTileFlags {
+    useBgPriority = false; // Bit 7
+    yFlip = false; // Bit 6
+    xFlip = false; // Bit 5
+    vramBank = false; // Bit 3
+    bgPalette = 0; // Bit 0-2
+
+
+    get numerical(): number {
+        let n = 0;
+        if (this.useBgPriority)
+            n |= 0b10000000;
+        if (this.yFlip)
+            n |= 0b01000000;
+        if (this.xFlip)
+            n |= 0b00100000;
+        if (this.vramBank)
+            n |= 0b00001000;
+
+        n |= this.bgPalette & 0b111;
+        return n;
+    }
+
+    set numerical(i: number) {
+        this.useBgPriority = (i & (1 << 7)) !== 0;
+        this.yFlip = (i & (1 << 6)) !== 0;
+        this.xFlip = (i & (1 << 5)) !== 0;
+        this.vramBank = (i & (1 << 3)) !== 0;
+
+        this.bgPalette = i & 0b111;
+    }
+}
+
 export const colors: Uint8Array[] = [
     new Uint8Array([0xFF, 0xFF, 0xFF]),
     new Uint8Array([0xC0, 0xC0, 0xC0]),
@@ -144,8 +201,11 @@ export const colors: Uint8Array[] = [
 class GPU {
     gb: GameBoy;
 
+    vram0 = new Uint8Array(0x2000 + 1);
+    vram1 = new Uint8Array(0x2000 + 1);
+
     oam = new Uint8Array(256);
-    vram = new Uint8Array(0x2000 + 1);
+    vram = this.vram0;
 
     totalFrameCount = 0;
 
@@ -153,7 +213,10 @@ class GPU {
     canvas = new GPUCanvas(this);
 
     // [tile][row][pixel]
-    tileset = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0)));
+    tileset = new Array(0x1800).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
+    cgbTileFlags = new Array(1024).fill(0).map(() => new CGBTileFlags()); // For bank 1
+
+    tilemap = new Uint8Array(2048);
 
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
@@ -172,13 +235,8 @@ class GPU {
     windowYpos = 0; // 0xFF4A
     windowXpos = 0; // 0xFF4B
 
-
     modeClock: number = 0;
     frameClock: number = 0;
-
-    cycles = 0;
-
-
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -277,38 +335,50 @@ class GPU {
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+    
+        let adjIndex = index - 0x8000;
 
-        return this.vram[index];
+        return this.vram[adjIndex];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return;
 
-        this.vram[index] = value;
+        let adjIndex = index - 0x8000;
 
-        // Write to tile set
-        if (index >= 0x0 && index <= 0x17FF) {
-            index &= 0xFFFE;
+        this.vram[adjIndex] = value;
 
-            // Work out which tile and row was updated
-            const tile = index >> 4;
-            const y = (index & 0xF) >> 1;
+        const tile = adjIndex >> 4;
+        if (this.vramBank === 0) {
+            // Write to tile set
+            if (index >= 0x8000 && index < 0x9800) {
+                adjIndex &= 0xFFFE;
 
-            for (var x = 0; x < 8; x++) {
-                // Find bit index for this pixel
-                const bytes = [this.vram[index], this.vram[index + 1]];
+                // Work out which tile and row was updated
+                const y = (index & 0xF) >> 1;
 
-                const mask = 0b1 << (7 - x);
-                const lsb = bytes[0] & mask;
-                const msb = bytes[1] & mask;
+                for (var x = 0; x < 8; x++) {
+                    // Find bit index for this pixel
+                    const bytes = [this.vram[adjIndex], this.vram[adjIndex + 1]];
 
-                // Update tile set
-                this.tileset[tile][y][x] =
-                    (lsb !== 0 ? 1 : 0) +
-                    (msb !== 0 ? 2 : 0);
+                    const mask = 0b1 << (7 - x);
+                    const lsb = bytes[0] & mask;
+                    const msb = bytes[1] & mask;
+
+                    // Update tile set
+                    this.tileset[tile][y][x] =
+                        (lsb !== 0 ? 1 : 0) +
+                        (msb !== 0 ? 2 : 0);
+                }
             }
             // Write to tile map
+            if (index >= 0x9800 && index < 0xA000) {
+                this.tilemap[index - 0x9800] = value;
+            }
+        } else {
+            // Write to CGB tile flags
+            this.cgbTileFlags[tile].numerical = value;
         }
     }
 
@@ -384,8 +454,26 @@ class GPU {
                 return this.windowYpos;
             case 0xFF4B: // Window X Position
                 return this.windowXpos;
+            case 0xFF4F: // CGB - VRAM Bank
+                return this.vramBank | 0b11111110;
+            case 0xFF68: // CGB - Background Palette Index
+                return this.cgbBgPaletteIndex;
+            case 0xFF69: // CGB - Background Palette Data
+                return this.cgbBgPaletteData.getNumerical(this.cgbBgPaletteIndex);
+            case 0xFF6A: // CGB - Sprite Palette Index
+                return this.cgbObjPaletteIndex;
+            case 0xFF6B: // CGB - Sprite Palette Data
+                return this.cgbObjPaletteData.getNumerical(this.cgbObjPaletteIndex);
         }
     }
+
+    cgbBgPaletteIndex = 0; // 0xFF68
+    cgbBgPaletteData = new CGBPaletteData();
+
+    cgbObjPaletteIndex = 0; // 0xFF6A
+    cgbObjPaletteData = new CGBPaletteData();
+
+    vramBank = 0;
 
     writeHwio(addr: number, value: number) {
         switch (addr) {
@@ -425,11 +513,25 @@ class GPU {
             case 0xFF4B: // Window X Position
                 this.windowXpos = value;
                 break;
+            case 0xFF4F: // CGB - VRAM Bank
+                this.vramBank = (value & 1);
+                if (this.vramBank === 1) {
+                    this.vram = this.vram1;
+                } else {
+                    this.vram = this.vram0;
+                }
+                break;
             case 0xFF68: // CGB - Background Palette Index
+                this.cgbBgPaletteIndex = value;
                 break;
             case 0xFF69: // CGB - Background Palette Data
+                this.cgbBgPaletteData.setNumerical(this.cgbBgPaletteIndex, value);
                 break;
-            case 0xFF6A: // CGB - Sprite Palette Data
+            case 0xFF6A: // CGB - Sprite Palette Index
+                this.cgbObjPaletteIndex = value;
+                break;
+            case 0xFF6B: // CGB - Sprite Palette Data
+                this.cgbObjPaletteData.setNumerical(this.cgbObjPaletteIndex, value);
                 break;
         }
     }

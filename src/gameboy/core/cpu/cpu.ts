@@ -321,7 +321,9 @@ export default class CPU {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
 
-            this._r.af = 0x01B0;
+            this._r.af = 0x11B0;
+
+            // this._r.af = 0x01B0;
             this._r.bc = 0x0013;
             this._r.de = 0x00D8;
             this._r.hl = 0x014D;
