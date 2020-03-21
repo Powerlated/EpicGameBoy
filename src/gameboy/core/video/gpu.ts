@@ -221,10 +221,6 @@ class GPU {
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
 
-    bgPaletteData = new PaletteData(); // 0xFF47
-    objPaletteData0 = new PaletteData(); // 0xFF48
-    objPaletteData1 = new PaletteData(); // 0xFF49
-
     scrY = 0; // 0xFF42
     scrX = 0; // 0xFF43
 
@@ -397,10 +393,6 @@ class GPU {
         this.lcdControl = new LCDCRegister();
         this.lcdStatus = new LCDStatusRegister();
 
-        this.bgPaletteData = new PaletteData();
-        this.objPaletteData0 = new PaletteData();
-        this.objPaletteData1 = new PaletteData();
-
         this.scrY = 0;
         this.scrX = 0;
 
@@ -416,9 +408,14 @@ class GPU {
         });
 
         // Zero out VRAM
-        this.vram.forEach((v, i, a) => {
+        this.vram0.forEach((v, i, a) => {
             a[i] = 0;
         });
+        this.vram1.forEach((v, i, a) => {
+            a[i] = 0;
+        });
+
+        this.tilemap = new Uint8Array(2048);
 
         this.cgbBgPaletteIndex = 0;
         this.cgbBgPaletteIndexAutoInc = false;
@@ -427,6 +424,8 @@ class GPU {
         this.cgbObjPaletteIndex = 0;
         this.cgbObjPaletteIndexAutoInc = false;
         this.cgbObjPalette = new CGBPaletteData();
+
+        this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
     }
 
     // Source must be < 0xA000
@@ -459,11 +458,11 @@ class GPU {
             case 0xFF45:
                 return this.lYCompare;
             case 0xFF47: // Palette
-                return this.bgPaletteData.numerical;
+                return this.dmgBgPalette;
             case 0xFF48: // Palette OBJ 0
-                return this.objPaletteData0.numerical;
+                return this.dmgObj0Palette;
             case 0xFF49: // Palette OBJ 1
-                return this.objPaletteData1.numerical;
+                return this.dmgObj1Palette;;
             case 0xFF4A: // Window Y Position
                 return this.windowYpos;
             case 0xFF4B: // Window X Position
@@ -491,6 +490,46 @@ class GPU {
 
     vramBank = 0;
 
+    dmgBgPalette = 0;
+    dmgObj0Palette = 0;
+    dmgObj1Palette = 0;
+
+    setDmgBgPalette(p: number, l: number) {
+        let i = p * 2;
+        let c = colors[l];
+        let cv = (c[0]) | (c[1] << 5) | (c[2] << 10);
+
+        let upper = (cv >> 8) & 0xFF;
+        let lower = cv & 0xFF;
+
+        this.cgbBgPalette.data[i + 0] = lower;
+        this.cgbBgPalette.data[i + 1] = upper;
+    }
+
+    setDmgObj0Palette(p: number, l: number) {
+        let i = p * 2;
+        let c = colors[l];
+        let cv = (c[0]) | (c[1] << 5) | (c[2] << 10);
+
+        let upper = (cv >> 8) & 0xFF;
+        let lower = cv & 0xFF;
+
+        this.cgbObjPalette.data[i + 0] = lower;
+        this.cgbObjPalette.data[i + 1] = upper;
+    }
+
+    setDmgObj1Palette(p: number, l: number) {
+        let i = p * 2;
+        let c = colors[l];
+        let cv = (c[0]) | (c[1] << 5) | (c[2] << 10);
+
+        let upper = (cv >> 8) & 0xFF;
+        let lower = cv & 0xFF;
+
+        this.cgbObjPalette.data[i + 8 + 0] = lower;
+        this.cgbObjPalette.data[i + 8 + 1] = upper;
+    }
+
     writeHwio(addr: number, value: number) {
         switch (addr) {
             case 0xFF40: // LCD Control
@@ -515,13 +554,25 @@ class GPU {
                 this.oamDma(value << 8);
                 break;
             case 0xFF47: // Palette
-                this.bgPaletteData.numerical = value;
+                this.dmgBgPalette = value;
+                // this.setDmgBgPalette(0, (value >> 0) & 3);
+                // this.setDmgBgPalette(1, (value >> 2) & 3);
+                // this.setDmgBgPalette(2, (value >> 4) & 3);
+                // this.setDmgBgPalette(3, (value >> 6) & 3);
                 break;
             case 0xFF48: // Palette OBJ 0
-                this.objPaletteData0.numerical = value;
+                this.dmgObj0Palette = value;
+                // this.setDmgObj0Palette(0, (value >> 0) & 3);
+                // this.setDmgObj0Palette(1, (value >> 2) & 3);
+                // this.setDmgObj0Palette(2, (value >> 4) & 3);
+                // this.setDmgObj0Palette(3, (value >> 6) & 3);
                 break;
             case 0xFF49: // Palette OBJ 1
-                this.objPaletteData1.numerical = value;
+                this.dmgObj1Palette = value;
+                // this.setDmgObj1Palette(0, (value >> 0) & 3);
+                // this.setDmgObj1Palette(1, (value >> 2) & 3);
+                // this.setDmgObj1Palette(2, (value >> 4) & 3);
+                // this.setDmgObj1Palette(3, (value >> 6) & 3);
                 break;
             case 0xFF4A: // Window Y Position
                 this.windowYpos = value;

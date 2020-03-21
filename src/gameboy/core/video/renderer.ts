@@ -83,7 +83,7 @@ export class GPURenderer {
                 this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = 0;
                 this.gpu.renderer.imageGameboy.data[canvasIndex + 3] = 255;
             }
-
+                        
             canvasIndex += 4;
 
             // When this tile ends, read another
@@ -110,7 +110,7 @@ export class GPURenderer {
             const mapIndex = (((this.gpu.lcdcY - this.gpu.windowYpos) >> 3) * 32) & 1023;
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-            let lineOffset = this.gpu.windowXpos >> 3;
+            let lineOffset = this.gpu.scrX >> 3;
 
             let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
             let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
@@ -221,7 +221,7 @@ export class GPURenderer {
                             const prePalette = tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
                             const pixel = this.gpu.cgbObjPalette.getShade(flags.paletteNumberCGB, prePalette);
 
-                            if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.gpu.bgPaletteData.shades[0]][1]) continue;
+                            // if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.gpu.bgPaletteData.shades[0]][1]) continue;
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette !== 0) {
@@ -251,7 +251,7 @@ export class GPURenderer {
         }
     }
     // 160 x 144
-    renderTiles() {
+   /*  renderTiles() {
         this.gpu.tileset.forEach((v1, i1) => {
             v1.forEach((v2, i2) => {
                 v2.forEach((pixel, i3) => {
@@ -272,5 +272,5 @@ export class GPURenderer {
                 });
             });
         });
-    }
+    } */
 }

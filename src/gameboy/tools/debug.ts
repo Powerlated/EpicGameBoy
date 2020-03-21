@@ -221,20 +221,20 @@ function updateDebug() {
         return i[0] | (i[1] << 8) | (i[2] << 16);
     }
 
-    p0bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[0]]), 6);
-    p1bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[1]]), 6);
-    p2bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[2]]), 6);
-    p3bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[3]]), 6);
+    // p0bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[0]]), 6);
+    // p1bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[1]]), 6);
+    // p2bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[2]]), 6);
+    // p3bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[3]]), 6);
 
-    p0obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[0]]), 6);
-    p1obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[1]]), 6);
-    p2obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[2]]), 6);
-    p3obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[3]]), 6);
+    // p0obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[0]]), 6);
+    // p1obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[1]]), 6);
+    // p2obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[2]]), 6);
+    // p3obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[3]]), 6);
 
-    p0obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[0]]), 6);
-    p1obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[1]]), 6);
-    p2obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[2]]), 6);
-    p3obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[3]]), 6);
+    // p0obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[0]]), 6);
+    // p1obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[1]]), 6);
+    // p2obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[2]]), 6);
+    // p3obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[3]]), 6);
 
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
