@@ -208,7 +208,8 @@ export class GPURenderer {
                             // Offset tile by +1 if rendering the top half of an 8x16 sprite
                             let tileset = flags.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
                             const prePalette = tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                            const pixel = this.gpu.cgbObjPalette.shades[flags.paletteNumberCGB][prePalette];
+                            let pal = this.gpu.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
+                            const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
 
                             if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0) continue;
 
