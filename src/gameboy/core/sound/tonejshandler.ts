@@ -72,7 +72,7 @@ export default class ToneJsHandler {
         this.noiseVolume = new Tone.Volume();
         this.noiseVolume.mute = true;
         this.noiseVolume.volume.value = -1000;
-        this.noiseSrc.chain(this.noiseVolume, Tone.Master);
+        this.noiseSrc.chain(this.noiseVolume, highPass, Tone.Master);
         this.noiseSrc.start();
     }
 
@@ -144,6 +144,19 @@ export default class ToneJsHandler {
             this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 
             this.s.wave.waveTableUpdated = false;
+        }
+
+        
+        if (this.s.noise.noiseUpdated === true) {
+            this.noiseSrc.dispose();
+
+            this.noiseSrc = new Tone.BufferSource(this.s.noise.buffer, () => { });
+            let f = this.s.noise.finalFreq;
+            this.noiseSrc.playbackRate.value = f / 96000;
+            this.noiseSrc.loop = true;
+            this.noiseSrc.chain(this.noiseVolume, Tone.Master).start();
+
+            this.s.noise.noiseUpdated = false;
         }
     }
 

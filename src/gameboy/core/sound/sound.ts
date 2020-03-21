@@ -305,7 +305,8 @@ export default class SoundChip {
             case 0xFF22: // NR43
                 this.noise.shiftClockFrequency = (value >> 4) & 0b111;
                 this.noise.counterStep = ((value >> 3) & 1) !== 0;
-                this.noise.envelopeSweep = (value & 0b111);
+                this.noise.dividingRatio = (value & 0b111);
+                this.noise.noiseUpdated = true;
                 this.noise.update();
                 break;
             case 0xFF23: // NR44
@@ -313,7 +314,6 @@ export default class SoundChip {
                 this.noise.lengthEnable = ((value >> 6) & 1) !== 0;
                 this.noise.update();
                 break;
-
 
             case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
             case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:

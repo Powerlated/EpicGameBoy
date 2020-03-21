@@ -160,6 +160,8 @@ export class WaveChannel implements BasicChannel {
 export class NoiseChannel implements BasicChannel {
     enabled = false;
 
+    noiseUpdated = false;
+
     lengthEnable = false;
     lengthCounter = 0;
 
@@ -175,6 +177,7 @@ export class NoiseChannel implements BasicChannel {
     shiftClockFrequency = 0;
     counterStep = false;
     envelopeSweep = 0;
+    dividingRatio = 0;
 
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;
@@ -194,10 +197,11 @@ export class NoiseChannel implements BasicChannel {
     }
 
     get buffer(): AudioBuffer {
-        let seed = 0xFF;
+        let seed = this.counterStep ? 0xF : 0xFE;
+        let shiftBy = this.counterStep ? 6 : 14;
         let period = 0;
 
-        function lfsr(p: number) {
+        const lfsr = (p: number) => {
             if (period > p) {
                 const b0 = ((seed >> 0) & 1);
                 const b1 = ((seed >> 2) & 1);
@@ -206,16 +210,16 @@ export class NoiseChannel implements BasicChannel {
 
                 const xor = b0 ^ b1;
 
-                seed |= xor << 14;
+                seed |= xor << shiftBy;
 
                 period = 0;
             }
             period++;
 
             return seed;
-        }
+        };
 
-        let waveTable = new Array(48000).fill(0);
+        let waveTable = new Array(8000).fill(0);
         // TODO: Hook LFSR into the rest of the sound chip
         waveTable = waveTable.map((v, i) => {
             return Math.round(((lfsr(1) & 1) * 2) - 1) * 0.5;
@@ -227,13 +231,17 @@ export class NoiseChannel implements BasicChannel {
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
         const ac = (Tone.context as any as AudioContext);
-        const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, 96000);
         const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];
         }
 
         return arrayBuffer;
+    }
+
+    get finalFreq() {
+        return 524288 / this.dividingRatio / 2 ^ (this.shiftClockFrequency + 1);
     }
 
     trigger() {
