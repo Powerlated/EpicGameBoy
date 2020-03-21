@@ -31,7 +31,10 @@ class MemoryBus {
 
     ext: ExternalBus;
 
-    memory = new Uint8Array(65536).fill(0);
+    workRamBanks = new Array(8).fill(0).map(() => new Uint8Array(4096).fill(0));
+    workRamBank = this.workRamBanks[1];
+
+    highRam = new Uint8Array(512).fill(0);
     bootrom = new Uint8Array(256).fill(0);
 
     interrupts = new InterruptController(this);
@@ -82,16 +85,16 @@ class MemoryBus {
             return;
         }
 
-        // Write to Internal RAM 
-        if (addr >= 0xC000 && addr <= 0xDFFF) {
-            this.memory[addr] = value;
-            return;
+        // Echo RAM
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
+            addr -= 8192;
         }
 
-        // Write to Echo RAM
-        if (addr >= 0xE000 && addr <= 0xFDFF) {
-            this.memory[addr - 8192] = value;
-            return;
+        // Write to Internal RAM 
+        if (addr >= 0xC000 && addr <= 0xCFFF) {
+            this.workRamBanks[0][addr - 0xC000] = value;
+        } else if (addr >= 0xD000 && addr <= 0xDFFF) {
+            this.workRamBank[addr - 0xD000] = value;
         }
 
         // Write from External RAM through External Bus
@@ -115,7 +118,7 @@ class MemoryBus {
 
         // Write to High RAM
         if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            this.memory[addr] = value;
+            this.highRam[addr - 0xFF80] = value;
             return;
         }
 
@@ -164,10 +167,18 @@ class MemoryBus {
                     this.gb.timer.addr_0xFF07 = value;
                     break;
                 case 0xFF4D: // KEY1
-                    this.gb.prepareSpeedSwitch = (value & 1) === 1;
+                    if (this.gb.cgb) {
+                        this.gb.prepareSpeedSwitch = (value & 1) === 1;
+                    }
                 case 0xFF50:
                     writeDebug("Disabled bootrom by write to 0xFF50");
                     this.bootromEnabled = false;
+                    break;
+                case 0xFF70:
+                    if (this.gb.cgb) {
+                        if (value === 0) value = 1;
+                        this.workRamBank = this.workRamBanks[value & 0b111];
+                    }
                     break;
                 default:
                     return;
@@ -190,14 +201,16 @@ class MemoryBus {
             return this.ext.read(addr);
         }
 
-        // Read from Internal RAM 
-        if (addr >= 0xC000 && addr <= 0xDFFF) {
-            return this.memory[addr];
+        // Echo RAM
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
+            addr -= 8192;
         }
 
-        // Read from Echo RAM
-        if (addr >= 0xE000 && addr <= 0xFDFF) {
-            return this.memory[addr - 8192];
+        // Write to Internal RAM 
+        if (addr >= 0xC000 && addr <= 0xCFFF) {
+            return this.workRamBanks[0][addr - 0xC000];
+        } else if (addr >= 0xD000 && addr <= 0xDFFF) {
+            return this.workRamBank[addr - 0xD000];
         }
 
         // Read from External RAM through External Bus
@@ -207,7 +220,7 @@ class MemoryBus {
 
         // Read from High RAM
         if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            return this.memory[addr];
+            return this.highRam[addr - 0xFF80];
         }
 
         // Return from VRAM
@@ -254,9 +267,11 @@ class MemoryBus {
                 case 0xFF07: // Timer control
                     return this.gb.timer.addr_0xFF07 | 0b11111000;
                 case 0xFF4D: // KEY1
-                    let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
-                    let bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
-                    return bit7 | bit0;
+                    if (this.gb.cgb) {
+                        let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
+                        let bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
+                        return bit7 | bit0;
+                    }
                 case 0xFF50:
                     return 0xFF;
                 default:
@@ -275,11 +290,18 @@ class MemoryBus {
         this.bootromEnabled = true;
 
         // Zero out memory
-        this.memory.forEach((v, i, a) => {
+        this.workRamBanks.forEach((v, i, a) => {
+            v.forEach((v2, i2, a2) => {
+                a2[i2] = 0;
+            });
+        });
+
+        this.highRam.forEach((v, i, a) => {
             a[i] = 0;
         });
 
         this.ext.mbc.reset();
+        this.workRamBank = this.workRamBanks[1];
     }
 }
 

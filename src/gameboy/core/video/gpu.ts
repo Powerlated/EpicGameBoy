@@ -425,6 +425,14 @@ class GPU {
         this.cgbObjPalette = new CGBPaletteData();
 
         this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
+
+        this.newDmaDestHigh = 0;
+        this.newDmaDestLow = 0;
+
+        this.newDmaSourceHigh = 0;
+        this.newDmaSourceLow = 0;
+
+        this.newDmaLength = 0;
     }
 
     // Source must be < 0xA000
@@ -497,23 +505,23 @@ class GPU {
             case 0xFF4F: // CGB - VRAM Bank
                 return this.vramBank | 0b11111110;
             case 0xFF51:
-                return this.newDmaSourceHigh;
+                if (this.gb.cgb) return this.newDmaSourceHigh;
             case 0xFF52:
-                return this.newDmaSourceLow;
+                if (this.gb.cgb) return this.newDmaSourceLow;
             case 0xFF53:
-                return this.newDmaDestHigh;
+                if (this.gb.cgb) return this.newDmaDestHigh;
             case 0xFF54:
-                return this.newDmaDestLow;
+                if (this.gb.cgb) return this.newDmaDestLow;
             case 0xFF55:
-                return (this.hDmaRemaining >> 4) - 1;
+                if (this.gb.cgb) return (this.hDmaRemaining >> 4) - 1;
             case 0xFF68: // CGB - Background Palette Index
-                return this.cgbBgPaletteIndex;
+                if (this.gb.cgb) return this.cgbBgPaletteIndex;
             case 0xFF69: // CGB - Background Palette Data
-                return this.cgbBgPalette.data[this.cgbBgPaletteIndex];
+                if (this.gb.cgb) return this.cgbBgPalette.data[this.cgbBgPaletteIndex];
             case 0xFF6A: // CGB - Sprite Palette Index
-                return this.cgbObjPaletteIndex;
+                if (this.gb.cgb) return this.cgbObjPaletteIndex;
             case 0xFF6B: // CGB - Sprite Palette Data
-                return this.cgbObjPalette.data[this.cgbObjPaletteIndex];
+                if (this.gb.cgb) return this.cgbObjPalette.data[this.cgbObjPaletteIndex];
         }
     }
 
@@ -626,26 +634,28 @@ class GPU {
                 }
                 break;
             case 0xFF51:
-                this.newDmaSourceHigh = value;
+                if (this.gb.cgb) this.newDmaSourceHigh = value;
                 break;
             case 0xFF52:
-                this.newDmaSourceLow = value & 0xF0;
+                if (this.gb.cgb) this.newDmaSourceLow = value & 0xF0;
                 break;
             case 0xFF53:
-                this.newDmaDestHigh = value;
+                if (this.gb.cgb) this.newDmaDestHigh = value;
                 break;
             case 0xFF54:
-                this.newDmaDestLow = value & 0xF0;
+                if (this.gb.cgb) this.newDmaDestLow = value & 0xF0;
                 break;
             case 0xFF55:
-                this.newDmaLength = ((value & 127) + 1) << 4;
-                let newDmaHblank = ((value >> 7) & 1) !== 0;
-                if (newDmaHblank) {
-                    this.hDmaRemaining = ((value & 127) + 1) << 4;
-                    this.hDmaSourceAt = this.newDmaSource;
-                    this.hDmaDestAt = this.newDmaDest;
-                } else {
-                    this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
+                if (this.gb.cgb) {
+                    this.newDmaLength = ((value & 127) + 1) << 4;
+                    let newDmaHblank = ((value >> 7) & 1) !== 0;
+                    if (newDmaHblank) {
+                        this.hDmaRemaining = ((value & 127) + 1) << 4;
+                        this.hDmaSourceAt = this.newDmaSource;
+                        this.hDmaDestAt = this.newDmaDest;
+                    } else {
+                        this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
+                    }
                 }
                 break;
             case 0xFF68: // CGB - Background Palette Index
