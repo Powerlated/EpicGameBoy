@@ -1,4 +1,4 @@
-const DMG_OPS = {
+{
   "Unprefixed": [
     {
       "Name": "NOP",
