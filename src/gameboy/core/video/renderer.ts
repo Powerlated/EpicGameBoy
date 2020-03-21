@@ -110,7 +110,7 @@ export class GPURenderer {
             const mapIndex = (((this.gpu.lcdcY - this.gpu.windowYpos) >> 3) * 32) & 1023;
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-            let lineOffset = this.gpu.scrX >> 3;
+            let lineOffset = this.gpu.windowXpos >> 3;
 
             let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
             let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile

@@ -419,6 +419,14 @@ class GPU {
         this.vram.forEach((v, i, a) => {
             a[i] = 0;
         });
+
+        this.cgbBgPaletteIndex = 0;
+        this.cgbBgPaletteIndexAutoInc = false;
+        this.cgbBgPalette = new CGBPaletteData();
+
+        this.cgbObjPaletteIndex = 0;
+        this.cgbObjPaletteIndexAutoInc = false;
+        this.cgbObjPalette = new CGBPaletteData();
     }
 
     // Source must be < 0xA000
