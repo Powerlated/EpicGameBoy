@@ -44,6 +44,8 @@ export default class ExternalBus {
 
         this.romTitle = titleDecoded;
 
+        this.gb.cgb = this.rom[0x143] == 0x80 || this.rom[0x143] == 0xC0;
+
         const m = this.mbc as MBCWithRAM;
         if (m instanceof MBCWithRAM) {
             const sram = loadSram(this.romTitle);
@@ -64,7 +66,7 @@ export default class ExternalBus {
     saveGameSram() {
         const m = this.mbc as MBCWithRAM;
         if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
-            console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`)
+            console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`);
             saveSram(this.romTitle, m.externalRam);
             m.externalRamDirtyBytes = 0;
         }

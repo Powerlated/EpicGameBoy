@@ -50,7 +50,7 @@ export class GPURenderer {
         const xPos = this.gpu.windowXpos - 7;
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < 160; i++) {
-            // Don't bother drawing if WINDOW is overlaying
+            // Don't bother drawing if WINDOW is overlayingf
             if (this.gpu.lcdControl.enableWindow____5 && this.gpu.lcdcY >= this.gpu.windowYpos && i >= xPos) break;
 
             // Two's Complement on high tileset
@@ -109,10 +109,8 @@ export class GPURenderer {
             const mapIndex = (((this.gpu.lcdcY - this.gpu.windowYpos) >> 3) * 32) & 1023;
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-            let lineOffset = this.gpu.windowXpos >> 3;
-
-            let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
-            let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
+            let attr = this.gpu.cgbTileAttrs[mapOffset];
+            let tile = this.gpu.tilemap[mapOffset]; // Add line offset to get correct starting tile
 
             let canvasIndex = 160 * 4 * (this.gpu.lcdcY) + (xPos * 4);
 
@@ -157,7 +155,7 @@ export class GPURenderer {
                     if (x === 8) {
                         x = 0;
                         mapOffset++;
-                        tile = this.gpu.tilemap[mapOffset + lineOffset];
+                        tile = this.gpu.tilemap[mapOffset];
                         // if (GPU._bgtile === 1 && tile < 128) tile += 256;
                     }
                 }

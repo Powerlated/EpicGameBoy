@@ -177,8 +177,6 @@ export const colors555: Uint8Array[] = [
 class GPU {
     gb: GameBoy;
 
-    cgb = false;
-
     vram0 = new Uint8Array(0x2000 + 1);
     vram1 = new Uint8Array(0x2000 + 1);
 
@@ -536,7 +534,7 @@ class GPU {
                 break;
             case 0xFF47: // Palette
                 this.dmgBgPalette = value;
-                if (!this.cgb) {
+                if (!this.gb.cgb) {
                     this.setDmgBgPalette(0, (value >> 0) & 0b11);
                     this.setDmgBgPalette(1, (value >> 2) & 0b11);
                     this.setDmgBgPalette(2, (value >> 4) & 0b11);
@@ -545,7 +543,7 @@ class GPU {
                 break;
             case 0xFF48: // Palette OBJ 0
                 this.dmgObj0Palette = value;
-                if (!this.cgb) {
+                if (!this.gb.cgb) {
                     this.setDmgObj0Palette(0, (value >> 0) & 0b11);
                     this.setDmgObj0Palette(1, (value >> 2) & 0b11);
                     this.setDmgObj0Palette(2, (value >> 4) & 0b11);
@@ -554,7 +552,7 @@ class GPU {
                 break;
             case 0xFF49: // Palette OBJ 1
                 this.dmgObj1Palette = value;
-                if (!this.cgb) {
+                if (!this.gb.cgb) {
                     this.setDmgObj1Palette(0, (value >> 0) & 0b11);
                     this.setDmgObj1Palette(1, (value >> 2) & 0b11);
                     this.setDmgObj1Palette(2, (value >> 4) & 0b11);
@@ -568,7 +566,7 @@ class GPU {
                 this.windowXpos = value;
                 break;
             case 0xFF4F: // CGB - VRAM Bank
-                if (this.cgb) {
+                if (this.gb.cgb) {
                     this.vramBank = (value & 1);
                     if (this.vramBank === 1) {
                         this.vram = this.vram1;
@@ -578,13 +576,13 @@ class GPU {
                 }
                 break;
             case 0xFF68: // CGB - Background Palette Index
-                if (this.cgb) {
+                if (this.gb.cgb) {
                     this.cgbBgPaletteIndex = value & 0x3F;
                     this.cgbBgPaletteIndexAutoInc = (value >> 7) !== 0;
                 }
                 break;
             case 0xFF69: // CGB - Background Palette Data
-                if (this.cgb) {
+                if (this.gb.cgb) {
                     this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
                     if (this.cgbBgPaletteIndexAutoInc) {
                         this.cgbBgPaletteIndex++;
@@ -593,13 +591,13 @@ class GPU {
                 }
                 break;
             case 0xFF6A: // CGB - Sprite Palette Index
-                if (this.cgb) {
+                if (this.gb.cgb) {
                     this.cgbObjPaletteIndex = value & 0x3F;
                     this.cgbObjPaletteIndexAutoInc = (value >> 7) !== 0;
                 }
                 break;
             case 0xFF6B: // CGB - Sprite Palette Data
-                if (this.cgb) {
+                if (this.gb.cgb) {
                     this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
                     if (this.cgbObjPaletteIndexAutoInc) {
                         this.cgbObjPaletteIndex++;
