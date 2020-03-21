@@ -64,7 +64,7 @@ export class GPURenderer {
 
             let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
             const prePalette = tileset[tile + tileOffset][y][x];
-            const pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, prePalette);
+            const pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
             // Re-map the tile pixel through the palette
 
             // Plot the pixel to canvas
@@ -128,7 +128,7 @@ export class GPURenderer {
 
                     let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
                     const prePalette = tileset[tile + tileOffset][y][x];
-                    let pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, prePalette);
+                    let pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
                     // Re-map the tile pixel through the palette
 
                     if (!this.gpu.lcdControl.bgWindowEnable0) pixel = new Uint8Array([0xFF, 0xFF, 0xFF]);
@@ -208,7 +208,7 @@ export class GPURenderer {
                             // Offset tile by +1 if rendering the top half of an 8x16 sprite
                             let tileset = flags.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
                             const prePalette = tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                            const pixel = this.gpu.cgbObjPalette.getShade(flags.paletteNumberCGB, prePalette);
+                            const pixel = this.gpu.cgbObjPalette.shades[flags.paletteNumberCGB][prePalette];
 
                             if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0) continue;
 

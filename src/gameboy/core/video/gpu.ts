@@ -116,21 +116,31 @@ export class OAMFlags {
 class CGBPaletteData {
     data = new Uint8Array(64);
 
-    getShade(pal: number, col: number) {
-        let b0 = this.data[(pal * 8) + (col * 2) + 0];
-        let b1 = this.data[(pal * 8) + (col * 2) + 1];
+    shades: Array<Array<Uint8Array>> = new Array(8).fill(0).map(() => [
+        Uint8Array.of(0, 0, 0),
+        Uint8Array.of(0, 0, 0),
+        Uint8Array.of(0, 0, 0)
+    ]);
 
-        let rgb555 = (b1 << 8) | b0;
+    update() {
+        for (let pal = 0; pal < 8; pal++) {
+            for (let col = 0; col < 4; col++) {
+                let b0 = this.data[(pal * 8) + (col * 2) + 0];
+                let b1 = this.data[(pal * 8) + (col * 2) + 1];
 
-        let r = ((rgb555 >> 0) & 31);
-        let g = ((rgb555 >> 5) & 31);
-        let b = ((rgb555 >> 10) & 31);
+                let rgb555 = (b1 << 8) | b0;
 
-        r = (r << 3) || (r >> 2);
-        g = (g << 3) || (g >> 2);
-        b = (b << 3) || (b >> 2);
+                let r = ((rgb555 >> 0) & 31);
+                let g = ((rgb555 >> 5) & 31);
+                let b = ((rgb555 >> 10) & 31);
 
-        return Uint8Array.of(r, g, b);
+                r = (r << 3) || (r >> 2);
+                g = (g << 3) || (g >> 2);
+                b = (b << 3) || (b >> 2);
+
+                this.shades[pal][col] = Uint8Array.of(r, g, b);
+            }
+        }
     }
 }
 
@@ -483,6 +493,8 @@ class GPU {
 
         this.cgbBgPalette.data[i + 0] = lower;
         this.cgbBgPalette.data[i + 1] = upper;
+
+        this.cgbBgPalette.update();
     }
 
     setDmgObj0Palette(p: number, l: number) {
@@ -495,6 +507,8 @@ class GPU {
 
         this.cgbObjPalette.data[i + 0] = lower;
         this.cgbObjPalette.data[i + 1] = upper;
+
+        this.cgbObjPalette.update();
     }
 
     setDmgObj1Palette(p: number, l: number) {
@@ -507,6 +521,8 @@ class GPU {
 
         this.cgbObjPalette.data[i + 8 + 0] = lower;
         this.cgbObjPalette.data[i + 8 + 1] = upper;
+
+        this.cgbObjPalette.update();
     }
 
     writeHwio(addr: number, value: number) {
@@ -588,6 +604,7 @@ class GPU {
                         this.cgbBgPaletteIndex++;
                         this.cgbBgPaletteIndex &= 0x3F;
                     }
+                    this.cgbBgPalette.update();
                 }
                 break;
             case 0xFF6A: // CGB - Sprite Palette Index
@@ -603,6 +620,7 @@ class GPU {
                         this.cgbObjPaletteIndex++;
                         this.cgbObjPaletteIndex &= 0x3F;
                     }
+                    this.cgbObjPalette.update();
                 }
                 break;
         }
