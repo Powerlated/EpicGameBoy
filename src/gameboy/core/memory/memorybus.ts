@@ -170,6 +170,7 @@ class MemoryBus {
                     if (this.gb.cgb) {
                         this.gb.prepareSpeedSwitch = (value & 1) === 1;
                     }
+                    break;
                 case 0xFF50:
                     writeDebug("Disabled bootrom by write to 0xFF50");
                     this.bootromEnabled = false;
@@ -272,6 +273,7 @@ class MemoryBus {
                         let bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
                         return bit7 | bit0;
                     }
+                    break;
                 case 0xFF50:
                     return 0xFF;
                 default:

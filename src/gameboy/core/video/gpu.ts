@@ -506,22 +506,31 @@ class GPU {
                 return this.vramBank | 0b11111110;
             case 0xFF51:
                 if (this.gb.cgb) return this.newDmaSourceHigh;
+                break;
             case 0xFF52:
                 if (this.gb.cgb) return this.newDmaSourceLow;
+                break;
             case 0xFF53:
                 if (this.gb.cgb) return this.newDmaDestHigh;
+                break;
             case 0xFF54:
                 if (this.gb.cgb) return this.newDmaDestLow;
+                break;
             case 0xFF55:
                 if (this.gb.cgb) return (this.hDmaRemaining >> 4) - 1;
+                break;
             case 0xFF68: // CGB - Background Palette Index
                 if (this.gb.cgb) return this.cgbBgPaletteIndex;
+                break;
             case 0xFF69: // CGB - Background Palette Data
                 if (this.gb.cgb) return this.cgbBgPalette.data[this.cgbBgPaletteIndex];
+                break;
             case 0xFF6A: // CGB - Sprite Palette Index
                 if (this.gb.cgb) return this.cgbObjPaletteIndex;
+                break;
             case 0xFF6B: // CGB - Sprite Palette Data
                 if (this.gb.cgb) return this.cgbObjPalette.data[this.cgbObjPaletteIndex];
+                break;
         }
     }
 
