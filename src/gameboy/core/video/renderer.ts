@@ -40,6 +40,7 @@ export class GPURenderer {
 
         let lineOffset = this.gpu.scrX >> 3;
 
+        let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
         let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
 
         let canvasIndex = 160 * 4 * (this.gpu.lcdcY);
@@ -59,14 +60,19 @@ export class GPURenderer {
                 }
             }
 
-            const pixel = this.gpu.bgPaletteData.shades[this.gpu.tileset[tile + tileOffset][y][x]];
+            let tileset;
+            if (attr.vramBank) {
+                tileset = this.gpu.tileset1;
+            } else {
+                tileset = this.gpu.tileset0;
+            }
+            const pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, tileset[tile + tileOffset][y][x]);
             // Re-map the tile pixel through the palette
-            const c = colors[pixel];
 
             // Plot the pixel to canvas
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 0] = c[0];
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 1] = c[1];
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = c[2];
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 0] = pixel[0];
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 1] = pixel[1];
+            this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = pixel[2];
             this.gpu.renderer.imageGameboy.data[canvasIndex + 3] = 255;
 
 
@@ -106,11 +112,10 @@ export class GPURenderer {
 
             let lineOffset = this.gpu.scrX >> 3;
 
+            let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
             let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
 
             let canvasIndex = 160 * 4 * (this.gpu.lcdcY) + (xPos * 4);
-
-            const shades = this.gpu.bgPaletteData.shades;
 
             // Loop through every single horizontal pixel for this line 
             for (let i = 0; i < 160; i++) {
@@ -124,16 +129,21 @@ export class GPURenderer {
                         }
                     }
 
-                    const pixel = shades[this.gpu.tileset[tile + tileOffset][y][x]];
+                    let tileset;
+                    if (attr.vramBank) {
+                        tileset = this.gpu.tileset1;
+                    } else {
+                        tileset = this.gpu.tileset0;
+                    }
+                    let pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, tileset[tile + tileOffset][y][x]);
                     // Re-map the tile pixel through the palette
-                    let c = colors[pixel];
 
-                    if (!this.gpu.lcdControl.bgWindowEnable0) c = new Uint8Array([0xFF, 0xFF, 0xFF]);
+                    if (!this.gpu.lcdControl.bgWindowEnable0) pixel = new Uint8Array([0xFF, 0xFF, 0xFF]);
 
                     // Plot the pixel to canvas
-                    this.imageGameboy.data[canvasIndex + 0] = c[0];
-                    this.imageGameboy.data[canvasIndex + 1] = c[1];
-                    this.imageGameboy.data[canvasIndex + 2] = c[2];
+                    this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+                    this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+                    this.imageGameboy.data[canvasIndex + 2] = pixel[2];
                     this.imageGameboy.data[canvasIndex + 3] = 255;
 
 
@@ -196,25 +206,28 @@ export class GPURenderer {
                         screenXPos += x;
 
                         if (screenXPos >= 0 && screenYPos >= 0 && screenXPos < 160) {
-
                             const pixelX = flags.xFlip ? 7 - x : x;
                             const pixelY = flags.yFlip ? 7 - y : y;
 
                             const canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                             // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                            const prePalette = this.gpu.tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                            const pixel = flags.paletteNumberDMG ? this.gpu.objPaletteData1.shades[prePalette] : this.gpu.objPaletteData0.shades[prePalette];
-                            const c = colors[pixel];
-
+                            let tileset;
+                            if (flags.vramBank) {
+                                tileset = this.gpu.tileset1;
+                            } else {
+                                tileset = this.gpu.tileset0;
+                            }
+                            const prePalette = tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
+                            const pixel = this.gpu.cgbObjPalette.getShade(flags.paletteNumberCGB, prePalette);
 
                             if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.gpu.bgPaletteData.shades[0]][1]) continue;
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette !== 0) {
-                                this.imageGameboy.data[canvasIndex + 0] = c[0];
-                                this.imageGameboy.data[canvasIndex + 1] = c[1];
-                                this.imageGameboy.data[canvasIndex + 2] = c[2];
+                                this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+                                this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+                                this.imageGameboy.data[canvasIndex + 2] = pixel[2];
                                 this.imageGameboy.data[canvasIndex + 3] = 255;
                             }
 
