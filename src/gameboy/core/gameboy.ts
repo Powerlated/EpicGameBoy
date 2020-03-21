@@ -80,7 +80,6 @@ export default class GameBoy {
 
         this.doubleSpeed = false;
         this.prepareSpeedSwitch = false;
-        this.cgb = false;
     }
 }
 

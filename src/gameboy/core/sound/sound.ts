@@ -55,13 +55,16 @@ export default class SoundChip {
         if (this.clockMain >= CLOCK_MAIN_STEPS) {
             if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
                 if (this.pulse1.volumeEnvelopeSweep !== 0) {
-                    if (this.pulse1.volume > 0 && this.pulse1.volume < 16) {
-                        if (this.pulse1.volumeEnvelopeUp) {
+                    if (this.pulse1.volumeEnvelopeUp) {
+                        if (this.pulse1.volume < 15) {
                             this.pulse1.volume++;
-                        } else {
-                            this.pulse1.volume--;
+                            this.pulse1.update();
                         }
-                        this.pulse1.update();
+                    } else {
+                        if (this.pulse1.volume > 0) {
+                            this.pulse1.volume--;
+                            this.pulse1.update();
+                        }
                     }
                 }
                 this.clockEnvelope1 = 0;
@@ -69,13 +72,16 @@ export default class SoundChip {
 
             if (this.clockEnvelope2 >= CLOCK_ENVELOPE_STEPS) {
                 if (this.pulse2.volumeEnvelopeSweep !== 0) {
-                    if (this.pulse2.volume > 0 && this.pulse2.volume < 16) {
-                        if (this.pulse2.volumeEnvelopeUp) {
+                    if (this.pulse2.volumeEnvelopeUp) {
+                        if (this.pulse2.volume < 15) {
                             this.pulse2.volume++;
-                        } else {
-                            this.pulse2.volume--;
+                            this.pulse2.update();
                         }
-                        this.pulse2.update();
+                    } else {
+                        if (this.pulse2.volume > 0) {
+                            this.pulse2.volume--;
+                            this.pulse2.update();
+                        }
                     }
                 }
                 this.clockEnvelope2 = 0;
@@ -85,11 +91,16 @@ export default class SoundChip {
                 if (this.noise.volumeEnvelopeSweep !== 0) {
                     if (this.noise.volume > 0 && this.noise.volume < 16) {
                         if (this.noise.volumeEnvelopeUp) {
-                            this.noise.volume++;
+                            if (this.noise.volume < 15) {
+                                this.noise.volume++;
+                                this.noise.update();
+                            }
                         } else {
-                            this.noise.volume--;
+                            if (this.noise.volume > 0) {
+                                this.noise.volume--;
+                                this.noise.update();
+                            }
                         }
-                        this.noise.update();
                     }
                 }
                 this.clockEnvelopeNoise = 0;
@@ -175,7 +186,9 @@ export default class SoundChip {
                 this.wave.updated ||
                 this.noise.updated
             ) {
-                this.tjs.step();
+                // Speedup for turbo
+                if (this.clockMain % this.gb.speedMul == 0)
+                    this.tjs.step();
                 this.pulse1.updated = false;
                 this.pulse2.updated = false;
                 this.wave.updated = false;
