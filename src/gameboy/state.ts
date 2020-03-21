@@ -1,4 +1,4 @@
-import GameBoy from './gameboy';
+import GameBoy from './core/gameboy';
 import * as pako from 'pako';
 import { writeDebug } from './tools/debug';
 

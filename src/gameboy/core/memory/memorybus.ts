@@ -1,4 +1,4 @@
-import GameBoy from "../../gameboy";
+import GameBoy from "../gameboy";
 
 import CPU from "../cpu/cpu";
 

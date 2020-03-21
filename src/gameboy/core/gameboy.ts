@@ -1,18 +1,19 @@
-import CPU from './core/cpu/cpu';
-import GPU from './core/video/gpu';
-import MemoryBus from './core/memory/memorybus';
-import Disassembler from './tools/disassembler';
-import { writeDebug } from './tools/debug';
-import SoundChip from './core/sound/sound';
-import Timer from './core/components/timer';
-import Decoder from './core/cpu/decoder';
+import CPU from './cpu/cpu';
+import GPU from './video/gpu';
+import MemoryBus from './memory/memorybus';
+import Disassembler from '../tools/disassembler';
+import { writeDebug } from '../tools/debug';
+import SoundChip from './sound/sound';
+import Timer from './components/timer';
+import Decoder from './cpu/decoder';
 
 export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
 
-    cgb: boolean;
+    cgb = false;
+    doubleSpeed = false;
 
     soundChip = new SoundChip(this);
 
@@ -25,10 +26,16 @@ export default class GameBoy {
     }
 
     step() {
-        this.soundChip.step();
         this.cpu.step();
-        this.gpu.step();
         this.timer.step();
+
+        if (this.doubleSpeed) {
+            this.cpu.step();
+            this.timer.step();
+        }
+
+        this.soundChip.step();
+        this.gpu.step();
     }
 
     speedMul = 1;

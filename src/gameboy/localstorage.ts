@@ -1,4 +1,4 @@
-import GameBoy from "./gameboy";
+import GameBoy from "./core/gameboy";
 import { MBCWithRAM } from "./core/memory/mbc/mbc";
 
 export function saveSram(name: string, sram: Uint8Array) {

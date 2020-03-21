@@ -1,4 +1,4 @@
-import GameBoy from "../../gameboy";
+import GameBoy from "../gameboy";
 import { hex } from "../../tools/util";
 
 export default class Timer {

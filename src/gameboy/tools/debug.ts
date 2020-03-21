@@ -1,4 +1,4 @@
-import GameBoy from "../gameboy";
+import GameBoy from "../core/gameboy";
 import Ops from "../core/cpu/cpu_ops";
 import GPU, { colors555 } from "../core/video/gpu";
 import CPU, { R8 } from "../core/cpu/cpu";

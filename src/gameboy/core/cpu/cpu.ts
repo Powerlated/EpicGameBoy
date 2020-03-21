@@ -1,5 +1,5 @@
 import Ops from "./cpu_ops";
-import GameBoy from "../../gameboy";
+import GameBoy from "../gameboy";
 import Disassembler from "../../tools/disassembler";
 import { writeDebug } from "../../tools/debug";
 import { hex, pad, hexN_LC, hexN, r_pad } from "../../tools/util";

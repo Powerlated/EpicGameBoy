@@ -4,7 +4,7 @@ import NullMBC from "./mbc/nullmbc";
 import MBC1 from "./mbc/mbc1";
 import MBC3 from "./mbc/mbc3";
 import MBC5 from "./mbc/mbc5";
-import GameBoy from "../../gameboy";
+import GameBoy from "../gameboy";
 import { loadSram, saveSram } from "../../localstorage";
 
 export default class ExternalBus {

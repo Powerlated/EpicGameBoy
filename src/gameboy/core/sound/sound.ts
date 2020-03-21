@@ -1,7 +1,7 @@
 import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
 import ToneJsHandler from "./tonejshandler";
 import * as Tone from "tone";
-import GameBoy from "../../gameboy";
+import GameBoy from "../gameboy";
 import { writeDebug } from "../../tools/debug";
 
 // TODO: Figure out why wave sound length isn't working in Pokemon Yellow

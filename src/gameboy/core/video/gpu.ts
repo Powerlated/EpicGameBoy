@@ -1,4 +1,4 @@
-import GameBoy from "../../gameboy";
+import GameBoy from "../gameboy";
 import GPUCanvas from "./canvas";
 import { writeDebug } from "../../tools/debug";
 import { unTwo8b } from "../../tools/util";
@@ -249,6 +249,10 @@ class GPU {
                             this.hDmaSourceAt += 16;
                             this.hDmaDestAt += 16;
                             this.hDmaRemaining -= 16;
+
+                            if (this.hDmaRemaining < 0) {
+                                this.hDmaRemaining = 0;
+                            }
                         }
 
                         if ((this.totalFrameCount % this.gb.speedMul) === 0)
