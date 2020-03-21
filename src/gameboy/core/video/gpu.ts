@@ -113,29 +113,8 @@ export class OAMFlags {
     }
 }
 
-
-class PaletteData {
-    shades = new Uint8Array(4).fill(0);
-
-    get numerical(): number {
-        let n = 0;
-        n |= n | (this.shades[3] << 6);
-        n |= n | (this.shades[2] << 4);
-        n |= n | (this.shades[1] << 2);
-        n |= n | (this.shades[0] << 0);
-        return n;
-    }
-
-    set numerical(i: number) {
-        this.shades[3] = (i >> 6) & 0b11;
-        this.shades[2] = (i >> 4) & 0b11;
-        this.shades[1] = (i >> 2) & 0b11;
-        this.shades[0] = (i >> 0) & 0b11;
-    }
-}
-
 class CGBPaletteData {
-    data = new Uint8Array(32);
+    data = new Uint8Array(64);
 
     getShade(pal: number, col: number) {
         let b0 = this.data[(pal * 8) + (col * 2) + 0];
@@ -188,15 +167,17 @@ class CGBTileFlags {
     }
 }
 
-export const colors: Uint8Array[] = [
-    new Uint8Array([0xFF, 0xFF, 0xFF]),
-    new Uint8Array([0xC0, 0xC0, 0xC0]),
-    new Uint8Array([0x60, 0x60, 0x60]),
-    new Uint8Array([0x00, 0x00, 0x00]),
+export const colors555: Uint8Array[] = [
+    new Uint8Array([0xFF >> 3, 0xFF >> 3, 0xFF >> 3]),
+    new Uint8Array([0xC0 >> 3, 0xC0 >> 3, 0xC0 >> 3]),
+    new Uint8Array([0x60 >> 3, 0x60 >> 3, 0x60 >> 3]),
+    new Uint8Array([0x00 >> 3, 0x00 >> 3, 0x00 >> 3]),
 ];
 
 class GPU {
     gb: GameBoy;
+
+    cgb = false;
 
     vram0 = new Uint8Array(0x2000 + 1);
     vram1 = new Uint8Array(0x2000 + 1);
@@ -375,7 +356,7 @@ class GPU {
             if (index >= 0x9800 && index < 0xA000) {
                 this.tilemap[index - 0x9800] = value;
             }
-        } else {
+        } else if (this.vramBank === 1) {
             // Write to CGB tile flags
             if (index >= 0x9800 && index < 0xA000) {
                 this.cgbTileAttrs[index - 0x9800].numerical = value;
@@ -496,8 +477,8 @@ class GPU {
 
     setDmgBgPalette(p: number, l: number) {
         let i = p * 2;
-        let c = colors[l];
-        let cv = (c[0]) | (c[1] << 5) | (c[2] << 10);
+        let c = colors555[l];
+        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
         let upper = (cv >> 8) & 0xFF;
         let lower = cv & 0xFF;
@@ -508,8 +489,8 @@ class GPU {
 
     setDmgObj0Palette(p: number, l: number) {
         let i = p * 2;
-        let c = colors[l];
-        let cv = (c[0]) | (c[1] << 5) | (c[2] << 10);
+        let c = colors555[l];
+        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
         let upper = (cv >> 8) & 0xFF;
         let lower = cv & 0xFF;
@@ -520,8 +501,8 @@ class GPU {
 
     setDmgObj1Palette(p: number, l: number) {
         let i = p * 2;
-        let c = colors[l];
-        let cv = (c[0]) | (c[1] << 5) | (c[2] << 10);
+        let c = colors555[l];
+        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
         let upper = (cv >> 8) & 0xFF;
         let lower = cv & 0xFF;
@@ -555,24 +536,30 @@ class GPU {
                 break;
             case 0xFF47: // Palette
                 this.dmgBgPalette = value;
-                // this.setDmgBgPalette(0, (value >> 0) & 3);
-                // this.setDmgBgPalette(1, (value >> 2) & 3);
-                // this.setDmgBgPalette(2, (value >> 4) & 3);
-                // this.setDmgBgPalette(3, (value >> 6) & 3);
+                if (!this.cgb) {
+                    this.setDmgBgPalette(0, (value >> 0) & 0b11);
+                    this.setDmgBgPalette(1, (value >> 2) & 0b11);
+                    this.setDmgBgPalette(2, (value >> 4) & 0b11);
+                    this.setDmgBgPalette(3, (value >> 6) & 0b11);
+                }
                 break;
             case 0xFF48: // Palette OBJ 0
                 this.dmgObj0Palette = value;
-                // this.setDmgObj0Palette(0, (value >> 0) & 3);
-                // this.setDmgObj0Palette(1, (value >> 2) & 3);
-                // this.setDmgObj0Palette(2, (value >> 4) & 3);
-                // this.setDmgObj0Palette(3, (value >> 6) & 3);
+                if (!this.cgb) {
+                    this.setDmgObj0Palette(0, (value >> 0) & 0b11);
+                    this.setDmgObj0Palette(1, (value >> 2) & 0b11);
+                    this.setDmgObj0Palette(2, (value >> 4) & 0b11);
+                    this.setDmgObj0Palette(3, (value >> 6) & 0b11);
+                }
                 break;
             case 0xFF49: // Palette OBJ 1
                 this.dmgObj1Palette = value;
-                // this.setDmgObj1Palette(0, (value >> 0) & 3);
-                // this.setDmgObj1Palette(1, (value >> 2) & 3);
-                // this.setDmgObj1Palette(2, (value >> 4) & 3);
-                // this.setDmgObj1Palette(3, (value >> 6) & 3);
+                if (!this.cgb) {
+                    this.setDmgObj1Palette(0, (value >> 0) & 0b11);
+                    this.setDmgObj1Palette(1, (value >> 2) & 0b11);
+                    this.setDmgObj1Palette(2, (value >> 4) & 0b11);
+                    this.setDmgObj1Palette(3, (value >> 6) & 0b11);
+                }
                 break;
             case 0xFF4A: // Window Y Position
                 this.windowYpos = value;
@@ -581,33 +568,43 @@ class GPU {
                 this.windowXpos = value;
                 break;
             case 0xFF4F: // CGB - VRAM Bank
-                this.vramBank = (value & 1);
-                if (this.vramBank === 1) {
-                    this.vram = this.vram1;
-                } else {
-                    this.vram = this.vram0;
+                if (this.cgb) {
+                    this.vramBank = (value & 1);
+                    if (this.vramBank === 1) {
+                        this.vram = this.vram1;
+                    } else {
+                        this.vram = this.vram0;
+                    }
                 }
                 break;
             case 0xFF68: // CGB - Background Palette Index
-                this.cgbBgPaletteIndex = value & 0x3F;
-                this.cgbBgPaletteIndexAutoInc = (value >> 7) !== 0;
+                if (this.cgb) {
+                    this.cgbBgPaletteIndex = value & 0x3F;
+                    this.cgbBgPaletteIndexAutoInc = (value >> 7) !== 0;
+                }
                 break;
             case 0xFF69: // CGB - Background Palette Data
-                this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
-                if (this.cgbBgPaletteIndexAutoInc) {
-                    this.cgbBgPaletteIndex++;
-                    this.cgbBgPaletteIndex &= 0x3F;
+                if (this.cgb) {
+                    this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
+                    if (this.cgbBgPaletteIndexAutoInc) {
+                        this.cgbBgPaletteIndex++;
+                        this.cgbBgPaletteIndex &= 0x3F;
+                    }
                 }
                 break;
             case 0xFF6A: // CGB - Sprite Palette Index
-                this.cgbObjPaletteIndex = value & 0x3F;
-                this.cgbObjPaletteIndexAutoInc = (value >> 7) !== 0;
+                if (this.cgb) {
+                    this.cgbObjPaletteIndex = value & 0x3F;
+                    this.cgbObjPaletteIndexAutoInc = (value >> 7) !== 0;
+                }
                 break;
             case 0xFF6B: // CGB - Sprite Palette Data
-                this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
-                if (this.cgbObjPaletteIndexAutoInc) {
-                    this.cgbObjPaletteIndex++;
-                    this.cgbObjPaletteIndex &= 0x3F;
+                if (this.cgb) {
+                    this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
+                    if (this.cgbObjPaletteIndexAutoInc) {
+                        this.cgbObjPaletteIndex++;
+                        this.cgbObjPaletteIndex &= 0x3F;
+                    }
                 }
                 break;
         }

@@ -1,6 +1,6 @@
 import GameBoy from "../gameboy";
 import Ops from "../core/cpu/cpu_ops";
-import GPU, { colors } from "../core/video/gpu";
+import GPU, { colors555 } from "../core/video/gpu";
 import CPU, { R8 } from "../core/cpu/cpu";
 import { hex, pad, hexN } from "./util";
 

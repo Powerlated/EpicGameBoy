@@ -1,4 +1,4 @@
-import GPU, { colors, OAMFlags } from "./gpu";
+import GPU, { colors555, OAMFlags } from "./gpu";
 import GPUCanvas from "./canvas";
 
 export class GPURenderer {
