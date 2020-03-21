@@ -497,7 +497,7 @@ class GPU {
         this.cgbBgPalette.update();
     }
 
-    setDmgObj0Palette(p: number, l: number) {
+    setDmgObjPalette(p: number, l: number) {
         let i = p * 2;
         let c = colors555[l];
         let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
@@ -507,20 +507,6 @@ class GPU {
 
         this.cgbObjPalette.data[i + 0] = lower;
         this.cgbObjPalette.data[i + 1] = upper;
-
-        this.cgbObjPalette.update();
-    }
-
-    setDmgObj1Palette(p: number, l: number) {
-        let i = p * 2;
-        let c = colors555[l];
-        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
-
-        let upper = (cv >> 8) & 0xFF;
-        let lower = cv & 0xFF;
-
-        this.cgbObjPalette.data[i + 8 + 0] = lower;
-        this.cgbObjPalette.data[i + 8 + 1] = upper;
 
         this.cgbObjPalette.update();
     }
@@ -560,19 +546,19 @@ class GPU {
             case 0xFF48: // Palette OBJ 0
                 this.dmgObj0Palette = value;
                 if (!this.gb.cgb) {
-                    this.setDmgObj0Palette(0, (value >> 0) & 0b11);
-                    this.setDmgObj0Palette(1, (value >> 2) & 0b11);
-                    this.setDmgObj0Palette(2, (value >> 4) & 0b11);
-                    this.setDmgObj0Palette(3, (value >> 6) & 0b11);
+                    this.setDmgObjPalette(0, (value >> 0) & 0b11);
+                    this.setDmgObjPalette(1, (value >> 2) & 0b11);
+                    this.setDmgObjPalette(2, (value >> 4) & 0b11);
+                    this.setDmgObjPalette(3, (value >> 6) & 0b11);
                 }
                 break;
             case 0xFF49: // Palette OBJ 1
                 this.dmgObj1Palette = value;
                 if (!this.gb.cgb) {
-                    this.setDmgObj1Palette(0, (value >> 0) & 0b11);
-                    this.setDmgObj1Palette(1, (value >> 2) & 0b11);
-                    this.setDmgObj1Palette(2, (value >> 4) & 0b11);
-                    this.setDmgObj1Palette(3, (value >> 6) & 0b11);
+                    this.setDmgObjPalette(4, (value >> 0) & 0b11);
+                    this.setDmgObjPalette(5, (value >> 2) & 0b11);
+                    this.setDmgObjPalette(6, (value >> 4) & 0b11);
+                    this.setDmgObjPalette(7, (value >> 6) & 0b11);
                 }
                 break;
             case 0xFF4A: // Window Y Position
