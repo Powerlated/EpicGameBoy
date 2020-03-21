@@ -5,7 +5,7 @@ import CPU, { R8 } from "../core/cpu/cpu";
 import { hex, pad, hexN } from "./util";
 
 function test() {
-    const gb = new GameBoy();
+    const gb = new GameBoy(false);
     const cpu = gb.cpu;
 
     cpu._r._f.zero = true;

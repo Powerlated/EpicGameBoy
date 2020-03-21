@@ -12,13 +12,16 @@ export default class GameBoy {
     gpu = new GPU(this);
     bus = new MemoryBus(this);
 
+    cgb: boolean;
+
     soundChip = new SoundChip(this);
 
     timer = new Timer(this);
 
-    constructor() {
+    constructor(cgb: boolean) {
         writeDebug("New gameboy!");
-
+        this.gpu.cgb = cgb;
+        this.cgb = cgb;
         setInterval(() => { this.bus.ext.saveGameSram(); }, 1000);
     }
 

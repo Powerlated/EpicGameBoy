@@ -221,7 +221,7 @@ function repeatDisassemble() {
 }
 
 function init() {
-    let gb = new GameBoy();
+    let gb = new GameBoy(true);
     window.cpu = gb.cpu;
     window.gb = gb;
 
