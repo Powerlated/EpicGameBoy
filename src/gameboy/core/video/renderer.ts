@@ -5,8 +5,10 @@ export class GPURenderer {
     gpu: GPU;
 
     imageGameboyArr = new Uint8ClampedArray(160 * 144 * 4);
+    imageGameboyPre = new Uint8Array(160 * 144);
     imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
     imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
+
 
     showBorders = false;
 
@@ -60,30 +62,27 @@ export class GPURenderer {
                 }
             }
 
-            let tileset;
-            if (attr.vramBank) {
-                tileset = this.gpu.tileset1;
-            } else {
-                tileset = this.gpu.tileset0;
-            }
-            const pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, tileset[tile + tileOffset][y][x]);
+            let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
+            const prePalette = tileset[tile + tileOffset][y][x];
+            const pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, prePalette);
             // Re-map the tile pixel through the palette
 
             // Plot the pixel to canvas
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 0] = pixel[0];
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 1] = pixel[1];
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = pixel[2];
-            this.gpu.renderer.imageGameboy.data[canvasIndex + 3] = 255;
+            this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+            this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+            this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+            this.imageGameboy.data[canvasIndex + 3] = 255;
 
+            this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
             // Scroll X/Y debug
-            if (this.gpu.renderer.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                this.gpu.renderer.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                this.gpu.renderer.imageGameboy.data[canvasIndex + 1] = 0;
-                this.gpu.renderer.imageGameboy.data[canvasIndex + 2] = 0;
-                this.gpu.renderer.imageGameboy.data[canvasIndex + 3] = 255;
+            if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
+                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                this.imageGameboy.data[canvasIndex + 1] = 0;
+                this.imageGameboy.data[canvasIndex + 2] = 0;
+                this.imageGameboy.data[canvasIndex + 3] = 255;
             }
-                        
+
             canvasIndex += 4;
 
             // When this tile ends, read another
@@ -129,13 +128,9 @@ export class GPURenderer {
                         }
                     }
 
-                    let tileset;
-                    if (attr.vramBank) {
-                        tileset = this.gpu.tileset1;
-                    } else {
-                        tileset = this.gpu.tileset0;
-                    }
-                    let pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, tileset[tile + tileOffset][y][x]);
+                    let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
+                    const prePalette = tileset[tile + tileOffset][y][x];
+                    let pixel = this.gpu.cgbBgPalette.getShade(attr.bgPalette, prePalette);
                     // Re-map the tile pixel through the palette
 
                     if (!this.gpu.lcdControl.bgWindowEnable0) pixel = new Uint8Array([0xFF, 0xFF, 0xFF]);
@@ -146,6 +141,7 @@ export class GPURenderer {
                     this.imageGameboy.data[canvasIndex + 2] = pixel[2];
                     this.imageGameboy.data[canvasIndex + 3] = 255;
 
+                    this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
                     // Window X debug
                     if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
@@ -212,16 +208,11 @@ export class GPURenderer {
                             const canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                             // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                            let tileset;
-                            if (flags.vramBank) {
-                                tileset = this.gpu.tileset1;
-                            } else {
-                                tileset = this.gpu.tileset0;
-                            }
+                            let tileset = flags.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
                             const prePalette = tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
                             const pixel = this.gpu.cgbObjPalette.getShade(flags.paletteNumberCGB, prePalette);
 
-                            // if (flags.behindBG && this.imageGameboy.data[canvasIndex] !== colors[this.gpu.bgPaletteData.shades[0]][1]) continue;
+                            if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0) continue;
 
                             // Simulate transparency before transforming through object palette
                             if (prePalette !== 0) {
@@ -251,26 +242,26 @@ export class GPURenderer {
         }
     }
     // 160 x 144
-   /*  renderTiles() {
-        this.gpu.tileset.forEach((v1, i1) => {
-            v1.forEach((v2, i2) => {
-                v2.forEach((pixel, i3) => {
-                    if (pixel === undefined) return;
-
-                    const WIDTH = 256;
-
-                    const x = ((i1 * 8) + i3) % WIDTH;
-                    const row = Math.floor(((i1 * 8) + i3) / WIDTH);
-                    const y = i2 + (row * 8);
-
-                    const c = colors[this.gpu.bgPaletteData.shades[pixel]];
-
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2];
-                    this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
-                });
-            });
-        });
-    } */
+    /*  renderTiles() {
+         this.gpu.tileset.forEach((v1, i1) => {
+             v1.forEach((v2, i2) => {
+                 v2.forEach((pixel, i3) => {
+                     if (pixel === undefined) return;
+ 
+                     const WIDTH = 256;
+ 
+                     const x = ((i1 * 8) + i3) % WIDTH;
+                     const row = Math.floor(((i1 * 8) + i3) / WIDTH);
+                     const y = i2 + (row * 8);
+ 
+                     const c = colors[this.gpu.bgPaletteData.shades[pixel]];
+ 
+                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
+                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
+                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2];
+                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
+                 });
+             });
+         });
+     } */
 }
