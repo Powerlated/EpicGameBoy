@@ -119,6 +119,7 @@ class CGBPaletteData {
     shades: Array<Array<Uint8Array>> = new Array(8).fill(0).map(() => [
         Uint8Array.of(0, 0, 0),
         Uint8Array.of(0, 0, 0),
+        Uint8Array.of(0, 0, 0),
         Uint8Array.of(0, 0, 0)
     ]);
 
