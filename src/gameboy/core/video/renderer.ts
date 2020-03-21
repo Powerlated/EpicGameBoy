@@ -92,29 +92,29 @@ export class GPURenderer {
     }
 
     renderWindow() {
-        const xPos = this.gpu.windowXpos - 14;
-        let lineOffset = this.gpu.windowXpos >> 3;
+        const xPos = this.gpu.windowXpos - 7;
         const y = (this.gpu.lcdcY - this.gpu.windowYpos) & 0b111; // CORRECT
 
         // Make sure window is onscreen Y
         if (this.gpu.lcdcY >= this.gpu.windowYpos) {
-            const adjXpos = xPos + this.gpu.windowXpos;
-            let x = adjXpos & 0b111;                // CORRECT
+            let x = 0;                // CORRECT
 
             const mapBase = this.gpu.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
 
             const mapIndex = (((this.gpu.lcdcY - this.gpu.windowYpos) >> 3) * 32) & 1023;
-            const mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+            let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
-            let tile = this.gpu.tilemap[mapOffset]; // Add line offset to get correct starting tile
+            let lineOffset = this.gpu.scrX >> 3;
 
-            let canvasIndex = 160 * 4 * (this.gpu.lcdcY);
+            let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
+
+            let canvasIndex = 160 * 4 * (this.gpu.lcdcY) + (xPos * 4);
 
             const shades = this.gpu.bgPaletteData.shades;
 
             // Loop through every single horizontal pixel for this line 
             for (let i = 0; i < 160; i++) {
-                if (i >= adjXpos) {
+                if (i >= xPos) {
                     // Two's Complement on high tileset
                     let tileOffset = 0;
                     if (!this.gpu.lcdControl.bgWindowTiledataSelect__4) {
@@ -138,7 +138,7 @@ export class GPURenderer {
 
 
                     // Window X debug
-                    if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
+                    if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
                         this.imageGameboy.data[canvasIndex + 0] = 0;
                         this.imageGameboy.data[canvasIndex + 1] = 0;
                         this.imageGameboy.data[canvasIndex + 2] = 0xFF;
@@ -150,11 +150,7 @@ export class GPURenderer {
                     x++;
                     if (x === 8) {
                         x = 0;
-                        lineOffset++;
-                        // If going offscreen, just exit the loop
-                        if (lineOffset > 32) {
-                            break;
-                        }
+                        mapOffset++;
                         tile = this.gpu.tilemap[mapOffset + lineOffset];
                         // if (GPU._bgtile === 1 && tile < 128) tile += 256;
                     }
