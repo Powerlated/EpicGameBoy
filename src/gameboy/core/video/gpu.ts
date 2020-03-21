@@ -215,14 +215,12 @@ class GPU {
     scrX = 0; // 0xFF43
 
     lcdcY = 0; // 0xFF44 - Current scanning line
-
     lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY === lcdcYCompare 
 
     windowYpos = 0; // 0xFF4A
     windowXpos = 0; // 0xFF4B
 
     modeClock: number = 0;
-    frameClock: number = 0;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -245,6 +243,13 @@ class GPU {
                     if (this.modeClock >= 172) {
                         this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
+
+                        if (this.hDmaRemaining > 0) {
+                            this.newDma(this.hDmaSourceAt, this.hDmaDestAt + 0x8000, 16);
+                            this.hDmaSourceAt += 16;
+                            this.hDmaDestAt += 16;
+                            this.hDmaRemaining -= 16;
+                        }
 
                         if ((this.totalFrameCount % this.gb.speedMul) === 0)
                             this.renderer.renderScanline();
@@ -431,6 +436,34 @@ class GPU {
         }
     }
 
+
+    newDmaSourceLow = 0;
+    newDmaSourceHigh = 0;
+
+    get newDmaSource() {
+        return (this.newDmaSourceHigh << 8) | this.newDmaSourceLow;
+    }
+
+    newDmaDestLow = 0;
+    newDmaDestHigh = 0;
+
+    get newDmaDest() {
+        return (this.newDmaDestHigh << 8) | this.newDmaDestLow;
+    }
+
+    newDmaLength = 0;
+    hDmaRemaining = 0;
+    hDmaSourceAt = 0;
+    hDmaDestAt = 0;
+
+    newDma(startAddr: number, destination: number, length: number) {
+        for (let i = 0; i < length; i++) {
+            this.write(destination, this.gb.bus.readMem8(startAddr));
+            startAddr++;
+            destination++;
+        }
+    }
+
     readHwio(addr: number) {
         switch (addr) {
             case 0xFF40:
@@ -459,6 +492,16 @@ class GPU {
                 return this.windowXpos;
             case 0xFF4F: // CGB - VRAM Bank
                 return this.vramBank | 0b11111110;
+            case 0xFF51:
+                return this.newDmaSourceHigh;
+            case 0xFF52:
+                return this.newDmaSourceLow;
+            case 0xFF53:
+                return this.newDmaDestHigh;
+            case 0xFF54:
+                return this.newDmaDestLow;
+            case 0xFF55:
+                return (this.hDmaRemaining >> 4) - 1;
             case 0xFF68: // CGB - Background Palette Index
                 return this.cgbBgPaletteIndex;
             case 0xFF69: // CGB - Background Palette Data
@@ -576,6 +619,29 @@ class GPU {
                     } else {
                         this.vram = this.vram0;
                     }
+                }
+                break;
+            case 0xFF51:
+                this.newDmaSourceHigh = value;
+                break;
+            case 0xFF52:
+                this.newDmaSourceLow = value & 0xF0;
+                break;
+            case 0xFF53:
+                this.newDmaDestHigh = value;
+                break;
+            case 0xFF54:
+                this.newDmaDestLow = value & 0xF0;
+                break;
+            case 0xFF55:
+                this.newDmaLength = ((value & 127) + 1) << 4;
+                let newDmaHblank = ((value >> 7) & 1) !== 0;
+                if (newDmaHblank) {
+                    this.hDmaRemaining = ((value & 127) + 1) << 4;
+                    this.hDmaSourceAt = this.newDmaSource;
+                    this.hDmaDestAt = this.newDmaDest;
+                } else {
+                    this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
                 }
                 break;
             case 0xFF68: // CGB - Background Palette Index
