@@ -54,7 +54,9 @@ class Ops {
     }
 
     static STOP(cpu: CPU) {
-        // alert(`[PC: ${hex(cpu.pc, 4)}] CPU has been stopped`);
+        if (cpu.gb.prepareSpeedSwitch) {
+            cpu.gb.doubleSpeed = !cpu.gb.doubleSpeed;
+        }
     }
 
     // wtf is a DAA?

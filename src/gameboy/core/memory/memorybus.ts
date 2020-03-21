@@ -163,6 +163,8 @@ class MemoryBus {
                 case 0xFF07: // Timer control
                     this.gb.timer.addr_0xFF07 = value;
                     break;
+                case 0xFF4D: // KEY1
+                    this.gb.prepareSpeedSwitch = (value & 1) === 1;
                 case 0xFF50:
                     writeDebug("Disabled bootrom by write to 0xFF50");
                     this.bootromEnabled = false;
@@ -251,6 +253,10 @@ class MemoryBus {
                     return this.gb.timer.addr_0xFF06;
                 case 0xFF07: // Timer control
                     return this.gb.timer.addr_0xFF07 | 0b11111000;
+                case 0xFF4D: // KEY1
+                    let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
+                    let bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
+                    return bit7 | bit0;
                 case 0xFF50:
                     return 0xFF;
                 default:

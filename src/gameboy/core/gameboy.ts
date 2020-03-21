@@ -14,6 +14,7 @@ export default class GameBoy {
 
     cgb = false;
     doubleSpeed = false;
+    prepareSpeedSwitch = false;
 
     soundChip = new SoundChip(this);
 
@@ -76,6 +77,10 @@ export default class GameBoy {
         this.bus.reset();
         this.timer.reset();
         this.soundChip.reset();
+
+        this.doubleSpeed = false;
+        this.prepareSpeedSwitch = false;
+        this.cgb = false;
     }
 }
 
