@@ -6,6 +6,7 @@ export class GPURenderer {
 
     imageGameboyArr = new Uint8ClampedArray(160 * 144 * 4);
     imageGameboyPre = new Uint8Array(160 * 144);
+    imageGameboyNoSprites = new Uint8Array(160 * 144);
     imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
     imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
 
@@ -77,6 +78,8 @@ export class GPURenderer {
 
             this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
+            this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority ? 1 : 0;
+
             // Scroll X/Y debug
             if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
                 this.imageGameboy.data[canvasIndex + 0] = 0xFF;
@@ -146,6 +149,8 @@ export class GPURenderer {
                     this.imageGameboy.data[canvasIndex + 3] = 255;
 
                     this.imageGameboyPre[canvasIndex >> 2] = prePalette;
+
+                    this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority ? 1 : 0;
 
                     // Window X debug
                     if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
@@ -225,7 +230,9 @@ export class GPURenderer {
                     const prePalette = tileset[tile + h][pixelY][pixelX];
                     const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
 
-                    if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0) continue;
+                    let noTransparency = this.gpu.gb.cgb && !this.gpu.lcdControl.bgWindowEnable0;
+                    if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0 && !noTransparency) continue;
+                    if (this.imageGameboyNoSprites[canvasIndex >> 2] == 1 && !noTransparency) continue;
 
                     // Simulate transparency before transforming through object palette
                     if (prePalette !== 0) {
@@ -276,4 +283,9 @@ export class GPURenderer {
              });
          });
      } */
+
+    reset() {
+        this.imageGameboyPre = new Uint8Array(160 * 144);
+        this.imageGameboyNoSprites = new Uint8Array(160 * 144);
+    }
 }

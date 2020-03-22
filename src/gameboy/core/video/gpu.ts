@@ -146,7 +146,7 @@ class CGBPaletteData {
 }
 
 class CGBTileFlags {
-    useBgPriority = false; // Bit 7
+    ignoreSpritePriority = false; // Bit 7
     yFlip = false; // Bit 6
     xFlip = false; // Bit 5
     vramBank = false; // Bit 3
@@ -155,7 +155,7 @@ class CGBTileFlags {
 
     get numerical(): number {
         let n = 0;
-        if (this.useBgPriority)
+        if (this.ignoreSpritePriority)
             n |= 0b10000000;
         if (this.yFlip)
             n |= 0b01000000;
@@ -169,7 +169,7 @@ class CGBTileFlags {
     }
 
     set numerical(i: number) {
-        this.useBgPriority = (i & (1 << 7)) !== 0;
+        this.ignoreSpritePriority = (i & (1 << 7)) !== 0;
         this.yFlip = (i & (1 << 6)) !== 0;
         this.xFlip = (i & (1 << 5)) !== 0;
         this.vramBank = (i & (1 << 3)) !== 0;
