@@ -33,6 +33,7 @@ class MemoryBus {
 
     workRamBanks = new Array(8).fill(0).map(() => new Uint8Array(4096).fill(0));
     workRamBank = this.workRamBanks[1];
+    workRamBankIndex = 1;
 
     highRam = new Uint8Array(512).fill(0);
     bootrom = new Uint8Array(256).fill(0);
@@ -179,6 +180,7 @@ class MemoryBus {
                     if (this.gb.cgb) {
                         if (value === 0) value = 1;
                         this.workRamBank = this.workRamBanks[value & 0b111];
+                        this.workRamBankIndex = value & 0b111;
                     }
                     break;
                 default:
@@ -275,6 +277,11 @@ class MemoryBus {
                     }
                     break;
                 case 0xFF50:
+                    return 0xFF;
+                case 0xFF70:
+                    if (this.gb.cgb) {
+                        return this.workRamBankIndex;
+                    }
                     return 0xFF;
                 default:
                     return 0xFF;
