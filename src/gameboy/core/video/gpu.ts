@@ -111,6 +111,24 @@ export class OAMFlags {
 
         this.paletteNumberCGB = i & 0b111;
     }
+
+    constructor(numerical: number) {
+        this.numerical = numerical;
+    }
+}
+
+export class OAMEntry {
+    xPos = 0;
+    yPos = 0;
+    tile = 0;
+    flags: OAMFlags;
+
+    constructor(yPos: number, xPos: number, tile: number, flags: OAMFlags) {
+        this.xPos = xPos;
+        this.yPos = yPos;
+        this.tile = tile;
+        this.flags = flags;
+    }
 }
 
 class CGBPaletteData {
@@ -445,7 +463,7 @@ class GPU {
     // Source must be < 0xA000
     oamDma(startAddr: number) {
         // writeDebug(`OAM DMA @ ${hex(startAddr, 4)}`);
-        for (let i = 0; i < 0x100; i++) {
+        for (let i = 0; i < 0xA0; i++) {
             // If $FE00, read from external bus 
             if (startAddr === 0xFE00) {
                 this.oam[i] = this.gb.bus.ext.read(startAddr + i);

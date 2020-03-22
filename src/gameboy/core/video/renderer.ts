@@ -1,4 +1,4 @@
-import GPU, { colors555, OAMFlags } from "./gpu";
+import GPU, { colors555, OAMFlags, OAMEntry } from "./gpu";
 export class GPURenderer {
     gpu: GPU;
 
@@ -175,9 +175,10 @@ export class GPURenderer {
     }
 
     renderSprites() {
-        const spriteCount = 0;
-        // 40 sprites in total in OAM
-        for (let sprite = 0; sprite < 40; sprite++) {
+        let scanned: OAMEntry[] = new Array();
+        let scannedN = 0;
+        // OAM Scan, maximum of 10 sprites
+        for (let sprite = 0; sprite < 40 && scannedN < 10; sprite++) {
             const base = sprite * 4;
 
             let yPos = this.gpu.oam[base + 0];
@@ -188,21 +189,30 @@ export class GPURenderer {
             let screenXPos = xPos - 8;
 
             // Continue to next sprite if it is offscreen
-            if (xPos < 0 || screenXPos > 160 || yPos < 0 || screenYPos > 144) continue;
+            if (xPos < 0 || xPos >= 168 || yPos < 0 || yPos >= 160) continue;
 
             const HEIGHT = this.gpu.lcdControl.spriteSize______2 ? 16 : 8;
 
             // Continue to next sprite if it is not on the current scanline
-            if (screenYPos + HEIGHT < this.gpu.lcdcY && screenYPos + HEIGHT > this.gpu.lcdcY) continue;
+            if (screenYPos + HEIGHT < this.gpu.lcdcY && screenYPos >= this.gpu.lcdcY) continue;
 
-            // Render sprite only if it is visible on this scanline
+            // If all checks succeed, push to scanned
+            scanned.push(new OAMEntry(yPos, xPos, tile, new OAMFlags(this.gpu.oam[base + 3])));
+            scannedN++;
+        }
 
-            // TODO: Fix sprite limiting
-            // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
-            // spriteCount++;
+        for (let sprite = 0; sprite < scanned.length; sprite++) {
+            const HEIGHT = this.gpu.lcdControl.spriteSize______2 ? 16 : 8;
 
-            const flags = new OAMFlags();
-            flags.numerical = this.gpu.oam[base + 3];
+            let scannedSprite = scanned[sprite];
+
+            const yPos = scannedSprite.yPos;
+            const xPos = scannedSprite.xPos;
+            const tile = scannedSprite.tile;
+            const flags = scannedSprite.flags;
+
+            let screenYPos = yPos - 16;
+            let screenXPos = xPos - 8;
 
             const y = this.gpu.lcdcY & 7;
             const pal = this.gpu.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
