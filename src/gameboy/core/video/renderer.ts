@@ -1,6 +1,4 @@
 import GPU, { colors555, OAMFlags } from "./gpu";
-import GPUCanvas from "./canvas";
-
 export class GPURenderer {
     gpu: GPU;
 
@@ -291,9 +289,4 @@ export class GPURenderer {
              });
          });
      } */
-
-    reset() {
-        this.imageGameboyPre = new Uint8Array(160 * 144);
-        this.imageGameboyNoSprites = new Uint8Array(160 * 144);
-    }
 }

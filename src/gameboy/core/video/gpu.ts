@@ -438,6 +438,8 @@ class GPU {
         this.hDmaSourceAt = 0;
         this.hDmaRemaining = 0;
         this.hDmaCompleted = false;
+
+        this.renderer = new GPURenderer(this);
     }
 
     // Source must be < 0xA000
