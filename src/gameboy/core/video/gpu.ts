@@ -250,8 +250,9 @@ class GPU {
                             this.hDmaDestAt += 16;
                             this.hDmaRemaining -= 16;
 
-                            if (this.hDmaRemaining < 0) {
+                            if (this.hDmaRemaining <= 0) {
                                 this.hDmaRemaining = 0;
+                                this.hDmaCompleted = true;
                             }
                         }
 
@@ -432,6 +433,11 @@ class GPU {
         this.newDmaSourceLow = 0;
 
         this.newDmaLength = 0;
+
+        this.hDmaDestAt = 0;
+        this.hDmaSourceAt = 0;
+        this.hDmaRemaining = 0;
+        this.hDmaCompleted = false;
     }
 
     // Source must be < 0xA000
@@ -466,6 +472,7 @@ class GPU {
     hDmaRemaining = 0;
     hDmaSourceAt = 0;
     hDmaDestAt = 0;
+    hDmaCompleted = false;
 
     newDma(startAddr: number, destination: number, length: number) {
         for (let i = 0; i < length; i++) {
@@ -516,7 +523,14 @@ class GPU {
                 if (this.gb.cgb) return this.newDmaDestLow;
                 break;
             case 0xFF55:
-                if (this.gb.cgb) return (this.hDmaRemaining >> 4) - 1;
+                if (this.gb.cgb) {
+                    if (this.hDmaCompleted) {
+                        return 0xFF;
+                    }
+                    else {
+                        return (this.hDmaRemaining >> 4) - 1;
+                    }
+                }
                 break;
             case 0xFF68: // CGB - Background Palette Index
                 if (this.gb.cgb) return this.cgbBgPaletteIndex;
@@ -661,6 +675,7 @@ class GPU {
                         this.hDmaRemaining = ((value & 127) + 1) << 4;
                         this.hDmaSourceAt = this.newDmaSource;
                         this.hDmaDestAt = this.newDmaDest;
+                        this.hDmaCompleted = false;
                     } else {
                         this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
                     }
