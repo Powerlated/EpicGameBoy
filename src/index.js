@@ -1,6 +1,6 @@
 init();
 
-function loadDefaultBootRom() {
+function loadDmgBootRom() {
     let raw = atob(ROMS_BASE64.bootrom);
     let rawLength = raw.length;
 

@@ -200,7 +200,7 @@ export default class SoundChip {
 
     soundRegisters = new Uint8Array(65536).fill(0);
 
-    write(addr: number, value: number) {
+    writeHwio(addr: number, value: number) {
         const dutyCycle = 0;
         this.soundRegisters[addr] = value;
         switch (addr) {
@@ -263,11 +263,7 @@ export default class SoundChip {
 
             // Wave
             case 0xFF1A: // NR30
-                if ((value & (1 << 7)) !== 0) {
-                    this.wave.enabled = true;
-                } else {
-                    this.wave.enabled = false;
-                }
+                this.wave.enabled = ((value >> 7) & 1) !== 0;
                 this.wave.update();
                 break;
             case 0xFF1B: // NR31
@@ -286,7 +282,6 @@ export default class SoundChip {
                 this.wave.frequencyUpper = value & 0b111;
                 this.wave.triggered = ((value >> 7) & 1) !== 0;
                 this.wave.lengthEnable = ((value >> 6) & 1) !== 0;
-                // writeDebug(this.wave.lengthEnable);
                 this.wave.update();
                 break;
 
@@ -352,52 +347,54 @@ export default class SoundChip {
         }
     }
 
-    read(addr: number): number {
-        let i = this.soundRegisters[addr];
+    readHwio(addr: number): number | undefined {
+        if (addr >= 0xFF10 && addr <= 0xFF3F) {
+            let i = this.soundRegisters[addr];
 
-        if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
+            if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
 
-        if (addr === 0xFF26) { // NR52
-            i = 0;
-            if (this.enabled) i |= (1 << 7);
-            if (this.noise.enabled) i |= (1 << 3);
-            if (this.wave.enabled) i |= (1 << 2);
-            if (this.pulse2.enabled) i |= (1 << 1);
-            if (this.pulse1.enabled) i |= (1 << 0);
+            if (addr === 0xFF26) { // NR52
+                i = 0;
+                if (this.enabled) i |= (1 << 7);
+                if (this.noise.enabled) i |= (1 << 3);
+                if (this.wave.enabled) i |= (1 << 2);
+                if (this.pulse2.enabled) i |= (1 << 1);
+                if (this.pulse1.enabled) i |= (1 << 0);
+                return i;
+            }
+
+            switch (addr) {
+                case 0xFF10: i |= 0x80; break;
+                case 0xFF11: i |= 0x3F; break;
+                case 0xFF12: i |= 0x00; break;
+                case 0xFF13: i |= 0xFF; break;
+                case 0xFF14: i |= 0xBF; break;
+
+                case 0xFF15: i |= 0xFF; break;
+                case 0xFF16: i |= 0x3F; break;
+                case 0xFF17: i |= 0x00; break;
+                case 0xFF18: i |= 0xFF; break;
+                case 0xFF19: i |= 0xBF; break;
+
+                case 0xFF1A: i |= 0x7F; break;
+                case 0xFF1B: i |= 0xFF; break;
+                case 0xFF1C: i |= 0x9F; break;
+                case 0xFF1D: i |= 0xFF; break;
+                case 0xFF1E: i |= 0xBF; break;
+
+                case 0xFF1F: i |= 0xFF; break;
+                case 0xFF20: i |= 0xFF; break;
+                case 0xFF21: i |= 0x00; break;
+                case 0xFF22: i |= 0x00; break;
+                case 0xFF23: i |= 0xBF; break;
+
+                case 0xFF24: i |= 0x00; break;
+                case 0xFF25: i |= 0x00; break;
+                case 0xFF26: i |= 0xFF; break;
+            }
+
             return i;
         }
-
-        switch (addr & 0xFF) {
-            case 0x10: i |= 0x80; break;
-            case 0x11: i |= 0x3F; break;
-            case 0x12: i |= 0x00; break;
-            case 0x13: i |= 0xFF; break;
-            case 0x14: i |= 0xBF; break;
-
-            case 0x15: i |= 0xFF; break;
-            case 0x16: i |= 0x3F; break;
-            case 0x17: i |= 0x00; break;
-            case 0x18: i |= 0xFF; break;
-            case 0x19: i |= 0xBF; break;
-
-            case 0x1A: i |= 0x7F; break;
-            case 0x1B: i |= 0xFF; break;
-            case 0x1C: i |= 0x9F; break;
-            case 0x1D: i |= 0xFF; break;
-            case 0x1E: i |= 0xBF; break;
-
-            case 0x1F: i |= 0xFF; break;
-            case 0x20: i |= 0xFF; break;
-            case 0x21: i |= 0x00; break;
-            case 0x22: i |= 0x00; break;
-            case 0x23: i |= 0xBF; break;
-
-            case 0x24: i |= 0x00; break;
-            case 0x25: i |= 0x00; break;
-            case 0x26: i |= 0xFF; break;
-        }
-
-        return i;
     }
 
     reset() {

@@ -104,18 +104,11 @@ class MemoryBus {
             return;
         }
 
-        // Sound registers
-        if (addr >= 0xFF10 && addr <= 0xFF3F) {
-            this.gb.soundChip.write(addr, value);
-            return;
-        }
-
         // SET Interrupt request flags
         if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
             this.interrupts.requestedInterrupts.numerical = value;
             return;
         }
-
 
         // Write to High RAM
         if (addr >= 0xFF80 && addr <= 0xFFFE) {
@@ -128,7 +121,6 @@ class MemoryBus {
             this.interrupts.enabledInterrupts.numerical = value;
             return;
         }
-
 
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
@@ -147,6 +139,7 @@ class MemoryBus {
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             this.gpu.writeHwio(addr, value);
+            this.gb.soundChip.writeHwio(addr, value);
             switch (addr) {
                 case 0xFF00: // Joypad write
                     this.joypad.numerical = value;
@@ -231,12 +224,6 @@ class MemoryBus {
             return this.gpu.read(addr);
         }
 
-        // TODO: Turning this on causes click noises in Pokemon Gold and other games
-        // Sound registers
-        if (addr >= 0xFF10 && addr <= 0xFF3F) {
-            return this.gb.soundChip.read(addr);
-        }
-
         // Read from OAM
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
             return this.gpu.oam[addr - 0xFE00];
@@ -253,7 +240,11 @@ class MemoryBus {
 
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            if (this.gpu.readHwio(addr) != undefined) return this.gpu.readHwio(addr)!;
+            let val;
+            val = this.gpu.readHwio(addr);
+            if (val != undefined) return val;
+            val = this.gb.soundChip.readHwio(addr);
+            if (val != undefined) return val;
             switch (addr) {
                 case 0xFF00: // Joypad read
                     // writeDebug("Polled joypad")
