@@ -223,10 +223,10 @@ class Ops {
         const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
         const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
 
-        const returnAddress = (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
+        const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
         // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
-        cpu.pc = returnAddress;
+        cpu.pc = returnAddress - 1;
 
         cpu.cycles += 4; // Branching takes 4 cycles
     }

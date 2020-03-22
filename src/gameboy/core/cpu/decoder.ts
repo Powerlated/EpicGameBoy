@@ -366,8 +366,6 @@ export default class Decoder {
             const lowOps = [Ops.RLC_R8, Ops.RL_R8, Ops.SLA_R8, Ops.SWAP_R8];
             const highOps = [Ops.RRC_R8, Ops.RR_R8, Ops.SRA_R8, Ops.SRL_R8];
             // TODO: IDK why I need this
-            cyclesOffset = -4;
-
             if (lowerNybble < 0x8) {
                 op = lowOps[upperNybble];
             } else {

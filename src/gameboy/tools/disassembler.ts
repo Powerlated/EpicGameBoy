@@ -41,7 +41,7 @@ export default class Disassembler {
         }
     };
 
-    static willJumpTo = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU): number => {
+    static willJumpTo = (ins: Op, pcTriplet: Uint8Array, cpu: CPU): number => {
         switch (ins.op) {
             case Ops.JP_N16:
             case Ops.CALL_N16:
@@ -55,14 +55,14 @@ export default class Disassembler {
                 return (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
             case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction
-                return disasmPc + unTwo8b(pcTriplet[1]) + 2;
+                return cpu.pc + unTwo8b(pcTriplet[1]) + 2;
             case Ops.RST:
                 return ins.type as number;
             default: return NaN;
         }
     };
 
-    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU) => {
+    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, cpu: CPU) => {
         const HARDCODE_DECODE = (ins: Op, pcTriplet: Uint8Array) => {
             const doublet = pcTriplet[1] | pcTriplet[2] << 8;
             switch (ins.op) {
@@ -118,7 +118,7 @@ export default class Disassembler {
 
         // Detect bottom 3/4 of 0xCB table
         if (isCB && pcTriplet[1] > 0x30) {
-            operandAndType = (ins.type2 ? tr(ins.type2) : "") + ((ins.type2 || ins.length > 1) ? "," : "") + (ins.type ? tr(ins.type) : "");
+            operandAndType = `${ins.type2},${tr(ins.type!)}`;
         } else if (!block) {
             // Regular operations, block if hardcode decoded
             operandAndType =
@@ -133,14 +133,14 @@ export default class Disassembler {
             if (ins.length === 2) {
                 if (ins.op !== Ops.JR_E8) {
                     // Regular operation
-                    operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
+                    operandAndType += "$" + hexN(cpu.gb.bus.readMem8(cpu.pc + 1), 2);
                 } else {
                     // For JR operation, reverse two's complement instead of hex
-                    operandAndType += "" + unTwo8b(cpu.gb.bus.readMem8(disasmPc + 1));
+                    operandAndType += "" + unTwo8b(cpu.gb.bus.readMem8(cpu.pc + 1));
                 }
             } else if (ins.length === 3) {
                 // 16 bit
-                operandAndType += "$" + hexN(cpu.gb.bus.readMem16(disasmPc + 1), 4);
+                operandAndType += "$" + hexN(cpu.gb.bus.readMem16(cpu.pc + 1), 4);
             }
         }
 
@@ -208,11 +208,11 @@ export default class Disassembler {
 
             const hexDecoded = decodeHex(pcTriplet);
 
-            const disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, disasmPc, cpu)}`;
+            const disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, cpu)}`;
 
             if (i === 0) {
                 if (Disassembler.willJump(ins, cpu))
-                    nextOpWillJumpTo = Disassembler.willJumpTo(ins, pcTriplet, disasmPc, cpu);
+                    nextOpWillJumpTo = Disassembler.willJumpTo(ins, pcTriplet, cpu);
 
                 if (controlFlow && !Disassembler.willJump(ins, cpu)) {
                     nextOpWillJumpTo = disasmPc + ins.length;

@@ -2,9 +2,10 @@ import Ops from "./cpu_ops";
 import GameBoy from "../gameboy";
 import Disassembler from "../../tools/disassembler";
 import { writeDebug } from "../../tools/debug";
-import { hex, pad, hexN_LC, hexN, r_pad } from "../../tools/util";
+import { hex, pad, hexN_LC, hexN, r_pad, assert } from "../../tools/util";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../../core/components/interrupt-controller";
 import Decoder from './decoder';
+import * as Timings from '../../data/cpu_instruction_timings';
 
 function undefErr(cpu: CPU, name: string) {
     alert(`
@@ -292,8 +293,6 @@ export default class CPU {
             this.gb.bus.interrupts.masterEnabled = true;
         }
 
-        const c = this.cycles;
-
         this.checkBootrom();
 
         // Run the debug information collector
@@ -302,9 +301,7 @@ export default class CPU {
 
         if (this.halted === false) {
             this.executeInstruction();
-            this.lastInstructionCycles = this.cycles - c;
         }
-
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
         if ((this.gb.bus.interrupts.requestedInterrupts.numerical &
@@ -380,6 +377,8 @@ export default class CPU {
     minDebug = false;
 
     executeInstruction() {
+        const c = this.cycles;
+
         const pcTriplet = Uint8Array.of
             (
                 this.gb.bus.readMem8(this.pc + 0),
@@ -399,8 +398,8 @@ export default class CPU {
         if (this.minDebug) {
             if (Disassembler.isControlFlow(ins)) {
                 if (Disassembler.willJump(ins, this)) {
-                    const disasm = Disassembler.disassembleOp(ins, new Uint8Array(pcTriplet), this.pc, this);
-                    const to = Disassembler.willJumpTo(ins, new Uint8Array(pcTriplet), this.pc, this);
+                    const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
+                    const to = Disassembler.willJumpTo(ins, pcTriplet, this);
                     // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
                     // this.jumpLog = this.jumpLog.slice(0, 100);
                 }
@@ -434,6 +433,28 @@ export default class CPU {
         }
 
         this.totalI++;
+        this.lastInstructionCycles = this.cycles - c;
+
+        // Checking for proper timings below here
+        return;
+
+        let success = true;
+
+        if (!isCB) {
+            if (!Disassembler.isControlFlow(ins)) {
+                if (!(ins.op == Ops.HALT || ins.op == Ops.STOP)) {
+                    success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[pcTriplet[0]] * 4, "CPU timing");
+                }
+            }
+        } else {
+            success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[pcTriplet[1]] * 4, "[CB] CPU timing");
+        }
+
+        if (success == false) {
+            console.log(Disassembler.disassembleOp(ins, pcTriplet, this));
+            console.log(`Offset: ${ins.cyclesOffset}`);
+            this.gb.speedStop();
+        }
 
         // this.opcodesRan.add(pcTriplet[0]);
     }

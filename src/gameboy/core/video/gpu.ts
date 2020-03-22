@@ -1,7 +1,7 @@
 import GameBoy from "../gameboy";
 import GPUCanvas from "./canvas";
 import { writeDebug } from "../../tools/debug";
-import { unTwo8b } from "../../tools/util";
+import { unTwo8b, assert } from "../../tools/util";
 import { GPURenderer } from "./renderer";
 
 class LCDCRegister {
@@ -306,7 +306,6 @@ class GPU {
                 case 1:
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
-
                         this.lcdcY++;
 
                         if (this.lcdcY >= 154) {

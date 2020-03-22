@@ -18,6 +18,8 @@ export default class GameBoy {
 
     soundChip = new SoundChip(this);
 
+    stopNow = true;
+
     timer = new Timer(this);
 
     constructor(cgb: boolean) {
@@ -45,6 +47,7 @@ export default class GameBoy {
     speedStop() {
         this.speedIntervals.forEach(i => { clearInterval(i); });
         this.soundChip.tjs.setMuted(true);
+        this.stopNow = true;
     }
 
     speed() {
@@ -58,13 +61,17 @@ export default class GameBoy {
         // const max = 70224; // Full frame GPU timing
         const max = 70224 * this.speedMul; // Full frame GPU timing, double speed
 
-        while (i < max) {
+        while (i < max && !this.stopNow) {
             if (this.cpu.breakpoints[this.cpu.pc]) {
                 this.speedStop();
                 return;
             }
             this.step();
             i += this.cpu.lastInstructionCycles;
+        }
+
+        if (this.stopNow == true) {
+            this.stopNow = false;
         }
     }
 
