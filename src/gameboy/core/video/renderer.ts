@@ -44,6 +44,7 @@ export class GPURenderer {
 
         let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
         let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
+        let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
 
         let canvasIndex = 160 * 4 * (this.gpu.lcdcY);
 
@@ -62,8 +63,9 @@ export class GPURenderer {
                 }
             }
 
-            let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
-            const prePalette = tileset[tile + tileOffset][y][x];
+            const adjX = attr.xFlip ? 7 - x : x;
+            const adjY = attr.yFlip ? 7 - y : y;
+            const prePalette = tileset[tile + tileOffset][adjY][adjX];
             const pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
             // Re-map the tile pixel through the palette
 
@@ -93,6 +95,7 @@ export class GPURenderer {
                 lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
                 tile = this.gpu.tilemap[mapOffset + lineOffset];
                 attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
+                tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
             }
         }
     }
@@ -112,6 +115,7 @@ export class GPURenderer {
 
             let attr = this.gpu.cgbTileAttrs[mapOffset];
             let tile = this.gpu.tilemap[mapOffset]; // Add line offset to get correct starting tile
+            let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
 
             let canvasIndex = 160 * 4 * (this.gpu.lcdcY) + (xPos * 4);
 
@@ -127,8 +131,9 @@ export class GPURenderer {
                         }
                     }
 
-                    let tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
-                    const prePalette = tileset[tile + tileOffset][y][x];
+                    const adjX = attr.xFlip ? 7 - x : x;
+                    const adjY = attr.yFlip ? 7 - y : y;
+                    const prePalette = tileset[tile + tileOffset][adjY][adjX];
                     let pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
                     // Re-map the tile pixel through the palette
 
@@ -158,6 +163,7 @@ export class GPURenderer {
                         mapOffset++;
                         tile = this.gpu.tilemap[mapOffset];
                         attr = this.gpu.cgbTileAttrs[mapOffset]; // Update attributes too
+                        tileset = attr.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
                         // if (GPU._bgtile === 1 && tile < 128) tile += 256;
                     }
                 }
@@ -215,7 +221,7 @@ export class GPURenderer {
                     const canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
                     // Offset tile by +1 if rendering the top half of an 8x16 sprite
-               
+
                     const prePalette = tileset[tile + h][pixelY][pixelX];
                     const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
 
