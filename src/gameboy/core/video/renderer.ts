@@ -212,13 +212,21 @@ export class GPURenderer {
 
             // Once for single-height sprites, twice for double-height
             for (let h = 0; h <= (HEIGHT - 8) / 8; h++) {
+                let tileOffset = 0;
+                if (flags.yFlip && this.gpu.lcdControl.spriteSize______2) {
+                    if (h == 0) tileOffset = 1;
+                    else if (h == 1) tileOffset = 0;
+                } else {
+                    tileOffset = h;
+                }
+
                 // Draws the 8 pixels.
                 for (let x = 0; x < 8; x++) {
                     screenYPos = y + yPos - (16 - (h * 8));
                     screenXPos = x + xPos - 8;
 
                     // If it's off the edges, skip this pixel
-                    if (screenXPos < 0 || screenXPos > 160) continue;
+                    if (screenXPos < 0 || screenXPos >= 160) continue;
 
                     const pixelX = flags.xFlip ? 7 - x : x;
                     const pixelY = flags.yFlip ? 7 - y : y;
@@ -227,7 +235,7 @@ export class GPURenderer {
 
                     // Offset tile by +1 if rendering the top half of an 8x16 sprite
 
-                    const prePalette = tileset[tile + h][pixelY][pixelX];
+                    const prePalette = tileset[tile + tileOffset][pixelY][pixelX];
                     const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
 
                     let noTransparency = this.gpu.gb.cgb && !this.gpu.lcdControl.bgWindowEnable0;
