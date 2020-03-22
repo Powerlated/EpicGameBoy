@@ -171,74 +171,79 @@ export class GPURenderer {
         for (let sprite = 0; sprite < 40; sprite++) {
             const base = sprite * 4;
 
-            const yPos = this.gpu.oam[base + 0];
+            let yPos = this.gpu.oam[base + 0];
             const xPos = this.gpu.oam[base + 1];
             const tile = this.gpu.oam[base + 2];
 
             let screenYPos = yPos - 16;
             let screenXPos = xPos - 8;
 
+            // Continue to next sprite if it is offscreen
+            if (xPos < 0 || screenXPos > 160 || yPos < 0 || screenYPos > 144) continue;
+
             const HEIGHT = this.gpu.lcdControl.spriteSize______2 ? 16 : 8;
 
+            // Continue to next sprite if it is not on the current scanline
+            if (screenYPos + HEIGHT < this.gpu.lcdcY && screenYPos + HEIGHT > this.gpu.lcdcY) continue;
+
             // Render sprite only if it is visible on this scanline
-            if (
-                (this.gpu.lcdcY + 8 >= screenYPos && (this.gpu.lcdcY <= (screenYPos + HEIGHT + 8)))
-            ) {
-                // TODO: Fix sprite limiting
-                // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
-                // spriteCount++;
 
-                const flags = new OAMFlags();
-                flags.numerical = this.gpu.oam[base + 3];
+            // TODO: Fix sprite limiting
+            // if (spriteCount > 10) return; // GPU can only draw 10 sprites per scanline
+            // spriteCount++;
 
-                const y = this.gpu.lcdcY & 7;
+            const flags = new OAMFlags();
+            flags.numerical = this.gpu.oam[base + 3];
 
-                for (let h = 8; h <= HEIGHT; h += 8)
-                    for (let x = 0; x < 8; x++) {
-                        screenYPos = yPos - (24 - h);
-                        screenXPos = xPos - 8;
+            const y = this.gpu.lcdcY & 7;
+            const pal = this.gpu.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
+            const tileset = flags.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
 
-                        screenYPos += y;
-                        screenXPos += x;
+            // Once for single-height sprites, twice for double-height
+            for (let h = 0; h <= (HEIGHT - 8) / 8; h++) {
+                // Draws the 8 pixels.
+                for (let x = 0; x < 8; x++) {
+                    screenYPos = y + yPos - (16 - (h * 8));
+                    screenXPos = x + xPos - 8;
 
-                        if (screenXPos >= 0 && screenYPos >= 0 && screenXPos < 160) {
-                            const pixelX = flags.xFlip ? 7 - x : x;
-                            const pixelY = flags.yFlip ? 7 - y : y;
+                    // If it's off the edges, skip this pixel
+                    if (screenXPos < 0 || screenXPos > 160) continue;
 
-                            const canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
+                    const pixelX = flags.xFlip ? 7 - x : x;
+                    const pixelY = flags.yFlip ? 7 - y : y;
 
-                            // Offset tile by +1 if rendering the top half of an 8x16 sprite
-                            let tileset = flags.vramBank ? this.gpu.tileset1 : this.gpu.tileset0;
-                            const prePalette = tileset[tile + ((h / 8) - 1)][pixelY][pixelX];
-                            let pal = this.gpu.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
-                            const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
+                    const canvasIndex = ((screenYPos * 160) + screenXPos) * 4;
 
-                            if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0) continue;
+                    // Offset tile by +1 if rendering the top half of an 8x16 sprite
+               
+                    const prePalette = tileset[tile + h][pixelY][pixelX];
+                    const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
 
-                            // Simulate transparency before transforming through object palette
-                            if (prePalette !== 0) {
-                                this.imageGameboy.data[canvasIndex + 0] = pixel[0];
-                                this.imageGameboy.data[canvasIndex + 1] = pixel[1];
-                                this.imageGameboy.data[canvasIndex + 2] = pixel[2];
-                                this.imageGameboy.data[canvasIndex + 3] = 255;
-                            }
+                    if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0) continue;
 
-                            // Border debug
-                            if (this.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
-                                if (this.gpu.lcdControl.spriteSize______2) {
-                                    this.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                                    this.imageGameboy.data[canvasIndex + 1] = 0;
-                                    this.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                                    this.imageGameboy.data[canvasIndex + 3] = 255;
-                                } else {
-                                    this.imageGameboy.data[canvasIndex + 0] = 0;
-                                    this.imageGameboy.data[canvasIndex + 1] = 0xFF;
-                                    this.imageGameboy.data[canvasIndex + 2] = 0;
-                                    this.imageGameboy.data[canvasIndex + 3] = 255;
-                                }
-                            }
+                    // Simulate transparency before transforming through object palette
+                    if (prePalette !== 0) {
+                        this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+                        this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+                        this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
+                    }
+
+                    // Border debug
+                    if (this.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
+                        if (this.gpu.lcdControl.spriteSize______2) {
+                            this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                            this.imageGameboy.data[canvasIndex + 1] = 0;
+                            this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                            this.imageGameboy.data[canvasIndex + 3] = 255;
+                        } else {
+                            this.imageGameboy.data[canvasIndex + 0] = 0;
+                            this.imageGameboy.data[canvasIndex + 1] = 0xFF;
+                            this.imageGameboy.data[canvasIndex + 2] = 0;
+                            this.imageGameboy.data[canvasIndex + 3] = 255;
                         }
                     }
+                }
             }
         }
     }
