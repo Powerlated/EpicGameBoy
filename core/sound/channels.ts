@@ -175,6 +175,7 @@ export class NoiseChannel implements BasicChannel {
     shiftClockFrequency = 0;
     counterStep = false;
     envelopeSweep = 0;
+    divisorCode = 0;
 
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;
@@ -241,7 +242,7 @@ export class NoiseChannel implements BasicChannel {
         if (this.lengthCounter === 0) {
             this.lengthCounter = 64;
         }
-        this.enabled = true;
+        this.volume = this.volumeEnvelopeStart;
         this.update();
     }
 

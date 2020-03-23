@@ -5,6 +5,10 @@ import GameBoy from "../gameboy";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 
 // TODO: Figure out why wave sound length isn't working in Pokemon Yellow
+
+const CLOCK_MAIN_STEPS = 32768;
+const CLOCK_ENVELOPE_STEPS = 65536;
+const CLOCK_LENGTH_STEPS = 16384;
 export default class SoundChip {
     static lerp(v0: number, v1: number, t: number): number {
         return v0 * (1 - t) + v1 * t;
@@ -14,10 +18,12 @@ export default class SoundChip {
 
     gb: GameBoy;
     clockMain = 0;
-    clockEnvelope1 = 0;
-    clockEnvelope2 = 0;
+    clockEnvelopeMain = 0;
+    clockEnvelopePulse1 = 0;
+    clockEnvelopePulse2 = 0;
     clockEnvelopeNoise = 0;
     clockPulse1FreqSweep = 0;
+    clockLength = 0;
 
     pulse1 = new PulseChannel();
     pulse2 = new PulseChannel();
@@ -40,20 +46,15 @@ export default class SoundChip {
         if (!this.enabled) return;
 
         // #region CLOCK
-        const CLOCK_MAIN_STEPS = 16384;
-        const CLOCK_ENVELOPE_STEPS = 65536;
 
+        this.clockLength += this.gb.cpu.lastInstructionCycles;
         this.clockMain += this.gb.cpu.lastInstructionCycles;
-        if (this.pulse1.volumeEnvelopeSweep > 0)
-            this.clockEnvelope1 += this.gb.cpu.lastInstructionCycles / this.pulse1.volumeEnvelopeSweep; // 16384 hz, divide as needed 
-        if (this.pulse2.volumeEnvelopeSweep > 0)
-            this.clockEnvelope2 += this.gb.cpu.lastInstructionCycles / this.pulse2.volumeEnvelopeSweep; // 16384 hz, divide as needed
-        if (this.noise.volumeEnvelopeSweep > 0)
-            this.clockEnvelopeNoise += this.gb.cpu.lastInstructionCycles / this.noise.volumeEnvelopeSweep; // 16384 hz, divide as need
+        this.clockEnvelopeMain += this.gb.cpu.lastInstructionCycles;
 
-        // 4194304hz Divide by 16384 = 256hz
-        if (this.clockMain >= CLOCK_MAIN_STEPS) {
-            if (this.clockEnvelope1 >= CLOCK_ENVELOPE_STEPS) {
+        // 4194304hz Divide by 65536 = 64hz
+        if (this.clockEnvelopeMain >= CLOCK_ENVELOPE_STEPS) {
+            this.clockEnvelopePulse1++;
+            if (this.clockEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
                 if (this.pulse1.volumeEnvelopeSweep !== 0) {
                     if (this.pulse1.volumeEnvelopeUp) {
                         if (this.pulse1.volume < 15) {
@@ -67,10 +68,11 @@ export default class SoundChip {
                         }
                     }
                 }
-                this.clockEnvelope1 = 0;
+                this.clockEnvelopePulse1 = 0;
             }
 
-            if (this.clockEnvelope2 >= CLOCK_ENVELOPE_STEPS) {
+            this.clockEnvelopePulse2++;
+            if (this.clockEnvelopePulse2 >= this.pulse2.volumeEnvelopeSweep) {
                 if (this.pulse2.volumeEnvelopeSweep !== 0) {
                     if (this.pulse2.volumeEnvelopeUp) {
                         if (this.pulse2.volume < 15) {
@@ -84,49 +86,33 @@ export default class SoundChip {
                         }
                     }
                 }
-                this.clockEnvelope2 = 0;
+                this.clockEnvelopePulse2 = 0;
             }
 
-            if (this.clockEnvelopeNoise >= CLOCK_ENVELOPE_STEPS) {
+            this.clockEnvelopeNoise++;
+            if (this.clockEnvelopeNoise >= this.noise.volumeEnvelopeSweep) {
                 if (this.noise.volumeEnvelopeSweep !== 0) {
-                    if (this.noise.volume > 0 && this.noise.volume < 16) {
-                        if (this.noise.volumeEnvelopeUp) {
-                            if (this.noise.volume < 15) {
-                                this.noise.volume++;
-                                this.noise.update();
-                            }
-                        } else {
-                            if (this.noise.volume > 0) {
-                                this.noise.volume--;
-                                this.noise.update();
-                            }
+                    if (this.noise.volumeEnvelopeUp) {
+                        if (this.noise.volume < 15) {
+                            this.noise.volume++;
+                            this.noise.update();
+                        }
+                    } else {
+                        if (this.noise.volume > 0) {
+                            this.noise.volume--;
+                            this.noise.update();
                         }
                     }
                 }
                 this.clockEnvelopeNoise = 0;
             }
+            this.clockEnvelopeMain = 0;
+        }
 
-            // #region TRIGGERS
-            if (this.pulse1.triggered) this.pulse1.trigger();
-            if (this.pulse2.triggered) this.pulse2.trigger();
-            if (this.wave.triggered) this.wave.trigger();
-            if (this.noise.triggered) this.noise.trigger();
-            this.pulse1.triggered = false;
-            this.pulse2.triggered = false;
-            this.wave.triggered = false;
-            this.noise.triggered = false;
-            // #endregion
-
+        // 4194304hz Divide by 32768 = 128hz
+        if (this.clockMain >= CLOCK_MAIN_STEPS) {
             // #region LENGTH
             if (this.pulse1.enabled) {
-                if (this.pulse1.lengthCounter > 0) {
-                    this.pulse1.lengthCounter--;
-                    if (this.pulse1.lengthCounter === 0 && this.pulse1.lengthEnable) {
-                        writeDebug("PULSE 1 length become 0");
-                        this.pulse1.enabled = false;
-                        this.pulse1.update();
-                    }
-                }
                 if (this.pulse1.freqSweepTime !== 0) {
                     // writeDebug("Frequency sweep")
                     if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime) {
@@ -141,6 +127,37 @@ export default class SoundChip {
                         // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
                     }
                     this.clockPulse1FreqSweep++;
+                }
+            }
+
+            // this.noiseOsc.mute = !this.noiseChannel.enabled
+
+            // #endregion
+
+            this.clockMain = 0;
+        }
+
+        // 256 hz
+        if (this.clockLength >= CLOCK_LENGTH_STEPS) {
+            // #region TRIGGERS
+            if (this.pulse1.triggered) this.pulse1.trigger();
+            if (this.pulse2.triggered) this.pulse2.trigger();
+            if (this.wave.triggered) this.wave.trigger();
+            if (this.noise.triggered) this.noise.trigger();
+            this.pulse1.triggered = false;
+            this.pulse2.triggered = false;
+            this.wave.triggered = false;
+            this.noise.triggered = false;
+            // #endregion
+
+            if (this.pulse1.enabled) {
+                if (this.pulse1.lengthCounter > 0) {
+                    this.pulse1.lengthCounter--;
+                    if (this.pulse1.lengthCounter === 0 && this.pulse1.lengthEnable) {
+                        writeDebug("PULSE 1 length become 0");
+                        this.pulse1.enabled = false;
+                        this.pulse1.update();
+                    }
                 }
             }
 
@@ -166,18 +183,14 @@ export default class SoundChip {
             }
 
             if (this.noise.enabled) {
-                if (this.noise.lengthEnable) {
+                if (this.noise.lengthCounter > 0) {
                     this.noise.lengthCounter--;
-                    if (this.noise.lengthCounter === 0) {
+                    if (this.noise.lengthCounter === 0 && this.noise.lengthEnable) {
                         this.noise.enabled = false;
                         this.noise.update();
                     }
                 }
             }
-
-            // this.noiseOsc.mute = !this.noiseChannel.enabled
-
-            // #endregion
 
             // Update Tone.js
             if (
@@ -192,7 +205,7 @@ export default class SoundChip {
                 this.wave.updated = false;
                 this.noise.updated = false;
             }
-            this.clockMain = 0;
+            this.clockLength = 0;
         }
     }
 
@@ -216,7 +229,6 @@ export default class SoundChip {
                 this.pulse1.update();
                 break;
             case 0xFF12: // NR12
-                this.pulse1.volume = (value >> 4) & 0xF;
                 this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse1.volumeEnvelopeSweep = value & 0b111;
@@ -241,7 +253,6 @@ export default class SoundChip {
                 this.pulse2.update();
                 break;
             case 0xFF17: // NR22
-                this.pulse2.volume = (value >> 4) & 0xF;
                 this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse2.volumeEnvelopeSweep = value & 0b111;
@@ -289,16 +300,15 @@ export default class SoundChip {
                 this.noise.update();
                 break;
             case 0xFF21: // NR42
-                this.noise.volume = (value >> 4) & 0xF;
                 this.noise.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.noise.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.noise.volumeEnvelopeSweep = value & 0b111;
                 this.noise.update();
                 break;
             case 0xFF22: // NR43
-                this.noise.shiftClockFrequency = (value >> 4) & 0b111;
+                this.noise.shiftClockFrequency = (value >> 4) & 0xF;
                 this.noise.counterStep = ((value >> 3) & 1) !== 0;
-                this.noise.envelopeSweep = (value & 0b111);
+                this.noise.divisorCode = (value & 0b111);
                 this.noise.update();
                 break;
             case 0xFF23: // NR44
@@ -407,7 +417,7 @@ export default class SoundChip {
 
 
         this.clockMain = 0;
-        this.clockEnvelope1 = 0;
-        this.clockEnvelope2 = 0;
+        this.clockEnvelopePulse1 = 0;
+        this.clockEnvelopePulse2 = 0;
     }
 }
