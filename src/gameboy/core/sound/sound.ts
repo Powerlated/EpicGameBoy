@@ -186,9 +186,7 @@ export default class SoundChip {
                 this.wave.updated ||
                 this.noise.updated
             ) {
-                // Speedup for turbo
-                if (this.clockMain % this.gb.speedMul == 0)
-                    this.tjs.step();
+                this.tjs.step();
                 this.pulse1.updated = false;
                 this.pulse2.updated = false;
                 this.wave.updated = false;
