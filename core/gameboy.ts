@@ -59,7 +59,7 @@ export default class GameBoy {
     frame() {
         let i = 0;
         // const max = 70224; // Full frame GPU timing
-        const max = 70224 * this.speedMul; // Full frame GPU timing, double speed
+        const max = 67000 * this.speedMul; // Full frame GPU timing
 
         while (i < max && !this.stopNow) {
             if (this.cpu.breakpoints[this.cpu.pc]) {
