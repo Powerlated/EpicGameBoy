@@ -1,7 +1,5 @@
 import GameBoy from "../gameboy";
 import GPUCanvas from "./canvas";
-import { writeDebug } from "../../src/gameboy/tools/debug";
-import { unTwo8b, assert } from "../../src/gameboy/tools/util";
 import { GPURenderer } from "./renderer";
 
 class LCDCRegister {
@@ -283,12 +281,14 @@ class GPU {
                         this.lcdStatus.mode = 0;
 
                         // Render sprites at end of scanline
-                        if ((this.totalFrameCount % this.gb.speedMul) === 0)
-                        this.renderer.renderSprites();
-
+                        if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                            if (this.lcdControl.spriteDisplay___1) {
+                                this.renderer.renderSprites();
+                            }
+                        }
                         this.windowDrawn = false;
 
-                        if (this.hDmaRemaining > 16) {
+                        if (this.hDmaRemaining > 0 && !this.hDmaPaused) {
                             this.newDma(this.hDmaSourceAt, this.hDmaDestAt + 0x8000, 16);
                             this.hDmaSourceAt += 16;
                             this.hDmaDestAt += 16;
@@ -527,6 +527,8 @@ class GPU {
         this.hDmaRemaining = 0;
         this.hDmaCompleted = false;
 
+        this.hDmaPaused = false;
+
         this.renderer = new GPURenderer(this);
     }
 
@@ -563,6 +565,7 @@ class GPU {
     hDmaSourceAt = 0;
     hDmaDestAt = 0;
     hDmaCompleted = false;
+    hDmaPaused = false;
 
     newDma(startAddr: number, destination: number, length: number) {
         for (let i = 0; i < length; i++) {
@@ -682,11 +685,9 @@ class GPU {
     writeHwio(addr: number, value: number) {
         switch (addr) {
             case 0xFF40: // LCD Control
-                writeDebug(`LCD CONTROL CHANGE`);
                 this.lcdControl.numerical = value;
                 break;
             case 0xFF41: // LCDC Status
-                writeDebug(`LCDC STATUS CHANGE`);
                 this.lcdStatus.numerical = value;
                 break;
             case 0xFF42:
@@ -766,8 +767,13 @@ class GPU {
                         this.hDmaSourceAt = this.newDmaSource;
                         this.hDmaDestAt = this.newDmaDest;
                         this.hDmaCompleted = false;
+                        this.hDmaPaused = false;
                     } else {
-                        this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
+                        if (this.hDmaRemaining > 0) {
+                            this.hDmaPaused = true;
+                        } else {
+                            this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
+                        }
                     }
                 }
                 break;
