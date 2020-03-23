@@ -328,14 +328,25 @@ class GPU {
                         this.modeClock -= 456;
                         this.lcdcY++;
 
-                        if (this.lcdcY >= 154) {
-                            this.lcdcY = 0;
-                            this.lcdStatus.mode = 2;
-                            if (this.lcdStatus.mode2OamInterrupt_____5) {
-                                this.gb.bus.interrupts.requestLCDstatus();
-                            }
-                            this.scanOAM();
+                        if (this.lcdcY === 153) {
+                            this.lcdStatus.mode = 4;
                         }
+                    }
+                    break;
+
+                // Between Line 153 and Line 0
+                case 4:
+                    if (this.modeClock >= 4) {
+                        this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
+                        if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
+                            this.gb.bus.interrupts.requestLCDstatus();
+                        }
+
+                        this.lcdcY = 0;
+                    }
+                    if (this.modeClock >= 456) {
+                        this.modeClock -= 456;
+                        this.lcdStatus.mode = 2;
                     }
                     break;
             }
@@ -472,6 +483,12 @@ class GPU {
         this.cgbObjPaletteIndex = 0;
         this.cgbObjPaletteIndexAutoInc = false;
         this.cgbObjPalette = new CGBPaletteData();
+
+        this.vramBank = 0;
+
+        this.dmgBgPalette = 0;
+        this.dmgObj0Palette = 0;
+        this.dmgObj1Palette = 0;
 
         this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
 
