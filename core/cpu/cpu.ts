@@ -375,6 +375,7 @@ export default class CPU {
     }
 
     minDebug = false;
+    jumpLog: string[] = [];
 
     executeInstruction() {
         const c = this.cycles;
@@ -400,8 +401,8 @@ export default class CPU {
                 if (Disassembler.willJump(ins, this)) {
                     const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
                     const to = Disassembler.willJumpTo(ins, pcTriplet, this);
-                    // this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
-                    // this.jumpLog = this.jumpLog.slice(0, 100);
+                    this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
+                    this.jumpLog = this.jumpLog.slice(0, 100);
                 }
             }
         }
