@@ -239,6 +239,7 @@ class GPU {
     windowXpos = 0; // 0xFF4B
 
     modeClock: number = 0;
+    windowDrawn = false;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -253,14 +254,36 @@ class GPU {
                     if (this.modeClock >= 80) {
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
+
+                        // Render BG and sprites at the beginning of Mode 3
+                        if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                            if (this.lcdControl.bgWindowEnable0) {
+                                this.renderer.renderBg();
+                                this.renderer.renderSprites();
+                            }
+                        }
                     }
                     break;
 
                 // Read from VRAM - Scanline active
                 case 3:
+                    // Delay window rendering based on its X position
+                    if (!this.windowDrawn && this.modeClock >= this.windowXpos) {
+                        if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                            if (this.lcdControl.bgWindowEnable0) {
+                                if (this.lcdControl.enableWindow____5) {
+                                    this.renderer.renderWindow();
+                                }
+                            }
+                        }
+                        this.windowDrawn = true;
+                    }
+
                     if (this.modeClock >= 172) {
                         this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
+
+                        this.windowDrawn = false;
 
                         if (this.hDmaRemaining > 16) {
                             this.newDma(this.hDmaSourceAt, this.hDmaDestAt + 0x8000, 16);
@@ -271,9 +294,6 @@ class GPU {
                             this.hDmaRemaining = 0;
                             this.hDmaCompleted = true;
                         }
-
-                        if ((this.totalFrameCount % this.gb.speedMul) === 0)
-                            this.renderer.renderScanline();
 
                         if (this.lcdStatus.mode0HblankInterrupt__3) {
                             this.gb.bus.interrupts.requestLCDstatus();
