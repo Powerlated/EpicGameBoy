@@ -262,16 +262,14 @@ class GPU {
                         this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
 
-                        if (this.hDmaRemaining > 0) {
+                        if (this.hDmaRemaining > 16) {
                             this.newDma(this.hDmaSourceAt, this.hDmaDestAt + 0x8000, 16);
                             this.hDmaSourceAt += 16;
                             this.hDmaDestAt += 16;
                             this.hDmaRemaining -= 16;
-
-                            if (this.hDmaRemaining <= 0) {
-                                this.hDmaRemaining = 0;
-                                this.hDmaCompleted = true;
-                            }
+                        } else {
+                            this.hDmaRemaining = 0;
+                            this.hDmaCompleted = true;
                         }
 
                         if ((this.totalFrameCount % this.gb.speedMul) === 0)
