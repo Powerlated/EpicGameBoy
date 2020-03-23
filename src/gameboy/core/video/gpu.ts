@@ -314,6 +314,7 @@ class GPU {
                         else {
                             // Enter back into OAM mode if not Vblank
                             this.lcdStatus.mode = 2;
+                            this.scanOAM();
                             if (this.lcdStatus.mode2OamInterrupt_____5) {
                                 this.gb.bus.interrupts.requestLCDstatus();
                             }
@@ -330,6 +331,10 @@ class GPU {
                         if (this.lcdcY >= 154) {
                             this.lcdcY = 0;
                             this.lcdStatus.mode = 2;
+                            if (this.lcdStatus.mode2OamInterrupt_____5) {
+                                this.gb.bus.interrupts.requestLCDstatus();
+                            }
+                            this.scanOAM();
                         }
                     }
                     break;
@@ -343,6 +348,32 @@ class GPU {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
+    }
+
+    scanned: OAMEntry[] = [];
+
+    scanOAM() {
+        this.scanned = [];
+        // OAM Scan, maximum of 10 sprites
+        for (let sprite = 0; sprite < 40 && this.scanned.length < 40; sprite++) {
+            const base = sprite * 4;
+
+            let yPos = this.oam[base + 0];
+            const xPos = this.oam[base + 1];
+            const tile = this.oam[base + 2];
+
+            // Continue to next sprite if it is offscreen
+            if (xPos < 0 || xPos >= 168 || yPos < 0 || yPos >= 160) continue;
+
+            const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
+
+            let screenYPos = yPos - 16;
+            let screenXPos = xPos - 8;
+
+            // Push sprite to scanned if it is on the current scanline
+            if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT)
+                this.scanned.push(new OAMEntry(yPos, xPos, tile, new OAMFlags(this.oam[base + 3])));
+        }
     }
 
     read(index: number): number {
