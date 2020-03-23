@@ -738,10 +738,10 @@ class GPU {
                 break;
             case 0xFF55:
                 if (this.gb.cgb) {
-                    this.newDmaLength = ((value & 127)) << 4;
+                    this.newDmaLength = ((value & 127) + 1) << 4;
                     let newDmaHblank = ((value >> 7) & 1) !== 0;
                     if (newDmaHblank) {
-                        this.hDmaRemaining = ((value & 127)) << 4;
+                        this.hDmaRemaining = ((value & 127) + 1) << 4;
                         this.hDmaSourceAt = this.newDmaSource;
                         this.hDmaDestAt = this.newDmaDest;
                         this.hDmaCompleted = false;
