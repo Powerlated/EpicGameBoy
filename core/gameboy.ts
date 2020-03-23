@@ -1,8 +1,8 @@
 import CPU from './cpu/cpu';
 import GPU from './video/gpu';
 import MemoryBus from './memory/memorybus';
-import Disassembler from '../tools/disassembler';
-import { writeDebug } from '../tools/debug';
+import Disassembler from '../src/gameboy/tools/disassembler';
+import { writeDebug } from '../src/gameboy/tools/debug';
 import SoundChip from './sound/sound';
 import Timer from './components/timer';
 import Decoder from './cpu/decoder';

@@ -1,6 +1,6 @@
-import MemoryBus from "../../memory/memorybus";
+import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
-import { hex } from "../../../tools/util";
+import { hex } from "../../../src/gameboy/tools/util";
 
 export default interface MBC {
 

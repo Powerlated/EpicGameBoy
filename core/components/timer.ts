@@ -1,5 +1,5 @@
 import GameBoy from "../gameboy";
-import { hex } from "../../tools/util";
+import { hex } from "../../src/gameboy/tools/util";
 
 export default class Timer {
     static TimerSpeeds = [1024, 16, 64, 256]; // In terms of 262144hz division 

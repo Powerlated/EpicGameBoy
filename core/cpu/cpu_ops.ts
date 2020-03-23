@@ -1,5 +1,5 @@
 import CPU, { R8, R16, CC } from './cpu';
-import { unTwo8b } from '../../tools/util';
+import { unTwo8b } from '../../src/gameboy/tools/util';
 
 class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {

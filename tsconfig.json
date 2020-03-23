@@ -7,5 +7,5 @@
         "moduleResolution": "node",
         "noFallthroughCasesInSwitch": true
     },
-    "include": ["src/"]
+    "include": ["src/", "core"]
 }

@@ -1,7 +1,7 @@
 import GameBoy from "../gameboy";
 import GPUCanvas from "./canvas";
-import { writeDebug } from "../../tools/debug";
-import { unTwo8b, assert } from "../../tools/util";
+import { writeDebug } from "../../src/gameboy/tools/debug";
+import { unTwo8b, assert } from "../../src/gameboy/tools/util";
 import { GPURenderer } from "./renderer";
 
 class LCDCRegister {

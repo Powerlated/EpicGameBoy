@@ -1,4 +1,4 @@
-import MemoryBus from "../../memory/memorybus";
+import MemoryBus from "../memorybus";
 import MBC from "./mbc";
 import ExternalBus from "../externalbus";
 

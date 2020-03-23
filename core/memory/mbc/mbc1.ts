@@ -1,8 +1,8 @@
 import MBC, { MBCWithRAM } from "./mbc";
 
-import MemoryBus from "../../memory/memorybus";
+import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
-import { writeDebug } from "../../../tools/debug";
+import { writeDebug } from "../../../src/gameboy/tools/debug";
 
 enum BankingMode {
     ROM = "ROM", RAM = "RAM"

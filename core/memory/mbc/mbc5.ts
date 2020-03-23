@@ -1,7 +1,7 @@
-import MemoryBus from "../../memory/memorybus";
+import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
 import ExternalBus from "../externalbus";
-import { hex } from "../../../tools/util";
+import { hex } from "../../../src/gameboy/tools/util";
 
 export default class MBC5 extends MBCWithRAM implements MBC {
     ext: ExternalBus;
