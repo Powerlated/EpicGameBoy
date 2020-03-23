@@ -347,6 +347,7 @@ class GPU {
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
                         this.lcdStatus.mode = 2;
+                        this.scanOAM();
                     }
                     break;
             }
