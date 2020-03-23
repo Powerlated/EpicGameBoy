@@ -255,11 +255,10 @@ class GPU {
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
 
-                        // Render BG and sprites at the beginning of Mode 3
+                        // Render BG at the beginning of Mode 3
                         if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                             if (this.lcdControl.bgWindowEnable0) {
                                 this.renderer.renderBg();
-                                this.renderer.renderSprites();
                             }
                         }
                     }
@@ -282,6 +281,10 @@ class GPU {
                     if (this.modeClock >= 172) {
                         this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
+
+                        // Render sprites at end of scanline
+                        if ((this.totalFrameCount % this.gb.speedMul) === 0)
+                        this.renderer.renderSprites();
 
                         this.windowDrawn = false;
 
@@ -385,7 +388,7 @@ class GPU {
     scanOAM() {
         this.scanned = [];
         // OAM Scan, maximum of 10 sprites
-        for (let sprite = 0; sprite < 40 && this.scanned.length < 40; sprite++) {
+        for (let sprite = 0; sprite < 40 && this.scanned.length < 10; sprite++) {
             const base = sprite * 4;
 
             let yPos = this.oam[base + 0];
