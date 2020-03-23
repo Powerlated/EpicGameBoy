@@ -291,6 +291,9 @@ export default class CPU {
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
             this.gb.bus.interrupts.masterEnabled = true;
+
+            if (this.minDebug)
+                this.addToLog(`--- INTERRUPTS ENABLED ---`);
         }
 
         this.checkBootrom();
@@ -377,6 +380,11 @@ export default class CPU {
     minDebug = false;
     jumpLog: string[] = [];
 
+    addToLog(s: string) {
+        this.jumpLog.unshift(s);
+        this.jumpLog = this.jumpLog.slice(0, 1000);
+    }
+
     executeInstruction() {
         const c = this.cycles;
 
@@ -401,8 +409,7 @@ export default class CPU {
                 if (Disassembler.willJump(ins, this)) {
                     const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
                     const to = Disassembler.willJumpTo(ins, pcTriplet, this);
-                    this.jumpLog.unshift(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
-                    this.jumpLog = this.jumpLog.slice(0, 100);
+                    this.addToLog(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
                 }
             }
         }
@@ -472,27 +479,31 @@ export default class CPU {
             }
 
             if (happened.vblank && enabled.vblank) {
-                // this.jumpLog.unshift(`----- INTERRUPT VBLANK -----`);
-                if (!this.haltBug)
-                    happened.vblank = false;
+                happened.vblank = false;
+
+                if (this.minDebug)
+                    this.addToLog(`--- VBLANK INTERRUPT ---`);
+
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
-                // this.jumpLog.unshift(`----- INTERRUPT LCDSTAT -----`);
-                if (!this.haltBug)
-                    happened.lcdStat = false;
+                happened.lcdStat = false;
+
+                if (this.minDebug)
+                    this.addToLog(`--- LCDSTAT INTERRUPT ---`);
+
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
-                // this.jumpLog.unshift(`----- INTERRUPT TIMER -----`);
-                if (!this.haltBug)
-                    happened.timer = false;
+                happened.timer = false;
+
+                if (this.minDebug)
+                    this.addToLog(`--- TIMER INTERRUPT ---`);
+
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {
-                if (!this.haltBug)
-                    happened.serial = false;
+                happened.serial = false;
                 this.jumpToInterrupt(SERIAL_LINK_VECTOR);
             } else if (happened.joypad && enabled.joypad) {
-                if (!this.haltBug)
-                    happened.joypad = false;
+                happened.joypad = false;
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }

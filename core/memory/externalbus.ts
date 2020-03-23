@@ -37,14 +37,15 @@ export default class ExternalBus {
             this.rom[i] = v;
         });
         this.updateMBC();
-        this.gb.reset();
+
         const title = this.rom.slice(0x134, 0x143);
         const titleDecoded = new TextDecoder("utf-8").decode(title);
         console.log(titleDecoded);
 
         this.romTitle = titleDecoded;
 
-        this.gb.cgb = this.rom[0x143] == 0x80 || this.rom[0x143] == 0xC0;
+        this.gb.cgb = (this.rom[0x143] & 0x80) !== 0 || this.rom[0x143] == 0xC0;
+        this.gb.reset();
 
         const m = this.mbc as MBCWithRAM;
         if (m instanceof MBCWithRAM) {

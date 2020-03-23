@@ -9,6 +9,7 @@ class Ops {
 
     static INVALID_OPCODE(cpu: CPU) {
         cpu.pc--;
+        cpu.gb.speedStop();
     }
 
     // #region INSTRUCTIONS
@@ -21,6 +22,9 @@ class Ops {
     // DI - 0xF3
     static DI(cpu: CPU) {
         cpu.gb.bus.interrupts.masterEnabled = false;
+
+        if (cpu.minDebug)
+            cpu.addToLog(`--- INTERRUPTS DISABLED ---`);
 
         // writeDebug("Disabled interrupts");
     }
@@ -56,6 +60,7 @@ class Ops {
     static STOP(cpu: CPU) {
         if (cpu.gb.prepareSpeedSwitch) {
             cpu.gb.doubleSpeed = !cpu.gb.doubleSpeed;
+            console.log("Speed switch");
         }
     }
 
