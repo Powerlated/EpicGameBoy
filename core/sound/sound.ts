@@ -105,6 +105,7 @@ export default class SoundChip {
                 this.clockEnvelopeNoise = 0;
             }
             this.clockEnvelopeMain -= CLOCK_ENVELOPE_STEPS;
+            this.tjsCheck();
         }
 
         // 4194304hz Divide by 32768 = 128hz
@@ -133,6 +134,7 @@ export default class SoundChip {
             // #endregion
 
             this.clockMain -= CLOCK_MAIN_STEPS;
+            this.tjsCheck();
         }
 
 
@@ -194,21 +196,27 @@ export default class SoundChip {
                     this.noise.update();
                 }
             }
-
-            // Update Tone.js
-            if (
-                this.pulse1.updated ||
-                this.pulse2.updated ||
-                this.wave.updated ||
-                this.noise.updated
-            ) {
-                this.tjs.step();
-                this.pulse1.updated = false;
-                this.pulse2.updated = false;
-                this.wave.updated = false;
-                this.noise.updated = false;
-            }
             this.clockLength -= CLOCK_LENGTH_STEPS;
+            this.tjsCheck();
+        }
+    }
+
+    tjsCheck() {
+        if (this.pulse1.updated) {
+            this.tjs.pulse1();
+            this.pulse1.updated = false;
+        }
+        if (this.pulse2.updated) {
+            this.tjs.pulse2();
+            this.pulse2.updated = false;
+        }
+        if (this.wave.updated) {
+            this.tjs.wave();
+            this.wave.updated = false;
+        }
+        if (this.noise.updated) {
+            this.tjs.noise();
+            this.noise.updated = false;
         }
     }
 
@@ -418,8 +426,10 @@ export default class SoundChip {
         this.wave = new WaveChannel();
         this.noise = new NoiseChannel();
 
-        this.tjs.step();
-
+        this.tjs.pulse1();
+        this.tjs.pulse2();
+        this.tjs.wave();
+        this.tjs.noise();
 
         this.clockMain = 0;
         this.clockEnvelopePulse1 = 0;

@@ -5,7 +5,7 @@ const widths = [0.5, 0, -0.5, -0.75]; // CORRECT
 // const widths = [0.75, 0.5, 0, 0.5]
 
 function convertVolume(v: number) {
-    const base = -12;
+    const base = -8;
     let mute = 0;
     if (v === 0) mute = -10000;
     return base + mute + (6 * Math.log(v / 16));
@@ -34,8 +34,10 @@ export default class ToneJsHandler {
     wavePan: Tone.Panner;
     waveVolume: Tone.Volume;
 
+
     noiseSrc: Tone.BufferSource;
     noiseVolume: Tone.Volume;
+    noisePan: Tone.Panner;
 
     masterVolume: Tone.Volume;
 
@@ -71,20 +73,15 @@ export default class ToneJsHandler {
         this.noiseSrc.loop = true;
         this.noiseVolume = new Tone.Volume();
         this.noiseVolume.mute = true;
+        this.noisePan = new Tone.Panner(0);
         this.noiseVolume.volume.value = -1000;
-        this.noiseSrc.chain(this.noiseVolume, Tone.Master);
+        this.noiseSrc.chain(this.noisePan, this.noiseVolume, Tone.Master);
         this.noiseSrc.start();
     }
 
-    step() {
-        // #endregion
-
-        // #region TONE.JS HANDLING
-
-        // frequencyHz check is for removing loud noises when frequency is zeroed
-
+    pulse1() {
         // Pulse 1
-        if (this.s.enabled && this.s.pulse1.enabled  && this.s.pulse1.dacEnabled && this.s.pulse1.frequencyLower !== 0) {
+        if (this.s.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
@@ -95,9 +92,11 @@ export default class ToneJsHandler {
         } else {
             this.pulseOsc1.mute = true;
         }
+    }
 
+    pulse2() {
         // Pulse 2
-        if (this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && this.s.pulse2.frequencyLower !== 0) {
+        if (this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
@@ -108,9 +107,10 @@ export default class ToneJsHandler {
         } else {
             this.pulseOsc2.mute = true;
         }
+    }
 
-        // Wave
-        if (this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled && this.s.wave.frequencyLower !== 0) {
+    wave() {
+        if (this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
                 this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
@@ -125,16 +125,6 @@ export default class ToneJsHandler {
             this.waveVolume.mute = true;
         }
 
-        // Noise
-        if (this.s.enabled && this.s.noise.enabled) {
-            if (this.s.noise.updated) {
-                this.noiseVolume.mute = false;
-                this.noiseVolume.volume.value = convertVolume(this.s.noise.volume);
-            }
-        } else {
-            this.noiseVolume.mute = true;
-        }
-
         if (this.s.wave.waveTableUpdated === true) {
             this.waveSrc.dispose();
 
@@ -145,6 +135,20 @@ export default class ToneJsHandler {
 
             this.s.wave.waveTableUpdated = false;
         }
+    }
+
+    noise() {
+        // Noise
+        if (this.s.enabled && this.s.noise.enabled) {
+            if (this.s.noise.updated) {
+                this.noiseVolume.mute = false;
+                this.noisePan.pan.value = this.s.noise.pan;
+                this.noiseVolume.volume.value = convertVolume(this.s.noise.volume);
+            }
+        } else {
+            this.noiseVolume.mute = true;
+        }
+
     }
 
     setMuted(muted: boolean) {
