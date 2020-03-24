@@ -236,6 +236,8 @@ class GPU {
     windowYpos = 0; // 0xFF4A
     windowXpos = 0; // 0xFF4B
 
+    currentWindowLine = 0;
+
     modeClock: number = 0;
     windowDrawn = false;
 
@@ -268,8 +270,9 @@ class GPU {
                     if (!this.windowDrawn && this.modeClock >= this.windowXpos) {
                         if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                             if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                                if (this.lcdControl.enableWindow____5) {
+                                if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                     this.renderer.renderWindow();
+                                    this.currentWindowLine++;
                                 }
                             }
                         }
@@ -348,6 +351,8 @@ class GPU {
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
                         this.lcdcY++;
+
+                        this.currentWindowLine = 0;
 
                         if (this.lcdcY === 153) {
                             this.lcdStatus.mode = 4;

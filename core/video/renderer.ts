@@ -89,7 +89,7 @@ export class GPURenderer {
 
     renderWindow() {
         const xPos = this.gpu.windowXpos - 7;
-        const y = (this.gpu.lcdcY - this.gpu.windowYpos) & 0b111; // CORRECT
+        const y = this.gpu.currentWindowLine & 0b111; // CORRECT
 
         // Make sure window is onscreen Y
         if (this.gpu.lcdcY >= this.gpu.windowYpos) {
@@ -97,7 +97,7 @@ export class GPURenderer {
 
             const mapBase = this.gpu.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
 
-            const mapIndex = (((this.gpu.lcdcY - this.gpu.windowYpos) >> 3) * 32) & 1023;
+            const mapIndex = ((this.gpu.currentWindowLine >> 3) * 32) & 1023;
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
             let attr = this.gpu.cgbTileAttrs[mapOffset];
