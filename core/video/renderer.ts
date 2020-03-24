@@ -2,11 +2,10 @@ import GPU, { colors555, OAMFlags, OAMEntry } from "./gpu";
 export class GPURenderer {
     gpu: GPU;
 
-    imageGameboyArr = new Uint8ClampedArray(160 * 144 * 4);
     imageGameboyPre = new Uint8Array(160 * 144);
     imageGameboyNoSprites = new Uint8Array(160 * 144);
-    imageGameboy = new ImageData(this.imageGameboyArr, 160, 144);
-    imageTilesetArr = new Uint8ClampedArray(256 * 96 * 4);
+    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4), 160, 144);
+    imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4), 256, 192);
 
 
     showBorders = false;
@@ -232,26 +231,48 @@ export class GPURenderer {
         }
     }
     // 160 x 144
-    /*  renderTiles() {
-         this.gpu.tileset.forEach((v1, i1) => {
-             v1.forEach((v2, i2) => {
-                 v2.forEach((pixel, i3) => {
-                     if (pixel === undefined) return;
- 
-                     const WIDTH = 256;
- 
-                     const x = ((i1 * 8) + i3) % WIDTH;
-                     const row = Math.floor(((i1 * 8) + i3) / WIDTH);
-                     const y = i2 + (row * 8);
- 
-                     const c = colors[this.gpu.bgPaletteData.shades[pixel]];
- 
-                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 0] = c[0];
-                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 1] = c[1];
-                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 2] = c[2];
-                     this.imageTilesetArr[4 * ((y * WIDTH) + x) + 3] = 0xFF; // 100% alpha
-                 });
-             });
-         });
-     } */
+    renderTiles() {
+        this.gpu.tileset0.forEach((v1, i1) => {
+            v1.forEach((v2, i2) => {
+                v2.forEach((pixel, i3) => {
+                    if (pixel === undefined) return;
+
+                    const WIDTH = 256;
+
+                    const x = ((i1 << 3) + i3) % WIDTH;
+                    const row = Math.floor(((i1 << 3) + i3) / WIDTH);
+                    const y = i2 + (row << 3);
+
+                    const c = this.gpu.cgbBgPalette.shades[0][pixel];
+
+                    let index = 4 * ((y * WIDTH) + x);
+
+                    this.imageTileset.data[index + 0] = c[0];
+                    this.imageTileset.data[index + 1] = c[1];
+                    this.imageTileset.data[index + 2] = c[2];
+                    this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
+                });
+            });
+        });
+        this.gpu.tileset1.forEach((v1, i1) => {
+            v1.forEach((v2, i2) => {
+                v2.forEach((pixel, i3) => {
+                    if (pixel === undefined) return;
+                    const WIDTH = 256;
+
+                    const x = ((i1 << 3) + i3) % WIDTH;
+                    const row = Math.floor(((i1 << 3) + i3) / WIDTH);
+                    const y = i2 + (row << 3);
+
+                    const c = this.gpu.cgbBgPalette.shades[0][pixel];
+
+                    let index = 4 * ((y * WIDTH) + x + (256 * 96));
+                    this.imageTileset.data[index + 0] = c[0];
+                    this.imageTileset.data[index + 1] = c[1];
+                    this.imageTileset.data[index + 2] = c[2];
+                    this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
+                });
+            });
+        });
+    }
 }
