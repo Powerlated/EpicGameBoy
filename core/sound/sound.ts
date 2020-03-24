@@ -139,14 +139,26 @@ export default class SoundChip {
         // 256 hz
         if (this.clockLength >= CLOCK_LENGTH_STEPS) {
             // #region TRIGGERS
-            if (this.pulse1.triggered) this.pulse1.trigger();
-            if (this.pulse2.triggered) this.pulse2.trigger();
-            if (this.wave.triggered) this.wave.trigger();
-            if (this.noise.triggered) this.noise.trigger();
-            this.pulse1.triggered = false;
-            this.pulse2.triggered = false;
-            this.wave.triggered = false;
-            this.noise.triggered = false;
+            if (this.pulse1.triggered) {
+                this.pulse1.trigger();
+                this.pulse1.triggered = false;
+                this.clockEnvelopePulse1 = 0;
+                this.clockPulse1FreqSweep = 0;
+            }
+            if (this.pulse2.triggered) {
+                this.pulse2.trigger();
+                this.pulse2.triggered = false;
+                this.clockEnvelopePulse2 = 0;
+            }
+            if (this.wave.triggered) {
+                this.wave.trigger();
+                this.wave.triggered = false;
+            }
+            if (this.noise.triggered) {
+                this.noise.trigger();
+                this.noise.triggered = false;
+                this.clockEnvelopeNoise = 0;
+            }
             // #endregion
 
             if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
