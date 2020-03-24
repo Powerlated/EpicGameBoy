@@ -270,7 +270,7 @@ class GPU {
                     if (!this.windowDrawn && this.modeClock >= this.windowXpos) {
                         if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                             if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                                if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
+                                if (this.lcdControl.enableWindow____5 && this.windowXpos < 160 && this.lcdcY >= this.windowYpos) {
                                     this.renderer.renderWindow();
                                     this.currentWindowLine++;
                                 }
