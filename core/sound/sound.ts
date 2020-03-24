@@ -149,45 +149,37 @@ export default class SoundChip {
             this.noise.triggered = false;
             // #endregion
 
-            if (this.pulse1.enabled) {
-                if (this.pulse1.lengthCounter > 0) {
-                    this.pulse1.lengthCounter--;
-                    if (this.pulse1.lengthCounter === 0 && this.pulse1.lengthEnable) {
-                        writeDebug("PULSE 1 length become 0");
-                        this.pulse1.enabled = false;
-                        this.pulse1.update();
-                    }
+            if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
+                this.pulse1.lengthCounter--;
+                if (this.pulse1.lengthCounter === 0) {
+                    writeDebug("PULSE 1 length become 0");
+                    this.pulse1.enabled = false;
+                    this.pulse1.update();
                 }
             }
 
-            if (this.pulse2.enabled) {
-                if (this.pulse2.lengthCounter > 0) {
-                    this.pulse2.lengthCounter--;
-                    if (this.pulse2.lengthCounter === 0 && this.pulse2.lengthEnable) {
-                        this.pulse2.enabled = false;
-                        this.pulse2.update();
-                    }
+            if (this.pulse2.lengthCounter > 0 && this.pulse2.lengthEnable) {
+                this.pulse2.lengthCounter--;
+                if (this.pulse2.lengthCounter === 0) {
+                    this.pulse2.enabled = false;
+                    this.pulse2.update();
                 }
             }
 
             // TODO: Wave length isn't working in some way or another
-            if (this.wave.enabled) {
-                if (this.wave.lengthCounter > 0) {
-                    this.wave.lengthCounter--;
-                    if (this.wave.lengthCounter === 0 && this.wave.lengthEnable) {
-                        this.wave.enabled = false;
-                        this.wave.update();
-                    }
+            if (this.wave.lengthCounter > 0 && this.wave.lengthEnable) {
+                this.wave.lengthCounter--;
+                if (this.wave.lengthCounter === 0) {
+                    this.wave.enabled = false;
+                    this.wave.update();
                 }
             }
 
-            if (this.noise.enabled) {
-                if (this.noise.lengthCounter > 0) {
-                    this.noise.lengthCounter--;
-                    if (this.noise.lengthCounter === 0 && this.noise.lengthEnable) {
-                        this.noise.enabled = false;
-                        this.noise.update();
-                    }
+            if (this.noise.lengthCounter > 0 && this.noise.lengthEnable) {
+                this.noise.lengthCounter--;
+                if (this.noise.lengthCounter === 0) {
+                    this.noise.enabled = false;
+                    this.noise.update();
                 }
             }
 

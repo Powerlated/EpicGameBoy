@@ -61,13 +61,12 @@ export class PulseChannel implements BasicChannel {
     }
 
     trigger() {
-        this.enabled = true;
         if (this.lengthCounter === 0) {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
-        if (!this.dacEnabled) {
-            this.enabled = false;
+        if (this.dacEnabled) {
+            this.enabled = true;
         }
         this.update();
     }
@@ -148,12 +147,11 @@ export class WaveChannel implements BasicChannel {
     }
 
     trigger() {
-        this.enabled = true;
         if (this.lengthCounter === 0) {
             this.lengthCounter = 256;
         }
-        if (!this.dacEnabled) {
-            this.enabled = false;
+        if (this.dacEnabled) {
+            this.enabled = true;
         }
         this.update();
     }
