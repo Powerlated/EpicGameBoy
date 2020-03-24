@@ -255,7 +255,7 @@ class GPU {
 
                         // Render BG at the beginning of Mode 3
                         if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                            if (this.lcdControl.bgWindowEnable0) {
+                            if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                                 this.renderer.renderBg();
                             }
                         }
@@ -267,7 +267,7 @@ class GPU {
                     // Delay window rendering based on its X position
                     if (!this.windowDrawn && this.modeClock >= this.windowXpos) {
                         if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                            if (this.lcdControl.bgWindowEnable0) {
+                            if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                                 if (this.lcdControl.enableWindow____5) {
                                     this.renderer.renderWindow();
                                 }

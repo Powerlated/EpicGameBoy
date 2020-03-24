@@ -122,9 +122,6 @@ export class GPURenderer {
                     const adjY = attr.yFlip ? 7 - y : y;
                     const prePalette = tileset[tile + tileOffset][adjY][adjX];
                     let pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
-                    // Re-map the tile pixel through the palette
-
-                    if (!this.gpu.lcdControl.bgWindowEnable0) pixel = new Uint8Array([0xFF, 0xFF, 0xFF]);
 
                     // Plot the pixel to canvas
                     this.imageGameboy.data[canvasIndex + 0] = pixel[0];
