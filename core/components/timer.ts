@@ -2,7 +2,7 @@ import GameBoy from "../gameboy";
 import { hex } from "../../src/gameboy/tools/util";
 
 export default class Timer {
-    static TimerSpeeds = [1024, 16, 64, 256]; // In terms of 262144hz division 
+    static TimerSpeeds = [1024, 16, 64, 256]; // In terms of 4194304hz division 
 
     gb: GameBoy;
 
@@ -33,37 +33,36 @@ export default class Timer {
      */
     step() {
         // Get the mtime
-        const BASE = 16;
+        this.c.internal++;
+        if (this.c.internal >= 256) {
+            this.divider++;
+            this.divider &= 0xFF;
+            this.c.internal -= 256;
+        }
 
-        for (let i = 0; i < this.gb.cpu.lastInstructionCycles; i++) {
-            this.c.internal++;
-            if (this.c.internal >= 256) {
-                this.divider++;
-                this.divider &= 0xFF;
-                this.c.internal = 0;
+        this.c.mainClock += this.gb.cpu.lastInstructionCycles;
+        if (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
+            if (this.control.running && this.counterOverflowTtime === 0) {
+                this.counter++;
             }
+            this.c.mainClock -= Timer.TimerSpeeds[this.control.speed];
+        }
 
-            this.c.mainClock++; this.c.mainClock &= 0xFFFF;
-            if (this.c.mainClock % Timer.TimerSpeeds[this.control.speed] === 0) {
-                if (this.control.running && this.counterOverflowTtime === 0) {
-                    this.counter++;
-                }
-            }
+        if (this.counter >= 256) {
+            this.counterOverflowTtime = 4;
+            this.counter -= 256;
+        }
 
-            if (this.counter >= 256) {
-                this.counterOverflowTtime = 4;
-                this.counter = 0;
+        if (this.counterOverflowTtime > 0) {
+            if (this.counterOverflowTtime === 1) {
+                this.counter = this.modulo;
+                this.gb.bus.interrupts.requestTimer();
             }
-
-            if (this.counterOverflowTtime > 0) {
-                if (this.counterOverflowTtime === 1) {
-                    this.counter = this.modulo;
-                    this.gb.bus.interrupts.requestTimer();
-                }
-                this.counterOverflowTtime--;
-            }
+            this.counterOverflowTtime--;
         }
     }
+
+    
 
     reset() {
         this.divider = 0;
@@ -119,5 +118,6 @@ export default class Timer {
     set addr_0xFF07(i: number) {
         this.control.speed = i & 0b11; // Bits 0-1
         this.control.running = (i >> 2) !== 0; // Bit 2
+        this.c.mainClock = 0;
     }
 }
