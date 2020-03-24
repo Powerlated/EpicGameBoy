@@ -42,11 +42,9 @@ export default class SoundChip {
     }
 
     step() {
-        if (this.gb.cpu.cycles % this.gb.speedMul !== 0) return;
         if (!this.enabled) return;
 
         // #region CLOCK
-
         this.clockLength += this.gb.cpu.lastInstructionCycles;
         this.clockMain += this.gb.cpu.lastInstructionCycles;
         this.clockEnvelopeMain += this.gb.cpu.lastInstructionCycles;
@@ -106,7 +104,7 @@ export default class SoundChip {
                 }
                 this.clockEnvelopeNoise = 0;
             }
-            this.clockEnvelopeMain = 0;
+            this.clockEnvelopeMain -= CLOCK_ENVELOPE_STEPS;
         }
 
         // 4194304hz Divide by 32768 = 128hz
@@ -134,8 +132,9 @@ export default class SoundChip {
 
             // #endregion
 
-            this.clockMain = 0;
+            this.clockMain -= CLOCK_MAIN_STEPS;
         }
+
 
         // 256 hz
         if (this.clockLength >= CLOCK_LENGTH_STEPS) {
@@ -205,7 +204,7 @@ export default class SoundChip {
                 this.wave.updated = false;
                 this.noise.updated = false;
             }
-            this.clockLength = 0;
+            this.clockLength -= CLOCK_LENGTH_STEPS;
         }
     }
 
@@ -232,6 +231,7 @@ export default class SoundChip {
                 this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse1.volumeEnvelopeSweep = value & 0b111;
+                this.pulse1.dacEnabled = (value & 0b11111000) != 0;
                 this.pulse1.update();
                 break;
             case 0xFF13: // NR13 Low bits
@@ -256,6 +256,7 @@ export default class SoundChip {
                 this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse2.volumeEnvelopeSweep = value & 0b111;
+                this.pulse2.dacEnabled = (value & 0b11111000) != 0;
                 this.pulse2.update();
                 break;
             case 0xFF18: // NR23
@@ -272,7 +273,7 @@ export default class SoundChip {
 
             // Wave
             case 0xFF1A: // NR30
-                this.wave.enabled = ((value >> 7) & 1) !== 0;
+                this.wave.dacEnabled = (value & 0x80) !== 0;
                 this.wave.update();
                 break;
             case 0xFF1B: // NR31
@@ -359,7 +360,7 @@ export default class SoundChip {
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
             let i = this.soundRegisters[addr];
 
-            if (addr >= 0xFF27 && addr <= 0xFF2F) i = 0xFF;
+            if (addr >= 0xFF27 && addr <= 0xFF2F) return 0xFF;
 
             if (addr === 0xFF26) { // NR52
                 i = 0;

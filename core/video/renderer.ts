@@ -15,20 +15,6 @@ export class GPURenderer {
         this.gpu = gpu;
     }
 
-    // TODO: Implement background transparency
-    renderScanline() {
-        // writeDebug("Rendering a scanline @ SCROLL Y:" + this.gpu.scrY);
-        if (this.gpu.lcdControl.bgWindowEnable0) {
-            this.renderBg();
-            if (this.gpu.lcdControl.enableWindow____5) {
-                this.renderWindow();
-            }
-        }
-
-        if (this.gpu.lcdControl.spriteDisplay___1) {
-            this.renderSprites();
-        }
-    }
 
     renderBg() {
         const y = (this.gpu.lcdcY + this.gpu.scrY) & 0b111; // CORRECT

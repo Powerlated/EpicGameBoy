@@ -13,6 +13,7 @@ export class PulseChannel implements BasicChannel {
     enabled = false;
 
     width = 3;
+    dacEnabled = false;
 
     lengthEnable = false;
     lengthCounter = 0;
@@ -65,7 +66,9 @@ export class PulseChannel implements BasicChannel {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
-        this.enabled = true;
+        if (!this.dacEnabled) {
+            this.enabled = false;
+        }
         this.update();
     }
 
@@ -75,6 +78,8 @@ export class PulseChannel implements BasicChannel {
 
 export class WaveChannel implements BasicChannel {
     enabled = false;
+
+    dacEnabled = false;
 
     lengthEnable = true;
     lengthCounter = 0;
@@ -86,7 +91,7 @@ export class WaveChannel implements BasicChannel {
     volume = 0;
     oldVolume = 0;
 
-    waveTable: Array<number> = new Array(32).fill(0);
+    waveTable: Array<number> = [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF];
     waveTableUpdated = false;
 
     restartSound = false;
@@ -147,7 +152,9 @@ export class WaveChannel implements BasicChannel {
         if (this.lengthCounter === 0) {
             this.lengthCounter = 256;
         }
-        this.enabled = true;
+        if (!this.dacEnabled) {
+            this.enabled = false;
+        }
         this.update();
     }
 
