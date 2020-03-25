@@ -402,12 +402,13 @@ class GPU {
         this.gb = gb;
     }
 
-    scanned: OAMEntry[] = [];
+    scannedEntries: OAMEntry[] = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags(0)));
+    scannedEntriesCount = 0;
 
     scanOAM() {
-        this.scanned = [];
+        this.scannedEntriesCount = 0;
         // OAM Scan, maximum of 10 sprites
-        for (let sprite = 0; sprite < 40 && this.scanned.length < 10; sprite++) {
+        for (let sprite = 0; sprite < 40 && this.scannedEntriesCount < 10; sprite++) {
             const base = sprite * 4;
 
             let yPos = this.oam[base + 0];
@@ -423,8 +424,14 @@ class GPU {
             let screenXPos = xPos - 8;
 
             // Push sprite to scanned if it is on the current scanline
-            if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT)
-                this.scanned.push(new OAMEntry(yPos, xPos, tile, new OAMFlags(this.oam[base + 3])));
+            if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT) {
+                let entry = this.scannedEntries[this.scannedEntriesCount];
+                entry.xPos = xPos;
+                entry.yPos = yPos;
+                entry.tile = tile;
+                entry.flags.numerical = this.oam[base + 3];
+                this.scannedEntriesCount++;
+            }
         }
     }
 
