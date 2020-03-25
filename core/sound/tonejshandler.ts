@@ -5,7 +5,7 @@ const widths = [0.5, 0, -0.5, -0.75]; // CORRECT
 // const widths = [0.75, 0.5, 0, 0.5]
 
 function convertVolume(v: number) {
-    const base = -8;
+    const base = -12;
     let mute = 0;
     if (v === 0) mute = -10000;
     return base + mute + (6 * Math.log(v / 16));

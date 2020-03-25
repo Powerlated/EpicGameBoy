@@ -403,48 +403,46 @@ export default class CPU {
     executeInstruction() {
         const c = this.cycles;
 
-        const pcTriplet = Uint8Array.of
-            (
-                this.gb.bus.readMem8(this.pc + 0),
-                this.gb.bus.readMem8(this.pc + 1),
-                this.gb.bus.readMem8(this.pc + 2)
-            );
-        const isCB = pcTriplet[0] === 0xCB;
+        const b0 = this.gb.bus.readMem8(this.pc + 0);
+        const b1 = this.gb.bus.readMem8(this.pc + 1);
+        const b2 = this.gb.bus.readMem8(this.pc + 2);
+
+        const isCB = b0 === 0xCB;
 
         if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
         // Lookup decoded
-        const ins = isCB ? this.opCacheCb[pcTriplet[1]] : this.opCacheRg[pcTriplet[0]];
+        const ins = isCB ? this.opCacheCb[b1] : this.opCacheRg[b0];
         this.cycles += 4; // Decoding time penalty
 
         if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
-        if (this.minDebug) {
-            if (Disassembler.isControlFlow(ins)) {
-                if (Disassembler.willJump(ins, this)) {
-                    const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
-                    const to = Disassembler.willJumpTo(ins, pcTriplet, this);
-                    this.addToLog(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
-                }
-            }
-        }
+        // if (this.minDebug) {
+        //     if (Disassembler.isControlFlow(ins)) {
+        //         if (Disassembler.willJump(ins, this)) {
+        //             const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
+        //             const to = Disassembler.willJumpTo(ins, pcTriplet, this);
+        //             this.addToLog(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
+        //         }
+        //     }
+        // }
 
         if (ins.type !== undefined) {
             if (ins.length === 3) {
-                ins.op(this, ins.type, pcTriplet[2] << 8 | pcTriplet[1]);
+                ins.op(this, ins.type, (b2 << 8) | b1);
                 this.cycles += 8;
             } else if (ins.length === 2 && (ins.type2 === undefined)) {
-                ins.op(this, ins.type, pcTriplet[1]);
+                ins.op(this, ins.type, b1);
                 this.cycles += 4;
             } else {
                 ins.op(this, ins.type, ins.type2);
             }
         } else {
             if (ins.length === 3) {
-                ins.op(this, pcTriplet[2] << 8 | pcTriplet[1]);
+                ins.op(this, (b2 << 8) | b1);
                 this.cycles += 8;
             } else if (ins.length === 2) {
-                ins.op(this, pcTriplet[1]);
+                ins.op(this, b1);
                 this.cycles += 4;
             } else {
                 ins.op(this);
@@ -459,25 +457,24 @@ export default class CPU {
         this.lastInstructionCycles = this.cycles - c;
 
         // Checking for proper timings below here
-        return;
 
-        let success = true;
+        // let success = true;
 
-        if (!isCB) {
-            if (!Disassembler.isControlFlow(ins)) {
-                if (!(ins.op == Ops.HALT || ins.op == Ops.STOP)) {
-                    success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[pcTriplet[0]] * 4, "CPU timing");
-                }
-            }
-        } else {
-            success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[pcTriplet[1]] * 4, "[CB] CPU timing");
-        }
+        // if (!isCB) {
+        //     if (!Disassembler.isControlFlow(ins)) {
+        //         if (!(ins.op == Ops.HALT || ins.op == Ops.STOP)) {
+        //             success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[pcTriplet[0]] * 4, "CPU timing");
+        //         }
+        //     }
+        // } else {
+        //     success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[pcTriplet[1]] * 4, "[CB] CPU timing");
+        // }
 
-        if (success == false) {
-            console.log(Disassembler.disassembleOp(ins, pcTriplet, this));
-            console.log(`Offset: ${ins.cyclesOffset}`);
-            this.gb.speedStop();
-        }
+        // if (success == false) {
+        //     console.log(Disassembler.disassembleOp(ins, pcTriplet, this));
+        //     console.log(`Offset: ${ins.cyclesOffset}`);
+        //     this.gb.speedStop();
+        // }
 
         // this.opcodesRan.add(pcTriplet[0]);
     }
@@ -496,22 +493,22 @@ export default class CPU {
             if (happened.vblank && enabled.vblank) {
                 happened.vblank = false;
 
-                if (this.minDebug)
-                    this.addToLog(`--- VBLANK INTERRUPT ---`);
+                // if (this.minDebug)
+                //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
                 this.jumpToInterrupt(VBLANK_VECTOR);
             } else if (happened.lcdStat && enabled.lcdStat) {
                 happened.lcdStat = false;
 
-                if (this.minDebug)
-                    this.addToLog(`--- LCDSTAT INTERRUPT ---`);
+                // if (this.minDebug)
+                //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
                 this.jumpToInterrupt(LCD_STATUS_VECTOR);
             } else if (happened.timer && enabled.timer) {
                 happened.timer = false;
 
-                if (this.minDebug)
-                    this.addToLog(`--- TIMER INTERRUPT ---`);
+                // if (this.minDebug)
+                //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
                 this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
             } else if (happened.serial && enabled.serial) {

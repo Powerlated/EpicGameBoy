@@ -28,7 +28,7 @@ export default class GameBoy {
     constructor(cgb: boolean) {
         writeDebug("New gameboy!");
         this.cgb = cgb;
-        setInterval(() => { this.bus.ext.saveGameSram(); }, 1000);
+        setInterval(() => { this.bus.ext.saveGameSram(); }, 100);
     }
 
     step() {

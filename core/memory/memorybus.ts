@@ -82,7 +82,7 @@ class MemoryBus {
 
         // ROM Write (MBC Control)
         if (addr >= 0x0000 && addr <= 0x7FFF) {
-            this.ext.write(addr, value);
+            this.ext.mbc.write(addr, value);
             return;
         }
 
@@ -100,7 +100,7 @@ class MemoryBus {
 
         // Write from External RAM through External Bus
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            this.ext.write(addr, value);
+            this.ext.mbc.write(addr, value);
             return;
         }
 
@@ -194,7 +194,7 @@ class MemoryBus {
 
         // Read from ROM through External Bus
         if (addr <= 0x7FFF) {
-            return this.ext.read(addr);
+            return this.ext.mbc.read(addr);
         }
 
         // Echo RAM
@@ -211,7 +211,7 @@ class MemoryBus {
 
         // Read from External RAM through External Bus
         if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.ext.read(addr);
+            return this.ext.mbc.read(addr);
         }
 
         // Read from High RAM

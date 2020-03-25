@@ -19,15 +19,7 @@ export default class ExternalBus {
         this.gb = gb;
         this.mbc = new NullMBC(this);
     }
-
-    read(addr: number): number {
-        return this.mbc.read(addr);
-    }
-
-    write(addr: number, value: number) {
-        this.mbc.write(addr, value);
-    }
-
+    
     replaceRom(rom: Uint8Array) {
         console.info("Replaced ROM");
         this.rom.forEach((v, i, a) => {

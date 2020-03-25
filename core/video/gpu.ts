@@ -387,6 +387,9 @@ class GPU {
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
                         this.lcdStatus.mode = 2;
+                        if (this.lcdStatus.mode2OamInterrupt_____5) {
+                            this.gb.bus.interrupts.requestLCDstatus();
+                        }
                         this.scanOAM();
                     }
                     break;
@@ -564,7 +567,7 @@ class GPU {
         for (let i = 0; i < 0xA0; i++) {
             // If $FE00, read from external bus 
             if (startAddr === 0xFE00) {
-                this.oam[i] = this.gb.bus.ext.read(startAddr + i);
+                this.oam[i] = this.gb.bus.ext.mbc.read(startAddr + i);
             } else { // General bus read
                 this.oam[i] = this.gb.bus.readMem8(startAddr + i);
             }
