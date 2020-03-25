@@ -6,11 +6,14 @@ import { writeDebug } from '../src/gameboy/tools/debug';
 import SoundChip from './sound/sound';
 import Timer from './components/timer';
 import Decoder from './cpu/decoder';
+import { DMAController } from './memory/dma';
 
 export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
+
+    dma = new DMAController(this);
 
     cgb = false;
     doubleSpeed = false;
@@ -103,6 +106,7 @@ export default class GameBoy {
         this.bus.reset();
         this.timer.reset();
         this.soundChip.reset();
+        this.dma.reset();
 
         this.doubleSpeed = false;
         this.prepareSpeedSwitch = false;

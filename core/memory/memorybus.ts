@@ -26,8 +26,6 @@ const INTERRUPT_ENABLE_FLAGS_ADDR = 0xFFFF;
 
 class MemoryBus {
     gb: GameBoy;
-    cpu: CPU;
-    gpu: GPU;
 
     ext: ExternalBus;
 
@@ -46,8 +44,6 @@ class MemoryBus {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
-        this.cpu = gb.cpu;
-        this.gpu = gb.gpu;
         this.ext = new ExternalBus(this.gb);
     }
 
@@ -125,20 +121,21 @@ class MemoryBus {
         // Write to VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
             // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
-            this.gpu.write(addr, value);
+            this.gb.gpu.write(addr, value);
             return;
         }
 
         // Write to OAM
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
-            this.gpu.oam[addr - 0xFE00] = value;
+            this.gb.gpu.oam[addr - 0xFE00] = value;
             writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
             return;
         }
 
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            this.gpu.writeHwio(addr, value);
+            this.gb.gpu.writeHwio(addr, value);
+            this.gb.dma.writeHwio(addr, value);
             this.gb.soundChip.writeHwio(addr, value);
             switch (addr) {
                 case 0xFF00: // Joypad write
@@ -221,12 +218,12 @@ class MemoryBus {
 
         // Return from VRAM
         if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
-            return this.gpu.read(addr);
+            return this.gb.gpu.read(addr);
         }
 
         // Read from OAM
         if (addr >= 0xFE00 && addr <= 0xFE9F) {
-            return this.gpu.oam[addr - 0xFE00];
+            return this.gb.gpu.oam[addr - 0xFE00];
         }
 
         // GET Interrupt request flags
@@ -241,9 +238,11 @@ class MemoryBus {
         // Hardware I/O registers
         if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             let val;
-            val = this.gpu.readHwio(addr);
+            val = this.gb.gpu.readHwio(addr);
             if (val != undefined) return val;
             val = this.gb.soundChip.readHwio(addr);
+            if (val != undefined) return val;
+            val = this.gb.dma.readHwio(addr);
             if (val != undefined) return val;
             switch (addr) {
                 case 0xFF00: // Joypad read
