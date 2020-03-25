@@ -244,10 +244,20 @@ class GPU {
     windowDrawn = false;
     oamScanned = false;
 
+    // Interrupt levels
+    lcdStatusMode0 = false;
+    lcdStatusMode1 = false;
+    lcdStatusMode2 = false;
+    lcdStatusCoincidence = false;
+
+    lcdStatusConditionMet = false;
+    lcdStatusFired = false;
+
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
         // TODO: FIX: THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
         // You don't have to be cycle-accurate for everything
+
 
         if (this.lcdControl.lcdDisplayEnable7) {
             this.modeClock += this.gb.cpu.lastInstructionCycles;
@@ -281,12 +291,12 @@ class GPU {
                         this.windowDrawn = true;
                     }
 
-                    if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                            if (this.bgDrawn == false) {
+                    if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                        if (this.bgDrawn == false) {
+                            if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                 this.renderer.renderBg();
-                                this.bgDrawn = true;
                             }
+                            this.bgDrawn = true;
                         }
                     }
 
@@ -316,9 +326,6 @@ class GPU {
                             this.hDmaCompleted = true;
                         }
 
-                        if (this.lcdStatus.mode0HblankInterrupt__3) {
-                            this.gb.bus.interrupts.requestLCDstatus();
-                        }
                     }
                     break;
 
@@ -327,35 +334,26 @@ class GPU {
                     if (this.modeClock >= 204) {
                         this.modeClock -= 204;
                         this.lcdcY++;
-                        this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
-                        if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
-                            // writeDebug("Coincidence");
-                            this.gb.bus.interrupts.requestLCDstatus();
-                        }
 
-                        // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
-                        if (this.lcdcY >= 144) {
-                            // If we're at LCDCy = 144, enter Vblank
-                            this.lcdStatus.mode = 1;
+                        if (this.lcdcY === 144) {
                             // Fire the Vblank interrupt
                             this.gb.bus.interrupts.requestVblank();
-                            this.totalFrameCount++;
-
-                            if (this.lcdStatus.mode1VblankInterrupt__4) {
-                                this.gb.bus.interrupts.requestLCDstatus();
-                            }
-
                             // Draw to the canvas
                             if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                 this.renderer.gpu.canvas.drawGameboy();
                             }
                         }
+
+                        // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
+                        if (this.lcdcY > 144) {
+                            // If we're at LCDCy = 144, enter Vblank
+                            this.lcdStatus.mode = 1;
+                            this.totalFrameCount++;
+                        }
                         else {
                             // Enter back into OAM mode if not Vblank
                             this.lcdStatus.mode = 2;
-                            if (this.lcdStatus.mode2OamInterrupt_____5) {
-                                this.gb.bus.interrupts.requestLCDstatus();
-                            }
+
                         }
                     }
                     break;
@@ -377,22 +375,38 @@ class GPU {
                 // Between Line 153 and Line 0
                 case 4:
                     if (this.modeClock >= 4) {
-                        this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
-                        if (this.lYCompare === this.lcdcY && this.lcdStatus.lyCoincidenceInterrupt6) {
-                            this.gb.bus.interrupts.requestLCDstatus();
-                        }
-
                         this.lcdcY = 0;
                     }
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
                         this.lcdStatus.mode = 2;
-                        if (this.lcdStatus.mode2OamInterrupt_____5) {
-                            this.gb.bus.interrupts.requestLCDstatus();
-                        }
                         this.scanOAM();
                     }
                     break;
+            }
+
+            this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
+            this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 && this.lYCompare === this.lcdcY;
+            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 && this.lcdStatus.mode === 0;
+            if (this.lcdStatus.mode === 4 && this.modeClock >= 100 && this.lcdStatus.mode2OamInterrupt_____5) this.lcdStatusMode2 = true;
+            if (this.lcdcY === 144 && this.lcdStatus.mode2OamInterrupt_____5) this.lcdStatusMode2 = true;
+            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 && this.lcdStatus.mode === 1;
+            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 && this.lcdStatus.mode === 2;
+
+            if ((this.lcdStatusMode0 ||
+                this.lcdStatusMode1 ||
+                this.lcdStatusMode2 ||
+                this.lcdStatusCoincidence)
+            ) {
+                this.lcdStatusConditionMet = true;
+            } else {
+                this.lcdStatusConditionMet = false;
+                this.lcdStatusFired = false;
+            }
+
+            if (!this.lcdStatusFired && this.lcdStatusConditionMet) {
+                this.gb.bus.interrupts.requestLCDstatus();
+                this.lcdStatusFired = true;
             }
         } else {
             this.modeClock = 0;
@@ -720,7 +734,9 @@ class GPU {
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.numerical = value;
-                this.gb.bus.interrupts.requestLCDstatus();
+                if (!this.gb.cgb) {
+                    this.gb.bus.interrupts.requestLCDstatus();
+                }
                 break;
             case 0xFF42:
                 this.scrY = value;
