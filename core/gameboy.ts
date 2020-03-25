@@ -16,6 +16,9 @@ export default class GameBoy {
     doubleSpeed = false;
     prepareSpeedSwitch = false;
 
+    cpuPausedNormalSpeedMcycles = 0;
+    oamDmaNormalMCyclesRemaining = 0;
+
     soundChip = new SoundChip(this);
 
     stopNow = true;
@@ -29,16 +32,32 @@ export default class GameBoy {
     }
 
     step() {
-        this.cpu.step();
+        if (this.cpuPausedNormalSpeedMcycles == 0) {
+            this.handleCpu();
+        } else {
+            this.cpu.lastInstructionCycles = 4;
+            this.cpuPausedNormalSpeedMcycles--;
+        }
         this.timer.step();
 
         if (this.doubleSpeed) {
-            this.cpu.step();
+            if (this.cpuPausedNormalSpeedMcycles == 0) {
+                this.handleCpu();
+            } else {
+                this.cpu.lastInstructionCycles = 4;
+            }
             this.timer.step();
         }
 
         this.soundChip.step();
         this.gpu.step();
+    }
+
+    handleCpu() {
+        this.cpu.step();
+        if (this.oamDmaNormalMCyclesRemaining > 0) {
+            this.oamDmaNormalMCyclesRemaining -= (this.cpu.lastInstructionCycles >> 2);
+        }
     }
 
     speedMul = 1;

@@ -1,6 +1,8 @@
 import GameBoy from "../gameboy";
 import GPUCanvas from "./canvas";
 import { GPURenderer } from "./renderer";
+import { TickSignal } from "tone";
+import { hex } from "../../src/gameboy/tools/util";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -69,7 +71,6 @@ class LCDStatusRegister {
         this.mode2OamInterrupt_____5 = (i & (1 << 5)) !== 0;
         this.mode1VblankInterrupt__4 = (i & (1 << 4)) !== 0;
         this.mode0HblankInterrupt__3 = (i & (1 << 3)) !== 0;
-        this.coincidenceFlag_______2 = (i & (1 << 2)) !== 0;
 
         // this.mode = i & 0b11; // this is read only when numerically setting
     }
@@ -239,7 +240,9 @@ class GPU {
     currentWindowLine = 0;
 
     modeClock: number = 0;
+    bgDrawn = false;
     windowDrawn = false;
+    oamScanned = false;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
@@ -252,31 +255,39 @@ class GPU {
                 // Read from OAM - Scanline active
                 case 2:
                     if (this.modeClock >= 80) {
+                        if (this.oamScanned == false) {
+                            this.scanOAM();
+                            this.oamScanned = true;
+                        }
+
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
-
-                        // Render BG at the beginning of Mode 3
-                        if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                            if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                                this.renderer.renderBg();
-                            }
-                        }
                     }
                     break;
 
                 // Read from VRAM - Scanline active
                 case 3:
                     // Delay window rendering based on its X position
-                    if (!this.windowDrawn && this.modeClock >= this.windowXpos) {
-                        if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                            if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                                if (this.lcdControl.enableWindow____5 && this.windowXpos < 160 && this.lcdcY >= this.windowYpos) {
+                    if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
+                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                            // Only IF the window is onscreen
+                            if (this.lcdControl.enableWindow____5 && this.windowXpos < 160 && this.lcdcY >= this.windowYpos) {
+                                if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                     this.renderer.renderWindow();
-                                    this.currentWindowLine++;
                                 }
+                                this.currentWindowLine++;
                             }
                         }
                         this.windowDrawn = true;
+                    }
+
+                    if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                            if (this.bgDrawn == false) {
+                                this.renderer.renderBg();
+                                this.bgDrawn = true;
+                            }
+                        }
                     }
 
                     if (this.modeClock >= 172) {
@@ -289,13 +300,17 @@ class GPU {
                                 this.renderer.renderSprites();
                             }
                         }
+
+                        this.oamScanned = false;
+                        this.bgDrawn = false;
                         this.windowDrawn = false;
 
                         if (this.hDmaRemaining > 0 && !this.hDmaPaused) {
-                            this.newDma(this.hDmaSourceAt, this.hDmaDestAt + 0x8000, 16);
+                            this.newDma(this.hDmaSourceAt, this.hDmaDestAt, 16);
                             this.hDmaSourceAt += 16;
                             this.hDmaDestAt += 16;
                             this.hDmaRemaining -= 16;
+                            this.gb.cpuPausedNormalSpeedMcycles += 2;
                         } else {
                             this.hDmaRemaining = 0;
                             this.hDmaCompleted = true;
@@ -338,7 +353,6 @@ class GPU {
                         else {
                             // Enter back into OAM mode if not Vblank
                             this.lcdStatus.mode = 2;
-                            this.scanOAM();
                             if (this.lcdStatus.mode2OamInterrupt_____5) {
                                 this.gb.bus.interrupts.requestLCDstatus();
                             }
@@ -426,7 +440,6 @@ class GPU {
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return;
-
         let adjIndex = index - 0x8000;
 
         this.vram[adjIndex] = value;
@@ -539,6 +552,7 @@ class GPU {
 
     // Source must be < 0xA000
     oamDma(startAddr: number) {
+        this.gb.oamDmaNormalMCyclesRemaining = 160;
         // writeDebug(`OAM DMA @ ${hex(startAddr, 4)}`);
         for (let i = 0; i < 0xA0; i++) {
             // If $FE00, read from external bus 
@@ -562,7 +576,7 @@ class GPU {
     newDmaDestHigh = 0;
 
     get newDmaDest() {
-        return (this.newDmaDestHigh << 8) | this.newDmaDestLow;
+        return ((this.newDmaDestHigh << 8) | this.newDmaDestLow) | 0x8000;
     }
 
     newDmaLength = 0;
@@ -571,6 +585,8 @@ class GPU {
     hDmaDestAt = 0;
     hDmaCompleted = false;
     hDmaPaused = false;
+
+    gDmaCompleted = false;
 
     newDma(startAddr: number, destination: number, length: number) {
         for (let i = 0; i < length; i++) {
@@ -618,11 +634,11 @@ class GPU {
                 if (this.gb.cgb) return this.newDmaDestHigh;
                 break;
             case 0xFF54:
-                if (this.gb.cgb) return this.newDmaDestLow;
+                if (this.gb.cgb) return 0xFF;
                 break;
             case 0xFF55:
                 if (this.gb.cgb) {
-                    if (this.hDmaCompleted) {
+                    if (this.hDmaCompleted || this.gDmaCompleted) {
                         return 0xFF;
                     }
                     else {
@@ -667,8 +683,8 @@ class GPU {
         let upper = (cv >> 8) & 0xFF;
         let lower = cv & 0xFF;
 
-        this.cgbBgPalette.data[i + 0] = lower;
         this.cgbBgPalette.data[i + 1] = upper;
+        this.cgbBgPalette.data[i + 0] = lower;
 
         this.cgbBgPalette.update();
     }
@@ -694,6 +710,7 @@ class GPU {
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.numerical = value;
+                this.gb.bus.interrupts.requestLCDstatus();
                 break;
             case 0xFF42:
                 this.scrY = value;
@@ -745,8 +762,10 @@ class GPU {
                 if (this.gb.cgb) {
                     this.vramBank = (value & 1);
                     if (this.vramBank === 1) {
+                        // console.log("VRAM BANK -> 1");
                         this.vram = this.vram1;
                     } else {
+                        // console.log("VRAM BANK -> 0");
                         this.vram = this.vram0;
                     }
                 }
@@ -758,7 +777,7 @@ class GPU {
                 if (this.gb.cgb) this.newDmaSourceLow = value & 0xF0;
                 break;
             case 0xFF53:
-                if (this.gb.cgb) this.newDmaDestHigh = value;
+                if (this.gb.cgb) this.newDmaDestHigh = value & 0x1F;
                 break;
             case 0xFF54:
                 if (this.gb.cgb) this.newDmaDestLow = value & 0xF0;
@@ -768,16 +787,23 @@ class GPU {
                     this.newDmaLength = ((value & 127) + 1) << 4;
                     let newDmaHblank = ((value >> 7) & 1) !== 0;
                     if (newDmaHblank) {
-                        this.hDmaRemaining = ((value & 127) + 1) << 4;
+                        // console.log(`Init HDMA ${this.newDmaLength} bytes: ${hex(this.newDmaSource, 4)} => ${hex(this.newDmaDest, 4)}`);
+                        this.hDmaRemaining = this.newDmaLength;
                         this.hDmaSourceAt = this.newDmaSource;
                         this.hDmaDestAt = this.newDmaDest;
                         this.hDmaCompleted = false;
                         this.hDmaPaused = false;
+                        this.gDmaCompleted = false;
                     } else {
                         if (this.hDmaRemaining > 0) {
                             this.hDmaPaused = true;
+                            this.gDmaCompleted = false;
+                            // console.log(`Paused HDMA ${this.hDmaRemaining} bytes remaining`);
                         } else {
+                            // console.log(`GDMA ${this.newDmaLength} bytes: ${hex(this.newDmaSource, 4)} => ${hex(this.newDmaDest, 4)}`);
+                            this.gb.cpuPausedNormalSpeedMcycles += 2 * (this.newDmaLength >> 4);
                             this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
+                            this.gDmaCompleted = true;
                         }
                     }
                 }

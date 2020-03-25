@@ -27,9 +27,7 @@ export default class GPUCanvas {
     }
 
     drawTileset() {
-        const iData = new ImageData(this.gpu.renderer.imageTilesetArr, 256, 96);
-
-        this.ctxTileset.putImageData(iData, 0, 0);
+        this.ctxTileset.putImageData(this.gpu.renderer.imageTileset, 0, 0);
 
         this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
         // 0: Bottom half used, 1: Top half used

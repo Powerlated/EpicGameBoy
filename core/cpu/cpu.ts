@@ -273,7 +273,16 @@ export default class CPU {
 
     fetchMem8(addr: number): number {
         this.cycles += 4;
-        return this.gb.bus.readMem8(addr);
+        // The CPU can only access high RAM during OAM DMA
+        if (this.gb.oamDmaNormalMCyclesRemaining > 0) {
+            if (addr >= 0xFF80 && addr <= 0xFF7F) {
+                return this.gb.bus.readMem8(addr);
+            } else {
+                return 0xFF;
+            }
+        } else {
+            return this.gb.bus.readMem8(addr);
+        }
     }
 
     // Timing already satisfied by fetchMem8
@@ -283,7 +292,13 @@ export default class CPU {
 
     writeMem8(addr: number, value: number) {
         this.cycles += 4;
-        this.gb.bus.writeMem8(addr, value);
+        if (this.gb.oamDmaNormalMCyclesRemaining > 0) {
+            if (addr >= 0xFF80 && addr <= 0xFF7F) {
+                this.gb.bus.writeMem8(addr, value);
+            }
+        } else {
+            this.gb.bus.writeMem8(addr, value);
+        }
     }
 
 
