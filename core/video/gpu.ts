@@ -238,6 +238,7 @@ class GPU {
     windowXpos = 0; // 0xFF4B
 
     currentWindowLine = 0;
+    windowOnscreenYetThisFrame = false;
 
     modeClock: number = 0;
     bgDrawn = false;
@@ -277,11 +278,22 @@ class GPU {
 
                 // Read from VRAM - Scanline active
                 case 3:
-                    // Delay window rendering based on its X position
+                    /* 
+                    * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
+                    * 
+                    *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
+                    *     B. Disabled entirely through bit 5 of LCD Control
+                    * 
+                    */
+                    if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lcdcY == this.windowYpos) {
+                        this.currentWindowLine = this.windowYpos - this.lcdcY;
+                        this.windowOnscreenYetThisFrame = true;
+                    }
+                    // Delay window rendering based on its X position, and don't be too picky, it's only X position
                     if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
                         if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                             // Only IF the window is onscreen
-                            if (this.lcdControl.enableWindow____5 && this.windowXpos < 160 && this.lcdcY >= this.windowYpos) {
+                            if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                 if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                     this.renderer.renderWindow();
                                 }
@@ -325,6 +337,7 @@ class GPU {
                         this.modeClock -= 204;
                         this.lcdcY++;
 
+                        // If we're at LCDCy = 144, enter Vblank
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                         if (this.lcdcY >= 144) {
                             // Fire the Vblank interrupt
@@ -333,7 +346,6 @@ class GPU {
                             if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                 this.renderer.gpu.canvas.drawGameboy();
                             }
-                            // If we're at LCDCy = 144, enter Vblank
                             this.lcdStatus.mode = 1;
                             this.totalFrameCount++;
                         }
@@ -352,6 +364,7 @@ class GPU {
                         this.lcdcY++;
 
                         this.currentWindowLine = 0;
+                        this.windowOnscreenYetThisFrame = false;
 
                         if (this.lcdcY === 153) {
                             this.lcdStatus.mode = 4;
@@ -734,4 +747,4 @@ class GPU {
     }
 }
 
-export default GPU;
+export default GPU;;
