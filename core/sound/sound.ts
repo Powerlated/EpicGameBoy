@@ -41,13 +41,64 @@ export default class SoundChip {
         Tone.context.lookAhead = 0;
     }
 
-    step() {
-        if (!this.enabled) return;
+    handlePulse1Sweep() {
+        // writeDebug("Frequency sweep")
+        let actualTime = this.pulse1.freqSweepTime;
+        if (actualTime == 0) actualTime = 8;
+        if (this.clockPulse1FreqSweep > actualTime) {
+            this.clockPulse1FreqSweep = 0;
+            let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
+            const diff = freq >> this.pulse1.freqSweepShiftNum;
+            let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
+            freq = newFreq;
+            if (newFreq > 2047) {
+                this.pulse1.enabled = false;
+            }
+            this.pulse1.frequencyLower = freq & 0xFF;
+            this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
+            this.pulse1.update();
+            // writeDebug("abs(Range): " + diff);
+            // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
+        }
+        this.clockPulse1FreqSweep++;
+    }
 
+    step() {
         // #region CLOCK
-        this.clockLength += this.gb.cpu.lastInstructionCycles;
-        this.clockMain += this.gb.cpu.lastInstructionCycles;
-        this.clockEnvelopeMain += this.gb.cpu.lastInstructionCycles;
+        if (this.enabled) {
+            this.clockLength += this.gb.cpu.lastInstructionCycles;
+            this.clockMain += this.gb.cpu.lastInstructionCycles;
+            this.clockEnvelopeMain += this.gb.cpu.lastInstructionCycles;
+        } else {
+            this.clockLength = 0;
+            this.clockMain = 0;
+            this.clockEnvelopeMain = 0;
+        }
+
+        if (this.pulse1.triggered) {
+            this.pulse1.trigger();
+
+            if (this.pulse1.freqSweepShiftNum > 0) {
+                this.handlePulse1Sweep();
+            }
+
+            this.pulse1.triggered = false;
+            this.clockEnvelopePulse1 = 0;
+        }
+        if (this.pulse2.triggered) {
+            this.pulse2.trigger();
+            this.pulse2.triggered = false;
+            this.clockEnvelopePulse2 = 0;
+        }
+        if (this.wave.triggered) {
+            this.wave.trigger();
+            this.wave.triggered = false;
+        }
+        if (this.noise.triggered) {
+            this.noise.trigger();
+            this.noise.triggered = false;
+            this.clockEnvelopeNoise = 0;
+        }
 
         // 4194304hz Divide by 65536 = 64hz
         if (this.clockEnvelopeMain >= CLOCK_ENVELOPE_STEPS) {
@@ -113,19 +164,7 @@ export default class SoundChip {
             // #region LENGTH
             if (this.pulse1.enabled) {
                 if (this.pulse1.freqSweepTime !== 0) {
-                    // writeDebug("Frequency sweep")
-                    if (this.clockPulse1FreqSweep > this.pulse1.freqSweepTime) {
-                        this.clockPulse1FreqSweep = 0;
-                        let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
-                        const diff = freq >> this.pulse1.freqSweepShiftNum;
-                        this.pulse1.freqSweepUp ? freq += diff : freq -= diff;
-                        this.pulse1.frequencyLower = freq & 0xFF;
-                        this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
-                        this.pulse1.update();
-                        // writeDebug("abs(Range): " + diff);
-                        // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
-                    }
-                    this.clockPulse1FreqSweep++;
+                    this.handlePulse1Sweep();
                 }
             }
 
@@ -140,29 +179,6 @@ export default class SoundChip {
 
         // 256 hz
         if (this.clockLength >= CLOCK_LENGTH_STEPS) {
-            // #region TRIGGERS
-            if (this.pulse1.triggered) {
-                this.pulse1.trigger();
-                this.pulse1.triggered = false;
-                this.clockEnvelopePulse1 = 0;
-                this.clockPulse1FreqSweep = 0;
-            }
-            if (this.pulse2.triggered) {
-                this.pulse2.trigger();
-                this.pulse2.triggered = false;
-                this.clockEnvelopePulse2 = 0;
-            }
-            if (this.wave.triggered) {
-                this.wave.trigger();
-                this.wave.triggered = false;
-            }
-            if (this.noise.triggered) {
-                this.noise.trigger();
-                this.noise.triggered = false;
-                this.clockEnvelopeNoise = 0;
-            }
-            // #endregion
-
             if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
                 this.pulse1.lengthCounter--;
                 if (this.pulse1.lengthCounter === 0) {
@@ -244,6 +260,7 @@ export default class SoundChip {
                 this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse1.volumeEnvelopeSweep = value & 0b111;
                 this.pulse1.dacEnabled = (value & 0b11111000) != 0;
+                if (!this.pulse1.dacEnabled) this.pulse1.enabled = false;
                 this.pulse1.update();
                 break;
             case 0xFF13: // NR13 Low bits
@@ -269,6 +286,7 @@ export default class SoundChip {
                 this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.pulse2.volumeEnvelopeSweep = value & 0b111;
                 this.pulse2.dacEnabled = (value & 0b11111000) != 0;
+                if (!this.pulse2.dacEnabled) this.pulse2.enabled = false;
                 this.pulse2.update();
                 break;
             case 0xFF18: // NR23
@@ -286,6 +304,7 @@ export default class SoundChip {
             // Wave
             case 0xFF1A: // NR30
                 this.wave.dacEnabled = (value & 0x80) !== 0;
+                if (!this.wave.dacEnabled) this.wave.enabled = false;
                 this.wave.update();
                 break;
             case 0xFF1B: // NR31
@@ -316,6 +335,8 @@ export default class SoundChip {
                 this.noise.volumeEnvelopeStart = (value >> 4) & 0xF;
                 this.noise.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                 this.noise.volumeEnvelopeSweep = value & 0b111;
+                this.noise.dacEnabled = (value & 0b11111000) != 0;
+                if (!this.noise.dacEnabled) this.noise.enabled = false;
                 this.noise.update();
                 break;
             case 0xFF22: // NR43
@@ -351,16 +372,49 @@ export default class SoundChip {
                 this.wave.outputLeft = (((value >> 2) & 1) === 1);
                 this.pulse2.outputLeft = (((value >> 1) & 1) === 1);
                 this.pulse1.outputLeft = (((value >> 0) & 1) === 1);
-
                 break;
 
             // Control
             case 0xFF26: // NR52
                 if (((value >> 7) & 1) !== 0) {
-                    this.enabled = true;
                     // writeDebug("Enabled sound");
+                    this.enabled = true;
+
                 } else {
-                    // writeDebug("Disabled sound");
+                    // Disable and write zeros on everything upon main disabling
+                    this.noise.enabled = false;
+                    this.wave.enabled = false;
+                    this.pulse2.enabled = false;
+                    this.pulse1.enabled = false;
+
+                    this.noise.dacEnabled = false;
+                    this.wave.dacEnabled = false;
+                    this.pulse2.dacEnabled = false;
+                    this.pulse1.dacEnabled = false;
+
+                    this.writeHwio(0xFF10, 0);
+                    this.writeHwio(0xFF11, 0);
+                    this.writeHwio(0xFF12, 0);
+                    this.writeHwio(0xFF13, 0);
+                    this.writeHwio(0xFF14, 0);
+
+                    this.writeHwio(0xFF16, 0);
+                    this.writeHwio(0xFF17, 0);
+                    this.writeHwio(0xFF18, 0);
+                    this.writeHwio(0xFF19, 0);
+
+                    this.writeHwio(0xFF1A, 0);
+                    this.writeHwio(0xFF1B, 0);
+                    this.writeHwio(0xFF1C, 0);
+                    this.writeHwio(0xFF1D, 0);
+                    this.writeHwio(0xFF1D, 0);
+
+                    this.writeHwio(0xFF20, 0);
+                    this.writeHwio(0xFF21, 0);
+                    this.writeHwio(0xFF22, 0);
+                    this.writeHwio(0xFF23, 0);
+
+                    this.soundRegisters = new Uint8Array(65536).fill(0);
                     this.enabled = false;
                     break;
                 }

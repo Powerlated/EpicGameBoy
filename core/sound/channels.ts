@@ -61,7 +61,7 @@ export class PulseChannel implements BasicChannel {
     }
 
     trigger() {
-        if (this.lengthCounter === 0) {
+        if (this.lengthCounter === 0 || this.lengthEnable == false) {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
@@ -147,7 +147,7 @@ export class WaveChannel implements BasicChannel {
     }
 
     trigger() {
-        if (this.lengthCounter === 0) {
+        if (this.lengthCounter === 0 || this.lengthEnable == false) {
             this.lengthCounter = 256;
         }
         if (this.dacEnabled) {
@@ -167,6 +167,8 @@ export class NoiseChannel implements BasicChannel {
 
     lengthEnable = false;
     lengthCounter = 0;
+
+    dacEnabled = false;
 
     volume = 0;
     volumeEnvelopeUp = false;
@@ -243,8 +245,9 @@ export class NoiseChannel implements BasicChannel {
     }
 
     trigger() {
-        this.enabled = true;
-        if (this.lengthCounter === 0) {
+        if (this.dacEnabled)
+            this.enabled = true;
+        if (this.lengthCounter === 0 || this.lengthEnable == false) {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
