@@ -235,7 +235,9 @@ export class NoiseChannel implements BasicChannel {
             return seed & 1;
         }
 
-        const LFSR_MUL = 8;
+        let LFSR_MUL = 8;
+
+        if (sevenBit) LFSR_MUL *= 2;
 
         let waveTable = new Array(32768 * LFSR_MUL).fill(0);
         // TODO: Hook LFSR into the rest of the sound chip

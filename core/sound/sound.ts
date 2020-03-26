@@ -377,6 +377,12 @@ export default class SoundChip {
                 this.wave.outputLeft = (((value >> 2) & 1) === 1);
                 this.pulse2.outputLeft = (((value >> 1) & 1) === 1);
                 this.pulse1.outputLeft = (((value >> 0) & 1) === 1);
+                
+                this.pulse1.update();
+                this.pulse2.update();
+                this.wave.update();
+                this.noise.update();
+
                 break;
 
             // Control
