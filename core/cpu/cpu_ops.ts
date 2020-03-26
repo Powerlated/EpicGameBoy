@@ -131,7 +131,7 @@ class Ops {
     }
 
     static CP_A_iHL(cpu: CPU) {
-        const u8 = cpu.fetchMem8(cpu.getReg16(R16.HL));
+        const u8 = cpu.fetchMem8(cpu._r.paired[R16.HL]);
         cpu._r._f.zero = cpu._r.gen[R8.A] - u8 === 0;
         cpu._r._f.negative = true;
         cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) + (u8 & 0xF) > 0xF;
@@ -140,14 +140,14 @@ class Ops {
 
     static LD_A_iFF00plusN8(cpu: CPU, n8: number) {
         cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + n8) & 0xFFFF);
-    }
+    } 
 
     static LD_A_iFF00plusC(cpu: CPU) {
         cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + cpu._r.gen[R8.C]) & 0xFFFF);
     }
 
     static LD_iR16_A(cpu: CPU, r16: R16) {
-        cpu.writeMem8(cpu.getReg16(r16), cpu._r.gen[R8.A]);
+        cpu.writeMem8(cpu._r.paired[r16], cpu._r.gen[R8.A]);
     }
 
     // Store value in register A into address n16
@@ -158,7 +158,7 @@ class Ops {
     /*  PUSH r16 - 0xC5
         Push register r16 onto the stack. */
     static PUSH_R16(cpu: CPU, r16: R16) {
-        const value = cpu.getReg16(r16);
+        const value = cpu._r.paired[r16];
         const upperByte = value >> 8;
         const lowerByte = value & 0b11111111;
 
@@ -176,7 +176,7 @@ class Ops {
         const upperByte = cpu.fetchMem8(cpu._r.sp);
         cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
 
-        cpu.setReg16(r16, (upperByte << 8) | lowerByte);
+        cpu._r.paired[r16] = (upperByte << 8) | lowerByte;
     }
 
     // CALL n16 - 0xCD
@@ -243,7 +243,7 @@ class Ops {
 
     // LD A,(R16)
     static LD_A_iR16(cpu: CPU, r16: R16) {
-        cpu._r.gen[R8.A] = cpu.fetchMem8(cpu.getReg16(r16));
+        cpu._r.gen[R8.A] = cpu.fetchMem8(cpu._r.paired[r16]);
     }
 
     static LD_R16_A(cpu: CPU, t: R8) {
@@ -285,7 +285,7 @@ class Ops {
 
     // LD r16,n16 - 0x21, 
     static LD_R16_N16(cpu: CPU, r16: R16, n16: number) {
-        cpu.setReg16(r16, n16);
+        cpu._r.paired[r16] = n16;
     }
 
 
@@ -424,7 +424,7 @@ class Ops {
     }
 
     static ADD_HL_R16(cpu: CPU, r16: R16) {
-        const r16Value = cpu.getReg16(r16);
+        const r16Value = cpu._r.paired[r16];
 
         const newValue = (r16Value + cpu._r.hl) & 0xFFFF;
         const didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
@@ -620,7 +620,7 @@ class Ops {
 
     // Increment in register r16
     static INC_R16(cpu: CPU, r16: R16) {
-        cpu.setReg16(r16, (cpu.getReg16(r16) + 1) & 0xFFFF);
+        cpu._r.paired[r16] = (cpu._r.paired[r16] + 1) & 0xFFFF;
     }
 
     static DEC_R8(cpu: CPU, t: R8) {
@@ -637,7 +637,7 @@ class Ops {
     }
 
     static DEC_R16(cpu: CPU, tt: R16) {
-        cpu.setReg16(tt, (cpu.getReg16(tt) - 1) & 0xFFFF);
+        cpu._r.paired[tt] = (cpu._r.paired[tt] - 1) & 0xFFFF;
     }
 
     static CCF(cpu: CPU) {

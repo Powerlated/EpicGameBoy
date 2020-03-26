@@ -81,6 +81,15 @@ class Registers {
         7: number;
     };
 
+    // Register pairs AF, BC, DE, HL
+    paired: {
+        0: number, // AF
+        1: number, // BC
+        2: number, // DE
+        3: number, // HL
+        4: number, // SP
+    };
+
     sp = 0;
 
     get af() {
@@ -147,6 +156,39 @@ class Registers {
             },
             7: 0
         };
+
+        this.paired = {
+            get 0(): number {
+                return cpu._r.af;
+            },
+            set 0(i: number) {
+                cpu._r.af = i;
+            },
+            get 1(): number {
+                return cpu._r.bc;
+            },
+            set 1(i: number) {
+                cpu._r.bc = i;
+            },
+            get 2(): number {
+                return cpu._r.de;
+            },
+            set 2(i: number) {
+                cpu._r.de = i;
+            },
+            get 3(): number {
+                return cpu._r.hl;
+            },
+            set 3(i: number) {
+                cpu._r.hl = i;
+            },
+            get 4(): number {
+                return cpu._r.sp;
+            },
+            set 4(i: number) {
+                cpu._r.sp = i;
+            },
+        };
     }
 }
 
@@ -169,7 +211,7 @@ export enum R8 {
 }
 
 export enum R16 {
-    AF = "AF", BC = "BC", DE = "DE", HL = "HL", SP = "SP"
+    AF = 0, BC = 1, DE = 2, HL = 3, SP = 4
 }
 
 export enum CC {
@@ -311,27 +353,6 @@ export default class CPU {
                 this.addToLog(`--- INTERRUPTS ENABLED ---`);
         }
 
-        this.checkBootrom();
-
-        // Run the debug information collector
-        if (this.debugging || this.logging)
-            this.stepDebug();
-
-        if (this.halted === false) {
-            this.executeInstruction();
-        }
-
-        // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((this.gb.bus.interrupts.requestedInterrupts.numerical &
-            this.gb.bus.interrupts.enabledInterrupts.numerical) && this.halted === true) {
-            this.halted = false;
-        }
-
-        this.serviceInterrupts();
-        this.haltBug = false;
-    }
-
-    checkBootrom() {
         if (this.pc === 0 && this.gb.bus.bootromEnabled === true && this.gb.bus.bootromLoaded === false) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
@@ -390,97 +411,96 @@ export default class CPU {
             // Make a write to disable the bootrom
             this.gb.bus.writeMem8(0xFF50, 1);
         }
-    }
+        // Run the debug information collector
+        if (this.debugging || this.logging)
+            this.stepDebug();
 
-    minDebug = false;
-    jumpLog: string[] = [];
+        if (this.halted === false) {
+            const c = this.cycles;
 
-    addToLog(s: string) {
-        this.jumpLog.unshift(s);
-        this.jumpLog = this.jumpLog.slice(0, 1000);
-    }
+            const b0 = this.gb.bus.readMem8(this.pc + 0);
+            const b1 = this.gb.bus.readMem8(this.pc + 1);
+            const b2 = this.gb.bus.readMem8(this.pc + 2);
 
-    executeInstruction() {
-        const c = this.cycles;
+            const isCB = b0 === 0xCB;
 
-        const b0 = this.gb.bus.readMem8(this.pc + 0);
-        const b1 = this.gb.bus.readMem8(this.pc + 1);
-        const b2 = this.gb.bus.readMem8(this.pc + 2);
+            if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
-        const isCB = b0 === 0xCB;
+            // Lookup decoded
+            const ins = isCB ? this.opCacheCb[b1] : this.opCacheRg[b0];
+            this.cycles += 4; // Decoding time penalty
 
-        if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
+            if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
 
-        // Lookup decoded
-        const ins = isCB ? this.opCacheCb[b1] : this.opCacheRg[b0];
-        this.cycles += 4; // Decoding time penalty
+            // if (this.minDebug) {
+            //     if (Disassembler.isControlFlow(ins)) {
+            //         if (Disassembler.willJump(ins, this)) {
+            //             const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
+            //             const to = Disassembler.willJumpTo(ins, pcTriplet, this);
+            //             this.addToLog(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
+            //         }
+            //     }
+            // }
 
-        if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
-
-        // if (this.minDebug) {
-        //     if (Disassembler.isControlFlow(ins)) {
-        //         if (Disassembler.willJump(ins, this)) {
-        //             const disasm = Disassembler.disassembleOp(ins, pcTriplet, this);
-        //             const to = Disassembler.willJumpTo(ins, pcTriplet, this);
-        //             this.addToLog(`[${hex(this.pc, 4)}] ${disasm} => ${hex(to, 4)}`);
-        //         }
-        //     }
-        // }
-
-        if (ins.type !== undefined) {
-            if (ins.length === 3) {
-                ins.op(this, ins.type, (b2 << 8) | b1);
-                this.cycles += 8;
-            } else if (ins.length === 2 && (ins.type2 === undefined)) {
-                ins.op(this, ins.type, b1);
-                this.cycles += 4;
+            if (ins.type !== undefined) {
+                if (ins.length === 3) {
+                    ins.op(this, ins.type, (b2 << 8) | b1);
+                    this.cycles += 8;
+                } else if (ins.length === 2 && (ins.type2 === undefined)) {
+                    ins.op(this, ins.type, b1);
+                    this.cycles += 4;
+                } else {
+                    ins.op(this, ins.type, ins.type2);
+                }
             } else {
-                ins.op(this, ins.type, ins.type2);
+                if (ins.length === 3) {
+                    ins.op(this, (b2 << 8) | b1);
+                    this.cycles += 8;
+                } else if (ins.length === 2) {
+                    ins.op(this, b1);
+                    this.cycles += 4;
+                } else {
+                    ins.op(this);
+                }
             }
-        } else {
-            if (ins.length === 3) {
-                ins.op(this, (b2 << 8) | b1);
-                this.cycles += 8;
-            } else if (ins.length === 2) {
-                ins.op(this, b1);
-                this.cycles += 4;
-            } else {
-                ins.op(this);
+
+            if (!this.haltBug) {
+                this.pc = (this.pc + ins.length) & 0xFFFF;
             }
+
+            this.totalI++;
+            this.lastInstructionCycles = this.cycles - c;
+
+            // Checking for proper timings below here
+
+            // let success = true;
+
+            // if (!isCB) {
+            //     if (!Disassembler.isControlFlow(ins)) {
+            //         if (!(ins.op == Ops.HALT || ins.op == Ops.STOP)) {
+            //             success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[pcTriplet[0]] * 4, "CPU timing");
+            //         }
+            //     }
+            // } else {
+            //     success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[pcTriplet[1]] * 4, "[CB] CPU timing");
+            // }
+
+            // if (success == false) {
+            //     console.log(Disassembler.disassembleOp(ins, pcTriplet, this));
+            //     console.log(`Offset: ${ins.cyclesOffset}`);
+            //     this.gb.speedStop();
+            // }
+
+            // this.opcodesRan.add(pcTriplet[0]);
         }
 
-        if (!this.haltBug) {
-            this.pc = (this.pc + ins.length) & 0xFFFF;
+        // If the CPU is HALTed and there are requested interrupts, unHALT
+        if ((this.gb.bus.interrupts.requestedInterrupts.numerical &
+            this.gb.bus.interrupts.enabledInterrupts.numerical) && this.halted === true) {
+            this.halted = false;
         }
 
-        this.totalI++;
-        this.lastInstructionCycles = this.cycles - c;
-
-        // Checking for proper timings below here
-
-        // let success = true;
-
-        // if (!isCB) {
-        //     if (!Disassembler.isControlFlow(ins)) {
-        //         if (!(ins.op == Ops.HALT || ins.op == Ops.STOP)) {
-        //             success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[pcTriplet[0]] * 4, "CPU timing");
-        //         }
-        //     }
-        // } else {
-        //     success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[pcTriplet[1]] * 4, "[CB] CPU timing");
-        // }
-
-        // if (success == false) {
-        //     console.log(Disassembler.disassembleOp(ins, pcTriplet, this));
-        //     console.log(`Offset: ${ins.cyclesOffset}`);
-        //     this.gb.speedStop();
-        // }
-
-        // this.opcodesRan.add(pcTriplet[0]);
-    }
-
-    serviceInterrupts() {
-        // Service interrupts
+        //#region Service interrupts
         const happened = this.gb.bus.interrupts.requestedInterrupts;
         const enabled = this.gb.bus.interrupts.enabledInterrupts;
         if (this.gb.bus.interrupts.masterEnabled) {
@@ -519,6 +539,16 @@ export default class CPU {
                 this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
             }
         }
+        //#endregion
+        this.haltBug = false;
+    }
+
+    minDebug = false;
+    jumpLog: string[] = [];
+
+    addToLog(s: string) {
+        this.jumpLog.unshift(s);
+        this.jumpLog = this.jumpLog.slice(0, 1000);
     }
 
     stepDebug() {
@@ -620,26 +650,6 @@ export default class CPU {
     clearBreakpoint(point: number) {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints[point] = false;
-    }
-
-    getReg16(t: R16) {
-        switch (t) {
-            case R16.AF: return this._r.af;
-            case R16.BC: return this._r.bc;
-            case R16.DE: return this._r.de;
-            case R16.HL: return this._r.hl;
-            case R16.SP: return this._r.sp;
-        }
-    }
-
-    setReg16(t: R16, i: number) {
-        switch (t) {
-            case R16.AF: this._r.af = i; break;
-            case R16.BC: this._r.bc = i; break;
-            case R16.DE: this._r.de = i; break;
-            case R16.HL: this._r.hl = i; break;
-            case R16.SP: this._r.sp = i; break;
-        }
     }
 }
 
