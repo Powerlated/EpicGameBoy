@@ -154,8 +154,8 @@ function updateDebug() {
     const cyclesPerSecond = (window as any).cyclesPerSecond;
     const gpu = ((window as any).gb.gpu as GPU);
     const displaySerial = (window as any).displaySerial;
-    const r = cpu.gb.bus.interrupts.requestedInterrupts;
-    const e = cpu.gb.bus.interrupts.enabledInterrupts;
+    const r = cpu.gb.interrupts.requestedInterrupts;
+    const e = cpu.gb.interrupts.enabledInterrupts;
     let debugText =
         `
                 Total Instructions Executed: ${cpu.totalI}
@@ -164,7 +164,7 @@ function updateDebug() {
 
                 Halted: ${cpu.halted}
 
-                IME/E/R: ${cpu.gb.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
+                IME/E/R: ${cpu.gb.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}

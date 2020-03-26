@@ -21,7 +21,7 @@ class Ops {
 
     // DI - 0xF3
     static DI(cpu: CPU) {
-        cpu.gb.bus.interrupts.masterEnabled = false;
+        cpu.gb.interrupts.masterEnabled = false;
 
         if (cpu.minDebug)
             cpu.addToLog(`--- INTERRUPTS DISABLED ---`);
@@ -40,8 +40,8 @@ class Ops {
 
         if (
             (
-                cpu.gb.bus.interrupts.enabledInterrupts.numerical &
-                cpu.gb.bus.interrupts.requestedInterrupts.numerical &
+                cpu.gb.interrupts.enabledInterrupts.numerical &
+                cpu.gb.interrupts.requestedInterrupts.numerical &
                 0x1F
             ) !== 0
         ) {
@@ -49,8 +49,8 @@ class Ops {
             cpu.haltBug = true;
             cpu.pc++; cpu.pc &= 0xFFFF;
         } else (
-            cpu.gb.bus.interrupts.enabledInterrupts.numerical &
-            cpu.gb.bus.interrupts.requestedInterrupts.numerical &
+            cpu.gb.interrupts.enabledInterrupts.numerical &
+            cpu.gb.interrupts.requestedInterrupts.numerical &
             0x1F) === 0;
         {
             cpu.halted = true;
@@ -140,7 +140,7 @@ class Ops {
 
     static LD_A_iFF00plusN8(cpu: CPU, n8: number) {
         cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + n8) & 0xFFFF);
-    } 
+    }
 
     static LD_A_iFF00plusC(cpu: CPU) {
         cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + cpu._r.gen[R8.C]) & 0xFFFF);
@@ -166,6 +166,9 @@ class Ops {
         cpu.writeMem8(cpu._r.sp, upperByte);
         cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
         cpu.writeMem8(cpu._r.sp, lowerByte);
+
+        // 4 cycle penalty
+        cpu.cycles += 4;
     }
 
     /*  PUSH r16 - 0xC1
@@ -259,6 +262,9 @@ class Ops {
         cpu._r._f.carry = (signedVal & 0xFF) + (cpu._r.sp & 0xFF) > 0xFF;
 
         cpu._r.hl = (unTwo8b(e8) + cpu._r.sp) & 0xFFFF;
+
+        // Register read timing
+        cpu.cycles += 4;
     }
 
     // LD [$FF00+u8],A
@@ -321,6 +327,9 @@ class Ops {
         cpu._r._f.carry = ((value & 0xFF) + (cpu._r.sp & 0xFF)) > 0xFF;
 
         cpu._r.sp = (cpu._r.sp + value) & 0xFFFF;
+
+        // Extra time
+        cpu.cycles += 8;
     }
 
     // JR
@@ -337,6 +346,9 @@ class Ops {
 
     static LD_SP_HL(cpu: CPU) {
         cpu._r.sp = cpu._r.hl;
+
+        // Register read timing
+        cpu.cycles += 4;
     }
 
     // ADD A, r8
@@ -436,6 +448,9 @@ class Ops {
 
         // Set register values
         cpu._r.hl = newValue;
+
+        // Register read takes 4 more cycles
+        cpu.cycles += 4;
     }
 
     static SUB_A_R8(cpu: CPU, t: R8) {
@@ -621,6 +636,9 @@ class Ops {
     // Increment in register r16
     static INC_R16(cpu: CPU, r16: R16) {
         cpu._r.paired[r16] = (cpu._r.paired[r16] + 1) & 0xFFFF;
+
+        // Extra time for register writeback
+        cpu.cycles += 4;
     }
 
     static DEC_R8(cpu: CPU, t: R8) {
@@ -638,6 +656,9 @@ class Ops {
 
     static DEC_R16(cpu: CPU, tt: R16) {
         cpu._r.paired[tt] = (cpu._r.paired[tt] - 1) & 0xFFFF;
+
+        // Extra time for register writeback
+        cpu.cycles += 4;
     }
 
     static CCF(cpu: CPU) {

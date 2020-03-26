@@ -1,4 +1,5 @@
 import MemoryBus from "../memory/memorybus";
+import GameBoy from "../gameboy";
 
 class InterruptFlag {
     vblank = false;
@@ -46,10 +47,10 @@ export const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
 export default class InterruptController {
-    bus: MemoryBus;
+    gb: GameBoy;
 
-    constructor(bus: MemoryBus) {
-        this.bus = bus;
+    constructor(gb: GameBoy) {
+        this.gb = gb;
     }
 
     masterEnabled = true; // IME

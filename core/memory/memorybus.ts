@@ -36,7 +36,6 @@ class MemoryBus {
     highRam = new Uint8Array(512).fill(0);
     bootrom = new Uint8Array(256).fill(0);
 
-    interrupts = new InterruptController(this);
     joypad = new JoypadRegister();
 
     bootromEnabled = true;
@@ -102,7 +101,7 @@ class MemoryBus {
 
         // SET Interrupt request flags
         if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            this.interrupts.requestedInterrupts.numerical = value;
+            this.gb.interrupts.requestedInterrupts.numerical = value;
             return;
         }
 
@@ -114,7 +113,7 @@ class MemoryBus {
 
         // SET Interrupt enable flags
         if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            this.interrupts.enabledInterrupts.numerical = value;
+            this.gb.interrupts.enabledInterrupts.numerical = value;
             return;
         }
 
@@ -228,11 +227,11 @@ class MemoryBus {
 
         // GET Interrupt request flags
         if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            return this.interrupts.requestedInterrupts.numerical | 0b11100000;
+            return this.gb.interrupts.requestedInterrupts.numerical | 0b11100000;
         }
         // GET Interrupt enable flags
         if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.interrupts.enabledInterrupts.numerical | 0b11100000;
+            return this.gb.interrupts.enabledInterrupts.numerical | 0b11100000;
         }
 
         // Hardware I/O registers

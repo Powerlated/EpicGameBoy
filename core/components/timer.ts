@@ -36,7 +36,7 @@ export default class Timer {
     step() {
         this.cyclesBehind += this.gb.cpu.lastInstructionCycles;
 
-        if (this.gb.bus.interrupts.enabledInterrupts.timer) {
+        if (this.gb.interrupts.enabledInterrupts.timer) {
             this.catchup();
         }
     }
@@ -66,7 +66,7 @@ export default class Timer {
         if (this.counterOverflowTtime > 0) {
             if (this.counterOverflowTtime === 1) {
                 this.counter = this.modulo;
-                this.gb.bus.interrupts.requestTimer();
+                this.gb.interrupts.requestTimer();
             }
             this.counterOverflowTtime--;
         }

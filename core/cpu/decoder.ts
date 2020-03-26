@@ -1,4 +1,4 @@
-import { Op, CC, R8, R16} from './cpu';
+import { Op, CC, R8, R16 } from './cpu';
 import Ops from './cpu_ops';
 
 export default class Decoder {
@@ -38,13 +38,13 @@ export default class Decoder {
 
             /** PUSH R16 */
             case 0xF5: // PUSH AF 
-                return { op: Ops.PUSH_R16, type: R16.AF, length: 1, cyclesOffset: 4 };
+                return { op: Ops.PUSH_R16, type: R16.AF, length: 1 };
             case 0xC5: // PUSH BC
-                return { op: Ops.PUSH_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
+                return { op: Ops.PUSH_R16, type: R16.BC, length: 1 };
             case 0xD5: // PUSH DE
-                return { op: Ops.PUSH_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
+                return { op: Ops.PUSH_R16, type: R16.DE, length: 1 };
             case 0xE5: // PUSH HL
-                return { op: Ops.PUSH_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+                return { op: Ops.PUSH_R16, type: R16.HL, length: 1 };
 
             /** POP R16 */
             case 0xF1: // POP AF 
@@ -94,23 +94,23 @@ export default class Decoder {
 
             /** INC R16 */
             case 0x03: // INC BC
-                return { op: Ops.INC_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
+                return { op: Ops.INC_R16, type: R16.BC, length: 1 };
             case 0x13: // INC DE 
-                return { op: Ops.INC_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
+                return { op: Ops.INC_R16, type: R16.DE, length: 1 };
             case 0x23: // INC HL
-                return { op: Ops.INC_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+                return { op: Ops.INC_R16, type: R16.HL, length: 1 };
             case 0x33: // INC SP
-                return { op: Ops.INC_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
+                return { op: Ops.INC_R16, type: R16.SP, length: 1 };
 
             /** DEC R16 */
             case 0x0B: // DEC BC
-                return { op: Ops.DEC_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
+                return { op: Ops.DEC_R16, type: R16.BC, length: 1 };
             case 0x1B: // DEC DE 
-                return { op: Ops.DEC_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
+                return { op: Ops.DEC_R16, type: R16.DE, length: 1 };
             case 0x2B: // DEC HL
-                return { op: Ops.DEC_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+                return { op: Ops.DEC_R16, type: R16.HL, length: 1 };
             case 0x3B: // DEC SP
-                return { op: Ops.DEC_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
+                return { op: Ops.DEC_R16, type: R16.SP, length: 1 };
 
             /** LD R16, N16 */
             case 0x01: // LD BC, N16
@@ -146,11 +146,11 @@ export default class Decoder {
 
             /** SP ops */
             case 0xF8: // LD HL, SP+e8
-                return { op: Ops.LD_HL_SPaddE8, length: 2, cyclesOffset: 4 };
+                return { op: Ops.LD_HL_SPaddE8, length: 2 };
             case 0xF9: // LD SP, HL
-                return { op: Ops.LD_SP_HL, length: 1, cyclesOffset: 4 };
+                return { op: Ops.LD_SP_HL, length: 1 };
             case 0xE8: // ADD SP, E8
-                return { op: Ops.ADD_SP_E8, length: 2, cyclesOffset: 8 };
+                return { op: Ops.ADD_SP_E8, length: 2 };
 
             /** A rotate */
             case 0x07: // RLC A
@@ -212,13 +212,13 @@ export default class Decoder {
 
             /** ADD HL, R16 */
             case 0x09: // ADD HL, BC
-                return { op: Ops.ADD_HL_R16, type: R16.BC, length: 1, cyclesOffset: 4 };
+                return { op: Ops.ADD_HL_R16, type: R16.BC, length: 1 };
             case 0x19: // ADD HL, DE
-                return { op: Ops.ADD_HL_R16, type: R16.DE, length: 1, cyclesOffset: 4 };
+                return { op: Ops.ADD_HL_R16, type: R16.DE, length: 1 };
             case 0x29: // ADD HL, HL
-                return { op: Ops.ADD_HL_R16, type: R16.HL, length: 1, cyclesOffset: 4 };
+                return { op: Ops.ADD_HL_R16, type: R16.HL, length: 1 };
             case 0x39: // ADD HL, SP
-                return { op: Ops.ADD_HL_R16, type: R16.SP, length: 1, cyclesOffset: 4 };
+                return { op: Ops.ADD_HL_R16, type: R16.SP, length: 1 };
 
             /** Reset Vectors */
             case 0xC7: // RST 00h
@@ -357,8 +357,6 @@ export default class Decoder {
             (upperNybble & 0b11) * 2 :
             ((upperNybble & 0b11) * 2) + 1;
 
-        let cyclesOffset = 0;
-
         const typeTable = [R8.B, R8.C, R8.D, R8.E, R8.H, R8.L, R8.iHL, R8.A];
         const type = typeTable[lowerNybble & 0b111];
 
@@ -379,6 +377,6 @@ export default class Decoder {
         }
 
 
-        return { op: op, type: type, type2: bit, length: 2, cyclesOffset: cyclesOffset };
+        return { op: op, type: type, type2: bit, length: 2 };
     }
 }

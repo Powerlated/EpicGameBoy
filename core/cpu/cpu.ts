@@ -92,19 +92,6 @@ class Registers {
 
     sp = 0;
 
-    get af() {
-        return this.gen[R8.A] << 8 | this.f;
-    }
-    get bc() {
-        return this.gen[R8.B] << 8 | this.gen[R8.C];
-    }
-    get de() {
-        return this.gen[R8.D] << 8 | this.gen[R8.E];
-    }
-    get hl() {
-        return this.gen[R8.H] << 8 | this.gen[R8.L];
-    }
-
     get a() { return this.gen[R8.A]; };
     get b() { return this.gen[R8.B]; };
     get c() { return this.gen[R8.C]; };
@@ -121,21 +108,30 @@ class Registers {
     set h(i: number) { this.gen[R8.H] = i; };
     set l(i: number) { this.gen[R8.L] = i; };
 
+    get af() {
+        return this.paired[R16.AF];
+    }
+    get bc() {
+        return this.paired[R16.BC];
+    }
+    get de() {
+        return this.paired[R16.DE];
+    }
+    get hl() {
+        return this.paired[R16.HL];
+    }
+
     set af(i: number) {
-        this.gen[R8.A] = i >> 8;
-        this.f = i & 0xFF;
+        this.paired[R16.AF] = i;
     }
     set bc(i: number) {
-        this.gen[R8.B] = i >> 8;
-        this.gen[R8.C] = i & 0xFF;
+        this.paired[R16.BC] = i;
     }
     set de(i: number) {
-        this.gen[R8.D] = i >> 8;
-        this.gen[R8.E] = i & 0xFF;
+        this.paired[R16.DE] = i;
     }
     set hl(i: number) {
-        this.gen[R8.H] = i >> 8;
-        this.gen[R8.L] = i & 0xFF;
+        this.paired[R16.HL] = i;
     }
 
     constructor(cpu: CPU) {
@@ -158,36 +154,40 @@ class Registers {
         };
 
         this.paired = {
-            get 0(): number {
-                return cpu._r.af;
+            get 0() {
+                return cpu._r.gen[R8.A] << 8 | cpu._r.f;
+            },
+            get 1() {
+                return cpu._r.gen[R8.B] << 8 | cpu._r.gen[R8.C];
+            },
+            get 2() {
+                return cpu._r.gen[R8.D] << 8 | cpu._r.gen[R8.E];
+            },
+            get 3() {
+                return cpu._r.gen[R8.H] << 8 | cpu._r.gen[R8.L];
+            },
+            get 4() {
+                return cpu._r.sp;
             },
             set 0(i: number) {
-                cpu._r.af = i;
-            },
-            get 1(): number {
-                return cpu._r.bc;
+                cpu._r.gen[R8.A] = i >> 8;
+                cpu._r.f = i & 0xFF;
             },
             set 1(i: number) {
-                cpu._r.bc = i;
-            },
-            get 2(): number {
-                return cpu._r.de;
+                cpu._r.gen[R8.B] = i >> 8;
+                cpu._r.gen[R8.C] = i & 0xFF;
             },
             set 2(i: number) {
-                cpu._r.de = i;
-            },
-            get 3(): number {
-                return cpu._r.hl;
+                cpu._r.gen[R8.D] = i >> 8;
+                cpu._r.gen[R8.E] = i & 0xFF;
             },
             set 3(i: number) {
-                cpu._r.hl = i;
-            },
-            get 4(): number {
-                return cpu._r.sp;
+                cpu._r.gen[R8.H] = i >> 8;
+                cpu._r.gen[R8.L] = i & 0xFF;
             },
             set 4(i: number) {
                 cpu._r.sp = i;
-            },
+            }
         };
     }
 }
@@ -229,7 +229,7 @@ export interface OpFunction {
 }
 
 export interface Op {
-    op: OpFunction, type?: OperandType, type2?: OperandType, length: number, cyclesOffset?: number;
+    op: OpFunction, type?: OperandType, type2?: OperandType, length: number;
 };
 
 export default class CPU {
@@ -347,7 +347,7 @@ export default class CPU {
     step() {
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
-            this.gb.bus.interrupts.masterEnabled = true;
+            this.gb.interrupts.masterEnabled = true;
 
             if (this.minDebug)
                 this.addToLog(`--- INTERRUPTS ENABLED ---`);
@@ -430,8 +430,6 @@ export default class CPU {
             const ins = isCB ? this.opCacheCb[b1] : this.opCacheRg[b0];
             this.cycles += 4; // Decoding time penalty
 
-            if (ins.cyclesOffset) this.cycles += ins.cyclesOffset;
-
             // if (this.minDebug) {
             //     if (Disassembler.isControlFlow(ins)) {
             //         if (Disassembler.willJump(ins, this)) {
@@ -495,48 +493,48 @@ export default class CPU {
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((this.gb.bus.interrupts.requestedInterrupts.numerical &
-            this.gb.bus.interrupts.enabledInterrupts.numerical) && this.halted === true) {
+        if ((this.gb.interrupts.requestedInterrupts.numerical &
+            this.gb.interrupts.enabledInterrupts.numerical) && this.halted === true) {
             this.halted = false;
         }
 
         //#region Service interrupts
-        const happened = this.gb.bus.interrupts.requestedInterrupts;
-        const enabled = this.gb.bus.interrupts.enabledInterrupts;
-        if (this.gb.bus.interrupts.masterEnabled) {
+        const happened = this.gb.interrupts.requestedInterrupts;
+        const enabled = this.gb.interrupts.enabledInterrupts;
+        if (this.gb.interrupts.masterEnabled) {
 
             // If servicing any interrupt, disable the master flag
-            if ((this.gb.bus.interrupts.requestedInterrupts.numerical & this.gb.bus.interrupts.enabledInterrupts.numerical) > 0) {
-                this.gb.bus.interrupts.masterEnabled = false;
-            }
+            if ((this.gb.interrupts.requestedInterrupts.numerical & this.gb.interrupts.enabledInterrupts.numerical) > 0) {
+                this.gb.interrupts.masterEnabled = false;
 
-            if (happened.vblank && enabled.vblank) {
-                happened.vblank = false;
+                if (happened.vblank && enabled.vblank) {
+                    happened.vblank = false;
 
-                // if (this.minDebug)
-                //     this.addToLog(`--- VBLANK INTERRUPT ---`);
+                    // if (this.minDebug)
+                    //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
-                this.jumpToInterrupt(VBLANK_VECTOR);
-            } else if (happened.lcdStat && enabled.lcdStat) {
-                happened.lcdStat = false;
+                    this.jumpToInterrupt(VBLANK_VECTOR);
+                } else if (happened.lcdStat && enabled.lcdStat) {
+                    happened.lcdStat = false;
 
-                // if (this.minDebug)
-                //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
+                    // if (this.minDebug)
+                    //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
-                this.jumpToInterrupt(LCD_STATUS_VECTOR);
-            } else if (happened.timer && enabled.timer) {
-                happened.timer = false;
+                    this.jumpToInterrupt(LCD_STATUS_VECTOR);
+                } else if (happened.timer && enabled.timer) {
+                    happened.timer = false;
 
-                // if (this.minDebug)
-                //     this.addToLog(`--- TIMER INTERRUPT ---`);
+                    // if (this.minDebug)
+                    //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
-                this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
-            } else if (happened.serial && enabled.serial) {
-                happened.serial = false;
-                this.jumpToInterrupt(SERIAL_LINK_VECTOR);
-            } else if (happened.joypad && enabled.joypad) {
-                happened.joypad = false;
-                this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
+                    this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
+                } else if (happened.serial && enabled.serial) {
+                    happened.serial = false;
+                    this.jumpToInterrupt(SERIAL_LINK_VECTOR);
+                } else if (happened.joypad && enabled.joypad) {
+                    happened.joypad = false;
+                    this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
+                }
             }
         }
         //#endregion

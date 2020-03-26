@@ -205,8 +205,8 @@ export const colors555: Uint8Array[] = [
 class GPU {
     gb: GameBoy;
 
-    vram0 = new Uint8Array(0x2000 + 1);
-    vram1 = new Uint8Array(0x2000 + 1);
+    vram0 = new Uint8Array(0x2000);
+    vram1 = new Uint8Array(0x2000);
 
     oam = new Uint8Array(256);
     vram = this.vram0;
@@ -217,13 +217,13 @@ class GPU {
     canvas = new GPUCanvas(this);
 
     // [tile][row][pixel]
-    tileset0 = new Array(0x1800).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
-    tileset1 = new Array(0x1800).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
-    cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
+    tileset0 = new Array(384).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
+    tileset1 = new Array(384).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
 
     tileset = this.tileset0;
 
     tilemap = new Uint8Array(2048);
+    cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
 
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
@@ -341,7 +341,7 @@ class GPU {
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                         if (this.lcdcY >= 144) {
                             // Fire the Vblank interrupt
-                            this.gb.bus.interrupts.requestVblank();
+                            this.gb.interrupts.requestVblank();
                             // Draw to the canvas
                             if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                 this.renderer.gpu.canvas.drawGameboy();
@@ -372,7 +372,7 @@ class GPU {
                     }
                     break;
 
-                // Between Line 153 and Line 0
+                // Between Line 153 and Line 0, reads as mode 0 in LCDstatus because 4 & 3 = 0 
                 case 4:
                     if (this.modeClock >= 4) {
                         this.lcdcY = 0;
@@ -405,7 +405,7 @@ class GPU {
             }
 
             if (!this.lcdStatusFired && this.lcdStatusConditionMet) {
-                this.gb.bus.interrupts.requestLCDstatus();
+                this.gb.interrupts.requestLCDstatus();
                 this.lcdStatusFired = true;
             }
         } else {
@@ -653,7 +653,7 @@ class GPU {
             case 0xFF41: // LCDC Status
                 this.lcdStatus.numerical = value;
                 if (!this.gb.cgb) {
-                    this.gb.bus.interrupts.requestLCDstatus();
+                    this.gb.interrupts.requestLCDstatus();
                 }
                 break;
             case 0xFF42:

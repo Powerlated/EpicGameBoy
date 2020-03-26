@@ -7,11 +7,14 @@ import SoundChip from './sound/sound';
 import Timer from './components/timer';
 import Decoder from './cpu/decoder';
 import { DMAController } from './memory/dma';
+import InterruptController from './components/interrupt-controller';
 
 export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
+
+    interrupts = new InterruptController(this);
 
     dma = new DMAController(this);
 
@@ -102,7 +105,7 @@ export default class GameBoy {
     reset() {
         this.cpu.reset();
         this.gpu.reset();
-        this.bus.interrupts.reset();
+        this.interrupts.reset();
         this.bus.reset();
         this.timer.reset();
         this.soundChip.reset();
