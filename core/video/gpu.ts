@@ -152,9 +152,9 @@ class CGBPaletteData {
                 let g = ((rgb555 >> 5) & 31);
                 let b = ((rgb555 >> 10) & 31);
 
-                r = (r << 3) || (r >> 2);
-                g = (g << 3) || (g >> 2);
-                b = (b << 3) || (b >> 2);
+                r = r * (255 / 31);
+                g = g * (255 / 31);
+                b = b * (255 / 31);
 
                 this.shades[pal][col] = Uint8Array.of(r, g, b);
             }
