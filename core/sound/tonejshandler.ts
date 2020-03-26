@@ -34,10 +34,15 @@ export default class ToneJsHandler {
     wavePan: Tone.Panner;
     waveVolume: Tone.Volume;
 
+    noise7Src: Tone.BufferSource;
+    noise7Volume: Tone.Volume;
 
-    noiseSrc: Tone.BufferSource;
-    noiseVolume: Tone.Volume;
-    noisePan: Tone.Panner;
+    noise15Src: Tone.BufferSource;
+    noise15Volume: Tone.Volume;
+
+    noise7Pan: Tone.Panner;
+    noise15Pan: Tone.Panner;
+
 
     masterVolume: Tone.Volume;
 
@@ -45,7 +50,6 @@ export default class ToneJsHandler {
 
     constructor(s: SoundChip) {
         const highPass = new Tone.Filter(120, 'highpass', -12);
-        const bitCrush = new Tone.BitCrusher(4);
         this.masterVolume = new Tone.Volume();
 
         this.s = s;
@@ -66,22 +70,32 @@ export default class ToneJsHandler {
         this.waveVolume = new Tone.Volume();
         this.waveVolume.volume.value = -36;
         this.wavePan = new Tone.Panner(0);
-        this.waveSrc.chain(this.wavePan, bitCrush, this.waveVolume, Tone.Master);
+        this.waveSrc.chain(this.wavePan, new Tone.BitCrusher(4), this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
-        this.noiseSrc = new Tone.BufferSource(this.s.noise.buffer, () => { });
-        this.noiseSrc.loop = true;
-        this.noiseVolume = new Tone.Volume();
-        this.noiseVolume.mute = true;
-        this.noisePan = new Tone.Panner(0);
-        this.noiseVolume.volume.value = -1000;
-        this.noiseSrc.chain(this.noisePan, this.noiseVolume, Tone.Master);
-        this.noiseSrc.start();
+
+        this.noise7Src = new Tone.BufferSource(this.s.noise.buffer(true), () => { });
+        this.noise7Src.loop = true;
+        this.noise7Pan = new Tone.Panner(0);
+        this.noise7Volume = new Tone.Volume();
+        this.noise7Volume.mute = true;
+        this.noise7Volume.volume.value = -1000;
+        this.noise7Src.chain(this.noise7Pan, this.noise7Volume, Tone.Master);
+        this.noise7Src.start();
+
+        this.noise15Src = new Tone.BufferSource(this.s.noise.buffer(false), () => { });
+        this.noise15Src.loop = true;
+        this.noise15Pan = new Tone.Panner(0);
+        this.noise15Volume = new Tone.Volume();
+        this.noise15Volume.mute = true;
+        this.noise15Volume.volume.value = -1000;
+        this.noise15Src.chain(this.noise15Pan, this.noise15Volume, Tone.Master);
+        this.noise15Src.start();
     }
 
     pulse1() {
         // Pulse 1
-        if (this.s.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && this.s.pulse1.frequencyLower != 0) {
+        if (this.s.pulse1.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && this.s.pulse1.frequencyLower !== 0) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
@@ -96,7 +110,7 @@ export default class ToneJsHandler {
 
     pulse2() {
         // Pulse 2
-        if (this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled&& this.s.pulse2.frequencyLower != 0) {
+        if (this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && this.s.pulse2.frequencyLower != 0) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
@@ -110,7 +124,7 @@ export default class ToneJsHandler {
     }
 
     wave() {
-        if (this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled&& this.s.wave.frequencyLower != 0) {
+        if (this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled && this.s.wave.frequencyLower != 0) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
                 this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
@@ -124,6 +138,7 @@ export default class ToneJsHandler {
         } else {
             this.waveVolume.mute = true;
         }
+
 
         if (this.s.wave.waveTableUpdated === true) {
             this.waveSrc.disconnect(this.wavePan);
@@ -140,14 +155,50 @@ export default class ToneJsHandler {
 
     noise() {
         // Noise
-        if (this.s.enabled && this.s.noise.enabled) {
+        if (this.s.noise.enabled) {
             if (this.s.noise.updated) {
-                this.noiseVolume.mute = false;
-                this.noisePan.pan.value = this.s.noise.pan;
-                this.noiseVolume.volume.value = convertVolume(this.s.noise.volume);
+                this.noise7Pan.pan.value = this.s.noise.pan;
+                this.noise15Pan.pan.value = this.s.noise.pan;
+
+                let div = 0;
+                switch (this.s.noise.divisorCode) {
+                    case 0b000: div = 2; break;
+                    case 0b001: div = 1; break;
+                    case 0b010: div = 1 / 2; break;
+                    case 0b011: div = 1 / 3; break;
+                    case 0b100: div = 1 / 4; break;
+                    case 0b101: div = 1 / 5; break;
+                    case 0b110: div = 1 / 6; break;
+                    case 0b111: div = 1 / 7; break;
+                }
+
+                if (this.s.noise.divisorCode == 0) this.s.noise.divisorCode = 0.5;
+
+                let rate = ((4194304 / 8) / this.s.noise.divisorCode) / (2 ^ (this.s.noise.shiftClockFrequency + 1));
+
+                if (this.s.noise.counterStep) {
+                    // 7 bit noise
+                    this.noise15Volume.mute = true;
+                    this.noise7Volume.mute = false;
+
+                    this.noise7Volume.volume.value = convertVolume(this.s.noise.volume);
+
+                    if (isFinite(rate))
+                        this.noise7Src.playbackRate.value = (rate / this.s.noise.divisorCode) / (96000 / 4);
+                } else {
+                    // 15 bit noise
+                    this.noise15Volume.mute = false;
+                    this.noise7Volume.mute = true;
+
+                    this.noise15Volume.volume.value = convertVolume(this.s.noise.volume);
+
+                    if (isFinite(rate))
+                        this.noise15Src.playbackRate.value = rate / (96000 / 4);
+                }
             }
         } else {
-            this.noiseVolume.mute = true;
+            this.noise15Volume.mute = true;
+            this.noise7Volume.mute = true;
         }
 
     }

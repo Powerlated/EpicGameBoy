@@ -165,6 +165,8 @@ export class WaveChannel implements BasicChannel {
 export class NoiseChannel implements BasicChannel {
     enabled = false;
 
+    divisorCode = 0;
+
     lengthEnable = false;
     lengthCounter = 0;
 
@@ -182,7 +184,6 @@ export class NoiseChannel implements BasicChannel {
     shiftClockFrequency = 0;
     counterStep = false;
     envelopeSweep = 0;
-    divisorCode = 0;
 
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;
@@ -201,33 +202,56 @@ export class NoiseChannel implements BasicChannel {
         return 0;
     }
 
-    get buffer(): AudioBuffer {
+    buffer(sevenBit: boolean): AudioBuffer {
+        let capacitor = 0.0;
+
+        function high_pass(inValue: number): number {
+            let out = 0.0;
+            out = inValue - capacitor;
+
+            // capacitor slowly charges to 'in' via their difference
+            capacitor = inValue - out * 0.9; // use 0.998943 for MGB&CGB
+            return out;
+        }
+
         let seed = 0xFF;
         let period = 0;
 
         function lfsr(p: number) {
+            let bit = (seed >> 1) ^ (seed >> 2);
+            bit &= 1;
             if (period > p) {
-                const b0 = ((seed >> 0) & 1);
-                const b1 = ((seed >> 2) & 1);
+                seed = (seed >> 1) | (bit << 14);
 
-                seed >>= 1;
-
-                const xor = b0 ^ b1;
-
-                seed |= xor << 14;
+                if (sevenBit == true) {
+                    seed &= ~(1 << 6);
+                    seed |= (bit << 6);
+                }
 
                 period = 0;
             }
             period++;
 
-            return seed;
+            return seed & 1;
         }
 
-        let waveTable = new Array(48000).fill(0);
+        const LFSR_MUL = 8;
+
+        let waveTable = new Array(32768 * LFSR_MUL).fill(0);
         // TODO: Hook LFSR into the rest of the sound chip
         waveTable = waveTable.map((v, i) => {
-            return Math.round(((lfsr(1) & 1) * 2) - 1) * 0.5;
+            let bit = lfsr(LFSR_MUL);
+            let out;
+            if (bit == 1) {
+                out = 1;
+            } else {
+                out = -1;
+            }
+            return out;
         });
+
+
+
         // waveTable = waveTable.map((v, i) => {
         // return Math.round(Math.random());
         // });
@@ -235,7 +259,7 @@ export class NoiseChannel implements BasicChannel {
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
         const ac = (Tone.context as any as AudioContext);
-        const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, 96000);
         const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];
