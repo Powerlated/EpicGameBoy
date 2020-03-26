@@ -95,7 +95,7 @@ export default class ToneJsHandler {
 
     pulse1() {
         // Pulse 1
-        if (this.s.pulse1.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && this.s.pulse1.frequencyLower !== 0) {
+        if (this.s.pulse1.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && this.s.pulse1.frequencyLower !== 0 && (this.s.pulse1.outputLeft || this.s.pulse1.outputRight)) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
@@ -110,7 +110,7 @@ export default class ToneJsHandler {
 
     pulse2() {
         // Pulse 2
-        if (this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && this.s.pulse2.frequencyLower != 0) {
+        if (this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && this.s.pulse2.frequencyLower != 0 && (this.s.pulse2.outputLeft || this.s.pulse2.outputRight)) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
@@ -124,15 +124,11 @@ export default class ToneJsHandler {
     }
 
     wave() {
-        if (this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled && this.s.wave.frequencyLower != 0) {
+        if (this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled && this.s.wave.frequencyLower != 0 && (this.s.wave.outputLeft || this.s.wave.outputRight)) {
             if (this.s.wave.updated) {
                 this.wavePan.pan.value = this.s.wave.pan;
+                this.waveVolume.mute = false;
                 this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
-                if (this.s.wave.enabled) {
-                    this.waveVolume.mute = false;
-                } else {
-                    this.waveVolume.mute = true;
-                }
                 this.waveVolume.volume.value = convertVolumeWave(this.s.wave.volume);
             }
         } else {
@@ -155,7 +151,7 @@ export default class ToneJsHandler {
 
     noise() {
         // Noise
-        if (this.s.noise.enabled) {
+        if (this.s.enabled && this.s.noise.enabled && this.s.noise.dacEnabled && (this.s.noise.outputLeft || this.s.noise.outputRight)) {
             if (this.s.noise.updated) {
                 this.noise7Pan.pan.value = this.s.noise.pan;
                 this.noise15Pan.pan.value = this.s.noise.pan;
