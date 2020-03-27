@@ -236,6 +236,8 @@ export default class CPU {
     halted = false;
     haltBug = false;
 
+    invalidOpcodeExecuted = false;
+
     gb: GameBoy;
 
     logging = false;
@@ -309,6 +311,7 @@ export default class CPU {
         this.halted = false;
         this.scheduleEnableInterruptsForNextTick = false;
         this.lastInstructionCycles = 0;
+        this.invalidOpcodeExecuted = false;
     }
 
     // #endregion
@@ -345,6 +348,8 @@ export default class CPU {
 
 
     step() {
+        if (this.invalidOpcodeExecuted) return;
+
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
             this.gb.interrupts.masterEnabled = true;
@@ -496,6 +501,9 @@ export default class CPU {
         if ((this.gb.interrupts.requestedInterrupts.numerical &
             this.gb.interrupts.enabledInterrupts.numerical) && this.halted === true) {
             this.halted = false;
+
+            // UnHALTing takes 4 cycles
+            this.cycles += 4;
         }
 
         //#region Service interrupts
@@ -506,6 +514,7 @@ export default class CPU {
             // If servicing any interrupt, disable the master flag
             if ((this.gb.interrupts.requestedInterrupts.numerical & this.gb.interrupts.enabledInterrupts.numerical) > 0) {
                 this.gb.interrupts.masterEnabled = false;
+
 
                 if (happened.vblank && enabled.vblank) {
                     happened.vblank = false;

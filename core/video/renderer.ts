@@ -24,6 +24,7 @@ export class GPURenderer {
         const mapIndex = (((this.gpu.lcdcY + this.gpu.scrY) >> 3) * 32) & 1023;
         const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
+        // Divide by 8 to get many tiles in the drawing should start 
         let lineOffset = this.gpu.scrX >> 3;
 
         let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
@@ -35,8 +36,8 @@ export class GPURenderer {
         const xPos = this.gpu.windowXpos - 7;
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < 160; i++) {
-            // Don't bother drawing if WINDOW is overlayingf
-            if (this.gpu.lcdControl.enableWindow____5 && this.gpu.lcdcY >= this.gpu.windowYpos && i >= xPos) break;
+            // Don't bother drawing if WINDOW is overlaying
+            if (this.gpu.lcdControl.enableWindow____5 && this.gpu.lcdcY >= this.gpu.windowYpos && i >= xPos) return;
 
             // Two's Complement on high tileset
             let tileOffset = 0;
@@ -75,8 +76,8 @@ export class GPURenderer {
 
             // When this tile ends, read another
             x++;
-            if (x === 8) {
-                x = 0;
+            if (x > 7) {
+                x &= 7;
                 lineOffset++;
                 lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
                 tile = this.gpu.tilemap[mapOffset + lineOffset];
@@ -143,8 +144,8 @@ export class GPURenderer {
 
                     // When this tile ends, read another
                     x++;
-                    if (x === 8) {
-                        x = 0;
+                    if (x > 7) {
+                        x &= 7;
                         mapOffset++;
                         tile = this.gpu.tilemap[mapOffset];
                         attr = this.gpu.cgbTileAttrs[mapOffset]; // Update attributes too

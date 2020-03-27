@@ -9,7 +9,7 @@ class Ops {
 
     static INVALID_OPCODE(cpu: CPU) {
         cpu.pc--;
-        cpu.gb.speedStop();
+        cpu.invalidOpcodeExecuted = true;
     }
 
     // #region INSTRUCTIONS

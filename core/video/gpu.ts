@@ -254,6 +254,8 @@ class GPU {
     lcdStatusConditionMet = false;
     lcdStatusFired = false;
 
+    mode3ExtraCycles = 0;
+
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step() {
         // TODO: FIX: THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
@@ -269,6 +271,7 @@ class GPU {
                         if (this.oamScanned == false) {
                             this.scanOAM();
                             this.oamScanned = true;
+                            this.mode3ExtraCycles += this.scannedEntriesCount * 10;
                         }
 
                         this.modeClock -= 80;
@@ -288,6 +291,7 @@ class GPU {
                     if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lcdcY == this.windowYpos) {
                         this.currentWindowLine = this.windowYpos - this.lcdcY;
                         this.windowOnscreenYetThisFrame = true;
+                        this.mode3ExtraCycles += 4;
                     }
                     // Delay window rendering based on its X position, and don't be too picky, it's only X position
                     if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
@@ -312,8 +316,8 @@ class GPU {
                         }
                     }
 
-                    if (this.modeClock >= 172) {
-                        this.modeClock -= 172;
+                    if (this.modeClock >= 172 + this.mode3ExtraCycles) {
+                        this.modeClock -= 172 + this.mode3ExtraCycles;
                         this.lcdStatus.mode = 0;
 
                         // Render sprites at end of scanline
@@ -333,9 +337,11 @@ class GPU {
 
                 // Hblank
                 case 0:
-                    if (this.modeClock >= 204) {
-                        this.modeClock -= 204;
+                    if (this.modeClock >= 204 - this.mode3ExtraCycles) {
+                        this.modeClock -= 204 - this.mode3ExtraCycles;
                         this.lcdcY++;
+
+                        this.mode3ExtraCycles = 0;
 
                         // If we're at LCDCy = 144, enter Vblank
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
@@ -438,7 +444,6 @@ class GPU {
             const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
 
             let screenYPos = yPos - 16;
-            let screenXPos = xPos - 8;
 
             // Push sprite to scanned if it is on the current scanline
             if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT) {
