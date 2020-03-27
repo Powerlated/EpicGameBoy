@@ -8,16 +8,11 @@ class Ops {
         switch (b0) {
             /** LD R16, N16 */
             case 0x01: // LD BC, N16
-                cpu._r.paired[R16.BC] = (b2 << 8) | b1;
-                return;
             case 0x11: // LD DE, N16
-                cpu._r.paired[R16.DE] = (b2 << 8) | b1;
-                return;
             case 0x21: // LD HL, N16
-                cpu._r.paired[R16.HL] = (b2 << 8) | b1;
-                return;
             case 0x31: // LD SP, N16
-                cpu._r.paired[R16.SP] = (b2 << 8) | b1;
+                const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
+                cpu._r.paired[target] = (b2 << 8) | b1;
                 return;
 
             case 0xFA: // LD A, [N16]
@@ -447,54 +442,13 @@ class Ops {
 
             /** PUSH R16 */
             case 0xF5: // PUSH AF 
-                {
-                    const value = cpu._r.paired[R16.AF];
-                    const upperByte = value >> 8;
-                    const lowerByte = value & 0b11111111;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, upperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, lowerByte);
-
-                    // 4 cycle penalty
-                    cpu.cycles += 4;
-                }
-                return;
-
             case 0xC5: // PUSH BC
-                {
-                    const value = cpu._r.paired[R16.BC];
-                    const upperByte = value >> 8;
-                    const lowerByte = value & 0b11111111;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, upperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, lowerByte);
-
-                    // 4 cycle penalty
-                    cpu.cycles += 4;
-                }
-                return;
             case 0xD5: // PUSH DE
-                {
-                    const value = cpu._r.paired[R16.DE];
-                    const upperByte = value >> 8;
-                    const lowerByte = value & 0b11111111;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, upperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, lowerByte);
-
-                    // 4 cycle penalty
-                    cpu.cycles += 4;
-                }
-                return;
             case 0xE5: // PUSH HL
                 {
-                    const value = cpu._r.paired[R16.HL];
+                    const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
+
+                    const value = cpu._r.paired[target];
                     const upperByte = value >> 8;
                     const lowerByte = value & 0b11111111;
 
@@ -507,217 +461,64 @@ class Ops {
                     cpu.cycles += 4;
                 }
                 return;
+
             /** POP R16 */
+            case 0xC1: // POP BC
+            case 0xD1: // POP DE
+            case 0xE1: // POP HL
             case 0xF1: // POP AF 
                 {
+                    const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
+
                     const lowerByte = cpu.fetchMem8(cpu._r.sp);
                     cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
                     const upperByte = cpu.fetchMem8(cpu._r.sp);
                     cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
 
-                    cpu._r.paired[R16.AF] = (upperByte << 8) | lowerByte;
-                }
-                return;
-            case 0xC1: // POP BC
-                {
-                    const lowerByte = cpu.fetchMem8(cpu._r.sp);
-                    cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-                    const upperByte = cpu.fetchMem8(cpu._r.sp);
-                    cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-
-                    cpu._r.paired[R16.BC] = (upperByte << 8) | lowerByte;
-                }
-                return;
-            case 0xD1: // POP DE
-                {
-                    const lowerByte = cpu.fetchMem8(cpu._r.sp);
-                    cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-                    const upperByte = cpu.fetchMem8(cpu._r.sp);
-                    cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-
-                    cpu._r.paired[R16.DE] = (upperByte << 8) | lowerByte;
-                }
-                return;
-            case 0xE1: // POP HL
-                {
-                    const lowerByte = cpu.fetchMem8(cpu._r.sp);
-                    cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-                    const upperByte = cpu.fetchMem8(cpu._r.sp);
-                    cpu._r.sp = (cpu._r.sp + 1) & 0xFFFF;
-
-                    cpu._r.paired[R16.HL] = (upperByte << 8) | lowerByte;
+                    cpu._r.paired[target] = (upperByte << 8) | lowerByte;
                 }
                 return;
 
             /** INC R8 */
             case 0x04: // INC B
-                {
-                    const target = cpu._r.gen[R8.B];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.B] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x0C: // INC C
-                {
-                    const target = cpu._r.gen[R8.C];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.C] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x14: // INC D
-                {
-                    const target = cpu._r.gen[R8.D];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.D] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x1C: // INC E
-                {
-                    const target = cpu._r.gen[R8.E];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.E] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x24: // INC H
-                {
-                    const target = cpu._r.gen[R8.H];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.H] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x2C: // INC L
-                {
-                    const target = cpu._r.gen[R8.L];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.L] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x34: // INC [HL]
-                {
-                    const target = cpu._r.gen[R8.iHL];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.iHL] = newValue;
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
-                }
-                return;
             case 0x3C: // INC A
                 {
-                    const target = cpu._r.gen[R8.A];
-                    const newValue = (target + 1) & 0xFF;
-                    cpu._r.gen[R8.A] = newValue;
+                    const target: R8 = (b0 & 0b111000) >> 3;
+
+                    const oldValue = cpu._r.gen[target];
+                    const newValue = (oldValue + 1) & 0xFF;
+                    cpu._r.gen[target] = newValue;
                     cpu._r._f.zero = newValue === 0;
                     cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (target & 0xF) + (1 & 0xF) > 0xF;
+                    cpu._r._f.half_carry = (oldValue & 0xF) + (1 & 0xF) > 0xF;
                 }
                 return;
 
             /** DEC R8 */
             case 0x05: // DEC B
-                {
-                    const target = cpu._r.gen[R8.B];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.B] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x0D: // DEC C
-                {
-                    const target = cpu._r.gen[R8.C];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.C] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x15: // DEC D
-                {
-                    const target = cpu._r.gen[R8.D];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.D] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x1D: // DEC E
-                {
-                    const target = cpu._r.gen[R8.E];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.E] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x25: // DEC H
-                {
-                    const target = cpu._r.gen[R8.H];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.H] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x2D: // DEC L
-                {
-                    const target = cpu._r.gen[R8.L];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.L] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x35: // DEC [HL]
-                {
-                    const target = cpu._r.gen[R8.iHL];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.iHL] = newValue;
-
-                    cpu._r._f.zero = newValue === 0;
-                    cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
-                }
-                return;
             case 0x3D: // DEC A
                 {
-                    const target = cpu._r.gen[R8.A];
-                    const newValue = (target - 1) & 0xFF;
-                    cpu._r.gen[R8.A] = newValue;
+                    const target: R8 = (b0 & 0b111000) >> 3;
+
+                    const oldValue = cpu._r.gen[target];
+                    const newValue = (oldValue - 1) & 0xFF;
+                    cpu._r.gen[target] = newValue;
 
                     cpu._r._f.zero = newValue === 0;
                     cpu._r._f.negative = true;
-                    cpu._r._f.half_carry = (1 & 0xF) > (target & 0xF);
+                    cpu._r._f.half_carry = (1 & 0xF) > (oldValue & 0xF);
                 }
                 return;
 
@@ -725,38 +526,26 @@ class Ops {
 
             /** INC R16 */
             case 0x03: // INC BC
-                cpu._r.paired[R16.BC] = (cpu._r.paired[R16.BC] + 1) & 0xFFFF;
-                cpu.cycles += 4;
-                return;
             case 0x13: // INC DE 
-                cpu._r.paired[R16.DE] = (cpu._r.paired[R16.DE] + 1) & 0xFFFF;
-                cpu.cycles += 4;
-                return;
             case 0x23: // INC HL
-                cpu._r.paired[R16.HL] = (cpu._r.paired[R16.HL] + 1) & 0xFFFF;
-                cpu.cycles += 4;
-                return;
             case 0x33: // INC SP
-                cpu._r.paired[R16.SP] = (cpu._r.paired[R16.SP] + 1) & 0xFFFF;
-                cpu.cycles += 4;
+                {
+                    const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
+                    cpu._r.paired[target] = (cpu._r.paired[target] + 1) & 0xFFFF;
+                    cpu.cycles += 4;
+                }
                 return;
 
             /** DEC R16 */
             case 0x0B: // DEC BC
-                cpu._r.paired[R16.BC] = (cpu._r.paired[R16.BC] - 1) & 0xFFFF;
-                cpu.cycles += 4;
-                return;
             case 0x1B: // DEC DE 
-                cpu._r.paired[R16.DE] = (cpu._r.paired[R16.DE] - 1) & 0xFFFF;
-                cpu.cycles += 4;
-                return;
             case 0x2B: // DEC HL
-                cpu._r.paired[R16.HL] = (cpu._r.paired[R16.HL] - 1) & 0xFFFF;
-                cpu.cycles += 4;
-                return;
             case 0x3B: // DEC SP
-                cpu._r.paired[R16.SP] = (cpu._r.paired[R16.SP] - 1) & 0xFFFF;
-                cpu.cycles += 4;
+                {
+                    const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
+                    cpu._r.paired[target] = (cpu._r.paired[target] - 1) & 0xFFFF;
+                    cpu.cycles += 4;
+                }
                 return;
 
             // #region Accumulator Arithmetic
@@ -1244,65 +1033,12 @@ class Ops {
 
             /** ADD HL, R16 */
             case 0x09: // ADD HL, BC
-                {
-                    const r16Value = cpu._r.paired[R16.BC];
-
-                    const newValue = (r16Value + cpu._r.hl) & 0xFFFF;
-                    const didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
-
-                    // Set flag
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (cpu._r.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
-                    cpu._r._f.carry = didOverflow;
-
-                    // Set register values
-                    cpu._r.hl = newValue;
-
-                    // Register read takes 4 more cycles
-                    cpu.cycles += 4;
-                }
-                return;
             case 0x19: // ADD HL, DE
-                {
-                    const r16Value = cpu._r.paired[R16.DE];
-
-                    const newValue = (r16Value + cpu._r.hl) & 0xFFFF;
-                    const didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
-
-                    // Set flag
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (cpu._r.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
-                    cpu._r._f.carry = didOverflow;
-
-                    // Set register values
-                    cpu._r.hl = newValue;
-
-                    // Register read takes 4 more cycles
-                    cpu.cycles += 4;
-                }
-                return;
             case 0x29: // ADD HL, HL
-                {
-                    const r16Value = cpu._r.paired[R16.HL];
-
-                    const newValue = (r16Value + cpu._r.hl) & 0xFFFF;
-                    const didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
-
-                    // Set flag
-                    cpu._r._f.negative = false;
-                    cpu._r._f.half_carry = (cpu._r.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
-                    cpu._r._f.carry = didOverflow;
-
-                    // Set register values
-                    cpu._r.hl = newValue;
-
-                    // Register read takes 4 more cycles
-                    cpu.cycles += 4;
-                }
-                return;
             case 0x39: // ADD HL, SP
                 {
-                    const r16Value = cpu._r.paired[R16.SP];
+                    const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
+                    const r16Value = cpu._r.paired[target];
 
                     const newValue = (r16Value + cpu._r.hl) & 0xFFFF;
                     const didOverflow = ((r16Value + cpu._r.hl) >> 16) !== 0;
@@ -1322,112 +1058,15 @@ class Ops {
 
             /** Reset Vectors */
             case 0xC7: // RST 00h 
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x00 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xCF: // RST 08h
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x08 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xD7: // RST 10h
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x10 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xDF: // RST 18h
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x18 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xE7: // RST 20h
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x20 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xEF: // RST 28h
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x28 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xF7: // RST 30h
-                {
-                    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = 0x30 - 1;
-
-                    cpu.cycles += 4;
-                }
-                break;
             case 0xFF: // RST 38h
                 {
+                    const target = b0 & 0b111000;
                     const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
                     const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
 
@@ -1436,7 +1075,7 @@ class Ops {
                     cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
                     cpu.writeMem8(cpu._r.sp, pcLowerByte);
 
-                    cpu.pc = 0x38 - 1;
+                    cpu.pc = target - 1;
 
                     cpu.cycles += 4;
                 }
