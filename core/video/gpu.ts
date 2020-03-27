@@ -140,24 +140,22 @@ class CGBPaletteData {
         Uint8Array.of(0, 0, 0)
     ]);
 
-    update() {
-        for (let pal = 0; pal < 8; pal++) {
-            for (let col = 0; col < 4; col++) {
-                let b0 = this.data[(pal * 8) + (col * 2) + 0];
-                let b1 = this.data[(pal * 8) + (col * 2) + 1];
+    update(pal: number) {
+        for (let col = 0; col < 4; col++) {
+            let b0 = this.data[(pal * 8) + (col * 2) + 0];
+            let b1 = this.data[(pal * 8) + (col * 2) + 1];
 
-                let rgb555 = (b1 << 8) | b0;
+            let rgb555 = (b1 << 8) | b0;
 
-                let r = ((rgb555 >> 0) & 31);
-                let g = ((rgb555 >> 5) & 31);
-                let b = ((rgb555 >> 10) & 31);
+            let r = ((rgb555 >> 0) & 31);
+            let g = ((rgb555 >> 5) & 31);
+            let b = ((rgb555 >> 10) & 31);
 
-                r = r * (255 / 31);
-                g = g * (255 / 31);
-                b = b * (255 / 31);
+            r = r * (255 / 31);
+            g = g * (255 / 31);
+            b = b * (255 / 31);
 
-                this.shades[pal][col] = Uint8Array.of(r, g, b);
-            }
+            this.shades[pal][col] = Uint8Array.of(r, g, b);
         }
     }
 }
@@ -633,7 +631,7 @@ class GPU {
         this.cgbBgPalette.data[i + 1] = upper;
         this.cgbBgPalette.data[i + 0] = lower;
 
-        this.cgbBgPalette.update();
+        this.cgbBgPalette.update(p >> 2);
     }
 
     setDmgObjPalette(p: number, l: number) {
@@ -647,7 +645,7 @@ class GPU {
         this.cgbObjPalette.data[i + 0] = lower;
         this.cgbObjPalette.data[i + 1] = upper;
 
-        this.cgbObjPalette.update();
+        this.cgbObjPalette.update(p >> 2);
     }
 
     writeHwio(addr: number, value: number) {
@@ -725,11 +723,12 @@ class GPU {
             case 0xFF69: // CGB - Background Palette Data
                 if (this.gb.cgb) {
                     this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
+                    this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3);
+
                     if (this.cgbBgPaletteIndexAutoInc) {
                         this.cgbBgPaletteIndex++;
                         this.cgbBgPaletteIndex &= 0x3F;
                     }
-                    this.cgbBgPalette.update();
                 }
                 break;
             case 0xFF6A: // CGB - Sprite Palette Index
@@ -741,11 +740,12 @@ class GPU {
             case 0xFF6B: // CGB - Sprite Palette Data
                 if (this.gb.cgb) {
                     this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
+                    this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3);
+
                     if (this.cgbObjPaletteIndexAutoInc) {
                         this.cgbObjPaletteIndex++;
                         this.cgbObjPaletteIndex &= 0x3F;
                     }
-                    this.cgbObjPalette.update();
                 }
                 break;
         }
