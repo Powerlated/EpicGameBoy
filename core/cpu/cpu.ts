@@ -237,7 +237,6 @@ export default class CPU {
     haltBug = false;
 
     invalidOpcodeExecuted = false;
-
     gb: GameBoy;
 
     logging = false;
@@ -262,6 +261,7 @@ export default class CPU {
         for (let i = 0; i <= 0xFF; i++) {
             this.opCacheRg[i] = Decoder.rgOpcode(i);
             this.opCacheCb[i] = Decoder.cbOpcode(i);
+
         }
     }
 
@@ -445,23 +445,23 @@ export default class CPU {
 
             if (ins.type !== undefined) {
                 if (ins.length === 3) {
-                    ins.op(this, ins.type, (this.gb.bus.readMem8(this.pc + 2) << 8) | this.gb.bus.readMem8(this.pc + 1));
+                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]);
                     this.cycles += 8;
                 } else if (ins.length === 2 && (ins.type2 === undefined)) {
-                    ins.op(this, ins.type, this.gb.bus.readMem8(this.pc + 1));
+                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1)]);
                     this.cycles += 4;
                 } else {
                     ins.op(this, ins.type, ins.type2);
                 }
             } else {
                 if (ins.length === 3) {
-                    ins.op(this, (this.gb.bus.readMem8(this.pc + 2) << 8) | this.gb.bus.readMem8(this.pc + 1));
+                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]);
                     this.cycles += 8;
                 } else if (ins.length === 2) {
-                    ins.op(this, this.gb.bus.readMem8(this.pc + 1));
+                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1)]);
                     this.cycles += 4;
                 } else {
-                    ins.op(this);
+                    Ops.execute(this, [b0]);
                 }
             }
 
