@@ -416,23 +416,21 @@ export default class CPU {
             // Make a write to disable the bootrom
             this.gb.bus.writeMem8(0xFF50, 1);
         }
-        // Run the debug information collector
-        if (this.debugging || this.logging)
-            this.stepDebug();
+        // // Run the debug information collector
+        // if (this.debugging || this.logging)
+        //     this.stepDebug();
 
         if (this.halted === false) {
             const c = this.cycles;
 
             const b0 = this.gb.bus.readMem8(this.pc + 0);
-            const b1 = this.gb.bus.readMem8(this.pc + 1);
-            const b2 = this.gb.bus.readMem8(this.pc + 2);
 
             const isCB = b0 === 0xCB;
 
             if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
 
             // Lookup decoded
-            const ins = isCB ? this.opCacheCb[b1] : this.opCacheRg[b0];
+            const ins = isCB ? this.opCacheCb[this.gb.bus.readMem8(this.pc + 1)] : this.opCacheRg[b0];
             this.cycles += 4; // Decoding time penalty
 
             // if (this.minDebug) {
@@ -447,20 +445,20 @@ export default class CPU {
 
             if (ins.type !== undefined) {
                 if (ins.length === 3) {
-                    ins.op(this, ins.type, (b2 << 8) | b1);
+                    ins.op(this, ins.type, (this.gb.bus.readMem8(this.pc + 2) << 8) | this.gb.bus.readMem8(this.pc + 1));
                     this.cycles += 8;
                 } else if (ins.length === 2 && (ins.type2 === undefined)) {
-                    ins.op(this, ins.type, b1);
+                    ins.op(this, ins.type, this.gb.bus.readMem8(this.pc + 1));
                     this.cycles += 4;
                 } else {
                     ins.op(this, ins.type, ins.type2);
                 }
             } else {
                 if (ins.length === 3) {
-                    ins.op(this, (b2 << 8) | b1);
+                    ins.op(this, (this.gb.bus.readMem8(this.pc + 2) << 8) | this.gb.bus.readMem8(this.pc + 1));
                     this.cycles += 8;
                 } else if (ins.length === 2) {
-                    ins.op(this, b1);
+                    ins.op(this, this.gb.bus.readMem8(this.pc + 1));
                     this.cycles += 4;
                 } else {
                     ins.op(this);
