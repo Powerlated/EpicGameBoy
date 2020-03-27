@@ -259,8 +259,8 @@ export default class CPU {
 
         // Generate all possible opcodes including invalids
         for (let i = 0; i <= 0xFF; i++) {
-            this.opCacheRg[i] = Decoder.rgOpcode(i);
-            this.opCacheCb[i] = Decoder.cbOpcode(i);
+            this.opCacheRg[i] = Decoder.rgOpcode(i).length;
+            this.opCacheCb[i] = Decoder.cbOpcode(i).length;
 
         }
     }
@@ -283,8 +283,8 @@ export default class CPU {
 
     debugging = false;
 
-    opCacheRg: Array<Op> = new Array(256);
-    opCacheCb: Array<Op> = new Array(256);
+    opCacheRg: Uint8Array = new Uint8Array(256);
+    opCacheCb: Uint8Array = new Uint8Array(256);
 
     opcodesRan = new Set();
 
@@ -426,12 +426,10 @@ export default class CPU {
             const b0 = this.gb.bus.readMem8(this.pc + 0);
 
             const isCB = b0 === 0xCB;
-
-            if (isCB) this.cycles += 4; // 0xCB prefix decoding penalty
-
+            
             // Lookup decoded
-            const ins = isCB ? this.opCacheCb[this.gb.bus.readMem8(this.pc + 1)] : this.opCacheRg[b0];
-            this.cycles += 4; // Decoding time penalty
+            const length = isCB ? 2 : this.opCacheRg[b0];
+            this.cycles += (4 * length); // Decoding time penalty
 
             // if (this.minDebug) {
             //     if (Disassembler.isControlFlow(ins)) {
@@ -443,30 +441,24 @@ export default class CPU {
             //     }
             // }
 
-            if (ins.type !== undefined) {
-                if (ins.length === 3) {
-                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]);
-                    this.cycles += 8;
-                } else if (ins.length === 2 && (ins.type2 === undefined)) {
-                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1)]);
-                    this.cycles += 4;
-                } else {
-                    ins.op(this, ins.type, ins.type2);
+            if (isCB === false) {
+                switch (length) {
+                    case 3:
+                        Ops.execute3(this, b0, this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2));
+                        break;
+                    case 2:
+                        Ops.execute2(this, b0, this.gb.bus.readMem8(this.pc + 1));
+                        break;
+                    case 1:
+                        Ops.execute1(this, b0);
+                        break;
                 }
             } else {
-                if (ins.length === 3) {
-                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2)]);
-                    this.cycles += 8;
-                } else if (ins.length === 2) {
-                    Ops.execute(this, [b0, this.gb.bus.readMem8(this.pc + 1)]);
-                    this.cycles += 4;
-                } else {
-                    Ops.execute(this, [b0]);
-                }
+                Ops.execute0xCBPrefix(this, this.gb.bus.readMem8(this.pc + 1));
             }
 
             if (!this.haltBug) {
-                this.pc = (this.pc + ins.length) & 0xFFFF;
+                this.pc = (this.pc + length) & 0xFFFF;
             }
 
             this.totalI++;
