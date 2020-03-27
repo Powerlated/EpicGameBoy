@@ -4,7 +4,7 @@ import Disassembler from "../../src/gameboy/tools/disassembler";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { hex, pad, hexN_LC, hexN, r_pad, assert } from "../../src/gameboy/tools/util";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
-import Decoder from './decoder';
+import Decoder, { UNPREFIXED_LENGTHS } from './decoder';
 import * as Timings from '../../src/gameboy/data/cpu_instruction_timings';
 
 function undefErr(cpu: CPU, name: string) {
@@ -256,13 +256,6 @@ export default class CPU {
     constructor(gb: GameBoy) {
         this.gb = gb;
         writeDebug("CPU Bootstrap!");
-
-        // Generate all possible opcodes including invalids
-        for (let i = 0; i <= 0xFF; i++) {
-            this.opCacheRg[i] = Decoder.rgOpcode(i).length;
-            this.opCacheCb[i] = Decoder.cbOpcode(i).length;
-
-        }
     }
 
     // #region
@@ -282,9 +275,6 @@ export default class CPU {
     time = 0;
 
     debugging = false;
-
-    opCacheRg: Uint8Array = new Uint8Array(256);
-    opCacheCb: Uint8Array = new Uint8Array(256);
 
     opcodesRan = new Set();
 
@@ -426,9 +416,9 @@ export default class CPU {
             const b0 = this.gb.bus.readMem8(this.pc + 0);
 
             const isCB = b0 === 0xCB;
-            
+
             // Lookup decoded
-            const length = isCB ? 2 : this.opCacheRg[b0];
+            const length = isCB ? 2 : UNPREFIXED_LENGTHS[b0];
             this.cycles += (4 * length); // Decoding time penalty
 
             // if (this.minDebug) {

@@ -13,7 +13,6 @@ import { hex } from "../../src/gameboy/tools/util";
 import InterruptController from "../components/interrupt-controller";
 import { JoypadRegister } from "../components/joypad";
 import MBC5 from "./mbc/mbc5";
-import Decoder from "../cpu/decoder";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -65,16 +64,6 @@ class MemoryBus {
     }
 
     writeMem8(addr: number, value: number) {
-        if (value > 255) {
-            alert(`
-        WriteMem8(0x${value.toString(16)})
-        
-        PC: 0x${this.gb.cpu.pc.toString(16)}
-        Opcode: 0x${this.readMem8(this.gb.cpu.pc).toString(16)}
-        Op: ${Decoder.rgOpcode(this.readMem8(this.gb.cpu.pc)).op.name}
-        `);
-        }
-
         // ROM Write (MBC Control)
         if (addr >= 0x0000 && addr <= 0x7FFF) {
             this.ext.mbc.write(addr, value);

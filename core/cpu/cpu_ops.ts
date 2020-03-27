@@ -1,8 +1,6 @@
 import CPU, { R8, R16, CC } from './cpu';
 import { unTwo8b, hex } from '../../src/gameboy/tools/util';
 
-
-
 class Ops {
     static execute3(cpu: CPU, b0: number, b1: number, b2: number): void {
         switch (b0) {
@@ -30,108 +28,38 @@ class Ops {
                 return;
 
             case 0xC3: // JP N16
-                cpu.pc = ((b2 << 8) | b1 + 0) - 3;
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
-            case 0xDA: // JP C, N16
-                if (!cpu._r._f.carry) return;
-                cpu.pc = ((b2 << 8) | b1 + 0) - 3;
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
-            case 0xD2: // JP NC, N16
-                if (cpu._r._f.carry) return;
-                cpu.pc = ((b2 << 8) | b1 + 0) - 3;
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
-            case 0xCA: // JP Z, N16
-                if (!cpu._r._f.zero) return;
-                cpu.pc = ((b2 << 8) | b1 + 0) - 3;
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
             case 0xC2: // JP NZ, N16
-                if (cpu._r._f.zero) return;
-                cpu.pc = ((b2 << 8) | b1 + 0) - 3;
+            case 0xCA: // JP Z, N16
+            case 0xD2: // JP NC, N16
+            case 0xDA: // JP C, N16
+                // If unconditional, don't check
+                if (b0 !== 0xC3) {
+                    const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
+                    if (cc === CC.NZ && cpu._r._f.zero) return;
+                    if (cc === CC.Z && !cpu._r._f.zero) return;
+                    if (cc === CC.NC && cpu._r._f.carry) return;
+                    if (cc === CC.C && !cpu._r._f.carry) return;
+                }
+
+                cpu.pc = ((b2 << 8) | b1 + 0x0) - 3;
                 cpu.cycles += 4; // Branching takes 4 cycles
                 return;
 
             /** CALL */
             case 0xCD: // CALL N16
-                {
-                    const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
-
-                    // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = ((b2 << 8) | b1) - 3;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xDC: // CALL C, N16
-                {
-                    if (!cpu._r._f.carry) return;
-
-                    const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
-
-                    // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = ((b2 << 8) | b1) - 3;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xD4: // CALL NC, N16
-                {
-                    if (cpu._r._f.carry) return;
-
-                    const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
-
-                    // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = ((b2 << 8) | b1) - 3;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xCC: // CALL Z, N16
-                {
-                    if (!cpu._r._f.zero) return;
-
-                    const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
-                    const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
-
-                    // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
-
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcUpperByte);
-                    cpu._r.sp = (cpu._r.sp - 1) & 0xFFFF;
-                    cpu.writeMem8(cpu._r.sp, pcLowerByte);
-
-                    cpu.pc = ((b2 << 8) | b1) - 3;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xC4: // CALL NZ, N16
                 {
-                    if (cpu._r._f.zero) return;
+                    if (b0 !== 0xCD) {
+                        const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
+
+                        if (cc === CC.NZ && cpu._r._f.zero) return;
+                        if (cc === CC.Z && !cpu._r._f.zero) return;
+                        if (cc === CC.NC && cpu._r._f.carry) return;
+                        if (cc === CC.C && !cpu._r._f.carry) return;
+                    }
 
                     const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
                     const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
@@ -260,8 +188,6 @@ class Ops {
                     const value = b1;
 
                     const newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
-                    const didOverflow = ((cpu._r.gen[R8.A] - value) >> 8) !== 0;
-
 
                     // Set flags
                     cpu._r._f.carry = value > cpu._r.gen[R8.A];
@@ -273,29 +199,23 @@ class Ops {
 
             /** JR */
             case 0x18: // JR E8
-                cpu.pc += unTwo8b(b1);
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
-            case 0x38: // JR C, E8
-                if (!cpu._r._f.carry) return;
-                cpu.pc += unTwo8b(b1);
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
-            case 0x30: // JR NC, E8
-                if (cpu._r._f.carry) return;
-                cpu.pc += unTwo8b(b1);
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
-            case 0x28: // JR Z, E8
-                if (!cpu._r._f.zero) return;
-                cpu.pc += unTwo8b(b1);
-                cpu.cycles += 4; // Branching takes 4 cycles
-                return;
             case 0x20: // JR NZ, E8
-                if (cpu._r._f.zero) return;
+            case 0x28: // JR Z, E8
+            case 0x30: // JR NC, E8
+            case 0x38: // JR C, E8
+                if (b0 !== 0x18) {
+                    const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
+
+                    if (cc === CC.NZ && cpu._r._f.zero) return;
+                    if (cc === CC.Z && !cpu._r._f.zero) return;
+                    if (cc === CC.NC && cpu._r._f.carry) return;
+                    if (cc === CC.C && !cpu._r._f.carry) return;
+                }
+
                 cpu.pc += unTwo8b(b1);
                 cpu.cycles += 4; // Branching takes 4 cycles
                 return;
+
 
 
             /** Arithmetic */
@@ -369,28 +289,15 @@ class Ops {
 
             /** LD R8, N8 */
             case 0x06: // LD B, N8
-                cpu._r.gen[R8.B] = b1;
-                return;
             case 0x0E: // LD C, N8
-                cpu._r.gen[R8.C] = b1;
-                return;
             case 0x16: // LD D, N8
-                cpu._r.gen[R8.D] = b1;
-                return;
             case 0x1E: // LD E, n8
-                cpu._r.gen[R8.E] = b1;
-                return;
             case 0x26: // LD H, N8
-                cpu._r.gen[R8.H] = b1;
-                return;
             case 0x2E: // LD L, N8
-                cpu._r.gen[R8.L] = b1;
-                return;
             case 0x36: // LD (HL), N8
-                cpu._r.gen[R8.iHL] = b1;
-                return;
             case 0x3E: // LD A, N8
-                cpu._r.gen[R8.A] = b1;
+                const target: R8 = (b0 & 0b111000) >> 3;
+                cpu._r.gen[target] = b1;
                 return;
 
             default:
@@ -946,76 +853,21 @@ class Ops {
 
             /** RET */
             case 0xC9: // RET
-                {
-                    cpu.cycles += 4; // Branch decision?
-
-                    const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-                    const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-
-                    const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
-                    // console.info(`Returning to 0x${returnAddress.toString(16)}`);
-
-                    cpu.pc = returnAddress - 1;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xD8: // RET C
-                {
-                    cpu.cycles += 4; // Branch decision?
-
-                    if (!cpu._r._f.carry) return;
-
-                    const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-                    const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-
-                    const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
-                    // console.info(`Returning to 0x${returnAddress.toString(16)}`);
-
-                    cpu.pc = returnAddress - 1;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xD0: // RET NC
-                {
-                    cpu.cycles += 4; // Branch decision?
-
-                    if (cpu._r._f.carry) return;
-
-                    const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-                    const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-
-                    const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
-                    // console.info(`Returning to 0x${returnAddress.toString(16)}`);
-
-                    cpu.pc = returnAddress - 1;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xC8: // RET Z
-                {
-                    cpu.cycles += 4; // Branch decision?
-
-                    if (!cpu._r._f.zero) return;
-
-                    const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-                    const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
-
-                    const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
-                    // console.info(`Returning to 0x${returnAddress.toString(16)}`);
-
-                    cpu.pc = returnAddress - 1;
-
-                    cpu.cycles += 4; // Branching takes 4 cycles
-                }
-                return;
             case 0xC0: // RET NZ
                 {
                     cpu.cycles += 4; // Branch decision?
 
-                    if (cpu._r._f.zero) return;
+                    if (b0 !== 0xC9) {
+                        const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
+
+                        if (cc === CC.NZ && cpu._r._f.zero) return;
+                        if (cc === CC.Z && !cpu._r._f.zero) return;
+                        if (cc === CC.NC && cpu._r._f.carry) return;
+                        if (cc === CC.C && !cpu._r._f.carry) return;
+                    }
 
                     const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
                     const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
