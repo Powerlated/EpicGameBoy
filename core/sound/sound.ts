@@ -239,197 +239,198 @@ export default class SoundChip {
     soundRegisters = new Uint8Array(65536).fill(0);
 
     writeHwio(addr: number, value: number) {
-        const dutyCycle = 0;
-        this.soundRegisters[addr] = value;
-        switch (addr) {
+        if (this.enabled) {
+            this.soundRegisters[addr] = value;
 
-            // Pulse 1
-            case 0xFF10: // NR10
-                this.pulse1.freqSweepTime = (value & 0b01110000) >> 4; // in 128ths of a second (0-7)
-                this.pulse1.freqSweepUp = ((value >> 3) & 1) === 0; // 0 === Add, 1 = Sub
-                this.pulse1.freqSweepShiftNum = (value & 0b111); // 0-7; 
-                this.pulse1.update();
-                break;
-            case 0xFF11: // NR11
-                this.pulse1.width = (value & 0b11000000) >> 6;
-                this.pulse1.lengthCounter = 64 - (value & 0b111111);
-                this.pulse1.update();
-                break;
-            case 0xFF12: // NR12
-                this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
-                this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
-                this.pulse1.volumeEnvelopeSweep = value & 0b111;
-                this.pulse1.dacEnabled = (value & 0b11111000) != 0;
-                if (!this.pulse1.dacEnabled) this.pulse1.enabled = false;
-                this.pulse1.update();
-                break;
-            case 0xFF13: // NR13 Low bits
-                this.pulse1.oldFrequencyLower = this.pulse1.frequencyLower;
-                this.pulse1.frequencyLower = value;
-                this.pulse1.update();
-                break;
-            case 0xFF14: // NR14
-                this.pulse1.frequencyUpper = value & 0b111;
-                this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
-                this.pulse1.triggered = ((value >> 7) & 1) !== 0;
-                this.pulse1.update();
-                break;
-
-            // Pulse 2
-            case 0xFF16: // NR21
-                this.pulse2.width = (value & 0b11000000) >> 6;
-                this.pulse2.lengthCounter = 64 - (value & 0b111111);
-                this.pulse2.update();
-                break;
-            case 0xFF17: // NR22
-                this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
-                this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
-                this.pulse2.volumeEnvelopeSweep = value & 0b111;
-                this.pulse2.dacEnabled = (value & 0b11111000) != 0;
-                if (!this.pulse2.dacEnabled) this.pulse2.enabled = false;
-                this.pulse2.update();
-                break;
-            case 0xFF18: // NR23
-                this.pulse2.oldFrequencyLower = this.pulse2.frequencyLower;
-                this.pulse2.frequencyLower = value;
-                this.pulse2.update();
-                break;
-            case 0xFF19: // NR24
-                this.pulse2.frequencyUpper = value & 0b111;
-                this.pulse2.lengthEnable = ((value >> 6) & 1) !== 0;
-                this.pulse2.triggered = ((value >> 7) & 1) !== 0;
-                this.pulse2.update();
-                break;
-
-            // Wave
-            case 0xFF1A: // NR30
-                this.wave.dacEnabled = (value & 0x80) !== 0;
-                if (!this.wave.dacEnabled) this.wave.enabled = false;
-                this.wave.update();
-                break;
-            case 0xFF1B: // NR31
-                this.wave.lengthCounter = 256 - value;
-                this.wave.update();
-                break;
-            case 0xFF1C: // NR32
-                this.wave.volume = (value >> 5) & 0b11;
-                this.wave.update();
-                break;
-            case 0xFF1D: // NR33
-                this.wave.frequencyLower = value;
-                this.wave.update();
-                break;
-            case 0xFF1E: // NR34
-                this.wave.frequencyUpper = value & 0b111;
-                this.wave.triggered = ((value >> 7) & 1) !== 0;
-                this.wave.lengthEnable = ((value >> 6) & 1) !== 0;
-                this.wave.update();
-                break;
-
-            // Noise
-            case 0xFF20: // NR41
-                this.noise.lengthCounter = 64 - (value & 0b111111); // 6 bits
-                this.noise.update();
-                break;
-            case 0xFF21: // NR42
-                this.noise.volumeEnvelopeStart = (value >> 4) & 0xF;
-                this.noise.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
-                this.noise.volumeEnvelopeSweep = value & 0b111;
-                this.noise.dacEnabled = (value & 0b11111000) != 0;
-                if (!this.noise.dacEnabled) this.noise.enabled = false;
-                this.noise.update();
-                break;
-            case 0xFF22: // NR43
-                this.noise.shiftClockFrequency = (value >> 4) & 0xF;
-                this.noise.counterStep = ((value >> 3) & 1) !== 0;
-                this.noise.divisorCode = (value & 0b111);
-                this.noise.update();
-                break;
-            case 0xFF23: // NR44
-                this.noise.triggered = ((value >> 7) & 1) !== 0;
-                this.noise.lengthEnable = ((value >> 6) & 1) !== 0;
-                this.noise.update();
-                break;
-
-
-            case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
-            case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
-                const BASE = 0xFF30;
-                if (this.wave.waveTable[((addr - BASE) * 2) + 0] != (value >> 4)) {
-                    this.wave.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
-                    this.wave.waveTableUpdated = true;
-                }
-                if (this.wave.waveTable[((addr - BASE) * 2) + 1] != (value & 0xF)) {
-                    this.wave.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
-                    this.wave.waveTableUpdated = true;
-                }
-                this.wave.update();
-                break;
-
-            // Panning
-            case 0xFF25:
-                this.noise.outputRight = (((value >> 7) & 1) === 1);
-                this.wave.outputRight = (((value >> 6) & 1) === 1);
-                this.pulse2.outputRight = (((value >> 5) & 1) === 1);
-                this.pulse1.outputRight = (((value >> 4) & 1) === 1);
-
-                this.noise.outputLeft = (((value >> 3) & 1) === 1);
-                this.wave.outputLeft = (((value >> 2) & 1) === 1);
-                this.pulse2.outputLeft = (((value >> 1) & 1) === 1);
-                this.pulse1.outputLeft = (((value >> 0) & 1) === 1);
-                
-                this.pulse1.update();
-                this.pulse2.update();
-                this.wave.update();
-                this.noise.update();
-
-                break;
-
-            // Control
-            case 0xFF26: // NR52
-                if (((value >> 7) & 1) !== 0) {
-                    // writeDebug("Enabled sound");
-                    this.enabled = true;
-
-                } else {
-                    // Disable and write zeros on everything upon main disabling
-                    this.noise.enabled = false;
-                    this.wave.enabled = false;
-                    this.pulse2.enabled = false;
-                    this.pulse1.enabled = false;
-
-                    this.noise.dacEnabled = false;
-                    this.wave.dacEnabled = false;
-                    this.pulse2.dacEnabled = false;
-                    this.pulse1.dacEnabled = false;
-
-                    this.writeHwio(0xFF10, 0);
-                    this.writeHwio(0xFF11, 0);
-                    this.writeHwio(0xFF12, 0);
-                    this.writeHwio(0xFF13, 0);
-                    this.writeHwio(0xFF14, 0);
-
-                    this.writeHwio(0xFF16, 0);
-                    this.writeHwio(0xFF17, 0);
-                    this.writeHwio(0xFF18, 0);
-                    this.writeHwio(0xFF19, 0);
-
-                    this.writeHwio(0xFF1A, 0);
-                    this.writeHwio(0xFF1B, 0);
-                    this.writeHwio(0xFF1C, 0);
-                    this.writeHwio(0xFF1D, 0);
-                    this.writeHwio(0xFF1D, 0);
-
-                    this.writeHwio(0xFF20, 0);
-                    this.writeHwio(0xFF21, 0);
-                    this.writeHwio(0xFF22, 0);
-                    this.writeHwio(0xFF23, 0);
-
-                    this.soundRegisters = new Uint8Array(65536).fill(0);
-                    this.enabled = false;
+            switch (addr) {
+                // Pulse 1
+                case 0xFF10: // NR10
+                    this.pulse1.freqSweepTime = (value & 0b01110000) >> 4; // in 128ths of a second (0-7)
+                    this.pulse1.freqSweepUp = ((value >> 3) & 1) === 0; // 0 === Add, 1 = Sub
+                    this.pulse1.freqSweepShiftNum = (value & 0b111); // 0-7; 
+                    this.pulse1.update();
                     break;
+                case 0xFF11: // NR11
+                    this.pulse1.width = (value & 0b11000000) >> 6;
+                    this.pulse1.lengthCounter = 64 - (value & 0b111111);
+                    this.pulse1.update();
+                    break;
+                case 0xFF12: // NR12
+                    this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
+                    this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
+                    this.pulse1.volumeEnvelopeSweep = value & 0b111;
+                    this.pulse1.dacEnabled = (value & 0b11111000) != 0;
+                    if (!this.pulse1.dacEnabled) this.pulse1.enabled = false;
+                    this.pulse1.update();
+                    break;
+                case 0xFF13: // NR13 Low bits
+                    this.pulse1.oldFrequencyLower = this.pulse1.frequencyLower;
+                    this.pulse1.frequencyLower = value;
+                    this.pulse1.update();
+                    break;
+                case 0xFF14: // NR14
+                    this.pulse1.frequencyUpper = value & 0b111;
+                    this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
+                    this.pulse1.triggered = ((value >> 7) & 1) !== 0;
+                    this.pulse1.update();
+                    break;
+
+                // Pulse 2
+                case 0xFF16: // NR21
+                    this.pulse2.width = (value & 0b11000000) >> 6;
+                    this.pulse2.lengthCounter = 64 - (value & 0b111111);
+                    this.pulse2.update();
+                    break;
+                case 0xFF17: // NR22
+                    this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
+                    this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
+                    this.pulse2.volumeEnvelopeSweep = value & 0b111;
+                    this.pulse2.dacEnabled = (value & 0b11111000) != 0;
+                    if (!this.pulse2.dacEnabled) this.pulse2.enabled = false;
+                    this.pulse2.update();
+                    break;
+                case 0xFF18: // NR23
+                    this.pulse2.oldFrequencyLower = this.pulse2.frequencyLower;
+                    this.pulse2.frequencyLower = value;
+                    this.pulse2.update();
+                    break;
+                case 0xFF19: // NR24
+                    this.pulse2.frequencyUpper = value & 0b111;
+                    this.pulse2.lengthEnable = ((value >> 6) & 1) !== 0;
+                    this.pulse2.triggered = ((value >> 7) & 1) !== 0;
+                    this.pulse2.update();
+                    break;
+
+                // Wave
+                case 0xFF1A: // NR30
+                    this.wave.dacEnabled = (value & 0x80) !== 0;
+                    if (!this.wave.dacEnabled) this.wave.enabled = false;
+                    this.wave.update();
+                    break;
+                case 0xFF1B: // NR31
+                    this.wave.lengthCounter = 256 - value;
+                    this.wave.update();
+                    break;
+                case 0xFF1C: // NR32
+                    this.wave.volume = (value >> 5) & 0b11;
+                    this.wave.update();
+                    break;
+                case 0xFF1D: // NR33
+                    this.wave.frequencyLower = value;
+                    this.wave.update();
+                    break;
+                case 0xFF1E: // NR34
+                    this.wave.frequencyUpper = value & 0b111;
+                    this.wave.triggered = ((value >> 7) & 1) !== 0;
+                    this.wave.lengthEnable = ((value >> 6) & 1) !== 0;
+                    this.wave.update();
+                    break;
+
+                // Noise
+                case 0xFF20: // NR41
+                    this.noise.lengthCounter = 64 - (value & 0b111111); // 6 bits
+                    this.noise.update();
+                    break;
+                case 0xFF21: // NR42
+                    this.noise.volumeEnvelopeStart = (value >> 4) & 0xF;
+                    this.noise.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
+                    this.noise.volumeEnvelopeSweep = value & 0b111;
+                    this.noise.dacEnabled = (value & 0b11111000) != 0;
+                    if (!this.noise.dacEnabled) this.noise.enabled = false;
+                    this.noise.update();
+                    break;
+                case 0xFF22: // NR43
+                    this.noise.shiftClockFrequency = (value >> 4) & 0xF;
+                    this.noise.counterStep = ((value >> 3) & 1) !== 0;
+                    this.noise.divisorCode = (value & 0b111);
+                    this.noise.update();
+                    break;
+                case 0xFF23: // NR44
+                    this.noise.triggered = ((value >> 7) & 1) !== 0;
+                    this.noise.lengthEnable = ((value >> 6) & 1) !== 0;
+                    this.noise.update();
+                    break;
+
+
+                case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
+                case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
+                    const BASE = 0xFF30;
+                    if (this.wave.waveTable[((addr - BASE) * 2) + 0] != (value >> 4)) {
+                        this.wave.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
+                        this.wave.waveTableUpdated = true;
+                    }
+                    if (this.wave.waveTable[((addr - BASE) * 2) + 1] != (value & 0xF)) {
+                        this.wave.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
+                        this.wave.waveTableUpdated = true;
+                    }
+                    this.wave.update();
+                    break;
+
+                // Panning
+                case 0xFF25:
+                    this.noise.outputRight = (((value >> 7) & 1) === 1);
+                    this.wave.outputRight = (((value >> 6) & 1) === 1);
+                    this.pulse2.outputRight = (((value >> 5) & 1) === 1);
+                    this.pulse1.outputRight = (((value >> 4) & 1) === 1);
+
+                    this.noise.outputLeft = (((value >> 3) & 1) === 1);
+                    this.wave.outputLeft = (((value >> 2) & 1) === 1);
+                    this.pulse2.outputLeft = (((value >> 1) & 1) === 1);
+                    this.pulse1.outputLeft = (((value >> 0) & 1) === 1);
+
+                    this.pulse1.update();
+                    this.pulse2.update();
+                    this.wave.update();
+                    this.noise.update();
+
+                    break;
+            }
+        }
+        if (addr === 0xFF26) {
+            // Control
+            if (((value >> 7) & 1) !== 0) {
+                // writeDebug("Enabled sound");
+                this.enabled = true;
+
+            } else {
+                // Disable and write zeros on everything upon main disabling
+                this.noise.enabled = false;
+                this.wave.enabled = false;
+                this.pulse2.enabled = false;
+                this.pulse1.enabled = false;
+
+                this.noise.dacEnabled = false;
+                this.wave.dacEnabled = false;
+                this.pulse2.dacEnabled = false;
+                this.pulse1.dacEnabled = false;
+
+                this.writeHwio(0xFF10, 0);
+                this.writeHwio(0xFF11, 0);
+                this.writeHwio(0xFF12, 0);
+                this.writeHwio(0xFF13, 0);
+                this.writeHwio(0xFF14, 0);
+
+                this.writeHwio(0xFF16, 0);
+                this.writeHwio(0xFF17, 0);
+                this.writeHwio(0xFF18, 0);
+                this.writeHwio(0xFF19, 0);
+
+                this.writeHwio(0xFF1A, 0);
+                this.writeHwio(0xFF1B, 0);
+                this.writeHwio(0xFF1C, 0);
+                this.writeHwio(0xFF1D, 0);
+                this.writeHwio(0xFF1D, 0);
+
+                this.writeHwio(0xFF20, 0);
+                this.writeHwio(0xFF21, 0);
+                this.writeHwio(0xFF22, 0);
+                this.writeHwio(0xFF23, 0);
+
+                for (let i = 0xFF10; i <= 0xFF25; i++) {
+                    this.soundRegisters[i] = 0;
                 }
-                break;
+                this.enabled = false;
+            }
         }
     }
 
@@ -442,10 +443,11 @@ export default class SoundChip {
             if (addr === 0xFF26) { // NR52
                 i = 0;
                 if (this.enabled) i |= (1 << 7);
-                if (this.noise.enabled) i |= (1 << 3);
-                if (this.wave.enabled) i |= (1 << 2);
-                if (this.pulse2.enabled) i |= (1 << 1);
-                if (this.pulse1.enabled) i |= (1 << 0);
+                i |= 0b01110000;
+                if (this.noise.enabled && this.noise.dacEnabled) i |= (1 << 3);
+                if (this.wave.enabled && this.wave.dacEnabled) i |= (1 << 2);
+                if (this.pulse2.enabled && this.pulse2.dacEnabled) i |= (1 << 1);
+                if (this.pulse1.enabled && this.pulse1.dacEnabled) i |= (1 << 0);
                 return i;
             }
 
