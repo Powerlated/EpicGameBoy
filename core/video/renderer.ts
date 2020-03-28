@@ -159,7 +159,8 @@ export class GPURenderer {
         for (let sprite = 0; sprite < this.gpu.scannedEntriesCount; sprite++) {
             const HEIGHT = this.gpu.lcdControl.spriteSize______2 ? 16 : 8;
 
-            let scannedSprite = this.gpu.scannedEntries[sprite];
+            // Render sprites in OAM order (reverse of scan order)
+            let scannedSprite = this.gpu.scannedEntries[this.gpu.scannedEntriesCount - sprite - 1];
 
             const yPos = scannedSprite.yPos;
             const xPos = scannedSprite.xPos;
