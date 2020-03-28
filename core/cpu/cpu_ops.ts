@@ -34,7 +34,7 @@ class Ops {
             case 0xDA: // JP C, N16
                 // If unconditional, don't check
                 if (b0 !== 0xC3) {
-                    const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
+                    const cc: CC = (b0 & 0b11000) >> 3;
                     if (cc === CC.NZ && cpu._r._f.zero) return;
                     if (cc === CC.Z && !cpu._r._f.zero) return;
                     if (cc === CC.NC && cpu._r._f.carry) return;
@@ -53,8 +53,7 @@ class Ops {
             case 0xC4: // CALL NZ, N16
                 {
                     if (b0 !== 0xCD) {
-                        const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
-
+                        const cc: CC = (b0 & 0b11000) >> 3;
                         if (cc === CC.NZ && cpu._r._f.zero) return;
                         if (cc === CC.Z && !cpu._r._f.zero) return;
                         if (cc === CC.NC && cpu._r._f.carry) return;
@@ -84,7 +83,6 @@ class Ops {
 
     static execute2(cpu: CPU, b0: number, b1: number) {
         switch (b0) {
-
             /** Interrupts */
             case 0x10: // STOP
                 if (cpu.gb.prepareSpeedSwitch) {
@@ -204,8 +202,7 @@ class Ops {
             case 0x30: // JR NC, E8
             case 0x38: // JR C, E8
                 if (b0 !== 0x18) {
-                    const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
-
+                    const cc: CC = (b0 & 0b11000) >> 3;
                     if (cc === CC.NZ && cpu._r._f.zero) return;
                     if (cc === CC.Z && !cpu._r._f.zero) return;
                     if (cc === CC.NC && cpu._r._f.carry) return;
@@ -306,10 +303,7 @@ class Ops {
     }
 
     static execute1(cpu: CPU, b0: number) {
-        const t: R8 = b0 & 0b111;
-
         switch (b0) {
-
             case 0xF9: // LD SP, HL
                 {
                     cpu._r.sp = cpu._r.hl;
@@ -324,27 +318,10 @@ class Ops {
             case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67: case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
             case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: /* HALT */ case 0x77: case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F:
                 {
-                    const dest: R8 = (b0 & 0b111000) >> 3;
                     const source: R8 = b0 & 0b111;
-
+                    const dest: R8 = (b0 & 0b111000) >> 3;
                     cpu._r.gen[dest] = cpu._r.gen[source];
                 }
-                return;
-
-            // Invalid
-            case 0xD3:
-            case 0xDB:
-            case 0xDD:
-            case 0xE3:
-            case 0xE4:
-            case 0xEB:
-            case 0xEC:
-            case 0xED:
-            case 0xF4:
-            case 0xFC:
-            case 0xFD:
-                cpu.pc--;
-                cpu.invalidOpcodeExecuted = true;
                 return;
 
             /** PUSH R16 */
@@ -396,11 +373,11 @@ class Ops {
             case 0x34: // INC [HL]
             case 0x3C: // INC A
                 {
-                    const target: R8 = (b0 & 0b111000) >> 3;
+                    const dest: R8 = (b0 & 0b111000) >> 3;
 
-                    const oldValue = cpu._r.gen[target];
+                    const oldValue = cpu._r.gen[dest];
                     const newValue = (oldValue + 1) & 0xFF;
-                    cpu._r.gen[target] = newValue;
+                    cpu._r.gen[dest] = newValue;
                     cpu._r._f.zero = newValue === 0;
                     cpu._r._f.negative = false;
                     cpu._r._f.half_carry = (oldValue & 0xF) + (1 & 0xF) > 0xF;
@@ -417,11 +394,11 @@ class Ops {
             case 0x35: // DEC [HL]
             case 0x3D: // DEC A
                 {
-                    const target: R8 = (b0 & 0b111000) >> 3;
+                    const dest: R8 = (b0 & 0b111000) >> 3;
 
-                    const oldValue = cpu._r.gen[target];
+                    const oldValue = cpu._r.gen[dest];
                     const newValue = (oldValue - 1) & 0xFF;
-                    cpu._r.gen[target] = newValue;
+                    cpu._r.gen[dest] = newValue;
 
                     cpu._r._f.zero = newValue === 0;
                     cpu._r._f.negative = true;
@@ -465,7 +442,9 @@ class Ops {
             case 0x86: // ADD A, (HL)
             case 0x87: // ADD A, A
                 {
-                    let value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    let value = cpu._r.gen[source];
                     cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) + (value & 0xF) > 0xF;
 
                     let newValue = (value + cpu._r.gen[R8.A]) & 0xFF;
@@ -491,7 +470,9 @@ class Ops {
             case 0x8E: // ADC A, (HL)
             case 0x8F: // ADC A, A
                 {
-                    let value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    let value = cpu._r.gen[source];
 
                     let newValue = (value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) & 0xFF;
                     let didOverflow = ((value + cpu._r.gen[R8.A] + (cpu._r._f.carry ? 1 : 0)) >> 8) !== 0;
@@ -517,7 +498,9 @@ class Ops {
             case 0x96: // SUB A, (HL)
             case 0x97: // SUB A, A
                 {
-                    const value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    const value = cpu._r.gen[source];
 
                     const newValue = (cpu._r.gen[R8.A] - value) & 0xFF;
 
@@ -543,7 +526,9 @@ class Ops {
             case 0x9E: // SBC A, (HL)
             case 0x9F: // SBC A, A
                 {
-                    const value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    const value = cpu._r.gen[source];
 
                     const newValue = (cpu._r.gen[R8.A] - value - (cpu._r._f.carry ? 1 : 0)) & 0xFF;
 
@@ -568,7 +553,9 @@ class Ops {
             case 0xA6: // AND A, (HL)
             case 0xA7: // AND A, A
                 {
-                    const value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    const value = cpu._r.gen[source];
 
                     const final = value & cpu._r.gen[R8.A];
                     cpu._r.gen[R8.A] = final;
@@ -591,7 +578,9 @@ class Ops {
             case 0xAE: // XOR A, (HL)
             case 0xAF: // XOR A, A
                 {
-                    const value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    const value = cpu._r.gen[source];
 
                     const final = value ^ cpu._r.gen[R8.A];
                     cpu._r.gen[R8.A] = final;
@@ -613,7 +602,9 @@ class Ops {
             case 0xB6: // OR A, (HL)
             case 0xB7: // OR A, A
                 {
-                    const value = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    const value = cpu._r.gen[source];
 
                     const final = value | cpu._r.gen[R8.A];
                     cpu._r.gen[R8.A] = final;
@@ -635,10 +626,11 @@ class Ops {
             case 0xBE: // CP A, (HL)
             case 0xBF: // CP A, A
                 {
-                    const r8 = cpu._r.gen[t];
+                    const source: R8 = b0 & 0b111;
+
+                    const r8 = cpu._r.gen[source];
 
                     const newValue = (cpu._r.gen[R8.A] - r8) & 0xFF;
-                    const didOverflow = ((cpu._r.gen[R8.A] - r8) >> 8) !== 0;
 
                     // DO not set register values for CP
 
@@ -659,7 +651,6 @@ class Ops {
                 cpu._r._f.half_carry = true;
                 return;
             case 0xD9: // RETI
-                cpu.cycles += 4; // Branch decision
                 const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
                 const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
 
@@ -858,11 +849,10 @@ class Ops {
             case 0xC8: // RET Z
             case 0xC0: // RET NZ
                 {
-                    cpu.cycles += 4; // Branch decision?
-
                     if (b0 !== 0xC9) {
-                        const cc = [CC.NZ, CC.Z, CC.NC, CC.C][(b0 & 0b11000) >> 3];
+                        cpu.cycles += 4; // Branch decision?
 
+                        const cc: CC = (b0 & 0b11000) >> 3;
                         if (cc === CC.NZ && cpu._r._f.zero) return;
                         if (cc === CC.Z && !cpu._r._f.zero) return;
                         if (cc === CC.NC && cpu._r._f.carry) return;
@@ -933,6 +923,22 @@ class Ops {
                 }
                 break;
 
+            // Invalid
+            case 0xD3:
+            case 0xDB:
+            case 0xDD:
+            case 0xE3:
+            case 0xE4:
+            case 0xEB:
+            case 0xEC:
+            case 0xED:
+            case 0xF4:
+            case 0xFC:
+            case 0xFD:
+                cpu.pc--;
+                cpu.invalidOpcodeExecuted = true;
+                return;
+
 
             default:
                 alert(`execute1 oops: ${hex(b0, 1)}`);
@@ -944,7 +950,6 @@ class Ops {
 
     static execute0xCBPrefix(cpu: CPU, b1: number) {
         const t: R8 = b1 & 0b111;
-        const bit = (b1 & 0b111000) >> 3;
 
         switch (b1) {
             // RLC
@@ -1147,6 +1152,8 @@ class Ops {
             case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67: case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
             case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77: case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F:
                 {
+                    const bit = (b1 & 0b111000) >> 3;
+
                     const value = cpu._r.gen[t];
 
                     cpu._r._f.zero = (value & (1 << bit)) === 0;
@@ -1161,6 +1168,8 @@ class Ops {
             case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5: case 0xA6: case 0xA7: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD: case 0xAE: case 0xAF:
             case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7: case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD: case 0xBE: case 0xBF:
                 {
+                    const bit = (b1 & 0b111000) >> 3;
+
                     const value = cpu._r.gen[t];
                     const mask = 0b1 << bit;
 
@@ -1176,10 +1185,12 @@ class Ops {
             case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9: case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
             case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF:
                 {
-                    let value = cpu._r.gen[t];
+                    const bit = (b1 & 0b111000) >> 3;
+
+                    const value = cpu._r.gen[t];
                     const mask = 0b1 << bit;
 
-                    const final = value |= mask;
+                    const final = value | mask;
 
                     cpu._r.gen[t] = final;
                 }

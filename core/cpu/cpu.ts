@@ -215,11 +215,11 @@ export enum R16 {
 }
 
 export enum CC {
-    UNCONDITIONAL = "UNCONDITIONAL",
-    Z = "Z",
-    NZ = "NZ",
-    C = "C",
-    NC = "NC"
+    UNCONDITIONAL = -1,
+    NZ = 0,
+    Z = 1,
+    NC = 2,
+    C = 3,
 }
 
 export type OperandType = R8 | R16 | CC | number;
@@ -454,23 +454,20 @@ export default class CPU {
             this.totalI++;
             this.lastInstructionCycles = this.cycles - c;
 
-            // Checking for proper timings below here
+            // // Checking for proper timings below here
+
+            // // These are variable length instructions / control flow
+            // const dontcare  = [0x20, 0x30, 0x28, 0x38, 0xCB, 0xC0, 0xD0, 0xC2, 0xD2, 0xC4, 0xD4, 0xCA, 0xDA, 0xC8, 0x76, 0xD8, 0x10, 0xCC, 0xDC];
+            
+            // if (dontcare.includes(b0)) return;
 
             // let success = true;
 
-            // if (!isCB) {
-            //     if (!Disassembler.isControlFlow(ins)) {
-            //         if (!(ins.op == Ops.HALT || ins.op == Ops.STOP)) {
-            //             success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[pcTriplet[0]] * 4, "CPU timing");
-            //         }
-            //     }
-            // } else {
-            //     success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[pcTriplet[1]] * 4, "[CB] CPU timing");
-            // }
+            // success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
 
             // if (success == false) {
-            //     console.log(Disassembler.disassembleOp(ins, pcTriplet, this));
-            //     console.log(`Offset: ${ins.cyclesOffset}`);
+            //     console.log(hex(b0, 2));
+            //     // console.log(`Offset: ${ins.cyclesOffset}`);
             //     this.gb.speedStop();
             // }
 
