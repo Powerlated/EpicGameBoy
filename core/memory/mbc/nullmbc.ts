@@ -16,7 +16,7 @@ export default class NullMBC extends MBC implements MBC {
     // Pass reads straight through with no MBC, however, one address line is missing
     read(addr: number): number {
         addr &= 32767;
-        return this.ext.romData[0][addr];
+        return this.ext.romData[addr >> 14][addr & 16383];
     }
     write(addr: number, value: number) {
         return;

@@ -20,10 +20,6 @@ export default class ExternalBus {
     constructor(gb: GameBoy) {
         this.gb = gb;
         this.mbc = new NullMBC(this);
-
-        // Default, 2 banks of all zeros
-        this.romData[0] = new Uint8Array(4096);
-        this.romData[1] = new Uint8Array(4096);
     }
 
     replaceRom(rom: Uint8Array) {
