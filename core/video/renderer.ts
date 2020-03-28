@@ -39,18 +39,17 @@ export class GPURenderer {
             // Don't bother drawing if WINDOW is overlaying
             if (this.gpu.lcdControl.enableWindow____5 && this.gpu.lcdcY >= this.gpu.windowYpos && i >= xPos) return;
 
-            // Two's Complement on high tileset
-            let tileOffset = 0;
             if (!this.gpu.lcdControl.bgWindowTiledataSelect__4) {
-                tileOffset = 256;
+                // Two's Complement on high tileset
                 if (tile > 127) {
-                    tile = tile - 256;
+                    tile -= 256;
                 }
+                tile += 256;
             }
 
             const adjX = attr.xFlip ? 7 - x : x;
             const adjY = attr.yFlip ? 7 - y : y;
-            const prePalette = tileset[tile + tileOffset][adjY][adjX];
+            const prePalette = tileset[tile][adjY][adjX];
             const pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
             // Re-map the tile pixel through the palette
 
@@ -109,18 +108,17 @@ export class GPURenderer {
             // Loop through every single horizontal pixel for this line 
             for (let i = 0; i < 160; i++) {
                 if (i >= xPos) {
-                    // Two's Complement on high tileset
-                    let tileOffset = 0;
                     if (!this.gpu.lcdControl.bgWindowTiledataSelect__4) {
-                        tileOffset = 256;
+                        // Two's Complement on high tileset
                         if (tile > 127) {
-                            tile = tile - 256;
+                            tile -= 256;
                         }
+                        tile += 256;
                     }
 
                     const adjX = attr.xFlip ? 7 - x : x;
                     const adjY = attr.yFlip ? 7 - y : y;
-                    const prePalette = tileset[tile + tileOffset][adjY][adjX];
+                    const prePalette = tileset[tile][adjY][adjX];
                     let pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
 
                     // Plot the pixel to canvas
