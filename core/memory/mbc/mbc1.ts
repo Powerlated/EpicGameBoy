@@ -23,7 +23,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
     read(addr: number): number {
         // Bank 0 (Read Only)
         if (addr >= 0x0000 && addr <= 0x3FFF) {
-            return this.ext.rom[addr];
+            return this.ext.romData[0][addr];
         }
         // Banks 01-7F (Read Only)
         if (addr >= 0x4000 && addr <= 0x7FFF) {
@@ -36,7 +36,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
             if (this.romBank === 0x60)
                 this.romBank = 0x61;
 
-            return this.readBank(addr, this.romBank);
+            return this.ext.romData[this.romBank][addr & 16383];
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {

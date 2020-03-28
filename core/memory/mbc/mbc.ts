@@ -18,16 +18,6 @@ export default class MBC {
     romBank = 0;
     static romBankSize = 16384;
     static ramBankSize = 8192;
-
-    calcBankAddrRom(addr: number, bank: number): number {
-        return (bank * MBC.romBankSize) + (addr - 0x4000);
-    }
-
-    readBank(addr: number, bank: number): number {
-        bank %= this.ext.romBanks;
-        const calculated = this.calcBankAddrRom(addr, bank);
-        return this.ext.rom[calculated];
-    }
 }
 
 export class MBCWithRAM extends MBC {

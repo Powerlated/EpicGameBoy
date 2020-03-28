@@ -10,33 +10,44 @@ import { loadSram, saveSram } from "../../src/gameboy/localstorage";
 export default class ExternalBus {
     mbc: MBC | MBCWithRAM;
     romBanks = 0;
-    rom = new Uint8Array(4194304).fill(0xFF);
+    romData: Uint8Array[] = [];
+
     gb: GameBoy;
+
 
     romTitle: string = "";
 
     constructor(gb: GameBoy) {
         this.gb = gb;
         this.mbc = new NullMBC(this);
+
+        // Default, 2 banks of all zeros
+        this.romData[0] = new Uint8Array(4096);
+        this.romData[1] = new Uint8Array(4096);
     }
-    
+
     replaceRom(rom: Uint8Array) {
         console.info("Replaced ROM");
-        this.rom.forEach((v, i, a) => {
-            a[i] = 0;
-        });
+        // Zero out existing ROM
+        this.romData = [];
+        // Write new ROM in
         rom.forEach((v, i) => {
-            this.rom[i] = v;
+            let bank = i >> 14;
+            let bankAddr = i & 16383;
+            if (this.romData[bank] == undefined) {
+                this.romData[bank] = new Uint8Array(16384);
+            }
+            this.romData[bank][bankAddr] = v;
         });
         this.updateMBC();
 
-        const title = this.rom.slice(0x134, 0x143);
+        const title = this.romData[0].slice(0x134, 0x143);
         const titleDecoded = new TextDecoder("utf-8").decode(title);
         console.log(titleDecoded);
 
         this.romTitle = titleDecoded;
 
-        this.gb.cgb = (this.rom[0x143] & 0x80) !== 0 || this.rom[0x143] == 0xC0;
+        this.gb.cgb = (this.romData[0][0x143] & 0x80) !== 0 || this.romData[0][0x143] == 0xC0;
         this.gb.reset();
 
         const m = this.mbc as MBCWithRAM;
@@ -66,7 +77,7 @@ export default class ExternalBus {
     }
 
     updateMBC() {
-        switch (this.rom[0x147]) {
+        switch (this.romData[0][0x147]) {
             case 0x01: case 0x02: case 0x03:
                 this.mbc = new MBC1(this);
                 break;
@@ -94,7 +105,7 @@ export default class ExternalBus {
                 break;
         }
         let banks = 0;
-        switch (this.rom[0x148]) {
+        switch (this.romData[0][0x148]) {
             case 0x00: banks = 2; break;
             case 0x01: banks = 4; break;
             case 0x02: banks = 8; break;
