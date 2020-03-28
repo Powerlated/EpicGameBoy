@@ -5,7 +5,7 @@ import Disassembler from '../src/gameboy/tools/disassembler';
 import { writeDebug } from '../src/gameboy/tools/debug';
 import SoundChip from './sound/sound';
 import Timer from './components/timer';
-import Decoder from './cpu/decoder';
+import Decoder from './cpu/old_decoder';
 import { DMAController } from './memory/dma';
 import InterruptController from './components/interrupt-controller';
 
