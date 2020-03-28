@@ -187,7 +187,7 @@ function updateDebug() {
                 Total Frames: ${gpu.totalFrameCount}
                 Frames Per Second: ${fps}
                 ------------------------------
-                Joypad: ${pad(cpu.gb.bus.joypad.numerical.toString(2), 8, '0')}
+                Joypad: ${pad(cpu.gb.joypad.numerical.toString(2), 8, '0')}
 
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>

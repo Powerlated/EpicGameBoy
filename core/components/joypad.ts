@@ -1,3 +1,5 @@
+import GameBoy from "../gameboy";
+
 export class JoypadRegister {
 
     /* Pandocs - Joypad Input
@@ -11,22 +13,69 @@ export class JoypadRegister {
     Bit 0 - P10 Input Right or Button A (0=Pressed) (Read Only)
     */
 
+    gb: GameBoy;
+
+    constructor(gb: GameBoy) {
+        this.gb = gb;
+    }
+
     selectButtons = false;
     selectDpad = false;
 
-    dpad = {
-        down: false,
-        up: false,
-        left: false,
-        right: false
-    };
+    private _down = false;
+    private _up = false;
+    private _left = false;
+    private _right = false;
 
-    buttons = {
-        start: false,
-        select: false,
-        a: false,
-        b: false,
-    };
+    private _start = false;
+    private _select = false;
+    private _a = false;
+    private _b = false;
+
+    public get down() { return this._down; }
+    public get up() { return this._up; }
+    public get left() { return this._left; }
+    public get right() { return this._right; }
+
+    public get start() { return this._start; }
+    public get select() { return this._select; }
+    public get a() { return this._a; }
+    public get b() { return this._b; }
+
+
+    public set down(v: boolean) {
+        this._down = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+    public set up(v: boolean) {
+        this._up = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+    public set left(v: boolean) {
+        this._left = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+    public set right(v: boolean) {
+        this._right = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+
+    public set start(v: boolean) {
+        this._start = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+    public set select(v: boolean) {
+        this._select = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+    public set a(v: boolean) {
+        this._a = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
+    public set b(v: boolean) {
+        this._b = v;
+        if (v === true) this.gb.interrupts.requested.joypad = true;
+    }
 
     get numerical(): number {
         let n = 0xFF;
@@ -35,16 +84,16 @@ export class JoypadRegister {
         if (this.selectDpad) n &= ~(1 << 4);
 
         if (this.selectDpad) {
-            if (this.dpad.down) n &= ~(1 << 3);
-            if (this.dpad.up) n &= ~(1 << 2);
-            if (this.dpad.left) n &= ~(1 << 1);
-            if (this.dpad.right) n &= ~(1 << 0);
+            if (this.down) n &= ~(1 << 3);
+            if (this.up) n &= ~(1 << 2);
+            if (this.left) n &= ~(1 << 1);
+            if (this.right) n &= ~(1 << 0);
         }
         if (this.selectButtons) {
-            if (this.buttons.start) n &= ~(1 << 3);
-            if (this.buttons.select) n &= ~(1 << 2);
-            if (this.buttons.b) n &= ~(1 << 1);
-            if (this.buttons.a) n &= ~(1 << 0);
+            if (this.start) n &= ~(1 << 3);
+            if (this.select) n &= ~(1 << 2);
+            if (this.b) n &= ~(1 << 1);
+            if (this.a) n &= ~(1 << 0);
         }
         return n;
     }

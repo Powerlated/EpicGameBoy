@@ -139,7 +139,6 @@ export default class ToneJsHandler {
 
 
         if (this.s.wave.waveTableUpdated === true && this.s.gb.speedMul === 1) {
-            this.waveSrc.disconnect(this.wavePan);
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });

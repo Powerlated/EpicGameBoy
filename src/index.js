@@ -262,29 +262,29 @@ function init() {
 
         switch (e.key) {
             case "ArrowLeft":
-                gb.bus.joypad.dpad.left = true;
+                gb.joypad.left = true;
                 break;
             case "ArrowUp":
-                gb.bus.joypad.dpad.up = true;
+                gb.joypad.up = true;
                 break;
             case "ArrowRight":
-                gb.bus.joypad.dpad.right = true;
+                gb.joypad.right = true;
                 break;
             case "ArrowDown":
-                gb.bus.joypad.dpad.down = true;
+                gb.joypad.down = true;
                 break;
 
             case "x":
-                gb.bus.joypad.buttons.a = true;
+                gb.joypad.a = true;
                 break;
             case "z":
-                gb.bus.joypad.buttons.b = true;
+                gb.joypad.b = true;
                 break;
             case "Enter":
-                gb.bus.joypad.buttons.start = true;
+                gb.joypad.start = true;
                 break;
             case "\\":
-                gb.bus.joypad.buttons.select = true;
+                gb.joypad.select = true;
                 break;
 
             case "Tab":
@@ -298,29 +298,29 @@ function init() {
 
         switch (e.key) {
             case "ArrowLeft":
-                gb.bus.joypad.dpad.left = false;
+                gb.joypad.left = false;
                 break;
             case "ArrowUp":
-                gb.bus.joypad.dpad.up = false;
+                gb.joypad.up = false;
                 break;
             case "ArrowRight":
-                gb.bus.joypad.dpad.right = false;
+                gb.joypad.right = false;
                 break;
             case "ArrowDown":
-                gb.bus.joypad.dpad.down = false;
+                gb.joypad.down = false;
                 break;
 
             case "x":
-                gb.bus.joypad.buttons.a = false;
+                gb.joypad.a = false;
                 break;
             case "z":
-                gb.bus.joypad.buttons.b = false;
+                gb.joypad.b = false;
                 break;
             case "Enter":
-                gb.bus.joypad.buttons.start = false;
+                gb.joypad.start = false;
                 break;
             case "\\":
-                gb.bus.joypad.buttons.select = false;
+                gb.joypad.select = false;
                 break;
 
             case "Tab":

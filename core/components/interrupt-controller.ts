@@ -2,11 +2,11 @@ import MemoryBus from "../memory/memorybus";
 import GameBoy from "../gameboy";
 
 class InterruptFlag {
-    _vblank = false;
-    _lcdStat = false;
-    _timer = false;
-    _serial = false;
-    _joypad = false;
+    private _vblank = false;
+    private _lcdStat = false;
+    private _timer = false;
+    private _serial = false;
+    private _joypad = false;
 
     get vblank() { return this._vblank; };
     get lcdStat() { return this._lcdStat; };

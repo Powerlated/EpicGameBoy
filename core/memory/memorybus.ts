@@ -35,8 +35,6 @@ class MemoryBus {
     highRam = new Uint8Array(512).fill(0);
     bootrom = new Uint8Array(256).fill(0);
 
-    joypad = new JoypadRegister();
-
     bootromEnabled = true;
     bootromLoaded = false;
 
@@ -122,7 +120,7 @@ class MemoryBus {
             this.gb.soundChip.writeHwio(addr, value);
             switch (addr) {
                 case 0xFF00: // Joypad write
-                    this.joypad.numerical = value;
+                    this.gb.joypad.numerical = value;
                     break;
                 case 0xFF01:
                     // console.info(`[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: ` + hex(value, 2));
@@ -233,7 +231,7 @@ class MemoryBus {
             switch (addr) {
                 case 0xFF00: // Joypad read
                     // writeDebug("Polled joypad")
-                    return this.joypad.numerical | 0b11000000;
+                    return this.gb.joypad.numerical | 0b11000000;
                 case 0xFF01:
                     // console.info(`SERIAL PORT READ`);
                     return 0xFF;

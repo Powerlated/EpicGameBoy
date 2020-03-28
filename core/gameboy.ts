@@ -8,11 +8,14 @@ import Timer from './components/timer';
 import Decoder from './cpu/old_decoder';
 import { DMAController } from './memory/dma';
 import InterruptController from './components/interrupt-controller';
+import { JoypadRegister } from './components/joypad';
 
 export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
+
+    joypad = new JoypadRegister(this);
 
     interrupts = new InterruptController(this);
 
@@ -38,32 +41,22 @@ export default class GameBoy {
     }
 
     step() {
-        if (this.cpuPausedNormalSpeedMcycles == 0) {
-            this.handleCpu();
-        } else {
-            this.cpu.lastInstructionCycles = 4;
-            this.cpuPausedNormalSpeedMcycles--;
-        }
-        this.timer.step();
-
-        if (this.doubleSpeed) {
+        let times = this.doubleSpeed ? 2 : 1;
+        for (let i = 0; i < times; i++) {
             if (this.cpuPausedNormalSpeedMcycles == 0) {
-                this.handleCpu();
+                this.cpu.step();
+                if (this.oamDmaNormalMCyclesRemaining > 0) {
+                    this.oamDmaNormalMCyclesRemaining -= (this.cpu.lastInstructionCycles >> 2);
+                }
             } else {
                 this.cpu.lastInstructionCycles = 4;
+                this.cpuPausedNormalSpeedMcycles--;
             }
-            this.timer.step();
         }
 
+        this.timer.step(times);
         this.soundChip.step();
         this.gpu.step();
-    }
-
-    handleCpu() {
-        this.cpu.step();
-        if (this.oamDmaNormalMCyclesRemaining > 0) {
-            this.oamDmaNormalMCyclesRemaining -= (this.cpu.lastInstructionCycles >> 2);
-        }
     }
 
     speedMul = 1;
