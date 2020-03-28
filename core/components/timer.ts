@@ -36,7 +36,7 @@ export default class Timer {
     step() {
         this.cyclesBehind += this.gb.cpu.lastInstructionCycles;
 
-        if (this.gb.interrupts.enabledInterrupts.timer) {
+        if (this.gb.interrupts.enabled.timer) {
             this.catchup();
         }
     }
@@ -44,13 +44,14 @@ export default class Timer {
     catchup() {
         // Get the mtime
         this.c.internal += this.cyclesBehind;
+        this.c.mainClock += this.cyclesBehind;
+
         while (this.c.internal >= 256) {
             this.divider++;
             this.divider &= 0xFF;
             this.c.internal -= 256;
         }
 
-        this.c.mainClock += this.cyclesBehind;
         while (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
             if (this.control.running && this.counterOverflowTtime === 0) {
                 this.counter++;
@@ -66,7 +67,7 @@ export default class Timer {
         if (this.counterOverflowTtime > 0) {
             if (this.counterOverflowTtime === 1) {
                 this.counter = this.modulo;
-                this.gb.interrupts.requestTimer();
+                this.gb.interrupts.requested.timer = true;
             }
             this.counterOverflowTtime--;
         }

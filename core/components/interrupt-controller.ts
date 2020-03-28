@@ -2,12 +2,50 @@ import MemoryBus from "../memory/memorybus";
 import GameBoy from "../gameboy";
 
 class InterruptFlag {
-    vblank = false;
-    lcdStat = false;
-    timer = false;
-    serial = false;
-    joypad = false;
+    _vblank = false;
+    _lcdStat = false;
+    _timer = false;
+    _serial = false;
+    _joypad = false;
 
+    get vblank() { return this._vblank; };
+    get lcdStat() { return this._lcdStat; };
+    get timer() { return this._timer; };
+    get serial() { return this._serial; };
+    get joypad() { return this._joypad; };
+
+    set vblank(i: boolean) {
+        this._vblank = i;
+        this._numerical &= 0b11111110;
+        if (this.vblank)
+            this._numerical |= 0b00000001;
+    };
+    set lcdStat(i: boolean) {
+        this._lcdStat = i;
+        this._numerical &= 0b11111101;
+        if (this.lcdStat)
+            this._numerical |= 0b00000010;
+    };
+    set timer(i: boolean) {
+        this._timer = i;
+        this._numerical &= 0b11111011;
+        if (this.timer)
+            this._numerical |= 0b00000100;
+    };
+    set serial(i: boolean) {
+        this._serial = i;
+        this._numerical &= 0b11110111;
+        if (this.serial)
+            this._numerical |= 0b00001000;
+    };
+    set joypad(i: boolean) {
+        this._joypad = i;
+        this._numerical &= 0b11101111;
+        if (this.joypad)
+            this._numerical |= 0b00010000;
+    };
+
+    _numerical = 0;
 
     set numerical(i: number) {
         this.vblank = (i & (1 << 0)) !== 0;
@@ -15,27 +53,14 @@ class InterruptFlag {
         this.timer = (i & (1 << 2)) !== 0;
         this.serial = (i & (1 << 3)) !== 0;
         this.joypad = (i & (1 << 4)) !== 0;
+
+        // Just store this flag and return it later, it's faster
+        this._numerical = i;
         return;
     }
 
     get numerical(): number {
-        let flagN = 0;
-        if (this.vblank) {
-            flagN = flagN | 0b00000001;
-        }
-        if (this.lcdStat) {
-            flagN = flagN | 0b00000010;
-        }
-        if (this.timer) {
-            flagN = flagN | 0b00000100;
-        }
-        if (this.serial) {
-            flagN = flagN | 0b00001000;
-        }
-        if (this.joypad) {
-            flagN = flagN | 0b00010000;
-        }
-        return flagN;
+        return this._numerical;
     }
 }
 
@@ -55,35 +80,15 @@ export default class InterruptController {
 
     masterEnabled = true; // IME
 
-    enabledInterrupts = new InterruptFlag(); // 0xFFFF
-    requestedInterrupts = new InterruptFlag(); // 0xFF0F
+    enabled = new InterruptFlag(); // 0xFFFF
+    requested = new InterruptFlag(); // 0xFF0F
 
     // Note: When an interrupt is *handled*, the master interrupt flag is disabled
 
     reset() {
         this.masterEnabled = true;
 
-        this.enabledInterrupts.numerical = 0;
-        this.requestedInterrupts.numerical = 0;
-    }
-
-    requestVblank() {
-        this.requestedInterrupts.vblank = true;
-    }
-
-    requestLCDstatus() {
-        this.requestedInterrupts.lcdStat = true;
-    }
-
-    requestTimer() {
-        this.requestedInterrupts.timer = true;
-    }
-
-    requestSerial() {
-        this.requestedInterrupts.serial = true;
-    }
-
-    requestJoypad() {
-        this.requestedInterrupts.joypad = true;
+        this.enabled.numerical = 0;
+        this.requested.numerical = 0;
     }
 }

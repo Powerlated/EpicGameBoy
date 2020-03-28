@@ -811,8 +811,8 @@ class Ops {
             case 0x76: // HALT
                 if (
                     (
-                        cpu.gb.interrupts.enabledInterrupts.numerical &
-                        cpu.gb.interrupts.requestedInterrupts.numerical &
+                        cpu.gb.interrupts.enabled.numerical &
+                        cpu.gb.interrupts.requested.numerical &
                         0x1F
                     ) !== 0
                 ) {
@@ -820,8 +820,8 @@ class Ops {
                     cpu.haltBug = true;
                     cpu.pc++; cpu.pc &= 0xFFFF;
                 } else (
-                    cpu.gb.interrupts.enabledInterrupts.numerical &
-                    cpu.gb.interrupts.requestedInterrupts.numerical &
+                    cpu.gb.interrupts.enabled.numerical &
+                    cpu.gb.interrupts.requested.numerical &
                     0x1F) === 0;
                 {
                     cpu.halted = true;
@@ -1237,8 +1237,8 @@ class Ops {
 
         if (
             (
-                cpu.gb.interrupts.enabledInterrupts.numerical &
-                cpu.gb.interrupts.requestedInterrupts.numerical &
+                cpu.gb.interrupts.enabled.numerical &
+                cpu.gb.interrupts.requested.numerical &
                 0x1F
             ) !== 0
         ) {
@@ -1246,8 +1246,8 @@ class Ops {
             cpu.haltBug = true;
             cpu.pc++; cpu.pc &= 0xFFFF;
         } else (
-            cpu.gb.interrupts.enabledInterrupts.numerical &
-            cpu.gb.interrupts.requestedInterrupts.numerical &
+            cpu.gb.interrupts.enabled.numerical &
+            cpu.gb.interrupts.requested.numerical &
             0x1F) === 0;
         {
             cpu.halted = true;

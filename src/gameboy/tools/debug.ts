@@ -154,8 +154,8 @@ function updateDebug() {
     const cyclesPerSecond = (window as any).cyclesPerSecond;
     const gpu = ((window as any).gb.gpu as GPU);
     const displaySerial = (window as any).displaySerial;
-    const r = cpu.gb.interrupts.requestedInterrupts;
-    const e = cpu.gb.interrupts.enabledInterrupts;
+    const r = cpu.gb.interrupts.requested;
+    const e = cpu.gb.interrupts.enabled;
     let debugText =
         `
                 Total Instructions Executed: ${cpu.totalI}

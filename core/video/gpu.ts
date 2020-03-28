@@ -206,7 +206,7 @@ class GPU {
     vram0 = new Uint8Array(0x2000);
     vram1 = new Uint8Array(0x2000);
 
-    oam = new Uint8Array(256);
+    oam = new Uint8Array(160);
     vram = this.vram0;
 
     totalFrameCount = 0;
@@ -345,7 +345,7 @@ class GPU {
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                         if (this.lcdcY >= 144) {
                             // Fire the Vblank interrupt
-                            this.gb.interrupts.requestVblank();
+                            this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
                             if ((this.totalFrameCount % this.gb.speedMul) === 0) {
                                 this.renderer.gpu.canvas.drawGameboy();
@@ -394,13 +394,14 @@ class GPU {
             this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 && this.lcdStatus.mode === 0;
             if (this.lcdStatus.mode === 4 && this.modeClock >= 100 && this.lcdStatus.mode2OamInterrupt_____5) this.lcdStatusMode2 = true;
             if (this.lcdcY === 144 && this.lcdStatus.mode2OamInterrupt_____5) this.lcdStatusMode2 = true;
-            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 && this.lcdStatus.mode === 1;
+            this.lcdStatusMode1 = (this.lcdStatus.mode1VblankInterrupt__4 || this.lcdStatus.mode2OamInterrupt_____5) && this.lcdStatus.mode === 1;
             this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 && this.lcdStatus.mode === 2;
 
-            if ((this.lcdStatusMode0 ||
+            if (
+                this.lcdStatusMode0 ||
                 this.lcdStatusMode1 ||
                 this.lcdStatusMode2 ||
-                this.lcdStatusCoincidence)
+                this.lcdStatusCoincidence
             ) {
                 this.lcdStatusConditionMet = true;
             } else {
@@ -409,7 +410,7 @@ class GPU {
             }
 
             if (!this.lcdStatusFired && this.lcdStatusConditionMet) {
-                this.gb.interrupts.requestLCDstatus();
+                this.gb.interrupts.requested.lcdStat = true;
                 this.lcdStatusFired = true;
             }
         } else {
@@ -656,7 +657,7 @@ class GPU {
             case 0xFF41: // LCDC Status
                 this.lcdStatus.numerical = value;
                 if (!this.gb.cgb) {
-                    this.gb.interrupts.requestLCDstatus();
+                    this.gb.interrupts.requested.lcdStat = true;
                 }
                 break;
             case 0xFF42:

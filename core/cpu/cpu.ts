@@ -475,8 +475,8 @@ export default class CPU {
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((this.gb.interrupts.requestedInterrupts.numerical &
-            this.gb.interrupts.enabledInterrupts.numerical) && this.halted === true) {
+        if ((this.gb.interrupts.requested.numerical &
+            this.gb.interrupts.enabled.numerical) && this.halted === true) {
             this.halted = false;
 
             // UnHALTing takes 4 cycles
@@ -484,12 +484,12 @@ export default class CPU {
         }
 
         //#region Service interrupts
-        const happened = this.gb.interrupts.requestedInterrupts;
-        const enabled = this.gb.interrupts.enabledInterrupts;
+        const happened = this.gb.interrupts.requested;
+        const enabled = this.gb.interrupts.enabled;
         if (this.gb.interrupts.masterEnabled) {
 
             // If servicing any interrupt, disable the master flag
-            if ((this.gb.interrupts.requestedInterrupts.numerical & this.gb.interrupts.enabledInterrupts.numerical) > 0) {
+            if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical) > 0) {
                 this.gb.interrupts.masterEnabled = false;
 
 

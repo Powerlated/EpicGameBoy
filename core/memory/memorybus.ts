@@ -88,7 +88,7 @@ class MemoryBus {
 
         // SET Interrupt request flags
         else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            this.gb.interrupts.requestedInterrupts.numerical = value;
+            this.gb.interrupts.requested.numerical = value;
         }
 
         // Write to High RAM
@@ -98,7 +98,7 @@ class MemoryBus {
 
         // SET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            this.gb.interrupts.enabledInterrupts.numerical = value;
+            this.gb.interrupts.enabled.numerical = value;
         }
 
         // Write to VRAM
@@ -214,11 +214,11 @@ class MemoryBus {
 
         // GET Interrupt request flags
         else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            return this.gb.interrupts.requestedInterrupts.numerical | 0b11100000;
+            return this.gb.interrupts.requested.numerical | 0b11100000;
         }
         // GET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.gb.interrupts.enabledInterrupts.numerical | 0b11100000;
+            return this.gb.interrupts.enabled.numerical;
         }
 
         // Hardware I/O registers

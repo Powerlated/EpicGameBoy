@@ -180,7 +180,7 @@ export default class ToneJsHandler {
                     this.noise7Volume.volume.value = convertVolume(this.s.noise.volume);
 
                     if (isFinite(rate))
-                        this.noise7Src.playbackRate.value = (rate / this.s.noise.divisorCode) / (96000 / 4);
+                        this.noise7Src.playbackRate.value = rate / (96000 / 4);
                 } else {
                     // 15 bit noise
                     this.noise15Volume.mute = false;
