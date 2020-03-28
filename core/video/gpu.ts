@@ -314,8 +314,8 @@ class GPU {
                         }
                     }
 
-                    if (this.modeClock >= 172 + this.mode3ExtraCycles) {
-                        this.modeClock -= 172 + this.mode3ExtraCycles;
+                    if (this.modeClock >= 172) {
+                        this.modeClock -= 172;
                         this.lcdStatus.mode = 0;
 
                         // Render sprites at end of scanline
@@ -335,8 +335,8 @@ class GPU {
 
                 // Hblank
                 case 0:
-                    if (this.modeClock >= 204 - this.mode3ExtraCycles) {
-                        this.modeClock -= 204 - this.mode3ExtraCycles;
+                    if (this.modeClock >= 204) {
+                        this.modeClock -= 204;
                         this.lcdcY++;
 
                         this.mode3ExtraCycles = 0;
