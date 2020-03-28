@@ -29,21 +29,22 @@ export class JoypadRegister {
     };
 
     get numerical(): number {
-        let n = 0;
+        let n = 0xFF;
 
-        if (!this.selectButtons) n |= (1 << 5);
-        if (!this.selectDpad) n |= (1 << 4);
+        if (this.selectButtons) n &= ~(1 << 5);
+        if (this.selectDpad) n &= ~(1 << 4);
 
         if (this.selectDpad) {
-            if (!this.dpad.down) n |= (1 << 3);
-            if (!this.dpad.up) n |= (1 << 2);
-            if (!this.dpad.left) n |= (1 << 1);
-            if (!this.dpad.right) n |= (1 << 0);
-        } else if (this.selectButtons) {
-            if (!this.buttons.start) n |= (1 << 3);
-            if (!this.buttons.select) n |= (1 << 2);
-            if (!this.buttons.b) n |= (1 << 1);
-            if (!this.buttons.a) n |= (1 << 0);
+            if (this.dpad.down) n &= ~(1 << 3);
+            if (this.dpad.up) n &= ~(1 << 2);
+            if (this.dpad.left) n &= ~(1 << 1);
+            if (this.dpad.right) n &= ~(1 << 0);
+        }
+        if (this.selectButtons) {
+            if (this.buttons.start) n &= ~(1 << 3);
+            if (this.buttons.select) n &= ~(1 << 2);
+            if (this.buttons.b) n &= ~(1 << 1);
+            if (this.buttons.a) n &= ~(1 << 0);
         }
         return n;
     }
