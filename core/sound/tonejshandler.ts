@@ -140,7 +140,7 @@ export default class ToneJsHandler {
         }
 
 
-        if (this.s.wave.waveTableUpdated === true) {
+        if (this.s.wave.waveTableUpdated === true && this.s.gb.speedMul === 1) {
             this.waveSrc.disconnect(this.waveBitCrusher);
             this.waveSrc.dispose();
 
