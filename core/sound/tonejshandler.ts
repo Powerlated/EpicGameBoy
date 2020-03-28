@@ -19,7 +19,7 @@ function convertVolumeWave(v: number) {
         case 3: v = 6; break;
     }
 
-    const base = -11;
+    const base = -14;
     let mute = 0;
     if (v === 0) mute = -10000;
     return base + mute + (10 * Math.log(v / 16));
@@ -32,7 +32,6 @@ export default class ToneJsHandler {
     pulsePan2: Tone.Panner;
     waveSrc: Tone.BufferSource;
     wavePan: Tone.Panner;
-    waveBitCrusher: Tone.BitCrusher;
     waveVolume: Tone.Volume;
 
     noise7Src: Tone.BufferSource;
@@ -73,8 +72,7 @@ export default class ToneJsHandler {
         this.waveVolume = new Tone.Volume();
         this.waveVolume.volume.value = -36;
         this.wavePan = new Tone.Panner(0);
-        this.waveBitCrusher = new Tone.BitCrusher(4);
-        this.waveSrc.chain(this.waveBitCrusher, this.wavePan, this.waveVolume, Tone.Master);
+        this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master);
         this.waveSrc.start();
 
 
@@ -141,13 +139,13 @@ export default class ToneJsHandler {
 
 
         if (this.s.wave.waveTableUpdated === true && this.s.gb.speedMul === 1) {
-            this.waveSrc.disconnect(this.waveBitCrusher);
+            this.waveSrc.disconnect(this.wavePan);
             this.waveSrc.dispose();
 
             this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
             this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
             this.waveSrc.loop = true;
-            this.waveSrc.chain(this.waveBitCrusher, this.wavePan, this.waveVolume, Tone.Master).start();
+            this.waveSrc.chain(this.wavePan, this.waveVolume, Tone.Master).start();
 
             this.s.wave.waveTableUpdated = false;
         }
