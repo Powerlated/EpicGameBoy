@@ -165,7 +165,7 @@ export default class ToneJsHandler {
                 mul = 0;
             }
 
-            mul *= 0.25
+            mul *= 0.20
 
             this.waveVolume.setMap((i: number) => {
                 return i * mul;
