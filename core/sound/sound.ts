@@ -214,6 +214,12 @@ export default class SoundChip {
             }
             this.clockLength -= CLOCK_LENGTH_STEPS;
             this.tjsCheck();
+
+
+            if (this.wave.waveTableUpdated === true) {
+                this.tjs.updateWaveTable();
+                this.wave.waveTableUpdated = false;
+            }
         }
     }
 
@@ -251,7 +257,7 @@ export default class SoundChip {
                     this.pulse1.update();
                     break;
                 case 0xFF11: // NR11
-                    this.pulse1.width = (value & 0b11000000) >> 6;
+                    this.pulse1.width = value >> 6;
                     this.pulse1.lengthCounter = 64 - (value & 0b111111);
                     this.pulse1.update();
                     break;
@@ -277,7 +283,7 @@ export default class SoundChip {
 
                 // Pulse 2
                 case 0xFF16: // NR21
-                    this.pulse2.width = (value & 0b11000000) >> 6;
+                    this.pulse2.width = value >> 6;
                     this.pulse2.lengthCounter = 64 - (value & 0b111111);
                     this.pulse2.update();
                     break;
