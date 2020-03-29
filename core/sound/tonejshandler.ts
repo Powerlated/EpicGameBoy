@@ -74,14 +74,14 @@ export default class ToneJsHandler {
         this.pulseOsc1.volume.value = -36;
         this.pulseVolume1 = new Tone.WaveShaper((i: number) => { return i * (this.pulse1VolumeValue / 15); });
         this.pulsePan1 = new Tone.Panner(0);
-        this.pulseOsc1.chain(new Tone.Filter(120, 'highpass', -12), new Tone.Filter(9600, 'lowpass', -12), this.pulseVolume1, this.pulsePan1, Tone.Master);
+        this.pulseOsc1.chain(new Tone.Filter(120, 'highpass', -12), new Tone.Filter(22500, 'lowpass', -12), this.pulseVolume1, this.pulsePan1, Tone.Master);
         this.pulseOsc1.start();
 
         this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
         this.pulseOsc2.volume.value = -36;
         this.pulseVolume2 = new Tone.WaveShaper((i: number) => { return i * (this.pulse2VolumeValue / 15); });
         this.pulsePan2 = new Tone.Panner(0);
-        this.pulseOsc2.chain(new Tone.Filter(120, 'highpass', -12), new Tone.Filter(9600, 'lowpass', -12), this.pulseVolume2, this.pulsePan2, Tone.Master);
+        this.pulseOsc2.chain(new Tone.Filter(120, 'highpass', -12), new Tone.Filter(22500, 'lowpass', -12), this.pulseVolume2, this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
         this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });

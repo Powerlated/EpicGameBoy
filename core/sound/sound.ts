@@ -500,7 +500,11 @@ export default class SoundChip {
         this.tjs.noise();
 
         this.clockMain = 0;
+        this.clockEnvelopeMain = 0;
         this.clockEnvelopePulse1 = 0;
         this.clockEnvelopePulse2 = 0;
+        this.clockEnvelopeNoise = 0;
+        this.clockPulse1FreqSweep = 0;
+        this.clockLength = 0;
     }
 }
