@@ -1,6 +1,6 @@
 INCLUDE "include/hardware.inc"
 
-LogoTotalBytes EQU 66
+LogoTotalBytes EQU 64
 
 SECTION "BootROM", ROM0[$0]
 
@@ -66,20 +66,7 @@ ld [hl], %10010001 ; Turn on the PPU, also use lower tileset and enable BG/Windo
 ld hl, rBGP
 ld [hl], %00000000 ; Load palette
 
-ld hl, rNR12
-ld [hl], %11110111
-
 ; -------------
-
-
-; Set scroll
-
-; $FF42 - Scroll Y
-; $FF43 - Scroll X
-ld hl, rSCY
-ld [hl], 252
-inc hl
-ld [hl], 240
 
 ; End Initialization
 
@@ -88,25 +75,22 @@ MainLoop:
     ld hl, rBGP
 
     cp 20
-    call z, SetBGP1
+    jr z, SetBGP1
     cp 30
-    call z, SetBGP2
+    jr z, SetBGP2
     cp 40
-    call z, SetBGP3
+    jr z, SetBGP3
 
-    
     cp 180
-    call nc, ScrollOut
-
+    jr z, SetBGP2
     cp 200
-    call z, SetBGP2
+    jr z, SetBGP1
     cp 220
-    call z, SetBGP1
-    cp 240
-    call z, SetBGP0
+    jr z, SetBGP0
     
 WaitForVBlank:
     ld a, [rLY]
+    call HBlankHandler
     cp $90
     jr nz, WaitForVBlank
 
@@ -127,46 +111,70 @@ WaitForVBlank:
     jp Unmap
 
 SetBGP0:
-    ld [hl], %01010100
-    ret
+    ld [hl], %00000000
+    jr WaitForVBlank
 SetBGP1:
     ld [hl], %01010100
-    ret
+    jr WaitForVBlank
 SetBGP2:
     ld [hl], %10101000
-    ret
+    jr WaitForVBlank
 SetBGP3:
     ld [hl], %11111100
-    ret
+    jr WaitForVBlank
 
-ScrollOut:
-    ld hl, ScrollRate
-    ld b, [hl] ; Load current scroll rate into B
-    inc [hl]
+HBlankHandler:
+    ld hl, rLY
+    ld b, [hl]
 
     ld hl, rSCX
-    ld a, [hl] ; Load current scroll X into A
 
-    add a, b ; Add rate to current scroll X
-    ld [hl], a ; Store 
+    cp 0
+    jr z, HBlankHandler.ScrollOptime
 
+    cp 59
+    jr z, HBlankHandler.ScrollGB
+
+    ret
+HBlankHandler.ScrollOptime:
+    ld bc, CurrentOptimeScroll
+    ld a, [bc]
+    inc a
+    ld [bc], a
+    ld [hl], a
+    dec hl
+    ld [hl], 252
+    ret
+HBlankHandler.ScrollGB:
+    ld [hl], 240
+    dec hl
+    ld [hl], 244
     ret
 
 
 
+; ScrollOut:
+;     ld hl, ScrollRate
+;     ld b, [hl] ; Load current scroll rate into B
+;     inc [hl]
+
+;     ld hl, rSCX
+;     ld a, [hl] ; Load current scroll X into A
+
+;     add a, b ; Add rate to current scroll X
+;     ld [hl], a ; Store 
+
+;     ret
 
 
 Map:
-    db %11111100, %10000000, %00000000, %00000000
-    db %10000010, %10000000, %00000000, %00000000
-    db %10000010, %10000000, %00000000, %00000000
-    db %10000010, %10000000, %00000000, %00000000
-    db %11111100, %10000000, %00000000, %00000000
-    db %10000000, %10000000, %00000000, %00000000
-    db %10000000, %10000000, %00000000, %00000000
-    db %10000000, %11111110, %00000000, %00000000
-    
-    db 0,0,0,0
+    db %00000000, %00000000, %00000000, %00000000
+    db %11101110, %11101110, %11111011, %10000000
+    db %10101010, %01000100, %10101010, %00000000
+    db %10101110, %01000100, %10101011, %10000000
+    db %10101000, %01000100, %10101010, %00000000
+    db %11101000, %01001110, %10101011, %10000000
+    db %00000000, %00000000, %00000000, %00000000
 
     db %11111110, %11111110, 0, 0
     db %10000000, %10000001, 0, 0
@@ -228,9 +236,9 @@ Map:
 ;  db %10000000
 ;  db %11111110
 
-SECTION "Unmap", ROM0[$FC]
+SECTION "Unmap", ROM0[$FB]
 Unmap:
-    ld a,$01
+    ld a,$11
 	ld [$FF00+$50],a
 
 ; Just put this in so I don't accidently overflow into Cartridge ROM
@@ -241,4 +249,4 @@ SECTION "WorkRAM", WRAM0[$C000]
 Countdown: ds 1
 LogoBytesLeft: ds 1
 
-ScrollRate: ds 1
+CurrentOptimeScroll: ds 1
