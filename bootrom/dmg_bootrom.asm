@@ -64,34 +64,107 @@ SetWhite: ; Do nothing because white is default
 ld hl, rLCDC
 ld [hl], %10010001 ; Turn on the PPU, also use lower tileset and enable BG/Window
 ld hl, rBGP
-ld [hl], %11111100 ; Load palette
+ld [hl], %00000000 ; Load palette
+
+ld hl, rNR12
+ld [hl], %11110111
+
+; -------------
+
+
+; Set scroll
+
+; $FF42 - Scroll Y
+; $FF43 - Scroll X
+ld hl, rSCY
+ld [hl], 252
+inc hl
+ld [hl], 240
 
 ; End Initialization
 
+ld a, 0
 MainLoop:
-    call WaitForVBlank
-    ld hl, Countdown
-    inc [hl]
-    ld a, [hl]
-    cp 255
-    jr nz, MainLoop
-    jp Unmap
+    ld hl, rBGP
 
+    cp 20
+    call z, SetBGP1
+    cp 30
+    call z, SetBGP2
+    cp 40
+    call z, SetBGP3
+
+    
+    cp 180
+    call nc, ScrollOut
+
+    cp 200
+    call z, SetBGP2
+    cp 220
+    call z, SetBGP1
+    cp 240
+    call z, SetBGP0
+    
 WaitForVBlank:
     ld a, [rLY]
-    cp 144
+    cp $90
     jr nz, WaitForVBlank
+
+    ld hl, Countdown
+    inc [hl]
+
+    ld a, [hl]
+
+    cp 255
+    jr nz, MainLoop
+    
+    ld hl, rSCX
+    ld [hl], 0
+
+    ld hl, rSCY
+    ld [hl], 0
+
+    jp Unmap
+
+SetBGP0:
+    ld [hl], %01010100
+    ret
+SetBGP1:
+    ld [hl], %01010100
+    ret
+SetBGP2:
+    ld [hl], %10101000
+    ret
+SetBGP3:
+    ld [hl], %11111100
     ret
 
+ScrollOut:
+    ld hl, ScrollRate
+    ld b, [hl] ; Load current scroll rate into B
+    inc [hl]
+
+    ld hl, rSCX
+    ld a, [hl] ; Load current scroll X into A
+
+    add a, b ; Add rate to current scroll X
+    ld [hl], a ; Store 
+
+    ret
+
+
+
+
+
 Map:
-    db %11111100, %10000000, 0, 0
-    db %10000010, %10000000, 0, 0
-    db %10000010, %10000000, 0, 0
-    db %10000010, %10000000, 0, 0
-    db %11111100, %10000000, 0, 0
-    db %10000000, %10000000, 0, 0
-    db %10000000, %10000000, 0, 0
-    db %10000000, %11111110, 0, 0
+    db %11111100, %10000000, %00000000, %00000000
+    db %10000010, %10000000, %00000000, %00000000
+    db %10000010, %10000000, %00000000, %00000000
+    db %10000010, %10000000, %00000000, %00000000
+    db %11111100, %10000000, %00000000, %00000000
+    db %10000000, %10000000, %00000000, %00000000
+    db %10000000, %10000000, %00000000, %00000000
+    db %10000000, %11111110, %00000000, %00000000
     
     db 0,0,0,0
 
@@ -103,8 +176,6 @@ Map:
     db %10000010, %10000001, 0, 0
     db %10000010, %10000001, 0, 0
     db %11111110, %11111110, 0, 0
-
-
 
 
 ; CharP:
@@ -168,5 +239,6 @@ SECTION "CartridgeROM", ROM0[$100]
 SECTION "WorkRAM", WRAM0[$C000]
 
 Countdown: ds 1
-
 LogoBytesLeft: ds 1
+
+ScrollRate: ds 1
