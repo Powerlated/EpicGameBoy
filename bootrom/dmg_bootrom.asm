@@ -30,17 +30,12 @@ WriteBlock: ; Load an 8x8 block into character RAM
 
 ld hl, $9800
 ld de, Map
-ld a, LogoTotalBytes
+ld c, LogoTotalBytes
 LoadMap:
     ld b, 8 ; Total amount of real bytes to write per map byte
-
-    push hl
-    push de ; Move DE
-    pop hl  ; Into HL
-    ld c, [hl] ; Load map byte into C
-    pop hl
+    ld a, [de] ; Load map byte into A
 ContinueByte:
-    rlc c ; Rotate MSB of map byte into carry flag
+    rlca ; Rotate MSB of map byte into carry flag
     jr nc, SetWhite ; SetWhite if not carry, fall through to SetBlack otherwise 
 SetBlack: inc [hl]
 SetWhite: ; Do nothing because white is default
@@ -50,7 +45,7 @@ SetWhite: ; Do nothing because white is default
 
     inc de
 
-    dec a
+    dec c
     jr nz, LoadMap
 
 ; -------------
@@ -247,5 +242,4 @@ SECTION "CartridgeROM", ROM0[$100]
 SECTION "HighRAM", HRAM
 
 Countdown: ds 1
-LogoBytesLeft: ds 1
 CurrentOptimeScroll: ds 1
