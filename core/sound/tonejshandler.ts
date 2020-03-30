@@ -80,6 +80,7 @@ export default class ToneJsHandler {
         this.s = s;
         this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
         this.pulseOsc1.volume.value = -12;
+        this.pulseOsc1.mute = true;
         this.pulseVolumeShaper1 = new Tone.WaveShaper((i: number) => { return i * (this.pulse1VolumeValue / 15); });
         this.pulsePan1 = new Tone.Panner(0);
         this.pulseOsc1.chain(this.pulseVolumeShaper1, this.pulsePan1, Tone.Master);
@@ -87,6 +88,7 @@ export default class ToneJsHandler {
 
         this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
         this.pulseOsc2.volume.value = -12;
+        this.pulseOsc2.mute = true;
         this.pulseVolumeShaper2 = new Tone.WaveShaper((i: number) => { return i * (this.pulse2VolumeValue / 15); });
         this.pulsePan2 = new Tone.Panner(0);
         this.pulseOsc2.chain(this.pulseVolumeShaper2, this.pulsePan2, Tone.Master);
@@ -96,6 +98,7 @@ export default class ToneJsHandler {
         this.waveSrc.loop = true;
         this.wavePan = new Tone.Panner(0);
         this.waveVolume = new Tone.Volume(-12);
+        this.waveVolume.mute = true;
         this.waveVolumeShaper = new Tone.WaveShaper((i: number) => { return i * 1; });
         this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master);
         this.waveSrc.start();
