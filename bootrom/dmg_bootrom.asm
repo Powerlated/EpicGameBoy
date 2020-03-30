@@ -8,12 +8,20 @@ SECTION "BootROM", ROM0[$0]
 
 ld sp, $FFFE ; Put SP into High RAM
 
-ld hl, $97FF
+xor a ; Clear A for use in the next 2 loops
+ldh [rLCDC], a ; Turn off the PPU so we can access VRAM
+
+ld hl, $9FFF
 ZeroVRAM: ; The classic zero VRAM from the original bootrom
-    ld [hl], 0 
-    dec hl
+    ld [hl-], a 
     bit 7, h
     jr nz, ZeroVRAM
+
+ld c, $80
+ZeroHRAM:
+    ldh [c], a
+    inc c
+    jr nz, ZeroHRAM
 
 ; -------------
 
@@ -52,11 +60,8 @@ ContinueByte:
 
 ld a, %10010001
 ldh [rLCDC], a ; Turn on the PPU, also use lower tileset and enable BG/Window
-ld a, %00000000
+xor a
 ldh [rBGP], a  ; Load palette
-
-ld a, %00000000
-ldh [rBCPS], a 
 ; -------------
 
 
