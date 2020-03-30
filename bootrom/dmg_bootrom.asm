@@ -1,6 +1,6 @@
 INCLUDE "include/hardware.inc"
 
-LogoTotalBytes EQU 62
+LogoTotalBytes EQU 51
 
 SECTION "BootROM", ROM0[$0]
 
@@ -9,7 +9,6 @@ SECTION "BootROM", ROM0[$0]
 ld sp, $FFFE ; Put SP into High RAM
 
 xor a ; Clear A for use in the next 2 loops
-ldh [rLCDC], a ; Turn off the PPU so we can access VRAM
 
 ld hl, $9FFF
 ZeroVRAM: ; The classic zero VRAM from the original bootrom
@@ -29,9 +28,8 @@ ld hl, $8010 ; Tile 1 (0-indexed)
 ld a, $FF
 ld b, $10
 WriteBlock: ; Load an 8x8 block into character RAM
-    ld [hl], a
+    ld [hl+], a
     dec b
-    inc hl
     jr nz, WriteBlock
 
 ; -------------
@@ -77,7 +75,6 @@ ldh [$24], a
 
 ; End Initialization
 
-xor a
 MainLoop:
     ld hl, rBGP; rBGP $FF47
 
@@ -93,6 +90,13 @@ MainLoop:
     jr z, SetBGP1
     cp 220
     jr z, SetBGP0
+
+    cp 25
+    jr z, PlaySound1
+
+    cp 35
+    jr z, PlaySound2
+
     
 WaitForVBlank:
     ld a, [rLY]
@@ -161,7 +165,17 @@ HBlankHandler.ScrollEmpty:
     ld [hl], 100
     ret
 
-
+PlaySound1:
+    ld a, $83
+    ldh [$13], a
+    jr Trigger
+PlaySound2:
+    ld a, $c1
+    ldh [$13], a
+Trigger:
+    ld a, $87
+    ldh [$14], a
+    jr WaitForVBlank
 
 ; ScrollOut:
 ;     ld hl, ScrollRate
@@ -175,6 +189,7 @@ HBlankHandler.ScrollEmpty:
 ;     ld [hl], a ; Store 
 
 ;     ret
+
 
 
 Map:
