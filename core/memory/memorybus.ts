@@ -144,8 +144,10 @@ class MemoryBus {
                     }
                     break;
                 case 0xFF50:
-                    writeDebug("Disabled bootrom by write to 0xFF50");
-                    this.bootromEnabled = false;
+                    if ((value & 1) === 1) {
+                        writeDebug("Disabled bootrom by write to 0xFF50");
+                        this.bootromEnabled = false;
+                    }
                     break;
                 case 0xFF70:
                     if (this.gb.cgb) {
