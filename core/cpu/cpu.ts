@@ -348,7 +348,7 @@ export default class CPU {
                 this.addToLog(`--- INTERRUPTS ENABLED ---`);
         }
 
-        if (this.pc === 0 && this.gb.bus.bootromEnabled === true && this.gb.bus.bootromLoaded === false) {
+        if (this.pc === 0 && this.gb.bus.bootromEnabled && (!this.gb.bus.bootromLoaded || this.gb.cgb)) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
 

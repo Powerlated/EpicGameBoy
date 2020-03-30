@@ -1,4 +1,3 @@
-init();
 
 function loadRom(rom) {
     let raw = atob(ROMS_BASE64[rom]);
@@ -11,6 +10,25 @@ function loadRom(rom) {
     }
 
     gb.bus.ext.replaceRom(array);
+}
+
+function loadDmgBootRom() {
+    let raw = atob(ROMS_BASE64.dmgBootRom);
+    let rawLength = raw.length;
+
+    let array = new Uint8Array(new ArrayBuffer(256));
+
+    for (let i = 0; i < rawLength; i++) {
+        array[i] = raw.charCodeAt(i);
+    }
+
+    array.forEach((v, i, a) => {
+        gb.bus.bootrom[i] = v;
+    });
+
+    gb.bus.bootromLoaded = true;
+
+    disassemble(cpu);
 }
 
 let disassemblyP = document.getElementById('disassembly-output');
@@ -204,9 +222,11 @@ function repeatDisassemble() {
 }
 
 function init() {
+    
     let gb = new GameBoy(true);
     window.cpu = gb.cpu;
     window.gb = gb;
+
 
     loadRom('pokeyellow');
     startDebugging();
@@ -214,6 +234,8 @@ function init() {
     repeatDisassemble();
 
     showDebug();
+    loadDmgBootRom();
+
 
     // Handle input
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
@@ -340,3 +362,5 @@ function dropHandler(ev) {
 function dragOverHandler(ev) {
     ev.preventDefault();
 }
+
+init();
