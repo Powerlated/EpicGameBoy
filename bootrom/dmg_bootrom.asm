@@ -17,9 +17,6 @@ ZeroVRAM: ; The classic zero VRAM from the original bootrom
 
 ; -------------
 
-ld hl, LogoBytesLeft
-ld [hl], LogoTotalBytes
-
 ld hl, $8010 ; Tile 1 (0-indexed)
 ld a, $FF
 ld b, $10
@@ -33,6 +30,7 @@ WriteBlock: ; Load an 8x8 block into character RAM
 
 ld hl, $9800
 ld de, Map
+ld a, LogoTotalBytes
 LoadMap:
     ld b, 8 ; Total amount of real bytes to write per map byte
 
@@ -52,10 +50,7 @@ SetWhite: ; Do nothing because white is default
 
     inc de
 
-    push hl
-    ld hl, LogoBytesLeft
-    dec [hl] ; If we don't have zero bytes left, load another map byte
-    pop hl
+    dec a
     jr nz, LoadMap
 
 ; -------------
@@ -66,6 +61,8 @@ ld [hl], %10010001 ; Turn on the PPU, also use lower tileset and enable BG/Windo
 ld hl, rBGP
 ld [hl], %00000000 ; Load palette
 
+ld hl, rBCPS
+ld [hl], %00000000
 ; -------------
 
 ; End Initialization
@@ -102,11 +99,13 @@ WaitForVBlank:
     cp 255
     jr nz, MainLoop
     
-    ld hl, rSCX
-    ld [hl], 0
+    xor a
+    ld c, $42 ; rSCY
+    ld [$FF00+C], a
+    inc c
+    ld [$FF00+C], a
 
-    ld hl, rSCY
-    ld [hl], 0
+
 
     jp Unmap
 
@@ -124,31 +123,34 @@ SetBGP3:
     jr WaitForVBlank
 
 HBlankHandler:
-    ld hl, rLY
-    ld b, [hl]
-
-    ld hl, rSCX
+    ld hl, rSCY
 
     cp 0
     jr z, HBlankHandler.ScrollOptime
 
-    cp 59
+    cp 51
+    jr z, HBlankHandler.ScrollEmpty
+
+    cp 67
     jr z, HBlankHandler.ScrollGB
 
     ret
 HBlankHandler.ScrollOptime:
+    ld [hl], 244
+    inc hl
     ld bc, CurrentOptimeScroll
     ld a, [bc]
     inc a
     ld [bc], a
     ld [hl], a
-    dec hl
-    ld [hl], 252
     ret
 HBlankHandler.ScrollGB:
+    ld [hl], 228
+    inc hl
     ld [hl], 240
-    dec hl
-    ld [hl], 244
+    ret
+HBlankHandler.ScrollEmpty:
+    ld [hl], 100
     ret
 
 
@@ -168,13 +170,11 @@ HBlankHandler.ScrollGB:
 
 
 Map:
-    db %00000000, %00000000, %00000000, %00000000
     db %11101110, %11101110, %11111011, %10000000
     db %10101010, %01000100, %10101010, %00000000
     db %10101110, %01000100, %10101011, %10000000
     db %10101000, %01000100, %10101010, %00000000
     db %11101000, %01001110, %10101011, %10000000
-    db %00000000, %00000000, %00000000, %00000000
 
     db %11111110, %11111110, 0, 0
     db %10000000, %10000001, 0, 0
@@ -236,7 +236,7 @@ Map:
 ;  db %10000000
 ;  db %11111110
 
-SECTION "Unmap", ROM0[$FB]
+SECTION "Unmap", ROM0[$FC]
 Unmap:
     ld a,$11
 	ld [$FF00+$50],a
@@ -244,9 +244,8 @@ Unmap:
 ; Just put this in so I don't accidently overflow into Cartridge ROM
 SECTION "CartridgeROM", ROM0[$100]
 
-SECTION "WorkRAM", WRAM0[$C000]
+SECTION "HighRAM", HRAM
 
 Countdown: ds 1
 LogoBytesLeft: ds 1
-
 CurrentOptimeScroll: ds 1
