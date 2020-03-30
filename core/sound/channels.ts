@@ -91,7 +91,7 @@ export class WaveChannel implements BasicChannel {
     oldVolume = 0;
 
     waveTable: Array<number> = [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF];
-    waveTableUpdated = false;
+    waveTableUpdated = true;
 
     restartSound = false;
 
@@ -130,11 +130,6 @@ export class WaveChannel implements BasicChannel {
         }
 
         let waveTable = this.waveTable.map(v => (v - 8) / 4).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
-
-        // Output all zeroes if frequency binary is zero
-        if (this.frequencyHz === 32) {
-            waveTable = new Array(1).fill(0);
-        }
 
         const ac = (Tone.context as any as AudioContext);
         const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
