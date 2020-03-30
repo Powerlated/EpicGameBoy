@@ -20,6 +20,8 @@ dist/
 
 bootrom/dmg_bootrom.bin
 bootrom/dmg_bootrom.o
+bootrom/dmg_bootrom.sym
 
 bootrom/cgb_bootrom.bin
 bootrom/cgb_bootrom.o
+bootrom/cgb_bootrom.sym

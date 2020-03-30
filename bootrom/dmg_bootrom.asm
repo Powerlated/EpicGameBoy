@@ -1,6 +1,6 @@
 INCLUDE "include/hardware.inc"
 
-LogoTotalBytes EQU 64
+LogoTotalBytes EQU 62
 
 SECTION "BootROM", ROM0[$0]
 
@@ -36,12 +36,11 @@ LoadMap:
     ld a, [de] ; Load map byte into A
 ContinueByte:
     rlca ; Rotate MSB of map byte into carry flag
-    jr nc, SetWhite ; SetWhite if not carry, fall through to SetBlack otherwise 
-SetBlack: inc [hl]
-SetWhite: ; Do nothing because white is default
-    inc hl 
-    dec b
-    jr nz, ContinueByte
+    rl [hl] ; Rotate the carry flag into LSB of destination byte
+
+    inc hl ; Increment destination after each bit
+    dec b  ; Decrement bytes left
+    jr nz, ContinueByte ; If we still have bits left, continue on this byte
 
     inc de
 
@@ -51,20 +50,31 @@ SetWhite: ; Do nothing because white is default
 ; -------------
 
 
-ld hl, rLCDC
-ld [hl], %10010001 ; Turn on the PPU, also use lower tileset and enable BG/Window
-ld hl, rBGP
-ld [hl], %00000000 ; Load palette
+ld a, %10010001
+ldh [rLCDC], a ; Turn on the PPU, also use lower tileset and enable BG/Window
+ld a, %00000000
+ldh [rBGP], a  ; Load palette
 
-ld hl, rBCPS
-ld [hl], %00000000
+ld a, %00000000
+ldh [rBCPS], a 
 ; -------------
+
+
+; Init Audio
+ld a, $80
+ldh [$26], a
+ldh [$11], a
+ld a, $f3
+ldh [$12], a
+ldh [$25], a
+ld a, $77
+ldh [$24], a
 
 ; End Initialization
 
-ld a, 0
+xor a
 MainLoop:
-    ld hl, rBGP
+    ld hl, rBGP; rBGP $FF47
 
     cp 20
     jr z, SetBGP1
@@ -72,7 +82,6 @@ MainLoop:
     jr z, SetBGP2
     cp 40
     jr z, SetBGP3
-
     cp 180
     jr z, SetBGP2
     cp 200
@@ -95,14 +104,14 @@ WaitForVBlank:
     jr nz, MainLoop
     
     xor a
-    ld c, $42 ; rSCY
-    ld [$FF00+C], a
+    ld c, $42 ; rSCY $FF42
+    ldh [C], a
     inc c
-    ld [$FF00+C], a
+    ldh [C], a
 
 
 
-    jp Unmap
+    jr Unmap
 
 SetBGP0:
     ld [hl], %00000000
@@ -120,7 +129,7 @@ SetBGP3:
 HBlankHandler:
     ld hl, rSCY
 
-    cp 0
+    and a ; A & A does nothing to A itself but sets flags
     jr z, HBlankHandler.ScrollOptime
 
     cp 51
@@ -133,10 +142,9 @@ HBlankHandler:
 HBlankHandler.ScrollOptime:
     ld [hl], 244
     inc hl
-    ld bc, CurrentOptimeScroll
-    ld a, [bc]
+    ldh a, [CurrentOptimeScroll]
     inc a
-    ld [bc], a
+    ldh [CurrentOptimeScroll], a
     ld [hl], a
     ret
 HBlankHandler.ScrollGB:
@@ -178,7 +186,7 @@ Map:
     db %10000010, %10000001, 0, 0
     db %10000010, %10000001, 0, 0
     db %10000010, %10000001, 0, 0
-    db %11111110, %11111110, 0, 0
+    db %11111110, %11111110
 
 
 ; CharP:
@@ -233,8 +241,8 @@ Map:
 
 SECTION "Unmap", ROM0[$FC]
 Unmap:
-    ld a,$11
-	ld [$FF00+$50],a
+    ld a,$01
+	ldh [$50],a
 
 ; Just put this in so I don't accidently overflow into Cartridge ROM
 SECTION "CartridgeROM", ROM0[$100]
