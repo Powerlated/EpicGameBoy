@@ -1,24 +1,5 @@
 init();
 
-function loadDmgBootRom() {
-    let raw = atob(ROMS_BASE64.bootrom);
-    let rawLength = raw.length;
-
-    let array = new Uint8Array(new ArrayBuffer(256));
-
-    for (let i = 0; i < rawLength; i++) {
-        array[i] = raw.charCodeAt(i);
-    }
-
-    array.forEach((v, i, a) => {
-        gb.bus.bootrom[i] = v;
-    });
-
-    gb.bus.bootromLoaded = true;
-
-    disassemble(cpu);
-}
-
 function loadRom(rom) {
     let raw = atob(ROMS_BASE64[rom]);
     let rawLength = raw.length;
