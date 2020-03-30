@@ -49,7 +49,7 @@ export class GPURenderer {
 
             const adjX = attr.xFlip ? 7 - x : x;
             const adjY = attr.yFlip ? 7 - y : y;
-            const prePalette = tileset[tile][adjY][adjX];
+            const prePalette = tileset[tile][(adjY << 3) + adjX];
             const pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
             // Re-map the tile pixel through the palette
 
@@ -118,7 +118,7 @@ export class GPURenderer {
 
                     const adjX = attr.xFlip ? 7 - x : x;
                     const adjY = attr.yFlip ? 7 - y : y;
-                    const prePalette = tileset[tile][adjY][adjX];
+                    const prePalette = tileset[tile][(adjY << 3) + adjX];
                     let pixel = this.gpu.cgbBgPalette.shades[attr.bgPalette][prePalette];
 
                     // Plot the pixel to canvas
@@ -198,7 +198,7 @@ export class GPURenderer {
 
                 // Offset tile by +1 if rendering the top half of an 8x16 sprite
 
-                const prePalette = tileset[tile + tileOffset][pixelY][pixelX];
+                const prePalette = tileset[tile + tileOffset][(pixelY << 3) + pixelX];
                 const pixel = this.gpu.cgbObjPalette.shades[pal][prePalette];
 
                 let noTransparency = this.gpu.gb.cgb && !this.gpu.lcdControl.bgWindowEnable0;
@@ -231,48 +231,41 @@ export class GPURenderer {
         }
     }
     // 160 x 144
+
     renderTiles() {
-        this.gpu.tileset0.forEach((v1, i1) => {
-            v1.forEach((v2, i2) => {
-                v2.forEach((pixel, i3) => {
-                    if (pixel === undefined) return;
+        const WIDTH = 256;
 
-                    const WIDTH = 256;
 
-                    const x = ((i1 << 3) + i3) % WIDTH;
-                    const row = Math.floor(((i1 << 3) + i3) / WIDTH);
-                    const y = i2 + (row << 3);
+        this.gpu.tileset0.forEach((tile, tileIndex) => {
+            for (let i = 0; i < 64; i++) {
+                const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
+                let y = (i >> 3) + (8 * Math.floor(tileIndex / 32));
 
-                    const c = this.gpu.cgbBgPalette.shades[0][pixel];
+                const c = this.gpu.cgbBgPalette.shades[0][tile[i]];
 
-                    let index = 4 * ((y * WIDTH) + x);
+                let index = 4 * ((y * WIDTH) + x);
+                this.imageTileset.data[index + 0] = c[0];
+                this.imageTileset.data[index + 1] = c[1];
+                this.imageTileset.data[index + 2] = c[2];
+                this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
 
-                    this.imageTileset.data[index + 0] = c[0];
-                    this.imageTileset.data[index + 1] = c[1];
-                    this.imageTileset.data[index + 2] = c[2];
-                    this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
-                });
-            });
+            }
         });
-        this.gpu.tileset1.forEach((v1, i1) => {
-            v1.forEach((v2, i2) => {
-                v2.forEach((pixel, i3) => {
-                    if (pixel === undefined) return;
-                    const WIDTH = 256;
+        this.gpu.tileset1.forEach((tile, tileIndex) => {
+            for (let i = 0; i < 64; i++) {
+                const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
+                let y = (i >> 3) + (8 * Math.floor(tileIndex / 32));
 
-                    const x = ((i1 << 3) + i3) % WIDTH;
-                    const row = Math.floor(((i1 << 3) + i3) / WIDTH);
-                    const y = i2 + (row << 3);
+                const c = this.gpu.cgbBgPalette.shades[0][tile[i]];
 
-                    const c = this.gpu.cgbBgPalette.shades[0][pixel];
+                let offset = (256 * 96);
+                let index = 4 * (((y * WIDTH) + x) + offset);
+                this.imageTileset.data[index + 0] = c[0];
+                this.imageTileset.data[index + 1] = c[1];
+                this.imageTileset.data[index + 2] = c[2];
+                this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
 
-                    let index = 4 * ((y * WIDTH) + x + (256 * 96));
-                    this.imageTileset.data[index + 0] = c[0];
-                    this.imageTileset.data[index + 1] = c[1];
-                    this.imageTileset.data[index + 2] = c[2];
-                    this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
-                });
-            });
+            }
         });
     }
 }

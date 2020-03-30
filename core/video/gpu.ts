@@ -214,9 +214,9 @@ class GPU {
     renderer = new GPURenderer(this);
     canvas = new GPUCanvas(this);
 
-    // [tile][row][pixel]
-    tileset0 = new Array(384).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
-    tileset1 = new Array(384).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0))); // For bank 0
+    // [tile][pixel]
+    tileset0 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 0
+    tileset1 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 0
 
     tileset = this.tileset0;
 
@@ -491,7 +491,7 @@ class GPU {
                 // Update tile set
                 let tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
 
-                tileset[tile][y][x] =
+                tileset[tile][(y << 3) + x] =
                     (lsb !== 0 ? 1 : 0) +
                     (msb !== 0 ? 2 : 0);
             }
@@ -514,8 +514,8 @@ class GPU {
         this.totalFrameCount = 0;
 
         // [tile][row][pixel]
-        this.tileset0 = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0)));
-        this.tileset1 = new Array(0x1800 + 1).fill(0).map(() => Array(8).fill(0).map(() => new Uint8Array(8).fill(0)));
+        this.tileset0 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
+        this.tileset1 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
 
         this.lcdControl = new LCDCRegister();
         this.lcdStatus = new LCDStatusRegister();

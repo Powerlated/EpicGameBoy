@@ -32,7 +32,7 @@ class MemoryBus {
     workRamBank = this.workRamBanks[1];
     workRamBankIndex = 1;
 
-    highRam = new Uint8Array(512).fill(0);
+    highRam = new Uint8Array(128).fill(0);
     bootrom = new Uint8Array(256).fill(0);
 
     bootromEnabled = true;

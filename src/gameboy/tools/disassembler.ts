@@ -1,7 +1,7 @@
 import CPU, { CC, Op, R8, OperandType } from "../../../core/cpu/cpu";
 
 import Ops from "../../../core/cpu/old_cpu_ops";
-import { unTwo8b, hexN, hexN_LC, pad } from "./util";
+import { unTwo8b, hexN, hexN_LC, pad, hex } from "./util";
 import Decoder from "../../../core/cpu/old_decoder";
 
 function tr(r8: OperandType) {
@@ -62,7 +62,7 @@ export default class Disassembler {
         }
     };
 
-    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, cpu: CPU) => {
+    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, cpu: CPU, disasmPc: number) => {
         const HARDCODE_DECODE = (ins: Op, pcTriplet: Uint8Array) => {
             const doublet = pcTriplet[1] | pcTriplet[2] << 8;
             switch (ins.op) {
@@ -123,7 +123,7 @@ export default class Disassembler {
             // Regular operations, block if hardcode decoded
             operandAndType =
                 (ins.type != CC.UNCONDITIONAL ? (
-                    ((ins.type ? tr(ins.type) : "") + (ins.type2 || ins.length > 1 ? "," : ""))
+                    ((ins.type ? tr(ins.type) : "") + (ins.type2 || (ins.length > 1 && ins.type) ? "," : ""))
                 ) : "") +
                 (ins.type2 ? tr(ins.type2) : "");
         }
@@ -133,14 +133,14 @@ export default class Disassembler {
             if (ins.length === 2) {
                 if (ins.op !== Ops.JR_E8) {
                     // Regular operation
-                    operandAndType += "$" + hexN(cpu.gb.bus.readMem8(cpu.pc + 1), 2);
+                    operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
                 } else {
-                    // For JR operation, reverse two's complement instead of hex
-                    operandAndType += "" + unTwo8b(cpu.gb.bus.readMem8(cpu.pc + 1));
+                    // For JR operation, calculate jump destination
+                    operandAndType += "$" + hexN(2 + disasmPc + unTwo8b(cpu.gb.bus.readMem8(disasmPc + 1)), 4);
                 }
             } else if (ins.length === 3) {
                 // 16 bit
-                operandAndType += "$" + hexN(cpu.gb.bus.readMem16(cpu.pc + 1), 4);
+                operandAndType += "$" + hexN(cpu.gb.bus.readMem16(disasmPc + 1), 4);
             }
         }
 
@@ -208,7 +208,7 @@ export default class Disassembler {
 
             const hexDecoded = decodeHex(pcTriplet);
 
-            const disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, cpu)}`;
+            const disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, cpu, disasmPc)}`;
 
             if (i === 0) {
                 if (Disassembler.willJump(ins, cpu))

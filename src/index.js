@@ -183,6 +183,8 @@ document.querySelector('#bootromInput').addEventListener('change', function () {
         array.forEach((v, i, a) => {
             gb.bus.bootrom[i] = v;
         });
+
+        gb.bus.bootromLoaded = true;
     };
     reader.readAsArrayBuffer(this.files[0]);
 }, false);

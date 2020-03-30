@@ -29,20 +29,20 @@ export default class GPUCanvas {
     drawTileset() {
         this.ctxTileset.putImageData(this.gpu.renderer.imageTileset, 0, 0);
 
-        this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
-        // 0: Bottom half used, 1: Top half used
-        // Draw over unused with transparent yellow
-        if (this.gpu.lcdControl.bgWindowTiledataSelect__4) {
-            this.ctxTileset.fillRect(0, 32, 256, 63);
-        } else {
-            this.ctxTileset.fillRect(0, 0, 256, 63);
-        }
+        // this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
+        // // 0: Bottom half used, 1: Top half used
+        // // Draw over unused with transparent yellow
+        // if (this.gpu.lcdControl.bgWindowTiledataSelect__4) {
+        //     this.ctxTileset.fillRect(0, 32, 256, 63);
+        // } else {
+        //     this.ctxTileset.fillRect(0, 0, 256, 63);
+        // }
 
-        this.ctxTileset.setLineDash([2]);
-        this.ctxTileset.strokeStyle = '#ff0000';
-        this.ctxTileset.strokeRect(0, 0, 256, 63);
-        this.ctxTileset.strokeStyle = '#0000ff';
-        this.ctxTileset.strokeRect(0, 32, 256, 63);
+        // this.ctxTileset.setLineDash([2]);
+        // this.ctxTileset.strokeStyle = '#ff0000';
+        // this.ctxTileset.strokeRect(0, 0, 256, 63);
+        // this.ctxTileset.strokeStyle = '#0000ff';
+        // this.ctxTileset.strokeRect(0, 32, 256, 63);
     }
 
 }

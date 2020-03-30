@@ -213,7 +213,6 @@ export default class ToneJsHandler {
                 this.noise15Pan.pan.value = this.s.noise.pan;
 
                 let div = [8, 16, 32, 48, 64, 80, 96, 112][this.s.noise.divisorCode];
-
                 let rate = 4194304 / (div << this.s.noise.shiftClockFrequency);
 
                 if (this.s.noise.counterStep) {
