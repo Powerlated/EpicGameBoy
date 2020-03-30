@@ -235,9 +235,7 @@ export class NoiseChannel implements BasicChannel {
             return seed & 1;
         }
 
-        let LFSR_MUL = 8;
-
-        if (sevenBit) LFSR_MUL *= 4;
+        let LFSR_MUL = 16;
 
         let waveTable = new Array(32768 * LFSR_MUL).fill(0);
         // TODO: Hook LFSR into the rest of the sound chip
@@ -261,7 +259,7 @@ export class NoiseChannel implements BasicChannel {
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
         const ac = (Tone.context as any as AudioContext);
-        const arrayBuffer = ac.createBuffer(1, waveTable.length, 96000);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
         const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];
