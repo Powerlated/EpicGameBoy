@@ -33,8 +33,8 @@ export default class Timer {
      * When counter (TIMA) overflows, it stays 0x00 for a full M-cycle before
      * firing the interrupt and reloading with modulo. 
      */
-    step(multiplier: number) {
-        this.cyclesBehind += multiplier * this.gb.cpu.lastInstructionCycles;
+    step(cycles: number) {
+        this.cyclesBehind += cycles;
 
         if (this.gb.interrupts.enabled.timer) {
             this.catchup();

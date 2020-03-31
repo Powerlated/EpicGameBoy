@@ -63,12 +63,12 @@ export default class SoundChip {
         this.clockPulse1FreqSweep++;
     }
 
-    step() {
+    step(cycles: number) {
         // #region CLOCK
         if (this.enabled) {
-            this.clockLength += this.gb.cpu.lastInstructionCycles;
-            this.clockMain += this.gb.cpu.lastInstructionCycles;
-            this.clockEnvelopeMain += this.gb.cpu.lastInstructionCycles;
+            this.clockLength += cycles;
+            this.clockMain += cycles;
+            this.clockEnvelopeMain += cycles;
         } else {
             this.clockLength = 0;
             this.clockMain = 0;
@@ -262,6 +262,7 @@ export default class SoundChip {
                     this.pulse1.update();
                     break;
                 case 0xFF12: // NR12
+                    this.pulse1.volume = (value >> 4) & 0xF;
                     this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
                     this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                     this.pulse1.volumeEnvelopeSweep = value & 0b111;
@@ -288,6 +289,7 @@ export default class SoundChip {
                     this.pulse2.update();
                     break;
                 case 0xFF17: // NR22
+                    this.pulse2.volume = (value >> 4) & 0xF;
                     this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
                     this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                     this.pulse2.volumeEnvelopeSweep = value & 0b111;
@@ -338,6 +340,7 @@ export default class SoundChip {
                     this.noise.update();
                     break;
                 case 0xFF21: // NR42
+                    this.noise.volume = (value >> 4) & 0xF;
                     this.noise.volumeEnvelopeStart = (value >> 4) & 0xF;
                     this.noise.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
                     this.noise.volumeEnvelopeSweep = value & 0b111;

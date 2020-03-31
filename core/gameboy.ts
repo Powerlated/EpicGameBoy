@@ -40,25 +40,29 @@ export default class GameBoy {
         setInterval(() => { this.bus.ext.saveGameSram(); }, 100);
     }
 
-    step() {
-        let times = this.doubleSpeed ? 2 : 1;
-        for (let i = 0; i < times; i++) {
-            if (this.cpuPausedNormalSpeedMcycles == 0) {
-                this.cpu.step();
-                if (this.oamDmaNormalMCyclesRemaining > 0) {
-                    this.oamDmaNormalMCyclesRemaining -= (this.cpu.lastInstructionCycles >> 2);
-                }
-            }
-        }
+    step(): number {
+        let lastInstructionCycles = 4;
 
         if (this.cpuPausedNormalSpeedMcycles > 0) {
-            this.cpu.lastInstructionCycles = 4;
             this.cpuPausedNormalSpeedMcycles--;
+        } else {
+            lastInstructionCycles = this.cpu.step();
         }
 
-        this.timer.step(times);
-        this.soundChip.step();
-        this.gpu.step();
+        // This is the value we are going to pass to the other components 
+        let stepCycles = lastInstructionCycles;
+        if (this.doubleSpeed) stepCycles >>= 1;
+
+        if (this.oamDmaNormalMCyclesRemaining > 0) {
+            this.oamDmaNormalMCyclesRemaining -= (stepCycles >> 2);
+        }
+
+
+        this.timer.step(stepCycles);
+        this.soundChip.step(stepCycles);
+        this.gpu.step(stepCycles);
+
+        return stepCycles;
     }
 
     speedMul = 1;
@@ -86,8 +90,8 @@ export default class GameBoy {
                 this.speedStop();
                 return;
             }
-            this.step();
-            i += this.cpu.lastInstructionCycles;
+
+            i += this.step();
         }
 
         if (this.stopNow == true) {

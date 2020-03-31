@@ -265,7 +265,6 @@ export default class CPU {
     lastSerialOut = 0;
     lastInstructionDebug = "";
     lastOperandDebug = "";
-    lastInstructionCycles = 0;
     currentIns = "";
 
     lastOpcode = 0;
@@ -300,7 +299,6 @@ export default class CPU {
         this.haltBug = false;
         this.halted = false;
         this.scheduleEnableInterruptsForNextTick = false;
-        this.lastInstructionCycles = 0;
         this.invalidOpcodeExecuted = false;
     }
 
@@ -337,8 +335,10 @@ export default class CPU {
     }
 
 
-    step() {
-        if (this.invalidOpcodeExecuted) return;
+    step(): number {
+        if (this.invalidOpcodeExecuted) return 4;
+
+        const c = this.cycles;
 
         if (this.scheduleEnableInterruptsForNextTick) {
             this.scheduleEnableInterruptsForNextTick = false;
@@ -411,8 +411,6 @@ export default class CPU {
         //     this.stepDebug();
 
         if (this.halted === false) {
-            const c = this.cycles;
-
             const b0 = this.gb.bus.readMem8(this.pc + 0);
 
             const isCB = b0 === 0xCB;
@@ -452,23 +450,35 @@ export default class CPU {
             }
 
             this.totalI++;
-            this.lastInstructionCycles = this.cycles - c;
 
-            // // Checking for proper timings below here
+            // Checking for proper timings below here
 
+            // if (isCB === false) {
             // // These are variable length instructions / control flow
-            // const dontcare  = [0x20, 0x30, 0x28, 0x38, 0xCB, 0xC0, 0xD0, 0xC2, 0xD2, 0xC4, 0xD4, 0xCA, 0xDA, 0xC8, 0x76, 0xD8, 0x10, 0xCC, 0xDC];
-            
-            // if (dontcare.includes(b0)) return;
+            //     const dontcare = [0x20, 0x30, 0x28, 0x38, 0xCB, 0xC0, 0xD0, 0xC2, 0xD2, 0xC4, 0xD4, 0xCA, 0xDA, 0xC8, 0x76, 0xD8, 0x10, 0xCC, 0xDC];
 
-            // let success = true;
+            //     if (!dontcare.includes(b0)) {
 
-            // success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
+            //         let success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
 
-            // if (success == false) {
-            //     console.log(hex(b0, 2));
-            //     // console.log(`Offset: ${ins.cyclesOffset}`);
-            //     this.gb.speedStop();
+            //         if (success == false) {
+            //             console.log(hex(b0, 2));
+            //             this.gb.speedStop();
+            //         }
+            //     }
+            // } else {
+            //     const dontcare: any[] = [];
+            //     const b1 = this.gb.bus.readMem8(this.pc + 1);
+
+            //     if (dontcare.includes(b1)) {
+
+            //         let success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[b1] * 4, "[CB] CPU timing");
+
+            //         if (success == false) {
+            //             console.log(`${hex(b0, 2)},${hex(b1, 2)}`);
+            //             this.gb.speedStop();
+            //         }
+            //     }
             // }
 
             // this.opcodesRan.add(pcTriplet[0]);
@@ -525,6 +535,10 @@ export default class CPU {
         }
         //#endregion
         this.haltBug = false;
+        
+        let lastInstructionCycles = this.cycles - c;
+        if (lastInstructionCycles == 0) lastInstructionCycles = 4;
+        return lastInstructionCycles;
     }
 
     minDebug = false;
