@@ -125,11 +125,7 @@ export class WaveChannel implements BasicChannel {
 
     get buffer(): AudioBuffer {
         let sampleRate = 112640; // A440 without any division
-        if (sampleRate > 384000) {
-            sampleRate = 112640; // Back to A440 if invalid vale in BaseAudioContext.createBuffer()
-        }
-
-        let waveTable = this.waveTable.map(v => (v - 8) / 4).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
+        let waveTable = this.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
 
         const ac = (Tone.context as any as AudioContext);
         const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);

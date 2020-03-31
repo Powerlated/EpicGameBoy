@@ -1,5 +1,6 @@
 import SoundChip from "./sound";
 import * as Tone from "tone";
+import { AudioPlugin } from "./audioplugin";
 
 const widths = [0.5, 0.5, 0, 0.5]; // CORRECT
 // const widths = [0.75, 0.5, 0, 0.5]
@@ -33,7 +34,7 @@ function convertVolumeWave(v: number) {
     return base + mute + (10 * Math.log(v / 16));
 }
 
-export default class ToneJsHandler {
+export default class ToneJsHandler implements AudioPlugin {
     pulseOsc1: Tone.PulseOscillator;
     pulseVolumeShaper1: Tone.WaveShaper;
     pulsePan1: Tone.Panner;
@@ -97,7 +98,7 @@ export default class ToneJsHandler {
         this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
         this.waveSrc.loop = true;
         this.wavePan = new Tone.Panner(0);
-        this.waveVolume = new Tone.Volume(-12);
+        this.waveVolume = new Tone.Volume(-6);
         this.waveVolume.mute = true;
         this.waveVolumeShaper = new Tone.WaveShaper((i: number) => { return i * 1; });
         this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master);
@@ -179,8 +180,8 @@ export default class ToneJsHandler {
                 switch (this.s.wave.volume) {
                     case 0: mul = 0; break;
                     case 1: mul = 1; break;
-                    case 2: mul = 0.5; break;
-                    case 3: mul = 0.25; break;
+                    case 2: mul = 0.75; break;
+                    case 3: mul = 0.50; break;
                 }
 
 
