@@ -36,7 +36,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
             if (this.romBank === 0x60)
                 this.romBank = 0x61;
 
-            return this.ext.romData[this.romBank][addr & 16383];
+            return this.ext.romData[this.romBank % this.ext.romBanks][addr & 16383];
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
