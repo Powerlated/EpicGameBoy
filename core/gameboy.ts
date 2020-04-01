@@ -49,16 +49,17 @@ export default class GameBoy {
             lastInstructionCycles = this.cpu.step();
         }
 
+        
+        if (this.oamDmaNormalMCyclesRemaining > 0) {
+            this.oamDmaNormalMCyclesRemaining -= (lastInstructionCycles >> 2);
+        }
+
         // This is the value we are going to pass to the other components 
         let stepCycles = lastInstructionCycles;
         if (this.doubleSpeed) stepCycles >>= 1;
 
-        if (this.oamDmaNormalMCyclesRemaining > 0) {
-            this.oamDmaNormalMCyclesRemaining -= (stepCycles >> 2);
-        }
 
-
-        this.timer.step(stepCycles);
+        this.timer.step(lastInstructionCycles);
         this.soundChip.step(stepCycles);
         this.gpu.step(stepCycles);
 
@@ -112,6 +113,9 @@ export default class GameBoy {
 
         this.doubleSpeed = false;
         this.prepareSpeedSwitch = false;
+
+        this.cpuPausedNormalSpeedMcycles = 0;
+        this.oamDmaNormalMCyclesRemaining = 0;
     }
 }
 
