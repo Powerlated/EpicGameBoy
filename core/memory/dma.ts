@@ -78,6 +78,7 @@ export class DMAController {
     gDmaCompleted = false;
 
     newDma(startAddr: number, destination: number, length: number) {
+        this.gb.cpuPausedNormalSpeedMcycles += 2 * (this.newDmaLength >> 4);
         for (let i = 0; i < length; i++) {
             this.gb.gpu.write(destination, this.gb.bus.readMem8(startAddr));
             startAddr++;
@@ -148,7 +149,6 @@ export class DMAController {
                             // console.log(`Paused HDMA ${this.hDmaRemaining} bytes remaining`);
                         } else {
                             // console.log(`GDMA ${this.newDmaLength} bytes: ${hex(this.newDmaSource, 4)} => ${hex(this.newDmaDest, 4)}`);
-                            this.gb.cpuPausedNormalSpeedMcycles += 2 * (this.newDmaLength >> 4);
                             this.newDma(this.newDmaSource, this.newDmaDest, this.newDmaLength);
                             this.gDmaCompleted = true;
                         }

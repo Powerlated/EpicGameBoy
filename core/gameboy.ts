@@ -56,9 +56,10 @@ export default class GameBoy {
 
         // This is the value we are going to pass to the other components 
         let stepCycles = lastInstructionCycles;
+        // In double speed mode make the CPU run 2x relatively faster than all the other components
         if (this.doubleSpeed) stepCycles >>= 1;
 
-
+        // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.step(lastInstructionCycles);
         this.soundChip.step(stepCycles);
         this.gpu.step(stepCycles);

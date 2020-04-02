@@ -112,10 +112,10 @@ class Executor {
 
             /** LD between A and High RAM */
             case 0xF0: // LD A, [$FF00+N8]
-                cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + b1) & 0xFFFF);
+                cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 | b1) & 0xFFFF);
                 break;
             case 0xE0: // LD [$FF00+N8], A
-                cpu.writeMem8((0xFF00 + b1) & 0xFFFF, cpu._r.gen[R8.A]);
+                cpu.writeMem8((0xFF00 | b1) & 0xFFFF, cpu._r.gen[R8.A]);
                 break;
             case 0x36: // LD [HL], N8
                 cpu.writeMem8(cpu._r.hl, b1);
@@ -674,7 +674,7 @@ class Executor {
                 const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
                 const stackUpperByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
 
-                const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
+                const returnAddress = ((stackUpperByte << 8) | stackLowerByte) & 0xFFFF;
                 // console.info(`Returning to 0x${returnAddress.toString(16)}`);
 
                 cpu.pc = returnAddress - 1;
@@ -739,10 +739,10 @@ class Executor {
                 return;
 
             case 0xF2: // LD A, [$FF00+C]
-                cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 + cpu._r.gen[R8.C]) & 0xFFFF);
+                cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 | cpu._r.gen[R8.C]) & 0xFFFF);
                 return;
             case 0xE2: // LD [$FF00+C], A
-                cpu.writeMem8((0xFF00 + cpu._r.gen[R8.C]) & 0xFFFF, cpu._r.gen[R8.A]);
+                cpu.writeMem8((0xFF00 | cpu._r.gen[R8.C]) & 0xFFFF, cpu._r.gen[R8.A]);
                 return;
 
             case 0xF3: // DI - Disable interrupts master flag
