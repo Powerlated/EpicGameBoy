@@ -444,11 +444,7 @@ export default class CPU {
             } else {
                 Executor.execute0xCBPrefix(this, this.gb.bus.readMem8(this.pc + 1));
             }
-
-            if (!this.haltBug) {
-                this.pc = (this.pc + length) & 0xFFFF;
-            }
-
+            
             this.totalI++;
 
             // Checking for proper timings below here

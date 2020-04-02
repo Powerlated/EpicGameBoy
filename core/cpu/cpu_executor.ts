@@ -31,13 +31,16 @@ class Executor {
             case 0x31: // LD SP, N16
                 const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
                 cpu._r.paired[target] = (b2 << 8) | b1;
+                cpu.pc += 3;
                 return;
 
             case 0xFA: // LD A, [N16]
                 cpu._r.gen[R8.A] = cpu.fetchMem8((b2 << 8) | b1);
+                cpu.pc += 3;
                 return;
             case 0xEA: // LD [N16], A
                 cpu.writeMem8((b2 << 8) | b1, cpu._r.gen[R8.A]);
+                cpu.pc += 3;
                 return;
             case 0x08: // LD [N16], SP
                 const spUpperByte = cpu._r.sp >> 8;
@@ -45,6 +48,7 @@ class Executor {
 
                 cpu.writeMem8((b2 << 8) | b1 + 0, spLowerByte);
                 cpu.writeMem8((b2 << 8) | b1 + 1, (spUpperByte) & 0xFFFF);
+                cpu.pc += 3;
                 return;
 
             case 0xC3: // JP N16
@@ -55,14 +59,15 @@ class Executor {
                 // If unconditional, don't check
                 if (b0 !== 0xC3) {
                     const cc: CC = (b0 & 0b11000) >> 3;
-                    if (cc === CC.NZ && cpu._r._f.zero) return;
-                    if (cc === CC.Z && !cpu._r._f.zero) return;
-                    if (cc === CC.NC && cpu._r._f.carry) return;
-                    if (cc === CC.C && !cpu._r._f.carry) return;
+                    if (cc === CC.NZ && cpu._r._f.zero) { cpu.pc += 3; return; }
+                    if (cc === CC.Z && !cpu._r._f.zero) { cpu.pc += 3; return; }
+                    if (cc === CC.NC && cpu._r._f.carry) { cpu.pc += 3; return; }
+                    if (cc === CC.C && !cpu._r._f.carry) { cpu.pc += 3; return; }
                 }
 
                 cpu.pc = ((b2 << 8) | b1 + 0x0) - 3;
                 cpu.cycles += 4; // Branching takes 4 cycles
+                cpu.pc += 3;
                 return;
 
             /** CALL */
@@ -74,10 +79,10 @@ class Executor {
                 {
                     if (b0 !== 0xCD) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && cpu._r._f.zero) return;
-                        if (cc === CC.Z && !cpu._r._f.zero) return;
-                        if (cc === CC.NC && cpu._r._f.carry) return;
-                        if (cc === CC.C && !cpu._r._f.carry) return;
+                        if (cc === CC.NZ && cpu._r._f.zero) { cpu.pc += 3; return; }
+                        if (cc === CC.Z && !cpu._r._f.zero) { cpu.pc += 3; return; }
+                        if (cc === CC.NC && cpu._r._f.carry) { cpu.pc += 3; return; }
+                        if (cc === CC.C && !cpu._r._f.carry) { cpu.pc += 3; return; }
                     }
 
                     const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
@@ -94,6 +99,7 @@ class Executor {
 
                     cpu.cycles += 4; // Branching takes 4 cycles
                 }
+                cpu.pc += 3;
                 return;
 
             default:
@@ -108,17 +114,21 @@ class Executor {
                 if (cpu.gb.prepareSpeedSwitch) {
                     cpu.gb.doubleSpeed = !cpu.gb.doubleSpeed;
                 }
+                cpu.pc += 2;
                 return;
 
             /** LD between A and High RAM */
             case 0xF0: // LD A, [$FF00+N8]
                 cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 | b1) & 0xFFFF);
-                break;
+                cpu.pc += 2;
+                return;
             case 0xE0: // LD [$FF00+N8], A
                 cpu.writeMem8((0xFF00 | b1) & 0xFFFF, cpu._r.gen[R8.A]);
-                break;
+                cpu.pc += 2;
+                return;
             case 0x36: // LD [HL], N8
                 cpu.writeMem8(cpu._r.hl, b1);
+                cpu.pc += 2;
                 return;
 
             /** SP ops */
@@ -136,6 +146,7 @@ class Executor {
                     // Register read timing
                     cpu.cycles += 4;
                 }
+                cpu.pc += 2;
                 return;
             case 0xF9: // LD SP, HL
                 {
@@ -143,6 +154,7 @@ class Executor {
                     // Register read timing
                     cpu.cycles += 4;
                 }
+                cpu.pc += 2;
                 return;
             case 0xE8: // ADD SP, E8
                 {
@@ -158,6 +170,7 @@ class Executor {
                     // Extra time
                     cpu.cycles += 8;
                 }
+                cpu.pc += 2;
                 return;
 
 
@@ -174,7 +187,8 @@ class Executor {
                     cpu._r._f.half_carry = true;
                     cpu._r._f.carry = false;
                 }
-                break;
+                cpu.pc += 2;
+                return;
             case 0xF6: // OR A, N8
                 {
                     const value = b1;
@@ -186,7 +200,8 @@ class Executor {
                     cpu._r._f.negative = false;
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = false;
-                    break;
+                    cpu.pc += 2;
+                    return;
                 }
             case 0xEE: // XOR A, N8
                 {
@@ -200,7 +215,8 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = false;
                 }
-                break;
+                cpu.pc += 2;
+                return;
             case 0xFE: // CP A, N8
                 {
                     const value = b1;
@@ -213,7 +229,8 @@ class Executor {
                     cpu._r._f.negative = true;
                     cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) - (b1 & 0xF) < 0;
                 }
-                break;
+                cpu.pc += 2;
+                return;
 
             /** JR */
             case 0x18: // JR E8
@@ -223,18 +240,16 @@ class Executor {
             case 0x38: // JR C, E8
                 if (b0 !== 0x18) {
                     const cc: CC = (b0 & 0b11000) >> 3;
-                    if (cc === CC.NZ && cpu._r._f.zero) return;
-                    if (cc === CC.Z && !cpu._r._f.zero) return;
-                    if (cc === CC.NC && cpu._r._f.carry) return;
-                    if (cc === CC.C && !cpu._r._f.carry) return;
+                    if (cc === CC.NZ && cpu._r._f.zero) { cpu.pc += 2; return; }
+                    if (cc === CC.Z && !cpu._r._f.zero) { cpu.pc += 2; return; }
+                    if (cc === CC.NC && cpu._r._f.carry) { cpu.pc += 2; return; }
+                    if (cc === CC.C && !cpu._r._f.carry) { cpu.pc += 2; return; }
                 }
 
                 cpu.pc += unTwo8b(b1);
                 cpu.cycles += 4; // Branching takes 4 cycles
+                cpu.pc += 2;
                 return;
-
-
-
             /** Arithmetic */
             case 0xC6: // ADD A, N8
                 {
@@ -252,6 +267,7 @@ class Executor {
                     // Set register values
                     cpu._r.gen[R8.A] = newValue;
                 }
+                cpu.pc += 2;
                 return;
             case 0xCE: // ADC A, N8
                 {
@@ -269,6 +285,7 @@ class Executor {
                     // Set register values
                     cpu._r.gen[R8.A] = newValue;
                 }
+                cpu.pc += 2;
                 return;
             case 0xD6: // SUB A, N8
                 {
@@ -285,6 +302,7 @@ class Executor {
                     // Set register values
                     cpu._r.gen[R8.A] = newValue;
                 }
+                cpu.pc += 2;
                 return;
             case 0xDE: // SBC A, N8
                 {
@@ -301,6 +319,7 @@ class Executor {
                     // Set register values
                     cpu._r.gen[R8.A] = newValue;
                 }
+                cpu.pc += 2;
                 return;
 
 
@@ -315,6 +334,7 @@ class Executor {
             case 0x3E: // LD A, N8
                 const target: R8 = (b0 & 0b111000) >> 3;
                 cpu._r.gen[target] = b1;
+                cpu.pc += 2;
                 return;
 
             default:
@@ -330,7 +350,8 @@ class Executor {
                     // Register read timing
                     cpu.cycles += 4;
                 }
-                break;
+                cpu.pc += 1;
+                return;
 
             // LD R8, R8
             case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x46: case 0x47: case 0x48: case 0x49: case 0x4A: case 0x4B: case 0x4C: case 0x4D: case 0x4E: case 0x4F:
@@ -342,6 +363,7 @@ class Executor {
                     const dest: R8 = (b0 & 0b111000) >> 3;
                     cpu._r.gen[dest] = cpu._r.gen[source];
                 }
+                cpu.pc += 1;
                 return;
 
             /** PUSH R16 */
@@ -364,6 +386,7 @@ class Executor {
                     // 4 cycle penalty
                     cpu.cycles += 4;
                 }
+                cpu.pc += 1;
                 return;
 
             /** POP R16 */
@@ -381,6 +404,7 @@ class Executor {
 
                     cpu._r.paired[target] = (upperByte << 8) | lowerByte;
                 }
+                cpu.pc += 1;
                 return;
 
             /** INC R8 */
@@ -402,6 +426,7 @@ class Executor {
                     cpu._r._f.negative = false;
                     cpu._r._f.half_carry = (oldValue & 0xF) + (1 & 0xF) > 0xF;
                 }
+                cpu.pc += 1;
                 return;
 
             /** DEC R8 */
@@ -424,6 +449,7 @@ class Executor {
                     cpu._r._f.negative = true;
                     cpu._r._f.half_carry = (1 & 0xF) > (oldValue & 0xF);
                 }
+                cpu.pc += 1;
                 return;
 
 
@@ -438,6 +464,7 @@ class Executor {
                     cpu._r.paired[target] = (cpu._r.paired[target] + 1) & 0xFFFF;
                     cpu.cycles += 4;
                 }
+                cpu.pc += 1;
                 return;
 
             /** DEC R16 */
@@ -450,6 +477,7 @@ class Executor {
                     cpu._r.paired[target] = (cpu._r.paired[target] - 1) & 0xFFFF;
                     cpu.cycles += 4;
                 }
+                cpu.pc += 1;
                 return;
 
             // #region Accumulator Arithmetic
@@ -479,6 +507,7 @@ class Executor {
                     cpu._r._f.negative = false;
                 }
 
+                cpu.pc += 1;
                 return;
 
             case 0x88: // ADC A, B
@@ -507,6 +536,7 @@ class Executor {
                     cpu._r.gen[R8.A] = newValue;
                 }
 
+                cpu.pc += 1;
                 return;
 
             case 0x90: // SUB A, B
@@ -534,6 +564,7 @@ class Executor {
                     cpu._r.gen[R8.A] = newValue;
                 }
 
+                cpu.pc += 1;
                 return;
 
 
@@ -562,6 +593,7 @@ class Executor {
                     cpu._r.gen[R8.A] = newValue;
                 }
 
+                cpu.pc += 1;
                 return;
 
             case 0xA0: // AND A, B
@@ -587,6 +619,7 @@ class Executor {
                     cpu._r._f.carry = false;
                 }
 
+                cpu.pc += 1;
                 return;
 
             case 0xA8: // XOR A, B
@@ -611,6 +644,7 @@ class Executor {
                     cpu._r._f.carry = false;
                 }
 
+                cpu.pc += 1;
                 return;
 
             case 0xB0: // OR A, B
@@ -635,6 +669,7 @@ class Executor {
                     cpu._r._f.carry = false;
                 }
 
+                cpu.pc += 1;
                 return;
 
             case 0xB8: // CP A, B
@@ -661,6 +696,7 @@ class Executor {
                     cpu._r._f.half_carry = (cpu._r.gen[R8.A] & 0xF) - (r8 & 0xF) < 0;
                 }
 
+                cpu.pc += 1;
                 return;
 
 
@@ -669,6 +705,7 @@ class Executor {
 
                 cpu._r._f.negative = true;
                 cpu._r._f.half_carry = true;
+                cpu.pc += 1;
                 return;
             case 0xD9: // RETI
                 const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
@@ -681,6 +718,7 @@ class Executor {
 
                 cpu.cycles += 4; // Branching takes 4 cycles
                 cpu.scheduleEnableInterruptsForNextTick = true;
+                cpu.pc += 1;
                 return;
             case 0x27: // DAA
                 if (!cpu._r._f.negative) {
@@ -704,52 +742,66 @@ class Executor {
 
                 cpu._r._f.zero = cpu._r.gen[R8.A] === 0;
                 cpu._r._f.half_carry = false;
+                cpu.pc += 1;
                 return;
             case 0x00: // NOP
+                cpu.pc += 1;
                 return;
 
             /** LD between A and R16 */
             case 0x02: // LD [BC], A
                 cpu.writeMem8(cpu._r.paired[R16.BC], cpu._r.gen[R8.A]);
+                cpu.pc += 1;
                 return;
             case 0x12: // LD [DE], A
                 cpu.writeMem8(cpu._r.paired[R16.DE], cpu._r.gen[R8.A]);
+                cpu.pc += 1;
                 return;
             case 0x22: // LD [HL+], A
                 cpu.writeMem8(cpu._r.hl, cpu._r.gen[R8.A]);
                 cpu._r.hl = (cpu._r.hl + 1) & 0xFFFF;
+                cpu.pc += 1;
                 return;
             case 0x32: // LD [HL-], A
                 cpu.writeMem8(cpu._r.hl, cpu._r.gen[R8.A]);
                 cpu._r.hl = (cpu._r.hl - 1) & 0xFFFF;
+                cpu.pc += 1;
                 return;
             case 0x0A: // LD A, [BC]
                 cpu._r.gen[R8.A] = cpu.fetchMem8(cpu._r.paired[R16.BC]);
+                cpu.pc += 1;
                 return;
             case 0x1A: // LD A, [DE]
                 cpu._r.gen[R8.A] = cpu.fetchMem8(cpu._r.paired[R16.DE]);
+                cpu.pc += 1;
                 return;
             case 0x2A: // LD A, [HL+]
                 cpu._r.gen[R8.A] = cpu.fetchMem8(cpu._r.hl);
                 cpu._r.hl = (cpu._r.hl + 1) & 0xFFFF;
+                cpu.pc += 1;
                 return;
             case 0x3A: // LD A, [HL-]
                 cpu._r.gen[R8.A] = cpu.fetchMem8(cpu._r.hl);
                 cpu._r.hl = (cpu._r.hl - 1) & 0xFFFF;
+                cpu.pc += 1;
                 return;
 
             case 0xF2: // LD A, [$FF00+C]
                 cpu._r.gen[R8.A] = cpu.fetchMem8((0xFF00 | cpu._r.gen[R8.C]) & 0xFFFF);
+                cpu.pc += 1;
                 return;
             case 0xE2: // LD [$FF00+C], A
                 cpu.writeMem8((0xFF00 | cpu._r.gen[R8.C]) & 0xFFFF, cpu._r.gen[R8.A]);
+                cpu.pc += 1;
                 return;
 
             case 0xF3: // DI - Disable interrupts master flag
                 cpu.gb.interrupts.masterEnabled = false;
+                cpu.pc += 1;
                 return;
             case 0xFB: // EI - Enable interrupts master flag
                 cpu.scheduleEnableInterruptsForNextTick = true;
+                cpu.pc += 1;
                 return;
 
 
@@ -758,6 +810,7 @@ class Executor {
             /** JP */
             case 0xE9: // JP HL
                 cpu.pc = cpu._r.hl - 1;
+                cpu.pc += 1;
                 return;
 
 
@@ -777,6 +830,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = (value >> 7) === 1;
                 }
+                cpu.pc += 1;
                 return;
             case 0x0F: // RRC A
                 {
@@ -792,6 +846,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = (value & 1) === 1;
                 }
+                cpu.pc += 1;
                 return;
             case 0x1F: // RR A
                 {
@@ -808,6 +863,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = !!(value & 1);
                 }
+                cpu.pc += 1;
                 return;
             case 0x17: // RL A
                 {
@@ -824,6 +880,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = (value >> 7) === 1;
                 }
+                cpu.pc += 1;
                 return;
 
 
@@ -846,6 +903,7 @@ class Executor {
                 {
                     cpu.halted = true;
                 }
+                cpu.pc += 1;
                 return;
 
             /** Carry flag */
@@ -853,11 +911,13 @@ class Executor {
                 cpu._r._f.negative = false;
                 cpu._r._f.half_carry = false;
                 cpu._r._f.carry = true;
+                cpu.pc += 1;
                 return;
             case 0x3F: // CCF
                 cpu._r._f.negative = false;
                 cpu._r._f.half_carry = false;
                 cpu._r._f.carry = !cpu._r._f.carry;
+                cpu.pc += 1;
                 return;
 
 
@@ -873,10 +933,10 @@ class Executor {
                         cpu.cycles += 4; // Branch decision?
 
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && cpu._r._f.zero) return;
-                        if (cc === CC.Z && !cpu._r._f.zero) return;
-                        if (cc === CC.NC && cpu._r._f.carry) return;
-                        if (cc === CC.C && !cpu._r._f.carry) return;
+                        if (cc === CC.NZ && cpu._r._f.zero) { cpu.pc += 1; return; }
+                        if (cc === CC.Z && !cpu._r._f.zero) { cpu.pc += 1; return; }
+                        if (cc === CC.NC && cpu._r._f.carry) { cpu.pc += 1; return; }
+                        if (cc === CC.C && !cpu._r._f.carry) { cpu.pc += 1; return; }
                     }
 
                     const stackLowerByte = cpu.fetchMem8((cpu._r.sp++) & 0xFFFF);
@@ -889,6 +949,7 @@ class Executor {
 
                     cpu.cycles += 4; // Branching takes 4 cycles
                 }
+                cpu.pc += 1;
                 return;
 
 
@@ -916,6 +977,7 @@ class Executor {
                     // Register read takes 4 more cycles
                     cpu.cycles += 4;
                 }
+                cpu.pc += 1;
                 return;
 
             /** Reset Vectors */
@@ -941,7 +1003,8 @@ class Executor {
 
                     cpu.cycles += 4;
                 }
-                break;
+                cpu.pc += 1;
+                return;
 
             // Invalid
             case 0xD3:
@@ -957,11 +1020,13 @@ class Executor {
             case 0xFD:
                 cpu.pc--;
                 cpu.invalidOpcodeExecuted = true;
+                cpu.pc += 1;
                 return;
 
 
             default:
                 alert(`execute1 oops: ${hex(b0, 1)}`);
+                cpu.pc += 1;
                 return;
 
 
@@ -994,6 +1059,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = (value >> 7) === 1;
                 }
+                cpu.pc += 2;
                 return;
 
             // RRC
@@ -1018,6 +1084,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = !!(value & 1);
                 }
+                cpu.pc += 2;
                 return;
 
 
@@ -1044,6 +1111,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = (value >> 7) === 1;
                 }
+                cpu.pc += 2;
                 return;
 
             // RR
@@ -1069,6 +1137,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = !!(value & 1);
                 }
+                cpu.pc += 2;
                 return;
 
             // SLA
@@ -1093,6 +1162,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = didOverflow;
                 }
+                cpu.pc += 2;
                 return;
 
             // SRA
@@ -1117,6 +1187,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = !!(value & 1);
                 }
+                cpu.pc += 2;
                 return;
 
             // SWAP
@@ -1141,6 +1212,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = false;
                 }
+                cpu.pc += 2;
                 return;
 
             // SRL
@@ -1164,6 +1236,7 @@ class Executor {
                     cpu._r._f.half_carry = false;
                     cpu._r._f.carry = !!(value & 1);
                 }
+                cpu.pc += 2;
                 return;
 
             // BIT
@@ -1180,6 +1253,7 @@ class Executor {
                     cpu._r._f.negative = false;
                     cpu._r._f.half_carry = true;
                 }
+                cpu.pc += 2;
                 return;
 
             // RES
@@ -1197,6 +1271,7 @@ class Executor {
 
                     cpu._r.gen[t] = final;
                 }
+                cpu.pc += 2;
                 return;
 
             // SET
@@ -1214,6 +1289,7 @@ class Executor {
 
                     cpu._r.gen[t] = final;
                 }
+                cpu.pc += 2;
                 return;
 
         }
