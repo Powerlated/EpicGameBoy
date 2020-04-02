@@ -306,9 +306,10 @@ export default class CPU {
 
     fetchMem8(addr: number): number {
         this.cycles += 4;
+
         // The CPU can only access high RAM during OAM DMA
         if (this.gb.oamDmaNormalMCyclesRemaining > 0) {
-            if (addr >= 0xFF80 && addr <= 0xFF7F) {
+            if (addr >= 0xFF80 && addr <= 0xFFFE) {
                 return this.gb.bus.readMem8(addr);
             } else {
                 return 0xFF;
@@ -411,13 +412,7 @@ export default class CPU {
         //     this.stepDebug();
 
         if (this.halted === false) {
-            const b0 = this.gb.bus.readMem8(this.pc + 0);
-
-            const isCB = b0 === 0xCB;
-
-            // Lookup decoded
-            const length = isCB ? 2 : UNPREFIXED_LENGTHS[b0];
-            this.cycles += (4 * length); // Decoding time penalty
+            const b0 = this.fetchMem8(this.pc + 0);
 
             // if (this.minDebug) {
             //     if (Disassembler.isControlFlow(ins)) {
@@ -429,33 +424,19 @@ export default class CPU {
             //     }
             // }
 
-            if (isCB === false) {
-                switch (length) {
-                    case 3:
-                        Executor.execute3(this, b0, this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2));
-                        break;
-                    case 2:
-                        Executor.execute2(this, b0, this.gb.bus.readMem8(this.pc + 1));
-                        break;
-                    case 1:
-                        Executor.execute1(this, b0);
-                        break;
-                }
-            } else {
-                Executor.execute0xCBPrefix(this, this.gb.bus.readMem8(this.pc + 1));
-            }
-            
+            Executor.execute(this, b0);
+
             this.totalI++;
 
             // Checking for proper timings below here
 
-            // if (isCB === false) {
-            // // These are variable length instructions / control flow
+            // if (b0 !== 0xCB) {
+            //     // These are variable length instructions / control flow
             //     const dontcare = [0x20, 0x30, 0x28, 0x38, 0xCB, 0xC0, 0xD0, 0xC2, 0xD2, 0xC4, 0xD4, 0xCA, 0xDA, 0xC8, 0x76, 0xD8, 0x10, 0xCC, 0xDC];
 
             //     if (!dontcare.includes(b0)) {
 
-            //         let success = assert(this.lastInstructionCycles, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
+            //         let success = assert(this.cycles - c, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
 
             //         if (success == false) {
             //             console.log(hex(b0, 2));
@@ -468,7 +449,7 @@ export default class CPU {
 
             //     if (dontcare.includes(b1)) {
 
-            //         let success = assert(this.lastInstructionCycles, Timings.CB_TIMINGS[b1] * 4, "[CB] CPU timing");
+            //         let success = assert(this.cycles - c, Timings.CB_TIMINGS[b1] * 4, "[CB] CPU timing");
 
             //         if (success == false) {
             //             console.log(`${hex(b0, 2)},${hex(b1, 2)}`);
@@ -531,7 +512,7 @@ export default class CPU {
         }
         //#endregion
         this.haltBug = false;
-        
+
         let lastInstructionCycles = this.cycles - c;
         if (lastInstructionCycles == 0) lastInstructionCycles = 4;
         return lastInstructionCycles;
