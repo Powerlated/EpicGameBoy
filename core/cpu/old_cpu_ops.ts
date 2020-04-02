@@ -2,6 +2,10 @@ import { CPU } from "../gameboy";
 import { R8, R16, CC } from "./cpu";
 import { unTwo8b } from "../../src/gameboy/tools/util";
 
+/** @deprecated
+ * 
+ * I've moved this back into the main CPU class. Check there.
+ */
 export default class Ops {
     static UNKNOWN_OPCODE(cpu: CPU) {
         cpu.pc--;

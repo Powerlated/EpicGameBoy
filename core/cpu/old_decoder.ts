@@ -1,6 +1,10 @@
 import Ops from "./old_cpu_ops";
 import { Op, CC, R8, R16 } from "./cpu";
 
+/** @deprecated
+ * 
+ * I've moved this back into the main CPU class. Check there.
+ */
 export default class Decoder {
     static rgOpcode(id: number): Op {
 
