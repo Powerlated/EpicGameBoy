@@ -1,11 +1,11 @@
-import CPU, { CC, Op, R8, OperandType } from "../../../core/cpu/cpu";
+import CPU, { CC, Op, R8, OperandType, R16 } from "../../../core/cpu/cpu";
 
 import Ops from "../../../core/cpu/old_cpu_ops";
 import { unTwo8b, hexN, hexN_LC, pad, hex } from "./util";
 import Decoder from "../../../core/cpu/old_decoder";
 
-function tr(r8: OperandType) {
-    switch (r8) {
+function tr(type: OperandType) {
+    switch (type) {
         case R8.B: return "B";
         case R8.C: return "C";
         case R8.D: return "D";
@@ -14,7 +14,12 @@ function tr(r8: OperandType) {
         case R8.L: return "L";
         case R8.iHL: return "(HL)";
         case R8.A: return "A";
-        default: return r8;
+        case R16.AF: return "AF";
+        case R16.BC: return "BC";
+        case R16.DE: return "DE";
+        case R16.HL: return "HL";
+        case R16.SP: return "SP";
+        default: return type;
     }
 };
 export default class Disassembler {
@@ -95,6 +100,8 @@ export default class Disassembler {
 
                 case Ops.LD_R8_R8: return ["LD", `${tr(ins.type!)},${tr(ins.type2!)}`];
                 case Ops.LD_R8_N8: return ["LD", `${tr(ins.type!)},$${hexN(pcTriplet[1], 2)}`];
+
+                case Ops.ADD_HL_R16: return ["ADD", `HL,${tr(ins.type!)}`];
 
                 case Ops.LD_iN16_SP: return ["LD", `($${hexN(doublet, 4)}),SP`];
                 case Ops.LD_A_iHLinc: return ["LD", "A,(HL+)"];

@@ -82,11 +82,11 @@ class Registers {
 
     // Register pairs AF, BC, DE, HL
     paired: {
-        0: number, // AF
-        1: number, // BC
-        2: number, // DE
-        3: number, // HL
-        4: number, // SP
+        0x10: number, // AF
+        0x11: number, // BC
+        0x12: number, // DE
+        0x13: number, // HL
+        0x14: number, // SP
     };
 
     sp = 0;
@@ -153,38 +153,38 @@ class Registers {
         };
 
         this.paired = {
-            get 0() {
+            get 0x10() {
                 return cpu._r.gen[R8.A] << 8 | cpu._r.f;
             },
-            get 1() {
+            get 0x11() {
                 return cpu._r.gen[R8.B] << 8 | cpu._r.gen[R8.C];
             },
-            get 2() {
+            get 0x12() {
                 return cpu._r.gen[R8.D] << 8 | cpu._r.gen[R8.E];
             },
-            get 3() {
+            get 0x13() {
                 return cpu._r.gen[R8.H] << 8 | cpu._r.gen[R8.L];
             },
-            get 4() {
+            get 0x14() {
                 return cpu._r.sp;
             },
-            set 0(i: number) {
+            set 0x10(i: number) {
                 cpu._r.gen[R8.A] = i >> 8;
                 cpu._r.f = i & 0xFF;
             },
-            set 1(i: number) {
+            set 0x11(i: number) {
                 cpu._r.gen[R8.B] = i >> 8;
                 cpu._r.gen[R8.C] = i & 0xFF;
             },
-            set 2(i: number) {
+            set 0x12(i: number) {
                 cpu._r.gen[R8.D] = i >> 8;
                 cpu._r.gen[R8.E] = i & 0xFF;
             },
-            set 3(i: number) {
+            set 0x13(i: number) {
                 cpu._r.gen[R8.H] = i >> 8;
                 cpu._r.gen[R8.L] = i & 0xFF;
             },
-            set 4(i: number) {
+            set 0x14(i: number) {
                 cpu._r.sp = i;
             }
         };
@@ -210,7 +210,7 @@ export enum R8 {
 }
 
 export enum R16 {
-    AF = 0, BC = 1, DE = 2, HL = 3, SP = 4
+    AF = 0x10, BC = 0x11, DE = 0x12, HL = 0x13, SP = 0x14
 }
 
 export enum CC {
@@ -352,17 +352,22 @@ export default class CPU {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
             this.pc = 0x100;
 
-            this._r.af = 0x01B0;
-
             // Games check A for 0x11 to detect a CGB
-            if (this.gb.cgb)
-                this._r.a = 0x11;
+            if (this.gb.cgb) {
+                this._r.af = 0x1180;
+                this._r.bc = 0x0000;
+                this._r.de = 0xFF56;
+                this._r.hl = 0x000D;
+                this._r.sp = 0xFFFE;
+            } else {
+                this._r.af = 0x01B0;
+                this._r.bc = 0x0013;
+                this._r.de = 0x00D8;
+                this._r.hl = 0x014D;
+                this._r.sp = 0xFFFE;
+            }
 
-            // this._r.af = 0x01B0;
-            this._r.bc = 0x0013;
-            this._r.de = 0x00D8;
-            this._r.hl = 0x014D;
-            this._r.sp = 0xFFFE;
+
 
             this.gb.bus.writeMem8(0xFF05, 0x00); // TIMA
             this.gb.bus.writeMem8(0xFF06, 0x00); // TMA
@@ -422,6 +427,7 @@ export default class CPU {
             //     }
             // }
 
+            // Call this one beautiful function that executes one instruction
             this.execute();
 
             this.totalI++;
@@ -624,7 +630,7 @@ export default class CPU {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints[point] = false;
     }
-    
+
     execute(): void {
         const b0 = this.fetchMem8(this.pc + 0);
 
