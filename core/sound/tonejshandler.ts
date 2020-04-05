@@ -208,8 +208,8 @@ export default class ToneJsHandler implements AudioPlugin {
     }
 
     generateWaveBuffer(): AudioBuffer {
-        let sampleRate = 112640 * 2; // A440 without any division
-        let waveTable = this.s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
+        let sampleRate = 112640; // A440 without any division
+        let waveTable = this.s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i]);
 
         const ac = (Tone.context as any as AudioContext);
         const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
