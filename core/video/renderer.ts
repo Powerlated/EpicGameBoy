@@ -17,15 +17,18 @@ export class GPURenderer {
 
     renderBg() {
         const y = (this.gpu.lcdcY + this.gpu.scrY) & 0b111; // CORRECT
-        let x = (this.gpu.scrX) & 0b111;                // CORRECT
 
         const mapBaseBg = this.gpu.lcdControl.bgTilemapSelect_3 ? 1024 : 0;
 
-        const mapIndex = (((this.gpu.lcdcY + this.gpu.scrY) >> 3) * 32) & 1023;
+        var mapIndex = (((this.gpu.lcdcY + this.gpu.scrY) >> 3) << 5) & 1023;
+
         const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
-        // Divide by 8 to get many tiles in the drawing should start 
+        // Divide by 8 to get which column drawing should start at
         let lineOffset = this.gpu.scrX >> 3;
+
+        // How many pixels in we should start drawing at in the first tile
+        let x = (this.gpu.scrX) & 0b111;                // CORRECT
 
         let attr = this.gpu.cgbTileAttrs[mapOffset + lineOffset];
         let tile = this.gpu.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
@@ -239,7 +242,7 @@ export class GPURenderer {
         this.gpu.tileset0.forEach((tile, tileIndex) => {
             for (let i = 0; i < 64; i++) {
                 const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
-                let y = (i >> 3) + (8 * Math.floor(tileIndex / 32));
+                let y = (i >> 3) + (8 * (tileIndex >> 5));
 
                 const c = this.gpu.cgbBgPalette.shades[0][tile[i]];
 
@@ -254,7 +257,7 @@ export class GPURenderer {
         this.gpu.tileset1.forEach((tile, tileIndex) => {
             for (let i = 0; i < 64; i++) {
                 const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
-                let y = (i >> 3) + (8 * Math.floor(tileIndex / 32));
+                let y = (i >> 3) + (8 * (tileIndex >> 5));
 
                 const c = this.gpu.cgbBgPalette.shades[0][tile[i]];
 

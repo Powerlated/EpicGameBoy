@@ -48,7 +48,6 @@ export default class GameBoy {
         } else {
             lastInstructionCycles = this.cpu.step();
         }
-
         
         if (this.oamDmaNormalMCyclesRemaining > 0) {
             this.oamDmaNormalMCyclesRemaining -= (lastInstructionCycles >> 2);

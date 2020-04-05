@@ -95,10 +95,10 @@ export default class ToneJsHandler implements AudioPlugin {
         this.pulseOsc2.chain(this.pulseVolumeShaper2, this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
-        this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
+        this.waveSrc = new Tone.BufferSource(this.generateWaveBuffer(), () => { });
         this.waveSrc.loop = true;
         this.wavePan = new Tone.Panner(0);
-        this.waveVolume = new Tone.Volume(-6);
+        this.waveVolume = new Tone.Volume(-4);
         this.waveVolume.mute = true;
         this.waveVolumeShaper = new Tone.WaveShaper((i: number) => { return i * 1; });
         this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master);
@@ -107,7 +107,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
         this.noiseVolumeShaper = new Tone.WaveShaper((i: number) => { return i * (this.s.noise.volume / 15); });
 
-        this.noise7Src = new Tone.BufferSource(this.s.noise.buffer(true), () => { });
+        this.noise7Src = new Tone.BufferSource(this.generateNoiseBuffer(true), () => { });
         this.noise7Src.loop = true;
         this.noise7Pan = new Tone.Panner(0);
         this.noise7Volume = new Tone.Volume();
@@ -116,7 +116,7 @@ export default class ToneJsHandler implements AudioPlugin {
         this.noise7Src.chain(this.noise7Volume, this.noiseVolumeShaper, this.noise7Pan, Tone.Master);
         this.noise7Src.start();
 
-        this.noise15Src = new Tone.BufferSource(this.s.noise.buffer(false), () => { });
+        this.noise15Src = new Tone.BufferSource(this.generateNoiseBuffer(false), () => { });
         this.noise15Src.loop = true;
         this.noise15Pan = new Tone.Panner(0);
         this.noise15Volume = new Tone.Volume();
@@ -128,7 +128,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
     pulse1() {
         // Pulse 1
-        if (this.ch1 && this.s.pulse1.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && this.s.pulse1.frequencyLower !== 0 && (this.s.pulse1.outputLeft || this.s.pulse1.outputRight)) {
+        if (this.ch1 && this.s.pulse1.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && (this.s.pulse1.outputLeft || this.s.pulse1.outputRight)) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
@@ -149,7 +149,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
     pulse2() {
         // Pulse 2
-        if (this.ch2 && this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && this.s.pulse2.frequencyLower != 0 && (this.s.pulse2.outputLeft || this.s.pulse2.outputRight)) {
+        if (this.ch2 && this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && (this.s.pulse2.outputLeft || this.s.pulse2.outputRight)) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
@@ -169,22 +169,20 @@ export default class ToneJsHandler implements AudioPlugin {
     }
 
     wave() {
-        if (this.ch3 && this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled && this.s.wave.frequencyLower != 0 && (this.s.wave.outputLeft || this.s.wave.outputRight)) {
+        if (this.ch3 && this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled&& (this.s.wave.outputLeft || this.s.wave.outputRight)) {
             if (this.s.wave.updated) {
                 this.waveVolume.mute = false;
 
                 this.wavePan.pan.value = this.s.wave.pan;
-                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
+                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
 
                 let mul = 0;
                 switch (this.s.wave.volume) {
                     case 0: mul = 0; break;
                     case 1: mul = 1; break;
-                    case 2: mul = 0.75; break;
-                    case 3: mul = 0.50; break;
+                    case 2: mul = 0.50; break;
+                    case 3: mul = 0.25; break;
                 }
-
-
 
 
                 this.waveVolumeShaper.setMap((i: number) => {
@@ -198,18 +196,34 @@ export default class ToneJsHandler implements AudioPlugin {
     }
 
     updateWaveTable() {
+        this.wavePan.disconnect(Tone.Master);
+        this.waveVolume.disconnect(this.waveVolumeShaper);
         this.waveSrc.buffer.dispose();
         this.waveSrc.dispose();
 
-        this.waveSrc = new Tone.BufferSource(this.s.wave.buffer, () => { });
-        this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
+        this.waveSrc = new Tone.BufferSource(this.generateWaveBuffer(), () => { });
+        this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
         this.waveSrc.loop = true;
         this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master).start();
     }
 
+    generateWaveBuffer(): AudioBuffer {
+        let sampleRate = 112640 * 2; // A440 without any division
+        let waveTable = this.s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
+
+        const ac = (Tone.context as any as AudioContext);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
+        const buffering = arrayBuffer.getChannelData(0);
+        for (let i = 0; i < arrayBuffer.length; i++) {
+            buffering[i] = waveTable[i % waveTable.length];
+        }
+
+        return arrayBuffer;
+    }
+
     noise() {
         // Noise
-        if (this.s.enabled && this.s.noise.enabled && this.s.noise.dacEnabled && (this.s.noise.outputLeft || this.s.noise.outputRight)) {
+        if (this.ch4 && this.s.enabled && this.s.noise.enabled && this.s.noise.dacEnabled && (this.s.noise.outputLeft || this.s.noise.outputRight)) {
             if (this.s.noise.updated) {
                 this.noiseVolumeShaper.setMap((i: number) => { return i * (this.s.noise.volume / 15); });
 
@@ -244,6 +258,73 @@ export default class ToneJsHandler implements AudioPlugin {
             this.noise7Volume.mute = true;
         }
 
+    }
+
+
+    generateNoiseBuffer(sevenBit: boolean): AudioBuffer {
+        let capacitor = 0.0;
+
+        function high_pass(inValue: number): number {
+            let out = 0.0;
+            out = inValue - capacitor;
+
+            // capacitor slowly charges to 'in' via their difference
+            capacitor = inValue - out * 0.9; // use 0.998943 for MGB&CGB
+            return out;
+        }
+
+        let seed = 0xFF;
+        let period = 0;
+
+        function lfsr(p: number) {
+            let bit = (seed >> 1) ^ (seed >> 2);
+            bit &= 1;
+            if (period > p) {
+                seed = (seed >> 1) | (bit << 14);
+
+                if (sevenBit == true) {
+                    seed &= ~(1 << 6);
+                    seed |= (bit << 6);
+                }
+
+                period = 0;
+            }
+            period++;
+
+            return seed & 1;
+        }
+
+        let LFSR_MUL = 16;
+
+        let waveTable = new Array(32768 * LFSR_MUL).fill(0);
+        // TODO: Hook LFSR into the rest of the sound chip
+        waveTable = waveTable.map((v, i) => {
+            let bit = lfsr(LFSR_MUL);
+            let out;
+            if (bit == 1) {
+                out = 1;
+            } else {
+                out = -1;
+            }
+            return out;
+        });
+
+
+
+        // waveTable = waveTable.map((v, i) => {
+        // return Math.round(Math.random());
+        // });
+
+        // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
+
+        const ac = (Tone.context as any as AudioContext);
+        const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        const buffering = arrayBuffer.getChannelData(0);
+        for (let i = 0; i < arrayBuffer.length; i++) {
+            buffering[i] = waveTable[i % waveTable.length];
+        }
+
+        return arrayBuffer;
     }
 
     reset() {

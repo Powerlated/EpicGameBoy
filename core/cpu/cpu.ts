@@ -428,7 +428,7 @@ export default class CPU {
             // }
 
             // Call this one beautiful function that executes one instruction
-            this.execute();
+            this.fetchDecodeExecute();
 
             this.totalI++;
 
@@ -631,7 +631,7 @@ export default class CPU {
         this.breakpoints[point] = false;
     }
 
-    execute(): void {
+    fetchDecodeExecute(): void {
         const b0 = this.fetchMem8(this.pc + 0);
 
         switch (b0) {

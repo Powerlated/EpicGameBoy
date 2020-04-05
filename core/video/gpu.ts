@@ -134,10 +134,10 @@ class CGBPaletteData {
     data = new Uint8Array(64);
 
     shades: Array<Array<Uint8Array>> = new Array(8).fill(0).map(() => [
-        Uint8Array.of(0, 0, 0),
-        Uint8Array.of(0, 0, 0),
-        Uint8Array.of(0, 0, 0),
-        Uint8Array.of(0, 0, 0)
+        new Uint8Array(3),
+        new Uint8Array(3),
+        new Uint8Array(3),
+        new Uint8Array(3),
     ]);
 
     update(pal: number) {
@@ -155,7 +155,9 @@ class CGBPaletteData {
             g = g * (255 / 31);
             b = b * (255 / 31);
 
-            this.shades[pal][col] = Uint8Array.of(r, g, b);
+            this.shades[pal][col][0] = r;
+            this.shades[pal][col][1] = g;
+            this.shades[pal][col][2] = b;
         }
     }
 }
@@ -261,7 +263,7 @@ class GPU {
 
 
         if (this.lcdControl.lcdDisplayEnable7) {
-            this.modeClock += cycles
+            this.modeClock += cycles;
             switch (this.lcdStatus.mode) {
                 // Read from OAM - Scanline active
                 case 2:
