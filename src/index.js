@@ -1,7 +1,19 @@
-init();
 
-function loadDefaultBootRom() {
-    let raw = atob(ROMS_BASE64.bootrom);
+function loadRom(rom) {
+    let raw = atob(ROMS_BASE64[rom]);
+    let rawLength = raw.length;
+
+    let array = new Uint8Array(new ArrayBuffer(4194304));
+
+    for (let i = 0; i < rawLength; i++) {
+        array[i] = raw.charCodeAt(i);
+    }
+
+    gb.bus.ext.replaceRom(array);
+}
+
+function loadDmgBootRom() {
+    let raw = atob(ROMS_BASE64.dmgBootRom);
     let rawLength = raw.length;
 
     let array = new Uint8Array(new ArrayBuffer(256));
@@ -19,19 +31,6 @@ function loadDefaultBootRom() {
     disassemble(cpu);
 }
 
-function loadRom(rom) {
-    let raw = atob(ROMS_BASE64[rom]);
-    let rawLength = raw.length;
-
-    let array = new Uint8Array(new ArrayBuffer(4194304));
-
-    for (let i = 0; i < rawLength; i++) {
-        array[i] = raw.charCodeAt(i);
-    }
-
-    gb.bus.ext.replaceRom(array);
-}
-
 let disassemblyP = document.getElementById('disassembly-output');
 let lastDisassembly = "";
 
@@ -47,7 +46,7 @@ function executeAtPc() {
     let cpu = window.cpu;
     let pc = cpu.pc;
     cpu.debugging = false;
-    if (cpu.breakpoints.has(pc)) {
+    if (cpu.breakpoints[pc]) {
         cpu.clearBreakpoint(pc);
         cpu.step();
         cpu.setBreakpoint(pc);
@@ -118,7 +117,7 @@ document.querySelector('#drawTileset').addEventListener('change', function (e) {
 function startDrawingTiles() {
     drawTilesetInterval = setInterval(() => {
         gb.gpu.renderTiles();
-        gb.gpu.canvas.drawTileset();
+        gb.gpu.canvas.drawTileset(gb.gpu.imageTileset);
     }, 100);
 }
 function stopDrawingTiles() {
@@ -183,6 +182,8 @@ document.querySelector('#bootromInput').addEventListener('change', function () {
         array.forEach((v, i, a) => {
             gb.bus.bootrom[i] = v;
         });
+
+        gb.bus.bootromLoaded = true;
     };
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
@@ -221,9 +222,11 @@ function repeatDisassemble() {
 }
 
 function init() {
-    let gb = new GameBoy();
+    
+    let gb = new GameBoy(true);
     window.cpu = gb.cpu;
     window.gb = gb;
+
 
     loadRom('pokeyellow');
     startDebugging();
@@ -231,6 +234,8 @@ function init() {
     repeatDisassemble();
 
     showDebug();
+    loadDmgBootRom();
+
 
     // Handle input
     let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
@@ -262,33 +267,33 @@ function init() {
 
         switch (e.key) {
             case "ArrowLeft":
-                gb.bus.joypad.dpad.left = true;
+                gb.joypad.left = true;
                 break;
             case "ArrowUp":
-                gb.bus.joypad.dpad.up = true;
+                gb.joypad.up = true;
                 break;
             case "ArrowRight":
-                gb.bus.joypad.dpad.right = true;
+                gb.joypad.right = true;
                 break;
             case "ArrowDown":
-                gb.bus.joypad.dpad.down = true;
+                gb.joypad.down = true;
                 break;
 
             case "x":
-                gb.bus.joypad.buttons.a = true;
+                gb.joypad.a = true;
                 break;
             case "z":
-                gb.bus.joypad.buttons.b = true;
+                gb.joypad.b = true;
                 break;
             case "Enter":
-                gb.bus.joypad.buttons.start = true;
+                gb.joypad.start = true;
                 break;
             case "\\":
-                gb.bus.joypad.buttons.select = true;
+                gb.joypad.select = true;
                 break;
 
             case "Tab":
-                gb.speedMul = 8;
+                gb.speedMul = 10;
                 break;
         }
     };
@@ -298,29 +303,29 @@ function init() {
 
         switch (e.key) {
             case "ArrowLeft":
-                gb.bus.joypad.dpad.left = false;
+                gb.joypad.left = false;
                 break;
             case "ArrowUp":
-                gb.bus.joypad.dpad.up = false;
+                gb.joypad.up = false;
                 break;
             case "ArrowRight":
-                gb.bus.joypad.dpad.right = false;
+                gb.joypad.right = false;
                 break;
             case "ArrowDown":
-                gb.bus.joypad.dpad.down = false;
+                gb.joypad.down = false;
                 break;
 
             case "x":
-                gb.bus.joypad.buttons.a = false;
+                gb.joypad.a = false;
                 break;
             case "z":
-                gb.bus.joypad.buttons.b = false;
+                gb.joypad.b = false;
                 break;
             case "Enter":
-                gb.bus.joypad.buttons.start = false;
+                gb.joypad.start = false;
                 break;
             case "\\":
-                gb.bus.joypad.buttons.select = false;
+                gb.joypad.select = false;
                 break;
 
             case "Tab":
@@ -357,3 +362,5 @@ function dropHandler(ev) {
 function dragOverHandler(ev) {
     ev.preventDefault();
 }
+
+init();

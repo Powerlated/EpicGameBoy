@@ -1,12 +1,12 @@
-import GameBoy from "../gameboy";
-import Ops from "../core/cpu/cpu_ops";
-import GPU, { colors } from "../core/video/gpu";
-import CPU, { R8 } from "../core/cpu/cpu";
+import GameBoy from "../../../core/gameboy";
+import Ops from "../../../core/cpu/old_cpu_ops";
+import GPU, { colors555 } from "../../../core/video/gpu";
+import CPU, { R8 } from "../../../core/cpu/cpu";
 import { hex, pad, hexN } from "./util";
 
 function test() {
-    let gb = new GameBoy();
-    let cpu = gb.cpu;
+    const gb = new GameBoy(false);
+    const cpu = gb.cpu;
 
     cpu._r._f.zero = true;
     writeDebug(cpu._r.f);
@@ -97,25 +97,25 @@ function test() {
     cpu.reset();
 }
 
-export let DebugSettings = {
+export const DebugSettings = {
     highlight: 0
 };
 
 
 export function startDebugging() {
-    let debugP = document.getElementById('debug')!;
+    const debugP = document.getElementById('debug')!;
     // @ts-check
     let lastFrameCount = 0;
     let lastCyclesCount = 0;
 
     setInterval(() => {
-        let gpu = ((window as any).gb.gpu as GPU);
+        const gpu = ((window as any).gb.gpu as GPU);
         (window as any).fps = gpu.totalFrameCount - lastFrameCount;
         lastFrameCount = gpu.totalFrameCount;
     }, 1000);
 
     setInterval(() => {
-        let cpu = ((window as any).gb.cpu as CPU);
+        const cpu = ((window as any).gb.cpu as CPU);
         (window as any).cyclesPerSecond = cpu.cycles - lastCyclesCount;
         lastCyclesCount = cpu.cycles;
     }, 1000);
@@ -123,39 +123,39 @@ export function startDebugging() {
     updateDebug();
 }
 
-let p0bg = document.getElementById('palette0-bg')!;
-let p1bg = document.getElementById('palette1-bg')!;
-let p2bg = document.getElementById('palette2-bg')!;
-let p3bg = document.getElementById('palette3-bg')!;
+const p0bg = document.getElementById('palette0-bg')!;
+const p1bg = document.getElementById('palette1-bg')!;
+const p2bg = document.getElementById('palette2-bg')!;
+const p3bg = document.getElementById('palette3-bg')!;
 
-let p0obj0 = document.getElementById('palette0-obj0')!;
-let p1obj0 = document.getElementById('palette1-obj0')!;
-let p2obj0 = document.getElementById('palette2-obj0')!;
-let p3obj0 = document.getElementById('palette3-obj0')!;
+const p0obj0 = document.getElementById('palette0-obj0')!;
+const p1obj0 = document.getElementById('palette1-obj0')!;
+const p2obj0 = document.getElementById('palette2-obj0')!;
+const p3obj0 = document.getElementById('palette3-obj0')!;
 
-let p0obj1 = document.getElementById('palette0-obj1')!;
-let p1obj1 = document.getElementById('palette1-obj1')!;
-let p2obj1 = document.getElementById('palette2-obj1')!;
-let p3obj1 = document.getElementById('palette3-obj1')!;
+const p0obj1 = document.getElementById('palette0-obj1')!;
+const p1obj1 = document.getElementById('palette1-obj1')!;
+const p2obj1 = document.getElementById('palette2-obj1')!;
+const p3obj1 = document.getElementById('palette3-obj1')!;
 
-let memoryMapImg = new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256);
+const memoryMapImg = new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256);
 
-let cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
-let ctxMemoryMap = cMemoryMap.getContext("2d")!;
+const cMemoryMap = document.getElementById("memory-map") as HTMLCanvasElement;
+const ctxMemoryMap = cMemoryMap.getContext("2d")!;
 
 function updateDebug() {
     requestAnimationFrame(updateDebug);
     if ((window as any).globalDebug === false) return;
-    let debugP = document.getElementById('debug')!;
-    let lastDebugText = "";
-    let gb = ((window as any).gb as GameBoy);
-    let cpu = ((window as any).cpu as CPU);
-    let fps = (window as any).fps;
-    let cyclesPerSecond = (window as any).cyclesPerSecond;
-    let gpu = ((window as any).gb.gpu as GPU);
-    let displaySerial = (window as any).displaySerial;
-    let r = cpu.gb.bus.interrupts.requestedInterrupts;
-    let e = cpu.gb.bus.interrupts.enabledInterrupts;
+    const debugP = document.getElementById('debug')!;
+    const lastDebugText = "";
+    const gb = ((window as any).gb as GameBoy);
+    const cpu = ((window as any).cpu as CPU);
+    const fps = (window as any).fps;
+    const cyclesPerSecond = (window as any).cyclesPerSecond;
+    const gpu = ((window as any).gb.gpu as GPU);
+    const displaySerial = (window as any).displaySerial;
+    const r = cpu.gb.interrupts.requested;
+    const e = cpu.gb.interrupts.enabled;
     let debugText =
         `
                 Total Instructions Executed: ${cpu.totalI}
@@ -164,7 +164,7 @@ function updateDebug() {
 
                 Halted: ${cpu.halted}
 
-                IME/E/R: ${cpu.gb.bus.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
+                IME/E/R: ${cpu.gb.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu._r._f.zero ? "Z" : "-"}${cpu._r._f.negative ? "N" : "-"}${cpu._r._f.half_carry ? "H" : "-"}${cpu._r._f.carry ? "C" : "-"}
@@ -187,7 +187,7 @@ function updateDebug() {
                 Total Frames: ${gpu.totalFrameCount}
                 Frames Per Second: ${fps}
                 ------------------------------
-                Joypad: ${pad(cpu.gb.bus.joypad.numerical.toString(2), 8, '0')}
+                Joypad: ${pad(cpu.gb.joypad.numerical.toString(2), 8, '0')}
 
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>
@@ -221,30 +221,30 @@ function updateDebug() {
         return i[0] | (i[1] << 8) | (i[2] << 16);
     }
 
-    p0bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[0]]), 6);
-    p1bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[1]]), 6);
-    p2bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[2]]), 6);
-    p3bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[3]]), 6);
+    // p0bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[0]]), 6);
+    // p1bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[1]]), 6);
+    // p2bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[2]]), 6);
+    // p3bg.style.backgroundColor = hexN(c(colors[gpu.bgPaletteData.shades[3]]), 6);
 
-    p0obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[0]]), 6);
-    p1obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[1]]), 6);
-    p2obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[2]]), 6);
-    p3obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[3]]), 6);
+    // p0obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[0]]), 6);
+    // p1obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[1]]), 6);
+    // p2obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[2]]), 6);
+    // p3obj0.style.backgroundColor = hexN(c(colors[gpu.objPaletteData0.shades[3]]), 6);
 
-    p0obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[0]]), 6);
-    p1obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[1]]), 6);
-    p2obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[2]]), 6);
-    p3obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[3]]), 6);
+    // p0obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[0]]), 6);
+    // p1obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[1]]), 6);
+    // p2obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[2]]), 6);
+    // p3obj1.style.backgroundColor = hexN(c(colors[gpu.objPaletteData1.shades[3]]), 6);
 
     debugText = debugText.replace(/\n/g, "<br/>");
     debugP.innerHTML = debugText;
 
-    // for (let y = 0; y < 256; y++) {
-    //     for (let x = 0; x < 256; x++) {
-    //         let c = gb.bus.readMem8((y * 256) + x);
+    // for (const y = 0; y < 256; y++) {
+    //     for (const x = 0; x < 256; x++) {
+    //         const c = gb.bus.readMem8((y * 256) + x);
 
     //         // Canvas Index
-    //         let ci = ((y * 256) + x) * 4;
+    //         const ci = ((y * 256) + x) * 4;
 
     //         memoryMapImg.data[ci + 0] = c;
     //         memoryMapImg.data[ci + 1] = c;
@@ -253,11 +253,11 @@ function updateDebug() {
     //     }
     // }
 
-    // let data = new ImageData(memoryMapImg.data, 256, 256);
+    // const data = new ImageData(memoryMapImg.data, 256, 256);
     // ctxMemoryMap.putImageData(data, 0, 0);
 }
 
-export let logDebug = false;
+export const logDebug = false;
 
 export function writeDebug(any: any) {
     if (logDebug)

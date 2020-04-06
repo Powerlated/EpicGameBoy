@@ -1,11 +1,11 @@
-import CPU, { CC, Op, R8, OperandType } from "../core/cpu/cpu";
+import CPU, { CC, Op, R8, OperandType, R16 } from "../../../core/cpu/cpu";
 
-import Ops from "../core/cpu/cpu_ops";
-import { unTwo8b, hexN, hexN_LC, pad } from "./util";
-import Decoder from "../core/cpu/decoder";
+import Ops from "../../../core/cpu/old_cpu_ops";
+import { unTwo8b, hexN, hexN_LC, pad, hex } from "./util";
+import Decoder from "../../../core/cpu/old_decoder";
 
-function tr(r8: OperandType) {
-    switch (r8) {
+function tr(type: OperandType) {
+    switch (type) {
         case R8.B: return "B";
         case R8.C: return "C";
         case R8.D: return "D";
@@ -14,7 +14,12 @@ function tr(r8: OperandType) {
         case R8.L: return "L";
         case R8.iHL: return "(HL)";
         case R8.A: return "A";
-        default: return r8;
+        case R16.AF: return "AF";
+        case R16.BC: return "BC";
+        case R16.DE: return "DE";
+        case R16.HL: return "HL";
+        case R16.SP: return "SP";
+        default: return type;
     }
 };
 export default class Disassembler {
@@ -41,7 +46,7 @@ export default class Disassembler {
         }
     };
 
-    static willJumpTo = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU): number => {
+    static willJumpTo = (ins: Op, pcTriplet: Uint8Array, cpu: CPU): number => {
         switch (ins.op) {
             case Ops.JP_N16:
             case Ops.CALL_N16:
@@ -50,19 +55,19 @@ export default class Disassembler {
                 return cpu._r.hl;
             case Ops.RET:
             case Ops.RETI:
-                let stackLowerByte = cpu.gb.bus.readMem8((cpu._r.sp) & 0xFFFF);
-                let stackUpperByte = cpu.gb.bus.readMem8((cpu._r.sp + 1) & 0xFFFF);
+                const stackLowerByte = cpu.gb.bus.readMem8((cpu._r.sp) & 0xFFFF);
+                const stackUpperByte = cpu.gb.bus.readMem8((cpu._r.sp + 1) & 0xFFFF);
                 return (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
             case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction
-                return disasmPc + unTwo8b(pcTriplet[1]) + 2;
+                return cpu.pc + unTwo8b(pcTriplet[1]) + 2;
             case Ops.RST:
                 return ins.type as number;
             default: return NaN;
         }
     };
 
-    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, disasmPc: number, cpu: CPU) => {
+    static disassembleOp = (ins: Op, pcTriplet: Uint8Array, cpu: CPU, disasmPc: number) => {
         const HARDCODE_DECODE = (ins: Op, pcTriplet: Uint8Array) => {
             const doublet = pcTriplet[1] | pcTriplet[2] << 8;
             switch (ins.op) {
@@ -96,6 +101,8 @@ export default class Disassembler {
                 case Ops.LD_R8_R8: return ["LD", `${tr(ins.type!)},${tr(ins.type2!)}`];
                 case Ops.LD_R8_N8: return ["LD", `${tr(ins.type!)},$${hexN(pcTriplet[1], 2)}`];
 
+                case Ops.ADD_HL_R16: return ["ADD", `HL,${tr(ins.type!)}`];
+
                 case Ops.LD_iN16_SP: return ["LD", `($${hexN(doublet, 4)}),SP`];
                 case Ops.LD_A_iHLinc: return ["LD", "A,(HL+)"];
                 case Ops.LD_iN16_A: return ["LD", `($${hexN(doublet, 4)}),A`];
@@ -109,21 +116,21 @@ export default class Disassembler {
             }
         };
 
-        let isCB = pcTriplet[0] === 0xCB;
-        let hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
+        const isCB = pcTriplet[0] === 0xCB;
+        const hardDecoded = HARDCODE_DECODE(ins, pcTriplet);
         // Block means don't add the operand onto the end because it has already been done in the hardcode decoder
-        let block = hardDecoded ? true : false;
+        const block = hardDecoded ? true : false;
 
         let operandAndType = "";
 
         // Detect bottom 3/4 of 0xCB table
         if (isCB && pcTriplet[1] > 0x30) {
-            operandAndType = (ins.type2 ? tr(ins.type2) : "") + ((ins.type2 || ins.length > 1) ? "," : "") + (ins.type ? tr(ins.type) : "");
+            operandAndType = `${ins.type2},${tr(ins.type!)}`;
         } else if (!block) {
             // Regular operations, block if hardcode decoded
             operandAndType =
                 (ins.type != CC.UNCONDITIONAL ? (
-                    ((ins.type ? tr(ins.type) : "") + (ins.type2 || ins.length > 1 ? "," : ""))
+                    ((ins.type ? tr(ins.type) : "") + (ins.type2 || (ins.length > 1 && ins.type) ? "," : ""))
                 ) : "") +
                 (ins.type2 ? tr(ins.type2) : "");
         }
@@ -135,8 +142,8 @@ export default class Disassembler {
                     // Regular operation
                     operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
                 } else {
-                    // For JR operation, reverse two's complement instead of hex
-                    operandAndType += "" + unTwo8b(cpu.gb.bus.readMem8(disasmPc + 1));
+                    // For JR operation, calculate jump destination
+                    operandAndType += "$" + hexN(2 + disasmPc + unTwo8b(cpu.gb.bus.readMem8(disasmPc + 1)), 4);
                 }
             } else if (ins.length === 3) {
                 // 16 bit
@@ -170,7 +177,7 @@ export default class Disassembler {
                 <span 
                     onclick="
                         cpu.toggleBreakpoint(${disasmPc});
-                        let disassemblyP = document.getElementById('disassembly-output'); 
+                        const disassemblyP = document.getElementById('disassembly-output'); 
                         disassemblyP.innerHTML = Disassembler.disassemble(cpu);
                     "
                 >${line}</span>`;
@@ -181,7 +188,7 @@ export default class Disassembler {
         const BREAKPOINT_COLOR = "indianred";
 
         const BREAKPOINT_CODE = `style='background-color: ${BREAKPOINT_COLOR}'`;
-        const BREAKPOINT_GENERATE = () => cpu.breakpoints.has(disasmPc) ? BREAKPOINT_CODE : "";
+        const BREAKPOINT_GENERATE = () => cpu.breakpoints[disasmPc] ? BREAKPOINT_CODE : "";
 
         const LOGBACK_INSTRUCTIONS = 16;
         const READAHEAD_INSTRUCTIONS = 32;
@@ -189,30 +196,30 @@ export default class Disassembler {
         let disasmPc = cpu.pc;
 
         for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
-            let isCB = cpu.gb.bus.readMem8(disasmPc) === 0xCB;
-            let pcTriplet = new Uint8Array([cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)]);
+            const isCB = cpu.gb.bus.readMem8(disasmPc) === 0xCB;
+            const pcTriplet = new Uint8Array([cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)]);
 
 
             // Pre-increment PC for 0xCB prefix
-            let ins = isCB ? Decoder.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : Decoder.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
-            let controlFlow = Disassembler.isControlFlow(ins);
+            const ins = isCB ? Decoder.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : Decoder.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
+            const controlFlow = Disassembler.isControlFlow(ins);
 
-            // Decode hexadecimal triplet 
+            // Decode hexadecimal tripconst 
             function decodeHex(pcTriplet: Uint8Array) {
-                let i0 = hexN_LC(pcTriplet[0], 2);
-                let i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
-                let i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
+                const i0 = hexN_LC(pcTriplet[0], 2);
+                const i1 = ins.length >= 2 ? hexN_LC(pcTriplet[1], 2) : "--";
+                const i2 = ins.length >= 3 ? hexN_LC(pcTriplet[2], 2) : "--";
 
                 return pad(`${i0} ${i1} ${i2}`, 8, ' ');
             }
 
-            let hexDecoded = decodeHex(pcTriplet);
+            const hexDecoded = decodeHex(pcTriplet);
 
-            let disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, disasmPc, cpu)}`;
+            const disasmLine = `0x${hexN_LC(disasmPc, 4)}: ${hexDecoded} ${Disassembler.disassembleOp(ins, pcTriplet, cpu, disasmPc)}`;
 
             if (i === 0) {
                 if (Disassembler.willJump(ins, cpu))
-                    nextOpWillJumpTo = Disassembler.willJumpTo(ins, pcTriplet, disasmPc, cpu);
+                    nextOpWillJumpTo = Disassembler.willJumpTo(ins, pcTriplet, cpu);
 
                 if (controlFlow && !Disassembler.willJump(ins, cpu)) {
                     nextOpWillJumpTo = disasmPc + ins.length;
@@ -224,7 +231,7 @@ export default class Disassembler {
             if (ins.length >= 3) Disassembler.disassembledLines[disasmPc + 2] = null;
 
             // Build the HTML line, green and bold if PC is at it
-            let disAsmLineHtml = buildLine(`
+            const disAsmLineHtml = buildLine(`
                 <span
                     ${BREAKPOINT_GENERATE()}
                     ${i === 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
@@ -240,11 +247,11 @@ export default class Disassembler {
         const BLANK_LINE = '<span style="color: gray">------- -- -- -- --------</span>';
 
         disasmPc = cpu.pc;
-        let skippedLines = 0;
+        const skippedLines = 0;
         for (let i = 0; i < LOGBACK_INSTRUCTIONS;) {
             if (Disassembler.disassembledLines[disasmPc] != undefined && disasmPc !== cpu.pc) {
                 // Color the line background cyan if the next operation will jump there
-                let disAsmLineHtml = buildLine(`
+                const disAsmLineHtml = buildLine(`
                     <span 
                         ${BREAKPOINT_GENERATE()}
                         ${nextOpWillJumpTo === disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}

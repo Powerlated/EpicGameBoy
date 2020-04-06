@@ -1,7 +1,7 @@
 import 'file-loader?name=[name].[ext]!./index.html';
 import 'file-loader?name=[name].[ext]!./index.js';
 import ROMS_BASE64 from './roms';
-import * as GameBoy from './gameboy/gameboy';
+import * as GameBoy from '../core/gameboy';
 import { startDebugging } from './gameboy/tools/debug';
 import Tone from 'tone';
 import './index.css';

@@ -57,3 +57,14 @@ export function r_pad(n: string, width: number, z: string) {
     n = n + '';
     return n.length >= width ? n : n + new Array(width - n.length + 1).join(z);
 }
+
+export function assert(n1: any, n2: any, reason: string) {
+    if (n1 != n2) {
+        console.error(`Assertion failed:
+            ${reason}
+            ${n1} != ${n2}
+        `)
+        return false;
+    }
+    return true;
+}

@@ -20,10 +20,10 @@
         <div class="panel">
             <span class="code" id="breakpoints"></span>
 
-            <canvas class="debug" id="tileset" width="256" height="96"></canvas>
+            <canvas class="debug" id="tileset" width="256" height="192"></canvas>
             <div class="hidden"><canvas class="debug" id="memory-map" width="256" height="256"></canvas></div>
 
-            <div id="palette" class="debug">
+            <div id="palette" class="debug" style="display: none">
                 <label>Palette</label>
                 <div class="palette-container">
                     <span class="palette-square" id="palette0-bg"></span>
@@ -64,7 +64,6 @@
             <button onclick="gb.speedStop();">Stop</button>
             <button onclick="gb.frame()">Render Frame</button>
             <button onclick="gb.reset()">Reset</button>
-            <button onclick="loadDefaultBootRom()">Load default Boot ROM</button>
 
             <div style="display: none">
                 <label for="enableLogging">Enable Logging</label>
@@ -96,7 +95,7 @@
                 <button onclick="downloadSave()">Download Save</button>
             </div>
 
-            <div style="display: none">
+            <div>
                 <label for="bootromInput">Open Boot ROM</label>
                 <input id="bootromInput" autocomplete="off" type="file">
             </div>
@@ -124,7 +123,7 @@
         </div>
         <div class="interactive-panel shortcuts">
             <button onclick="loadRom('pokeyellow')">Load Pokemon Yellow</button>
-            <button onclick="loadRom('pokegold')">Load Pokemon Gold</button>
+            <button onclick="loadRom('pokecrystal')">Load Pokemon Crystal</button>
             <button onclick="loadRom('tetris')">Load Tetris</button>
             <button onclick="loadRom('tetrisDX')">Load Tetris DX</button>
             <button onclick="loadRom('pocket')">Load Pocket</button>

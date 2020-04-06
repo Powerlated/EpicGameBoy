@@ -5,6 +5,7 @@
         "sourceMap": true,
         "strict": true,
         "moduleResolution": "node",
+        "noFallthroughCasesInSwitch": true
     },
-    "include": ["src/"]
+    "include": ["src/", "core"]
 }

@@ -29,6 +29,11 @@ html {
     min-width: 25%;
 }
 
+#panels {
+    display: flex;
+    justify-content: center;
+}
+
 .palette-container {
     display: flex;
     margin-bottom: 0px;
@@ -43,7 +48,7 @@ html {
 }
 
 .interactive {
-    position: sticky;
+    /* position: sticky; */
     bottom: 0;
     left: 0;
     background-color: white;
@@ -86,7 +91,7 @@ html {
 
 #tileset {
     width: 256px;
-    height: 96px;
+    height: 192px;
 
     image-rendering: -moz-crisp-edges;
     /* Firefox */
