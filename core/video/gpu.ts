@@ -254,7 +254,7 @@ class GPU {
     lcdStatusConditionMet = false;
     lcdStatusFired = false;
 
-    mode3ExtraCycles = 0;
+    renderingThisFrame = () => (this.totalFrameCount % this.gb.speedMul) === 0;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step(cycles: number) {
@@ -271,7 +271,6 @@ class GPU {
                         if (this.oamScanned == false) {
                             this.scanOAM();
                             this.oamScanned = true;
-                            this.mode3ExtraCycles += this.scannedEntriesCount * 10;
                         }
 
                         this.modeClock -= 80;
@@ -287,18 +286,18 @@ class GPU {
                     *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
                     *     B. Disabled entirely through bit 5 of LCD Control
                     * 
+                    * only AFTER the window has already been enabled.
                     */
                     if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lcdcY == this.windowYpos) {
                         this.currentWindowLine = this.windowYpos - this.lcdcY;
                         this.windowOnscreenYetThisFrame = true;
-                        this.mode3ExtraCycles += 4;
                     }
                     // Delay window rendering based on its X position, and don't be too picky, it's only X position
                     if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
                         if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                             // Only IF the window is onscreen
                             if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
-                                if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                                if (this.renderingThisFrame()) {
                                     this.renderer.renderWindow();
                                 }
                                 this.currentWindowLine++;
@@ -309,7 +308,7 @@ class GPU {
 
                     if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                         if (this.bgDrawn == false) {
-                            if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                            if (this.renderingThisFrame()) {
                                 this.renderer.renderBg();
                             }
                             this.bgDrawn = true;
@@ -321,8 +320,8 @@ class GPU {
                         this.lcdStatus.mode = 0;
 
                         // Render sprites at end of scanline
-                        if ((this.totalFrameCount % this.gb.speedMul) === 0) {
-                            if (this.lcdControl.spriteDisplay___1) {
+                        if (this.lcdControl.spriteDisplay___1) {
+                            if (this.renderingThisFrame()) {
                                 this.renderer.renderSprites();
                             }
                         }
@@ -341,15 +340,13 @@ class GPU {
                         this.modeClock -= 204;
                         this.lcdcY++;
 
-                        this.mode3ExtraCycles = 0;
-
                         // If we're at LCDCy = 144, enter Vblank
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                         if (this.lcdcY >= 144) {
                             // Fire the Vblank interrupt
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
-                            if ((this.totalFrameCount % this.gb.speedMul) === 0) {
+                            if (this.renderingThisFrame()) {
                                 this.renderer.gpu.canvas.drawGameboy();
                             }
                             this.lcdStatus.mode = 1;
@@ -386,11 +383,14 @@ class GPU {
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
                         this.lcdStatus.mode = 2;
-                        this.scanOAM();
+                        if (this.renderingThisFrame()) {
+                            this.scanOAM();
+                        }
                     }
                     break;
             }
 
+            // Determine LCD status interrupt conditions
             this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
             this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 && this.lYCompare === this.lcdcY;
             this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 && this.lcdStatus.mode === 0;
@@ -399,6 +399,7 @@ class GPU {
             this.lcdStatusMode1 = (this.lcdStatus.mode1VblankInterrupt__4 || this.lcdStatus.mode2OamInterrupt_____5) && this.lcdStatus.mode === 1;
             this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 && this.lcdStatus.mode === 2;
 
+            // If any of the conditions are met, set the condition met flag
             if (
                 this.lcdStatusMode0 ||
                 this.lcdStatusMode1 ||
@@ -411,6 +412,7 @@ class GPU {
                 this.lcdStatusFired = false;
             }
 
+            // If the condition is met and the interrupt has not been fired yet, request the interrupt
             if (!this.lcdStatusFired && this.lcdStatusConditionMet) {
                 this.gb.interrupts.requested.lcdStat = true;
                 this.lcdStatusFired = true;

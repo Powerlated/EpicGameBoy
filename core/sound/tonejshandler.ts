@@ -264,15 +264,6 @@ export default class ToneJsHandler implements AudioPlugin {
     generateNoiseBuffer(sevenBit: boolean): AudioBuffer {
         let capacitor = 0.0;
 
-        function high_pass(inValue: number): number {
-            let out = 0.0;
-            out = inValue - capacitor;
-
-            // capacitor slowly charges to 'in' via their difference
-            capacitor = inValue - out * 0.9; // use 0.998943 for MGB&CGB
-            return out;
-        }
-
         let seed = 0xFF;
         let period = 0;
 
@@ -317,7 +308,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
-        const ac = (Tone.context as any as AudioContext);
+        const ac = Tone.context as any as AudioContext;
         const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
         const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
