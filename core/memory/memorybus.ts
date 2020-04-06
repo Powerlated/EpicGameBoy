@@ -68,12 +68,12 @@ class MemoryBus {
         }
 
         // Echo RAM
-        else if (addr >= 0xE000 && addr <= 0xFDFF) {
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
             addr -= 8192;
         }
 
         // Write to Internal RAM 
-        else if (addr >= 0xC000 && addr <= 0xCFFF) {
+        if (addr >= 0xC000 && addr <= 0xCFFF) {
             this.workRamBanks[0][addr - 0xC000] = value;
         } else if (addr >= 0xD000 && addr <= 0xDFFF) {
             this.workRamBank[addr - 0xD000] = value;
@@ -177,12 +177,12 @@ class MemoryBus {
         }
 
         // Echo RAM
-        else if (addr >= 0xE000 && addr <= 0xFDFF) {
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
             addr -= 8192;
         }
 
         // Write to Internal RAM 
-        else if (addr >= 0xC000 && addr <= 0xCFFF) {
+        if (addr >= 0xC000 && addr <= 0xCFFF) {
             return this.workRamBanks[0][addr - 0xC000];
         } else if (addr >= 0xD000 && addr <= 0xDFFF) {
             return this.workRamBank[addr - 0xD000];
