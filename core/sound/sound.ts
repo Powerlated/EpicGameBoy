@@ -364,12 +364,14 @@ export default class SoundChip {
                 case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
                 case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
                     const BASE = 0xFF30;
-                    if (this.wave.waveTable[((addr - BASE) * 2) + 0] != (value >> 4))
+                    if (this.wave.waveTable[((addr - BASE) * 2) + 0] != (value >> 4)) {
                         this.wave.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
-                    if (this.wave.waveTable[((addr - BASE) * 2) + 1] != (value & 0xF))
+                        this.wave.waveTableUpdated = true;
+                    }
+                    if (this.wave.waveTable[((addr - BASE) * 2) + 1] != (value & 0xF)) {
                         this.wave.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
-                    this.wave.waveTableUpdated = true;
-                    this.wave.update();
+                        this.wave.waveTableUpdated = true;
+                    }
                     break;
 
                 // Panning
