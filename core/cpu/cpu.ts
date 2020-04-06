@@ -348,69 +348,7 @@ export default class CPU {
                 this.addToLog(`--- INTERRUPTS ENABLED ---`);
         }
 
-        if (this.pc === 0 && this.gb.bus.bootromEnabled && (!this.gb.bus.bootromLoaded || this.gb.cgb)) {
-            console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
-            this.pc = 0x100;
 
-            // Games check A for 0x11 to detect a CGB
-            if (this.gb.cgb) {
-                this._r.af = 0x1180;
-                this._r.bc = 0x0000;
-                this._r.de = 0xFF56;
-                this._r.hl = 0x000D;
-                this._r.sp = 0xFFFE;
-            } else {
-                this._r.af = 0x01B0;
-                this._r.bc = 0x0013;
-                this._r.de = 0x00D8;
-                this._r.hl = 0x014D;
-                this._r.sp = 0xFFFE;
-            }
-
-
-
-            this.gb.bus.writeMem8(0xFF05, 0x00); // TIMA
-            this.gb.bus.writeMem8(0xFF06, 0x00); // TMA
-            this.gb.bus.writeMem8(0xFF07, 0x00); // TAC
-
-            this.gb.bus.writeMem8(0xFF10, 0x80); // NR10 
-            this.gb.bus.writeMem8(0xFF11, 0xBF); // NR11
-            this.gb.bus.writeMem8(0xFF12, 0xF3); // NR12
-            this.gb.bus.writeMem8(0xFF14, 0xBF); // NR14
-
-            this.gb.bus.writeMem8(0xFF16, 0x3F); // NR21
-            this.gb.bus.writeMem8(0xFF17, 0x00); // NR22
-            this.gb.bus.writeMem8(0xFF19, 0x00); // NR24
-
-            this.gb.bus.writeMem8(0xFF1A, 0x7F); // NR30
-            this.gb.bus.writeMem8(0xFF1B, 0xFF); // NR31
-            this.gb.bus.writeMem8(0xFF1C, 0x9F); // NR32
-            this.gb.bus.writeMem8(0xFF1E, 0xBF); // NR33
-
-            this.gb.bus.writeMem8(0xFF20, 0xFF); // NR41
-            this.gb.bus.writeMem8(0xFF21, 0x00); // NR42
-            this.gb.bus.writeMem8(0xFF22, 0x00); // NR43
-            this.gb.bus.writeMem8(0xFF23, 0xBF); // NR44
-
-            this.gb.bus.writeMem8(0xFF24, 0x77); // NR50
-            this.gb.bus.writeMem8(0xFF25, 0xF3); // NR51
-
-
-            this.gb.bus.writeMem8(0xFF26, 0xF1); // - GB, $F0 - SGB; NR52
-            this.gb.bus.writeMem8(0xFF40, 0x91); // LCDC
-            this.gb.bus.writeMem8(0xFF42, 0x00); // SCY
-            this.gb.bus.writeMem8(0xFF43, 0x00); // SCX
-            this.gb.bus.writeMem8(0xFF45, 0x00); // LYC
-            this.gb.bus.writeMem8(0xFF47, 0xFC); // BGP
-            this.gb.bus.writeMem8(0xFF48, 0xFF); // OBP0
-            this.gb.bus.writeMem8(0xFF49, 0xFF); // OBP1
-            this.gb.bus.writeMem8(0xFF4A, 0x00); // WY
-            this.gb.bus.writeMem8(0xFF4B, 0x00); // WX
-            this.gb.bus.writeMem8(0xFFFF, 0x00); // IE;
-
-            // Make a write to disable the bootrom
-            this.gb.bus.writeMem8(0xFF50, 1);
-        }
         // // Run the debug information collector
         // if (this.debugging || this.logging)
         //     this.stepDebug();
