@@ -41,7 +41,7 @@ export default class GameBoy {
     }
 
     step(): number {
-        let cyclesBehind = 0;
+        let cyclesBehind = 4;
 
         let runFor = this.getCyclesUntilNextSync();
 
@@ -58,9 +58,6 @@ export default class GameBoy {
             if (this.oamDmaTCyclesRemaining > 0) {
                 this.oamDmaTCyclesRemaining -= lastInstructionCycles;
             }
-
-            // Just in case for some reason cyclesBehind is < 4
-            if (cyclesBehind < 4) cyclesBehind = 4;
         } while (cyclesBehind < runFor);
 
         // This is the value we are going to pass to the other components 
