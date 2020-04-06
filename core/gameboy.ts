@@ -41,7 +41,7 @@ export default class GameBoy {
     }
 
     step(): number {
-        let cyclesBehind = 4;
+        let cyclesBehind = 0;
 
         let runFor = this.getCyclesUntilNextSync();
 
