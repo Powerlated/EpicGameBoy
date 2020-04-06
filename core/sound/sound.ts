@@ -101,7 +101,7 @@ export default class SoundChip {
         }
 
         // 4194304hz Divide by 65536 = 64hz
-        if (this.clockEnvelopeMain >= CLOCK_ENVELOPE_STEPS) {
+        while (this.clockEnvelopeMain >= CLOCK_ENVELOPE_STEPS) {
             this.clockEnvelopePulse1++;
             if (this.clockEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
                 if (this.pulse1.volumeEnvelopeSweep !== 0) {
@@ -160,7 +160,7 @@ export default class SoundChip {
         }
 
         // 4194304hz Divide by 32768 = 128hz
-        if (this.clockMain >= CLOCK_MAIN_STEPS) {
+        while (this.clockMain >= CLOCK_MAIN_STEPS) {
             // #region LENGTH
             if (this.pulse1.enabled) {
                 if (this.pulse1.freqSweepTime !== 0) {
@@ -178,7 +178,7 @@ export default class SoundChip {
 
 
         // 256 hz
-        if (this.clockLength >= CLOCK_LENGTH_STEPS) {
+        while (this.clockLength >= CLOCK_LENGTH_STEPS) {
             if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
                 this.pulse1.lengthCounter--;
                 if (this.pulse1.lengthCounter === 0) {

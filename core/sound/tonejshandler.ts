@@ -174,7 +174,7 @@ export default class ToneJsHandler implements AudioPlugin {
                 this.waveVolume.mute = false;
 
                 this.wavePan.pan.value = this.s.wave.pan;
-                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+                this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
 
                 let mul = 0;
                 switch (this.s.wave.volume) {
@@ -196,20 +196,21 @@ export default class ToneJsHandler implements AudioPlugin {
     }
 
     updateWaveTable() {
+        this.waveSrc.stop();
         this.wavePan.disconnect(Tone.Master);
         this.waveVolume.disconnect(this.waveVolumeShaper);
         this.waveSrc.buffer.dispose();
         this.waveSrc.dispose();
 
         this.waveSrc = new Tone.BufferSource(this.generateWaveBuffer(), () => { });
-        this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 440;
+        this.waveSrc.playbackRate.value = this.s.wave.frequencyHz / 220;
         this.waveSrc.loop = true;
         this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master).start();
     }
 
     generateWaveBuffer(): AudioBuffer {
         let sampleRate = 112640; // A440 without any division
-        let waveTable = this.s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i]);
+        let waveTable = this.s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
 
         const ac = (Tone.context as any as AudioContext);
         const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
