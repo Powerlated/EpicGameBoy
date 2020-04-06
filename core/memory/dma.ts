@@ -11,7 +11,7 @@ export class DMAController {
 
     // Source must be < 0xA000
     oamDma(startAddr: number) {
-        this.gb.oamDmaNormalMCyclesRemaining = 160;
+        this.gb.oamDmaTCyclesRemaining = 640;
         // writeDebug(`OAM DMA @ ${hex(startAddr, 4)}`);
         for (let i = 0; i < 0xA0; i++) {
             // If $FE00, read from external bus 
@@ -30,7 +30,7 @@ export class DMAController {
             this.hDmaSourceAt += 16;
             this.hDmaDestAt += 16;
             this.hDmaRemaining -= 16;
-            this.gb.cpuPausedNormalSpeedMcycles += 2;
+            this.gb.cpuPausedTCyclesRemaining += 8;
         } else {
             this.hDmaRemaining = 0;
             this.hDmaCompleted = true;
@@ -78,7 +78,7 @@ export class DMAController {
     gDmaCompleted = false;
 
     newDma(startAddr: number, destination: number, length: number) {
-        this.gb.cpuPausedNormalSpeedMcycles += 2 * (this.newDmaLength >> 4);
+        this.gb.cpuPausedTCyclesRemaining += 8 * (this.newDmaLength >> 4);
         for (let i = 0; i < length; i++) {
             this.gb.gpu.write(destination, this.gb.bus.readMem8(startAddr));
             startAddr++;

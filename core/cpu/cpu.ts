@@ -307,7 +307,7 @@ export default class CPU {
         this.cycles += 4;
 
         // The CPU can only access high RAM during OAM DMA
-        if (this.gb.oamDmaNormalMCyclesRemaining > 0) {
+        if (this.gb.oamDmaTCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFFFE) {
                 return this.gb.bus.readMem8(addr);
             } else {
@@ -325,7 +325,7 @@ export default class CPU {
 
     writeMem8(addr: number, value: number) {
         this.cycles += 4;
-        if (this.gb.oamDmaNormalMCyclesRemaining > 0) {
+        if (this.gb.oamDmaTCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
                 this.gb.bus.writeMem8(addr, value);
             }
@@ -518,8 +518,7 @@ export default class CPU {
         this.haltBug = false;
 
         let lastInstructionCycles = this.cycles - c;
-        // If the CPU is halted, we can skimp out on syncing until the next event happens in other hardware
-        if (lastInstructionCycles == 0) lastInstructionCycles = this.gb.getCyclesUntilNextSync();
+        if (lastInstructionCycles == 0) lastInstructionCycles = 4;
         return lastInstructionCycles;
     }
 

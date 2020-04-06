@@ -293,7 +293,7 @@ function init() {
                 break;
 
             case "Tab":
-                gb.speedMul = 10;
+                gb.speedMul = 16;
                 break;
         }
     };

@@ -25,8 +25,8 @@ export default class GameBoy {
     doubleSpeed = false;
     prepareSpeedSwitch = false;
 
-    cpuPausedNormalSpeedMcycles = 0;
-    oamDmaNormalMCyclesRemaining = 0;
+    cpuPausedTCyclesRemaining = 0;
+    oamDmaTCyclesRemaining = 0;
 
     soundChip = new SoundChip(this);
 
@@ -41,25 +41,35 @@ export default class GameBoy {
     }
 
     step(): number {
-        let lastInstructionCycles = 4;
+        let cyclesBehind = 0;
 
-        if (this.cpuPausedNormalSpeedMcycles > 0) {
-            this.cpuPausedNormalSpeedMcycles--;
-        } else {
-            lastInstructionCycles = this.cpu.step();
-        }
+        let runFor = this.getCyclesUntilNextSync();
 
-        if (this.oamDmaNormalMCyclesRemaining > 0) {
-            this.oamDmaNormalMCyclesRemaining -= (lastInstructionCycles >> 2);
-        }
+        // Use a do-while loop because we want the CPU to run at least once
+        do {
+            let lastInstructionCycles = 4;
+            if (this.cpuPausedTCyclesRemaining > 0) {
+                this.cpuPausedTCyclesRemaining -= 4;
+            } else {
+                lastInstructionCycles = this.cpu.step();
+                cyclesBehind += lastInstructionCycles;
+            }
+
+            if (this.oamDmaTCyclesRemaining > 0) {
+                this.oamDmaTCyclesRemaining -= lastInstructionCycles;
+            }
+
+            // Just in case for some reason cyclesBehind is < 4
+            if (cyclesBehind < 4) cyclesBehind = 4;
+        } while (cyclesBehind < runFor);
 
         // This is the value we are going to pass to the other components 
-        let stepCycles = lastInstructionCycles;
+        let stepCycles = cyclesBehind;
         // In double speed mode make the CPU run 2x relatively faster than all the other components
         if (this.doubleSpeed) stepCycles >>= 1;
 
         // Timer runs at double speed as well, so use the unmodified value for timer
-        this.timer.step(lastInstructionCycles);
+        this.timer.step(cyclesBehind);
         this.soundChip.step(stepCycles);
         this.gpu.step(stepCycles);
 
@@ -101,8 +111,7 @@ export default class GameBoy {
     }
 
     getCyclesUntilNextSync(): number {
-        let timerDiv = 256 * (256 - (this.timer.internal >> 8));
-        let timerMain = Timer.TimerSpeeds[this.timer.control.speed] - this.timer.mainClock;
+        let timer = Timer.TimerSpeeds[this.timer.control.speed] - this.timer.mainClock;
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
             // OAM Mode
@@ -112,7 +121,12 @@ export default class GameBoy {
 
             // VRAM Mode
             case 3:
-                gpu = 172 - this.gpu.modeClock;
+                // If we haven't drawn the BG, sync now
+                if (this.gpu.bgDrawn) {
+                    gpu = 172 - this.gpu.modeClock;
+                } else {
+                    gpu = 0;
+                }
                 break;
 
             // Hblank
@@ -127,14 +141,16 @@ export default class GameBoy {
 
             // Line 153
             case 4:
-                gpu = 4;
                 break;
         }
 
-        let final = Math.min(timerDiv, timerMain, gpu);
-
-        // Make the lowest final can be 4 so it doesn't freeze the system
-        if (final < 4) final = 4;
+        // If there's no hardware waiting for sync, just sync in 256 cycles
+        let final = 256;
+        if (this.timer.control.running && this.gpu.lcdControl.lcdDisplayEnable7) {
+            final = Math.min(timer, gpu);
+        } else if (this.gpu.lcdControl.lcdDisplayEnable7) {
+            final = gpu;
+        }
 
         return final;
     }
@@ -152,8 +168,8 @@ export default class GameBoy {
         this.doubleSpeed = false;
         this.prepareSpeedSwitch = false;
 
-        this.cpuPausedNormalSpeedMcycles = 0;
-        this.oamDmaNormalMCyclesRemaining = 0;
+        this.cpuPausedTCyclesRemaining = 0;
+        this.oamDmaTCyclesRemaining = 0;
     }
 }
 
