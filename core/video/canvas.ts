@@ -1,5 +1,4 @@
 import GPU from "./gpu";
-import { GPURenderer } from "./renderer";
 
 export default class GPUCanvas {
     ctxGameboy: CanvasRenderingContext2D;
@@ -23,11 +22,11 @@ export default class GPUCanvas {
     }
 
     drawGameboy() {
-        this.ctxGameboy.putImageData(this.gpu.renderer.imageGameboy, 0, 0);
+        this.ctxGameboy.putImageData(this.gpu.imageGameboy, 0, 0);
     }
 
     drawTileset() {
-        this.ctxTileset.putImageData(this.gpu.renderer.imageTileset, 0, 0);
+        this.ctxTileset.putImageData(this.gpu.imageTileset, 0, 0);
 
         // this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
         // // 0: Bottom half used, 1: Top half used

@@ -1,6 +1,5 @@
 import GameBoy from "../gameboy";
 import GPUCanvas from "./canvas";
-import { GPURenderer } from "./renderer";
 import { TickSignal } from "tone";
 import { hex } from "../../src/gameboy/tools/util";
 
@@ -212,40 +211,40 @@ class GPU {
     vram = this.vram0;
 
     totalFrameCount = 0;
-
-    renderer = new GPURenderer(this);
     canvas = new GPUCanvas(this);
 
     // [tile][pixel]
     tileset0 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 0
-    tileset1 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 0
+    tileset1 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 1
 
-    tileset = this.tileset0;
+    tileset = this.tileset0; // Assign active tileset reference to tileset 0
 
-    tilemap = new Uint8Array(2048);
+    tilemap = new Uint8Array(2048);                                       // For bank 0
     cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
 
     lcdControl = new LCDCRegister(); // 0xFF40
     lcdStatus = new LCDStatusRegister(); // 0xFF41
 
-    scrY = 0; // 0xFF42
-    scrX = 0; // 0xFF43
+    scrY = 0; // 0xFF42 - Scroll Y
+    scrX = 0; // 0xFF43 - Scroll X
 
     lcdcY = 0; // 0xFF44 - Current scanning line
     lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY === lcdcYCompare 
 
-    windowYpos = 0; // 0xFF4A
-    windowXpos = 0; // 0xFF4B
+    windowYpos = 0; // 0xFF4A - Window Y Position
+    windowXpos = 0; // 0xFF4B - Window X Position
 
-    currentWindowLine = 0;
+    currentWindowLine = 0; // Which line of the window is currently rendering
     windowOnscreenYetThisFrame = false;
 
     modeClock: number = 0;
-    bgDrawn = false;
-    windowDrawn = false;
-    oamScanned = false;
 
-    // Interrupt levels
+    // Have events happened this scanline yet?
+    bgDrawn = false; 
+    windowDrawn = false; 
+    oamScanned = false; 
+
+    // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
     lcdStatusMode1 = false;
     lcdStatusMode2 = false;
@@ -254,6 +253,7 @@ class GPU {
     lcdStatusConditionMet = false;
     lcdStatusFired = false;
 
+    // Skip frames when turboing
     renderingThisFrame = () => (this.totalFrameCount % this.gb.speedMul) === 0;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
@@ -298,7 +298,7 @@ class GPU {
                             // Only IF the window is onscreen
                             if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                 if (this.renderingThisFrame()) {
-                                    this.renderer.renderWindow();
+                                    this.renderWindow();
                                 }
                                 this.currentWindowLine++;
                             }
@@ -309,7 +309,7 @@ class GPU {
                     if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                         if (this.bgDrawn == false) {
                             if (this.renderingThisFrame()) {
-                                this.renderer.renderBg();
+                                this.renderBg();
                             }
                             this.bgDrawn = true;
                         }
@@ -322,7 +322,7 @@ class GPU {
                         // Render sprites at end of scanline
                         if (this.lcdControl.spriteDisplay___1) {
                             if (this.renderingThisFrame()) {
-                                this.renderer.renderSprites();
+                                this.renderSprites();
                             }
                         }
 
@@ -347,7 +347,7 @@ class GPU {
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
                             if (this.renderingThisFrame()) {
-                                this.renderer.gpu.canvas.drawGameboy();
+                                this.canvas.drawGameboy();
                             }
                             this.lcdStatus.mode = 1;
                             this.totalFrameCount++;
@@ -460,6 +460,57 @@ class GPU {
         }
     }
 
+    reset() {
+        this.totalFrameCount = 0;
+
+        // [tile][row][pixel]
+        this.tileset0 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
+        this.tileset1 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
+
+        this.lcdControl = new LCDCRegister();
+        this.lcdStatus = new LCDStatusRegister();
+
+        this.scrY = 0;
+        this.scrX = 0;
+
+        this.windowYpos = 0;
+        this.windowXpos = 0;
+
+        this.lcdcY = 0; // 0xFF44 - Current scanning line
+        this.modeClock = 0;
+
+        // Zero out OAM
+        this.oam.forEach((v, i, a) => {
+            a[i] = 0;
+        });
+
+        // Zero out VRAM
+        this.vram0.forEach((v, i, a) => {
+            a[i] = 0;
+        });
+        this.vram1.forEach((v, i, a) => {
+            a[i] = 0;
+        });
+
+        this.tilemap = new Uint8Array(2048);
+
+        this.cgbBgPaletteIndex = 0;
+        this.cgbBgPaletteIndexAutoInc = false;
+        this.cgbBgPalette = new CGBPaletteData();
+
+        this.cgbObjPaletteIndex = 0;
+        this.cgbObjPaletteIndexAutoInc = false;
+        this.cgbObjPalette = new CGBPaletteData();
+
+        this.vramBank = 0;
+
+        this.dmgBgPalette = 0;
+        this.dmgObj0Palette = 0;
+        this.dmgObj1Palette = 0;
+
+        this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
+    }
+
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
@@ -514,60 +565,6 @@ class GPU {
         }
     }
 
-    reset() {
-        this.totalFrameCount = 0;
-
-        // [tile][row][pixel]
-        this.tileset0 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
-        this.tileset1 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
-
-        this.lcdControl = new LCDCRegister();
-        this.lcdStatus = new LCDStatusRegister();
-
-        this.scrY = 0;
-        this.scrX = 0;
-
-        this.windowYpos = 0;
-        this.windowXpos = 0;
-
-        this.lcdcY = 0; // 0xFF44 - Current scanning line
-        this.modeClock = 0;
-
-        // Zero out OAM
-        this.oam.forEach((v, i, a) => {
-            a[i] = 0;
-        });
-
-        // Zero out VRAM
-        this.vram0.forEach((v, i, a) => {
-            a[i] = 0;
-        });
-        this.vram1.forEach((v, i, a) => {
-            a[i] = 0;
-        });
-
-        this.tilemap = new Uint8Array(2048);
-
-        this.cgbBgPaletteIndex = 0;
-        this.cgbBgPaletteIndexAutoInc = false;
-        this.cgbBgPalette = new CGBPaletteData();
-
-        this.cgbObjPaletteIndex = 0;
-        this.cgbObjPaletteIndexAutoInc = false;
-        this.cgbObjPalette = new CGBPaletteData();
-
-        this.vramBank = 0;
-
-        this.dmgBgPalette = 0;
-        this.dmgObj0Palette = 0;
-        this.dmgObj1Palette = 0;
-
-        this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
-
-        this.renderer = new GPURenderer(this);
-    }
-
-
     readHwio(addr: number) {
         switch (addr) {
             case 0xFF40:
@@ -609,48 +606,6 @@ class GPU {
                 if (this.gb.cgb) return this.cgbObjPalette.data[this.cgbObjPaletteIndex];
                 break;
         }
-    }
-
-    cgbBgPaletteIndex = 0; // 0xFF68
-    cgbBgPaletteIndexAutoInc = false;
-    cgbBgPalette = new CGBPaletteData();
-
-    cgbObjPaletteIndex = 0; // 0xFF6A
-    cgbObjPaletteIndexAutoInc = false;
-    cgbObjPalette = new CGBPaletteData();
-
-    vramBank = 0;
-
-    dmgBgPalette = 0;
-    dmgObj0Palette = 0;
-    dmgObj1Palette = 0;
-
-    setDmgBgPalette(p: number, l: number) {
-        let i = p * 2;
-        let c = colors555[l];
-        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
-
-        let upper = (cv >> 8) & 0xFF;
-        let lower = cv & 0xFF;
-
-        this.cgbBgPalette.data[i + 1] = upper;
-        this.cgbBgPalette.data[i + 0] = lower;
-
-        this.cgbBgPalette.update(p >> 2);
-    }
-
-    setDmgObjPalette(p: number, l: number) {
-        let i = p * 2;
-        let c = colors555[l];
-        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
-
-        let upper = (cv >> 8) & 0xFF;
-        let lower = cv & 0xFF;
-
-        this.cgbObjPalette.data[i + 0] = lower;
-        this.cgbObjPalette.data[i + 1] = upper;
-
-        this.cgbObjPalette.update(p >> 2);
     }
 
     writeHwio(addr: number, value: number) {
@@ -754,6 +709,316 @@ class GPU {
                 }
                 break;
         }
+    }
+
+    cgbBgPaletteIndex = 0; // 0xFF68
+    cgbBgPaletteIndexAutoInc = false;
+    cgbBgPalette = new CGBPaletteData();
+
+    cgbObjPaletteIndex = 0; // 0xFF6A
+    cgbObjPaletteIndexAutoInc = false;
+    cgbObjPalette = new CGBPaletteData();
+
+    vramBank = 0;
+
+    dmgBgPalette = 0;
+    dmgObj0Palette = 0;
+    dmgObj1Palette = 0;
+
+    setDmgBgPalette(p: number, l: number) {
+        let i = p * 2;
+        let c = colors555[l];
+        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
+
+        let upper = (cv >> 8) & 0xFF;
+        let lower = cv & 0xFF;
+
+        this.cgbBgPalette.data[i + 1] = upper;
+        this.cgbBgPalette.data[i + 0] = lower;
+
+        this.cgbBgPalette.update(p >> 2);
+    }
+
+    setDmgObjPalette(p: number, l: number) {
+        let i = p * 2;
+        let c = colors555[l];
+        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
+
+        let upper = (cv >> 8) & 0xFF;
+        let lower = cv & 0xFF;
+
+        this.cgbObjPalette.data[i + 0] = lower;
+        this.cgbObjPalette.data[i + 1] = upper;
+
+        this.cgbObjPalette.update(p >> 2);
+    }
+
+
+
+    imageGameboyPre = new Uint8Array(160 * 144);
+    imageGameboyNoSprites = new Uint8Array(160 * 144);
+    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4), 160, 144);
+    imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4), 256, 192);
+
+
+    showBorders = false;
+
+
+    renderBg() {
+        const y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
+
+        const mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 1024 : 0;
+
+        var mapIndex = (((this.lcdcY + this.scrY) >> 3) << 5) & 1023;
+
+        const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
+
+        // Divide by 8 to get which column drawing should start at
+        let lineOffset = this.scrX >> 3;
+
+        // How many pixels in we should start drawing at in the first tile
+        let x = (this.scrX) & 0b111;                // CORRECT
+
+        let attr = this.cgbTileAttrs[mapOffset + lineOffset];
+        let tile = this.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
+        let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+
+        let canvasIndex = 160 * 4 * (this.lcdcY);
+
+        const xPos = this.windowXpos - 7;
+        // Loop through every single horizontal pixel for this line 
+        for (let i = 0; i < 160; i++) {
+            // Don't bother drawing if WINDOW is overlaying
+            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) return;
+
+            if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                // Two's Complement on high tileset
+                if (tile > 127) {
+                    tile -= 256;
+                }
+                tile += 256;
+            }
+
+            const adjX = attr.xFlip ? 7 - x : x;
+            const adjY = attr.yFlip ? 7 - y : y;
+            const prePalette = tileset[tile][(adjY << 3) + adjX];
+            const pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
+            // Re-map the tile pixel through the palette
+
+            // Plot the pixel to canvas
+            this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+            this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+            this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+            this.imageGameboy.data[canvasIndex + 3] = 255;
+
+            this.imageGameboyPre[canvasIndex >> 2] = prePalette;
+
+            this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority ? 1 : 0;
+
+            // Scroll X/Y debug
+            if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
+                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                this.imageGameboy.data[canvasIndex + 1] = 0;
+                this.imageGameboy.data[canvasIndex + 2] = 0;
+                this.imageGameboy.data[canvasIndex + 3] = 255;
+            }
+
+            canvasIndex += 4;
+
+            // When this tile ends, read another
+            x++;
+            if (x > 7) {
+                x &= 7;
+                lineOffset++;
+                lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
+                tile = this.tilemap[mapOffset + lineOffset];
+                attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
+                tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+            }
+        }
+    }
+
+    renderWindow() {
+        const xPos = this.windowXpos - 7;
+        const y = this.currentWindowLine & 0b111; // CORRECT
+
+        // Make sure window is onscreen Y
+        if (this.lcdcY >= this.windowYpos) {
+            let x = 0;                // CORRECT
+
+            const mapBase = this.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
+
+            const mapIndex = ((this.currentWindowLine >> 3) * 32) & 1023;
+            let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+
+            let attr = this.cgbTileAttrs[mapOffset];
+            let tile = this.tilemap[mapOffset]; // Add line offset to get correct starting tile
+            let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+
+            let canvasIndex = 160 * 4 * (this.lcdcY) + (xPos * 4);
+
+            // Loop through every single horizontal pixel for this line 
+            for (let i = 0; i < 160; i++) {
+                if (i >= xPos) {
+                    if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                        // Two's Complement on high tileset
+                        if (tile > 127) {
+                            tile -= 256;
+                        }
+                        tile += 256;
+                    }
+
+                    const adjX = attr.xFlip ? 7 - x : x;
+                    const adjY = attr.yFlip ? 7 - y : y;
+                    const prePalette = tileset[tile][(adjY << 3) + adjX];
+                    let pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
+
+                    // Plot the pixel to canvas
+                    this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+                    this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+                    this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+                    this.imageGameboy.data[canvasIndex + 3] = 255;
+
+                    this.imageGameboyPre[canvasIndex >> 2] = prePalette;
+
+                    this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority ? 1 : 0;
+
+                    // Window X debug
+                    if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
+                        this.imageGameboy.data[canvasIndex + 0] = 0;
+                        this.imageGameboy.data[canvasIndex + 1] = 0;
+                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
+                    }
+                    canvasIndex += 4;
+
+                    // When this tile ends, read another
+                    x++;
+                    if (x > 7) {
+                        x &= 7;
+                        mapOffset++;
+                        tile = this.tilemap[mapOffset];
+                        attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
+                        tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+                        // if (GPU._bgtile === 1 && tile < 128) tile += 256;
+                    }
+                }
+            }
+        }
+    }
+
+    renderSprites() {
+        for (let sprite = 0; sprite < this.scannedEntriesCount; sprite++) {
+            const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
+
+            // Render sprites in OAM order (reverse of scan order)
+            let scannedSprite = this.scannedEntries[this.scannedEntriesCount - sprite - 1];
+
+            const yPos = scannedSprite.yPos;
+            const xPos = scannedSprite.xPos;
+            const tile = scannedSprite.tile;
+            const flags = scannedSprite.flags;
+
+            const screenYPos = yPos - 16;
+            let screenXPos = xPos - 8;
+
+            const y = (this.lcdcY - yPos) & 7;
+            const pal = this.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
+            const tileset = flags.vramBank ? this.tileset1 : this.tileset0;
+
+            let h = this.lcdcY > screenYPos + 7 ? 1 : 0;
+
+            let tileOffset = 0;
+            if (flags.yFlip && this.lcdControl.spriteSize______2) {
+                if (h == 0) tileOffset = 1;
+                else if (h == 1) tileOffset = 0;
+            } else {
+                tileOffset = h;
+            }
+
+            // Draws the 8 pixels.
+            for (let x = 0; x < 8; x++) {
+                screenXPos = x + xPos - 8;
+
+                // If it's off the edges, skip this pixel
+                if (screenXPos < 0 || screenXPos >= 160) continue;
+
+                const pixelX = flags.xFlip ? 7 - x : x;
+                const pixelY = flags.yFlip ? 7 - y : y;
+
+                const canvasIndex = ((this.lcdcY * 160) + screenXPos) * 4;
+
+                // Offset tile by +1 if rendering the top half of an 8x16 sprite
+
+                const prePalette = tileset[tile + tileOffset][(pixelY << 3) + pixelX];
+                const pixel = this.cgbObjPalette.shades[pal][prePalette];
+
+                let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
+                if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0 && !noTransparency) continue;
+                if (this.imageGameboyNoSprites[canvasIndex >> 2] == 1 && !noTransparency) continue;
+
+                // Simulate transparency before transforming through object palette
+                if (prePalette !== 0) {
+                    this.imageGameboy.data[canvasIndex + 0] = pixel[0];
+                    this.imageGameboy.data[canvasIndex + 1] = pixel[1];
+                    this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+                    this.imageGameboy.data[canvasIndex + 3] = 255;
+                }
+
+                // Border debug
+                if (this.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
+                    if (this.lcdControl.spriteSize______2) {
+                        this.imageGameboy.data[canvasIndex + 0] = 0xFF;
+                        this.imageGameboy.data[canvasIndex + 1] = 0;
+                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
+                    } else {
+                        this.imageGameboy.data[canvasIndex + 0] = 0;
+                        this.imageGameboy.data[canvasIndex + 1] = 0xFF;
+                        this.imageGameboy.data[canvasIndex + 2] = 0;
+                        this.imageGameboy.data[canvasIndex + 3] = 255;
+                    }
+                }
+            }
+        }
+    }
+    // 160 x 144
+
+    renderTiles() {
+        const WIDTH = 256;
+
+
+        this.tileset0.forEach((tile, tileIndex) => {
+            for (let i = 0; i < 64; i++) {
+                const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
+                let y = (i >> 3) + (8 * (tileIndex >> 5));
+
+                const c = this.cgbBgPalette.shades[0][tile[i]];
+
+                let index = 4 * ((y * WIDTH) + x);
+                this.imageTileset.data[index + 0] = c[0];
+                this.imageTileset.data[index + 1] = c[1];
+                this.imageTileset.data[index + 2] = c[2];
+                this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
+
+            }
+        });
+        this.tileset1.forEach((tile, tileIndex) => {
+            for (let i = 0; i < 64; i++) {
+                const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
+                let y = (i >> 3) + (8 * (tileIndex >> 5));
+
+                const c = this.cgbBgPalette.shades[0][tile[i]];
+
+                let offset = (256 * 96);
+                let index = 4 * (((y * WIDTH) + x) + offset);
+                this.imageTileset.data[index + 0] = c[0];
+                this.imageTileset.data[index + 1] = c[1];
+                this.imageTileset.data[index + 2] = c[2];
+                this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
+
+            }
+        });
     }
 }
 
