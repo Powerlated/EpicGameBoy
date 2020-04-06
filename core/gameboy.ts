@@ -48,7 +48,7 @@ export default class GameBoy {
         } else {
             lastInstructionCycles = this.cpu.step();
         }
-        
+
         if (this.oamDmaNormalMCyclesRemaining > 0) {
             this.oamDmaNormalMCyclesRemaining -= (lastInstructionCycles >> 2);
         }
@@ -100,6 +100,44 @@ export default class GameBoy {
         }
     }
 
+    getCyclesUntilNextSync(): number {
+        let timerDiv = 256 * (256 - (this.timer.internal >> 8));
+        let timerMain = Timer.TimerSpeeds[this.timer.control.speed] - this.timer.mainClock;
+        let gpu = 0;
+        switch (this.gpu.lcdStatus.mode) {
+            // OAM Mode
+            case 2:
+                gpu = 80 - this.gpu.modeClock;
+                break;
+
+            // VRAM Mode
+            case 3:
+                gpu = 172 - this.gpu.modeClock;
+                break;
+
+            // Hblank
+            case 0:
+                gpu = 204 - this.gpu.modeClock;
+                break;
+
+            // Vblank
+            case 1:
+                gpu = 456 - this.gpu.modeClock;
+                break;
+
+            // Line 153
+            case 4:
+                gpu = 4;
+                break;
+        }
+
+        let final = Math.min(timerDiv, timerMain, gpu);
+
+        // Make the lowest final can be 4 so it doesn't freeze the system
+        if (final < 4) final = 4;
+
+        return final;
+    }
 
 
     reset() {

@@ -518,7 +518,8 @@ export default class CPU {
         this.haltBug = false;
 
         let lastInstructionCycles = this.cycles - c;
-        if (lastInstructionCycles == 0) lastInstructionCycles = 4;
+        // If the CPU is halted, we can skimp out on syncing until the next event happens in other hardware
+        if (lastInstructionCycles == 0) lastInstructionCycles = this.gb.getCyclesUntilNextSync();
         return lastInstructionCycles;
     }
 

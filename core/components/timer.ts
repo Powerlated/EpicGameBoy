@@ -6,7 +6,6 @@ export default class Timer {
 
     gb: GameBoy;
 
-    divider = 0;
     counter = 0; // TIMA
     modulo = 0;
     control = {
@@ -14,12 +13,9 @@ export default class Timer {
         running: false
     };
 
-    counterOverflowTtime = 4;
+    internal = 0;
+    mainClock = 0;
 
-    c = {
-        internal: 0,
-        mainClock: 0
-    };
 
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -43,49 +39,34 @@ export default class Timer {
 
     catchup() {
         // Get the mtime
-        this.c.internal += this.cyclesBehind;
-        this.c.mainClock += this.cyclesBehind;
+        this.internal += this.cyclesBehind;
+        this.internal &= 0xFFFF;
 
-        while (this.c.internal >= 256) {
-            this.divider++;
-            this.divider &= 0xFF;
-            this.c.internal -= 256;
-        }
+        this.mainClock += this.cyclesBehind;
 
-        while (this.c.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
-            if (this.control.running && this.counterOverflowTtime === 0) {
+        while (this.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
+            if (this.control.running) {
                 this.counter++;
             }
-            this.c.mainClock -= Timer.TimerSpeeds[this.control.speed];
+            this.mainClock -= Timer.TimerSpeeds[this.control.speed];
         }
 
         while (this.counter >= 256) {
-            this.counterOverflowTtime = 4;
-            this.counter -= 256;
+            this.counter = this.modulo;
+            this.gb.interrupts.requested.timer = true;
         }
-
-        if (this.counterOverflowTtime > 0) {
-            if (this.counterOverflowTtime === 1) {
-                this.counter = this.modulo;
-                this.gb.interrupts.requested.timer = true;
-            }
-            this.counterOverflowTtime--;
-        }
-
         this.cyclesBehind = 0;
     }
 
     reset() {
-        this.divider = 0;
         this.counter = 0;
         this.modulo = 0;
 
         this.control.speed = 0;
         this.control.running = false;
 
-        this.c.mainClock = 0;
-        this.c.internal = 0;
-        this.counterOverflowTtime = 0;
+        this.mainClock = 0;
+        this.internal = 0;
 
         this.cyclesBehind = 0;
     }
@@ -93,15 +74,13 @@ export default class Timer {
     // Divider
     get addr_0xFF04(): number {
         this.catchup();
-        return this.divider;
+        return this.internal >> 8;
     }
     set addr_0xFF04(i: number) {
         // Resets to 0 when written to
         this.catchup();
-        this.c.mainClock = 0;
-        this.c.internal = 0;
-        this.divider = 0;
-        this.counterOverflowTtime = 0;
+        this.mainClock = 0;
+        this.internal = 0;
     }
 
     // Counter / TIMA
@@ -111,8 +90,6 @@ export default class Timer {
     }
     set addr_0xFF05(i: number) {
         this.catchup();
-        if (this.counterOverflowTtime === 0)
-            this.counter = i;
     }
 
     // Modulo
@@ -139,6 +116,6 @@ export default class Timer {
         this.catchup();
         this.control.speed = i & 0b11; // Bits 0-1
         this.control.running = (i >> 2) !== 0; // Bit 2
-        this.c.mainClock = 0;
+        this.mainClock = 0;
     }
 }
