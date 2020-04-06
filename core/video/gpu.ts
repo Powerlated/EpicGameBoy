@@ -347,7 +347,7 @@ class GPU {
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
                             if (this.renderingThisFrame()) {
-                                this.canvas.drawGameboy();
+                                this.canvas.drawGameboy(this.imageGameboy);
                             }
                             this.lcdStatus.mode = 1;
                             this.totalFrameCount++;

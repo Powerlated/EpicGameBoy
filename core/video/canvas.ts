@@ -4,14 +4,11 @@ export default class GPUCanvas {
     ctxGameboy: CanvasRenderingContext2D;
     ctxTileset: CanvasRenderingContext2D;
 
-    gpu: GPU;
-
     constructor(gpu: GPU) {
         const cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
         this.ctxGameboy = cGameboy.getContext("2d")!;
         const cTileset = document.getElementById("tileset") as HTMLCanvasElement;
         this.ctxTileset = cTileset.getContext("2d")!;
-        this.gpu = gpu;
     }
 
     clearScreen() {
@@ -21,12 +18,12 @@ export default class GPUCanvas {
         ctx.clearRect(0, 0, (c as any).width, (c as any).height);
     }
 
-    drawGameboy() {
-        this.ctxGameboy.putImageData(this.gpu.imageGameboy, 0, 0);
+    drawGameboy(data: ImageData) {
+        this.ctxGameboy.putImageData(data, 0, 0);
     }
 
-    drawTileset() {
-        this.ctxTileset.putImageData(this.gpu.imageTileset, 0, 0);
+    drawTileset(data: ImageData) {
+        this.ctxTileset.putImageData(data, 0, 0);
 
         // this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
         // // 0: Bottom half used, 1: Top half used

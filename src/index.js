@@ -116,8 +116,8 @@ document.querySelector('#drawTileset').addEventListener('change', function (e) {
 // Draw tileset by default
 function startDrawingTiles() {
     drawTilesetInterval = setInterval(() => {
-        gb.gpu.renderer.renderTiles();
-        gb.gpu.canvas.drawTileset();
+        gb.gpu.renderTiles();
+        gb.gpu.canvas.drawTileset(gb.gpu.imageTileset);
     }, 100);
 }
 function stopDrawingTiles() {
