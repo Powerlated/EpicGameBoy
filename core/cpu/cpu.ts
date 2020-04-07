@@ -42,22 +42,21 @@ function overflow16bErr(cpu: CPU, name: string, overflow: any) {
 class Registers {
     cpu: CPU;
 
-    _f = new FlagsRegister();
+    _f = {
+        zero: false,
+        negative: false,
+        half_carry: false,
+        carry: false
+    };
 
     get f() {
         let flagN = 0;
-        if (this._f.zero) {
-            flagN = flagN | 0b10000000;
-        }
-        if (this._f.negative) {
-            flagN = flagN | 0b01000000;
-        }
-        if (this._f.half_carry) {
-            flagN = flagN | 0b00100000;
-        }
-        if (this._f.carry) {
-            flagN = flagN | 0b00010000;
-        }
+
+        if (this._f.zero) flagN |= (1 << 7);
+        if (this._f.negative) flagN |= (1 << 6);
+        if (this._f.half_carry) flagN |= (1 << 5);
+        if (this._f.carry) flagN |= (1 << 4);
+
         return flagN;
     }
 
@@ -112,22 +111,43 @@ class Registers {
         this[R16.HL] = i;
     }
 
-    // B, C, D, E, H, L, (HL), A 
-    0 = 0; 
-    1 = 0;
-    2 = 0;
-    3 = 0;
-    4 = 0;
-    5 = 0;
-    get 6(): number {
+    /*
+    * R8 internal magic numbers
+    * 
+    * A: 
+    * B: 0x0
+    * C: 0x1
+    * D: 0x2
+    * E: 0x3
+    * H: 0x4
+    * L: 0x5
+    * (HL): 0x6
+    * A: 0x7
+    * 
+    */
+    0x0 = 0;
+    0x1 = 0;
+    0x2 = 0;
+    0x3 = 0;
+    0x4 = 0;
+    0x5 = 0;
+    get 0x6(): number {
         return this.cpu.fetchMem8(this.cpu.reg.hl);
     }
-    set 6(i: number) {
+    set 0x6(i: number) {
         this.cpu.writeMem8(this.cpu.reg.hl, i);
     }
-    7 = 0;
+    0x7 = 0;
 
-    // AF, BC, DE, HL
+    /*
+    * R16 internal magic numbers:
+    *
+    * AF: 0x10
+    * BC: 0x11
+    * DE: 0x12
+    * HL: 0x13
+    * SP: 0x14
+    */
     get 0x10() {
         return this[R8.A] << 8 | this.cpu.reg.f;
     }
@@ -168,20 +188,6 @@ class Registers {
     }
 }
 
-class FlagsRegister {
-    zero: boolean;
-    negative: boolean;
-    half_carry: boolean;
-    carry: boolean;
-
-    constructor() {
-        this.zero = false;
-        this.negative = false;
-        this.half_carry = false;
-        this.carry = false;
-    }
-}
-
 export enum R8 {
     B = 0, C = 1, D = 2, E = 3, H = 4, L = 5, iHL = 6, A = 7
 }
@@ -189,6 +195,8 @@ export enum R8 {
 export enum R16 {
     AF = 0x10, BC = 0x11, DE = 0x12, HL = 0x13, SP = 0x14
 }
+
+export type R = R8 | R16;
 
 export enum CC {
     UNCONDITIONAL = -1,
