@@ -69,47 +69,33 @@ class Registers {
 
     sp = 0;
 
-    get a() { return this[R8.A]; };
     get b() { return this[R8.B]; };
     get c() { return this[R8.C]; };
     get d() { return this[R8.D]; };
     get e() { return this[R8.E]; };
     get h() { return this[R8.H]; };
     get l() { return this[R8.L]; };
+    get iHL() { return this[R8.iHL]; }
+    get a() { return this[R8.A]; };
 
-    set a(i: number) { this[R8.A] = i; };
     set b(i: number) { this[R8.B] = i; };
     set c(i: number) { this[R8.C] = i; };
     set d(i: number) { this[R8.D] = i; };
     set e(i: number) { this[R8.E] = i; };
     set h(i: number) { this[R8.H] = i; };
     set l(i: number) { this[R8.L] = i; };
+    set iHL(i: number) { this[R8.iHL] = i; }
+    set a(i: number) { this[R8.A] = i; };
 
-    get af() {
-        return this[R16.AF];
-    }
-    get bc() {
-        return this[R16.BC];
-    }
-    get de() {
-        return this[R16.DE];
-    }
-    get hl() {
-        return this[R16.HL];
-    }
+    get af() { return this[R16.AF]; }
+    get bc() { return this[R16.BC]; }
+    get de() { return this[R16.DE]; }
+    get hl() { return this[R16.HL]; }
 
-    set af(i: number) {
-        this[R16.AF] = i;
-    }
-    set bc(i: number) {
-        this[R16.BC] = i;
-    }
-    set de(i: number) {
-        this[R16.DE] = i;
-    }
-    set hl(i: number) {
-        this[R16.HL] = i;
-    }
+    set af(i: number) { this[R16.AF] = i; }
+    set bc(i: number) { this[R16.BC] = i; }
+    set de(i: number) { this[R16.DE] = i; }
+    set hl(i: number) { this[R16.HL] = i; }
 
     /*
     * R8 internal magic numbers
@@ -131,12 +117,8 @@ class Registers {
     0x3 = 0;
     0x4 = 0;
     0x5 = 0;
-    get 0x6(): number {
-        return this.cpu.fetchMem8(this.cpu.reg.hl);
-    }
-    set 0x6(i: number) {
-        this.cpu.writeMem8(this.cpu.reg.hl, i);
-    }
+    get 0x6(): number { return this.cpu.fetchMem8(this.cpu.reg.hl); }
+    set 0x6(i: number) { this.cpu.writeMem8(this.cpu.reg.hl, i); }
     0x7 = 0;
 
     /*
@@ -554,12 +536,8 @@ export default class CPU {
         this.breakpoints[point] = false;
     }
 
-    executed = new Array(256).fill(0);
-
     fetchDecodeExecute(): void {
         const b0 = this.fetchMem8(this.pc + 0);
-
-        this.executed[b0]++;
 
         switch (b0) {
             /** LD R16, N16 */

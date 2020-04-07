@@ -317,6 +317,8 @@ class GPU {
 
                     if (this.modeClock >= 172) {
                         this.modeClock -= 172;
+
+                        // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;
 
                         // Render sprites at end of scanline

@@ -52,8 +52,9 @@ export default class GameBoy {
                 this.cpuPausedTCyclesRemaining -= 4;
             } else {
                 lastInstructionCycles = this.cpu.step();
-                cyclesBehind += lastInstructionCycles;
             }
+
+            cyclesBehind += lastInstructionCycles;
 
             if (this.oamDmaTCyclesRemaining > 0) {
                 this.oamDmaTCyclesRemaining -= lastInstructionCycles;
@@ -148,7 +149,7 @@ export default class GameBoy {
         } else if (this.gpu.lcdControl.lcdDisplayEnable7) {
             final = gpu;
         }
-
+        
         return final;
     }
 
