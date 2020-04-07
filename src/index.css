@@ -10,8 +10,7 @@ html {
 }
 
 #debug {
-    line-height: 1;
-    font-family: 'ProggyClean';
+    line-height: 1.1;
 }
 
 .hidden {
@@ -23,8 +22,7 @@ html {
     outline: thin, 1px, black;
     vertical-align: top;
 
-    line-height: 0.9;
-    font-family: 'ProggyClean';
+    line-height: 1;
 }
 
 .panel {

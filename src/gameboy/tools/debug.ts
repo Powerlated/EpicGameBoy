@@ -108,15 +108,23 @@ export function startDebugging() {
     let lastFrameCount = 0;
     let lastCyclesCount = 0;
 
-    setInterval(() => {
-        const gpu = ((window as any).gb.gpu as GPU);
-        (window as any).fps = gpu.totalFrameCount - lastFrameCount;
-        lastFrameCount = gpu.totalFrameCount;
-    }, 1000);
+    let t0 = 0;
+    let t1 = 0;
 
     setInterval(() => {
+        let diff = t1 - t0;
+        t0 = t1;
+        t1 = performance.now();
+
+        const gpu = ((window as any).gb.gpu as GPU);
+        const fps = Math.round((gpu.totalFrameCount - lastFrameCount) / (diff / 1000));
+        (window as any).fps = fps;
+        lastFrameCount = gpu.totalFrameCount;
+
+        document.title = `Optime GB (${Math.round(100 * (fps / 60))}%)`;
+
         const cpu = ((window as any).gb.cpu as CPU);
-        (window as any).cyclesPerSecond = cpu.cycles - lastCyclesCount;
+        (window as any).cyclesPerSecond = Math.round((cpu.cycles - lastCyclesCount) / (diff / 1000));
         lastCyclesCount = cpu.cycles;
     }, 1000);
 
@@ -169,8 +177,9 @@ function updateDebug() {
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu.reg._f.zero ? "Z" : "-"}${cpu.reg._f.negative ? "N" : "-"}${cpu.reg._f.half_carry ? "H" : "-"}${cpu.reg._f.carry ? "C" : "-"}
         
-                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu.reg.sp), 4)}]
                 <span class="code">
+                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu.reg.sp), 4)}]
+
                 AF: ${hex(cpu.reg.af, 4)} ${pad(cpu.reg.a.toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
                 BC: ${hex(cpu.reg.bc, 4)} ${pad(cpu.reg.b.toString(2), 8, '0')} ${pad(cpu.reg.c.toString(2), 8, '0')}
                 DE: ${hex(cpu.reg.de, 4)} ${pad(cpu.reg.d.toString(2), 8, '0')} ${pad(cpu.reg.e.toString(2), 8, '0')}
