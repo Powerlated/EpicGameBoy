@@ -2,6 +2,7 @@
     "main": "./test.js",
     "dependencies": {
         "@types/pako": "^1.0.1",
+        "copy-webpack-plugin": "^5.1.1",
         "file-loader": "^5.1.0",
         "gl-matrix": "^3.2.1",
         "idb-keyval": "^3.2.0",
@@ -13,7 +14,6 @@
         "ts-keycode-enum": "^1.0.6"
     },
     "devDependencies": {
-        "@types/tone": "git://github.com/Tonejs/TypeScript.git",
         "css-loader": "^3.4.2",
         "html-webpack-inline-source-plugin": "0.0.10",
         "script-loader": "^0.7.2",

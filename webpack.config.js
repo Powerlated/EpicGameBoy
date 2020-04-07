@@ -1,8 +1,10 @@
 const path = require('path');
-const HtmlWebpackInlineSourcePlugin = require('html-webpack-inline-source-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    entry: './src/webpack-entry.js',
+    entry: {
+        index: './src/webpack-entry.js',
+    },
     module: {
         rules: [
             {
@@ -14,14 +16,30 @@ module.exports = {
                 test: /\.css$/i,
                 use: ['style-loader', 'css-loader'],
             },
+            {
+                test: /\.(woff|woff2|eot|ttf|otf)$/,
+                use: [
+                    'file-loader',
+                ],
+            },
         ],
     },
+    plugins: [
+        new CopyPlugin([
+            {
+                from: './src/roms.js',
+            },
+            {
+                from: './src/ProggyClean.ttf'
+            }
+        ]),
+    ],
     performance: { hints: false },
     resolve: {
         extensions: ['.ts', '.tsx', '.js'],
     },
     output: {
-        filename: 'bundle.js',
+        filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist'),
     },
     externals: {

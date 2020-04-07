@@ -169,7 +169,7 @@ function updateDebug() {
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu.reg._f.zero ? "Z" : "-"}${cpu.reg._f.negative ? "N" : "-"}${cpu.reg._f.half_carry ? "H" : "-"}${cpu.reg._f.carry ? "C" : "-"}
         
-                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp} ${cpu.reg.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu.reg.sp), 4)}]
+                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu.reg.sp), 4)}]
                 <span class="code">
                 AF: ${hex(cpu.reg.af, 4)} ${pad(cpu.reg.a.toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
                 BC: ${hex(cpu.reg.bc, 4)} ${pad(cpu.reg.b.toString(2), 8, '0')} ${pad(cpu.reg.c.toString(2), 8, '0')}

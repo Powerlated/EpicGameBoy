@@ -3,8 +3,15 @@ html {
     font-weight: 500;
 }
 
+@font-face {
+    font-family: ProggyClean;
+    src: url(ProggyClean.ttf);
+    font-weight: bold;
+}
+
 #debug {
-    line-height: 1.2
+    line-height: 1;
+    font-family: 'ProggyClean';
 }
 
 .hidden {
@@ -16,7 +23,8 @@ html {
     outline: thin, 1px, black;
     vertical-align: top;
 
-    line-height: 1;
+    line-height: 0.9;
+    font-family: 'ProggyClean';
 }
 
 .panel {
