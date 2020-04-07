@@ -174,17 +174,17 @@ export default class GameBoy {
 
             // Games check A for 0x11 to detect a CGB
             if (this.cgb) {
-                this.cpu._r.af = 0x1180;
-                this.cpu._r.bc = 0x0000;
-                this.cpu._r.de = 0xFF56;
-                this.cpu._r.hl = 0x000D;
-                this.cpu._r.sp = 0xFFFE;
+                this.cpu.reg.af = 0x1180;
+                this.cpu.reg.bc = 0x0000;
+                this.cpu.reg.de = 0xFF56;
+                this.cpu.reg.hl = 0x000D;
+                this.cpu.reg.sp = 0xFFFE;
             } else {
-                this.cpu._r.af = 0x01B0;
-                this.cpu._r.bc = 0x0013;
-                this.cpu._r.de = 0x00D8;
-                this.cpu._r.hl = 0x014D;
-                this.cpu._r.sp = 0xFFFE;
+                this.cpu.reg.af = 0x01B0;
+                this.cpu.reg.bc = 0x0013;
+                this.cpu.reg.de = 0x00D8;
+                this.cpu.reg.hl = 0x014D;
+                this.cpu.reg.sp = 0xFFFE;
             }
 
 

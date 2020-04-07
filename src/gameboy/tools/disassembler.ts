@@ -24,10 +24,10 @@ function tr(type: OperandType) {
 };
 export default class Disassembler {
     static willJump = (ins: Op, cpu: CPU) => {
-        if (ins.type === CC.C) return cpu._r._f.carry;
-        if (ins.type === CC.NC) return !cpu._r._f.carry;
-        if (ins.type === CC.Z) return cpu._r._f.zero;
-        if (ins.type === CC.NZ) return !cpu._r._f.zero;
+        if (ins.type === CC.C) return cpu.reg._f.carry;
+        if (ins.type === CC.NC) return !cpu.reg._f.carry;
+        if (ins.type === CC.Z) return cpu.reg._f.zero;
+        if (ins.type === CC.NZ) return !cpu.reg._f.zero;
         return true; // Jump by default
     };
 
@@ -52,11 +52,11 @@ export default class Disassembler {
             case Ops.CALL_N16:
                 return pcTriplet[1] | pcTriplet[2] << 8;
             case Ops.JP_HL:
-                return cpu._r.hl;
+                return cpu.reg.hl;
             case Ops.RET:
             case Ops.RETI:
-                const stackLowerByte = cpu.gb.bus.readMem8((cpu._r.sp) & 0xFFFF);
-                const stackUpperByte = cpu.gb.bus.readMem8((cpu._r.sp + 1) & 0xFFFF);
+                const stackLowerByte = cpu.gb.bus.readMem8((cpu.reg.sp) & 0xFFFF);
+                const stackUpperByte = cpu.gb.bus.readMem8((cpu.reg.sp + 1) & 0xFFFF);
                 return (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
             case Ops.JR_E8:
                 // Offset 2 for the length of JR instruction

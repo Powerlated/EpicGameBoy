@@ -68,126 +68,103 @@ class Registers {
         this._f.carry = (i & (1 << 4)) !== 0;
     }
 
-    // The 7 general registers + (HL)
-    gen: {
-        0: number,
-        1: number,
-        2: number,
-        3: number,
-        4: number,
-        5: number,
-        6: number,
-        7: number;
-    };
-
-    // Register pairs AF, BC, DE, HL
-    paired: {
-        0x10: number, // AF
-        0x11: number, // BC
-        0x12: number, // DE
-        0x13: number, // HL
-        0x14: number, // SP
-    };
-
     sp = 0;
 
-    get a() { return this.gen[R8.A]; };
-    get b() { return this.gen[R8.B]; };
-    get c() { return this.gen[R8.C]; };
-    get d() { return this.gen[R8.D]; };
-    get e() { return this.gen[R8.E]; };
-    get h() { return this.gen[R8.H]; };
-    get l() { return this.gen[R8.L]; };
+    get a() { return this[R8.A]; };
+    get b() { return this[R8.B]; };
+    get c() { return this[R8.C]; };
+    get d() { return this[R8.D]; };
+    get e() { return this[R8.E]; };
+    get h() { return this[R8.H]; };
+    get l() { return this[R8.L]; };
 
-    set a(i: number) { this.gen[R8.A] = i; };
-    set b(i: number) { this.gen[R8.B] = i; };
-    set c(i: number) { this.gen[R8.C] = i; };
-    set d(i: number) { this.gen[R8.D] = i; };
-    set e(i: number) { this.gen[R8.E] = i; };
-    set h(i: number) { this.gen[R8.H] = i; };
-    set l(i: number) { this.gen[R8.L] = i; };
+    set a(i: number) { this[R8.A] = i; };
+    set b(i: number) { this[R8.B] = i; };
+    set c(i: number) { this[R8.C] = i; };
+    set d(i: number) { this[R8.D] = i; };
+    set e(i: number) { this[R8.E] = i; };
+    set h(i: number) { this[R8.H] = i; };
+    set l(i: number) { this[R8.L] = i; };
 
     get af() {
-        return this.paired[R16.AF];
+        return this[R16.AF];
     }
     get bc() {
-        return this.paired[R16.BC];
+        return this[R16.BC];
     }
     get de() {
-        return this.paired[R16.DE];
+        return this[R16.DE];
     }
     get hl() {
-        return this.paired[R16.HL];
+        return this[R16.HL];
     }
 
     set af(i: number) {
-        this.paired[R16.AF] = i;
+        this[R16.AF] = i;
     }
     set bc(i: number) {
-        this.paired[R16.BC] = i;
+        this[R16.BC] = i;
     }
     set de(i: number) {
-        this.paired[R16.DE] = i;
+        this[R16.DE] = i;
     }
     set hl(i: number) {
-        this.paired[R16.HL] = i;
+        this[R16.HL] = i;
+    }
+
+    // B, C, D, E, H, L, (HL), A 
+    0 = 0; 
+    1 = 0;
+    2 = 0;
+    3 = 0;
+    4 = 0;
+    5 = 0;
+    get 6(): number {
+        return this.cpu.fetchMem8(this.cpu.reg.hl);
+    }
+    set 6(i: number) {
+        this.cpu.writeMem8(this.cpu.reg.hl, i);
+    }
+    7 = 0;
+
+    // AF, BC, DE, HL
+    get 0x10() {
+        return this[R8.A] << 8 | this.cpu.reg.f;
+    }
+    get 0x11() {
+        return this[R8.B] << 8 | this[R8.C];
+    }
+    get 0x12() {
+        return this[R8.D] << 8 | this[R8.E];
+    }
+    get 0x13() {
+        return this[R8.H] << 8 | this[R8.L];
+    }
+    get 0x14() {
+        return this.cpu.reg.sp;
+    }
+    set 0x10(i: number) {
+        this[R8.A] = i >> 8;
+        this.cpu.reg.f = i & 0xFF;
+    }
+    set 0x11(i: number) {
+        this[R8.B] = i >> 8;
+        this[R8.C] = i & 0xFF;
+    }
+    set 0x12(i: number) {
+        this[R8.D] = i >> 8;
+        this[R8.E] = i & 0xFF;
+    }
+    set 0x13(i: number) {
+        this[R8.H] = i >> 8;
+        this[R8.L] = i & 0xFF;
+    }
+    set 0x14(i: number) {
+        this.cpu.reg.sp = i;
     }
 
     constructor(cpu: CPU) {
         this.cpu = cpu;
-
-        this.gen = {
-            0: 0,
-            1: 0,
-            2: 0,
-            3: 0,
-            4: 0,
-            5: 0,
-            get 6(): number {
-                return cpu.fetchMem8(cpu._r.hl);
-            },
-            set 6(i: number) {
-                cpu.writeMem8(cpu._r.hl, i);
-            },
-            7: 0
-        };
-
-        this.paired = {
-            get 0x10() {
-                return cpu._r.gen[R8.A] << 8 | cpu._r.f;
-            },
-            get 0x11() {
-                return cpu._r.gen[R8.B] << 8 | cpu._r.gen[R8.C];
-            },
-            get 0x12() {
-                return cpu._r.gen[R8.D] << 8 | cpu._r.gen[R8.E];
-            },
-            get 0x13() {
-                return cpu._r.gen[R8.H] << 8 | cpu._r.gen[R8.L];
-            },
-            get 0x14() {
-                return cpu._r.sp;
-            },
-            set 0x10(i: number) {
-                cpu._r.gen[R8.A] = i >> 8;
-                cpu._r.f = i & 0xFF;
-            },
-            set 0x11(i: number) {
-                cpu._r.gen[R8.B] = i >> 8;
-                cpu._r.gen[R8.C] = i & 0xFF;
-            },
-            set 0x12(i: number) {
-                cpu._r.gen[R8.D] = i >> 8;
-                cpu._r.gen[R8.E] = i & 0xFF;
-            },
-            set 0x13(i: number) {
-                cpu._r.gen[R8.H] = i >> 8;
-                cpu._r.gen[R8.L] = i & 0xFF;
-            },
-            set 0x14(i: number) {
-                cpu._r.sp = i;
-            }
-        };
     }
 }
 
@@ -245,7 +222,7 @@ export default class CPU {
 
     // jumpLog: Array<string> = [];
 
-    _r = new Registers(this);
+    reg = new Registers(this);
     pc: number = 0x0000;
 
     breakpoints = new Array<boolean>(65536).fill(false);
@@ -278,19 +255,19 @@ export default class CPU {
 
 
     reset() {
-        this._r.gen[R8.A] = 0;
-        this._r.gen[R8.B] = 0;
-        this._r.gen[R8.C] = 0;
-        this._r.gen[R8.D] = 0;
-        this._r.gen[R8.E] = 0;
-        this._r.gen[R8.H] = 0;
-        this._r.gen[R8.L] = 0;
+        this.reg[R8.A] = 0;
+        this.reg[R8.B] = 0;
+        this.reg[R8.C] = 0;
+        this.reg[R8.D] = 0;
+        this.reg[R8.E] = 0;
+        this.reg[R8.H] = 0;
+        this.reg[R8.L] = 0;
 
-        this._r.af = 0;
-        this._r.bc = 0;
-        this._r.de = 0;
-        this._r.hl = 0;
-        this._r.sp = 0;
+        this.reg.af = 0;
+        this.reg.bc = 0;
+        this.reg.de = 0;
+        this.reg.hl = 0;
+        this.reg.sp = 0;
         this.totalI = 0;
         this.time = 0;
         this.pc = 0;
@@ -526,15 +503,15 @@ export default class CPU {
 
         if (this.logging) {
 
-            const flags = `${this._r._f.zero ? 'Z' : '-'}${this._r._f.negative ? 'N' : '-'}${this._r._f.half_carry ? 'H' : '-'}${this._r._f.carry ? 'C' : '-'}`;
+            const flags = `${this.reg._f.zero ? 'Z' : '-'}${this.reg._f.negative ? 'N' : '-'}${this.reg._f.half_carry ? 'H' : '-'}${this.reg._f.carry ? 'C' : '-'}`;
 
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
 
-            this.log.push(`A:${hexN(this._r.gen[R8.A], 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
-                } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
-            this.fullLog.push(`A:${hexN(this._r.gen[R8.A], 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
-                } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
+            this.log.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg.bc, 4)} DE:${hexN_LC(this.reg.de, 4)} HL:${hexN_LC(this.reg.hl, 4)
+                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
+            this.fullLog.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg.bc, 4)} DE:${hexN_LC(this.reg.de, 4)} HL:${hexN_LC(this.reg.hl, 4)
+                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
         }
 
         this.lastOperandDebug = operandDebug;
@@ -545,10 +522,10 @@ export default class CPU {
         const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
         const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
 
-        this._r.sp = (this._r.sp - 1) & 0xFFFF;
-        this.writeMem8(this._r.sp, pcUpperByte);
-        this._r.sp = (this._r.sp - 1) & 0xFFFF;
-        this.writeMem8(this._r.sp, pcLowerByte);
+        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+        this.writeMem8(this.reg.sp, pcUpperByte);
+        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+        this.writeMem8(this.reg.sp, pcLowerByte);
 
         this.pc = vector;
     }
@@ -569,8 +546,12 @@ export default class CPU {
         this.breakpoints[point] = false;
     }
 
+    executed = new Array(256).fill(0);
+
     fetchDecodeExecute(): void {
         const b0 = this.fetchMem8(this.pc + 0);
+
+        this.executed[b0]++;
 
         switch (b0) {
             /** LD R16, N16 */
@@ -583,7 +564,7 @@ export default class CPU {
                     const b2 = this.fetchMem8(this.pc + 2);
 
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
-                    this._r.paired[target] = (b2 << 8) | b1;
+                    this.reg[target] = (b2 << 8) | b1;
                 }
                 this.pc += 3;
                 return;
@@ -593,7 +574,7 @@ export default class CPU {
                     const b1 = this.fetchMem8(this.pc + 1);
                     const b2 = this.fetchMem8(this.pc + 2);
 
-                    this._r.gen[R8.A] = this.fetchMem8((b2 << 8) | b1);
+                    this.reg[R8.A] = this.fetchMem8((b2 << 8) | b1);
                 }
                 this.pc += 3;
                 return;
@@ -602,7 +583,7 @@ export default class CPU {
                     const b1 = this.fetchMem8(this.pc + 1);
                     const b2 = this.fetchMem8(this.pc + 2);
 
-                    this.writeMem8((b2 << 8) | b1, this._r.gen[R8.A]);
+                    this.writeMem8((b2 << 8) | b1, this.reg[R8.A]);
                 }
                 this.pc += 3;
                 return;
@@ -611,8 +592,8 @@ export default class CPU {
                     const b1 = this.fetchMem8(this.pc + 1);
                     const b2 = this.fetchMem8(this.pc + 2);
 
-                    const spUpperByte = this._r.sp >> 8;
-                    const spLowerByte = this._r.sp & 0b11111111;
+                    const spUpperByte = this.reg.sp >> 8;
+                    const spLowerByte = this.reg.sp & 0b11111111;
 
                     this.writeMem8((b2 << 8) | b1 + 0, spLowerByte);
                     this.writeMem8((b2 << 8) | b1 + 1, (spUpperByte) & 0xFFFF);
@@ -632,10 +613,10 @@ export default class CPU {
                     // If unconditional, don't check
                     if (b0 !== 0xC3) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this._r._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.Z && !this._r._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.NC && this._r._f.carry) { this.pc += 3; return; }
-                        if (cc === CC.C && !this._r._f.carry) { this.pc += 3; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; return; }
+                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; return; }
+                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; return; }
+                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; return; }
                     }
 
                     this.pc = ((b2 << 8) | b1 + 0x0) - 3;
@@ -656,10 +637,10 @@ export default class CPU {
 
                     if (b0 !== 0xCD) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this._r._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.Z && !this._r._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.NC && this._r._f.carry) { this.pc += 3; return; }
-                        if (cc === CC.C && !this._r._f.carry) { this.pc += 3; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; return; }
+                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; return; }
+                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; return; }
+                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; return; }
                     }
 
                     const pcUpperByte = ((this.pc + 3) & 0xFFFF) >> 8;
@@ -667,10 +648,10 @@ export default class CPU {
 
                     // console.info(`Calling 0x${u16.toString(16)} from 0x${this.pc.toString(16)}`);
 
-                    this._r.sp = (this._r.sp - 1) & 0xFFFF;
-                    this.writeMem8(this._r.sp, pcUpperByte);
-                    this._r.sp = (this._r.sp - 1) & 0xFFFF;
-                    this.writeMem8(this._r.sp, pcLowerByte);
+                    this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                    this.writeMem8(this.reg.sp, pcUpperByte);
+                    this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                    this.writeMem8(this.reg.sp, pcLowerByte);
 
                     this.pc = ((b2 << 8) | b1) - 3;
 
@@ -692,7 +673,7 @@ export default class CPU {
                 {
                     const b1 = this.fetchMem8(this.pc + 1);
 
-                    this._r.gen[R8.A] = this.fetchMem8((0xFF00 | b1) & 0xFFFF);
+                    this.reg[R8.A] = this.fetchMem8((0xFF00 | b1) & 0xFFFF);
                 }
                 this.pc += 2;
                 return;
@@ -700,7 +681,7 @@ export default class CPU {
                 {
                     const b1 = this.fetchMem8(this.pc + 1);
 
-                    this.writeMem8((0xFF00 | b1) & 0xFFFF, this._r.gen[R8.A]);
+                    this.writeMem8((0xFF00 | b1) & 0xFFFF, this.reg[R8.A]);
                 }
                 this.pc += 2;
                 return;
@@ -708,7 +689,7 @@ export default class CPU {
                 {
                     const b1 = this.fetchMem8(this.pc + 1);
 
-                    this.writeMem8(this._r.hl, b1);
+                    this.writeMem8(this.reg.hl, b1);
                 }
                 this.pc += 2;
                 return;
@@ -720,12 +701,12 @@ export default class CPU {
 
                     const signedVal = unTwo8b(b1);
 
-                    this._r._f.zero = false;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = (signedVal & 0xF) + (this._r.sp & 0xF) > 0xF;
-                    this._r._f.carry = (signedVal & 0xFF) + (this._r.sp & 0xFF) > 0xFF;
+                    this.reg._f.zero = false;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = (signedVal & 0xF) + (this.reg.sp & 0xF) > 0xF;
+                    this.reg._f.carry = (signedVal & 0xFF) + (this.reg.sp & 0xFF) > 0xFF;
 
-                    this._r.hl = (unTwo8b(b1) + this._r.sp) & 0xFFFF;
+                    this.reg.hl = (unTwo8b(b1) + this.reg.sp) & 0xFFFF;
 
                     // Register read timing
                     this.cycles += 4;
@@ -738,12 +719,12 @@ export default class CPU {
 
                     const value = unTwo8b(b1);
 
-                    this._r._f.zero = false;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = ((value & 0xF) + (this._r.sp & 0xF)) > 0xF;
-                    this._r._f.carry = ((value & 0xFF) + (this._r.sp & 0xFF)) > 0xFF;
+                    this.reg._f.zero = false;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = ((value & 0xF) + (this.reg.sp & 0xF)) > 0xF;
+                    this.reg._f.carry = ((value & 0xFF) + (this.reg.sp & 0xFF)) > 0xFF;
 
-                    this._r.sp = (this._r.sp + value) & 0xFFFF;
+                    this.reg.sp = (this.reg.sp + value) & 0xFFFF;
 
                     // Extra time
                     this.cycles += 8;
@@ -759,13 +740,13 @@ export default class CPU {
 
                     const value = b1;
 
-                    const final = value & this._r.gen[R8.A];
-                    this._r.gen[R8.A] = final;
+                    const final = value & this.reg[R8.A];
+                    this.reg[R8.A] = final;
 
-                    this._r._f.zero = this._r.gen[R8.A] === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = true;
-                    this._r._f.carry = false;
+                    this.reg._f.zero = this.reg[R8.A] === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = true;
+                    this.reg._f.carry = false;
                 }
                 this.pc += 2;
                 return;
@@ -775,13 +756,13 @@ export default class CPU {
 
                     const value = b1;
 
-                    const final = value | this._r.gen[R8.A];
-                    this._r.gen[R8.A] = final;
+                    const final = value | this.reg[R8.A];
+                    this.reg[R8.A] = final;
 
-                    this._r._f.zero = final === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = false;
+                    this.reg._f.zero = final === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = false;
                     this.pc += 2;
                     return;
                 }
@@ -791,13 +772,13 @@ export default class CPU {
 
                     const value = b1;
 
-                    const final = value ^ this._r.gen[R8.A];
-                    this._r.gen[R8.A] = final;
+                    const final = value ^ this.reg[R8.A];
+                    this.reg[R8.A] = final;
 
-                    this._r._f.zero = final === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = false;
+                    this.reg._f.zero = final === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = false;
                 }
                 this.pc += 2;
                 return;
@@ -807,13 +788,13 @@ export default class CPU {
 
                     const value = b1;
 
-                    const newValue = (this._r.gen[R8.A] - value) & 0xFF;
+                    const newValue = (this.reg[R8.A] - value) & 0xFF;
 
                     // Set flags
-                    this._r._f.carry = value > this._r.gen[R8.A];
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (this._r.gen[R8.A] & 0xF) - (b1 & 0xF) < 0;
+                    this.reg._f.carry = value > this.reg[R8.A];
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (this.reg[R8.A] & 0xF) - (b1 & 0xF) < 0;
                 }
                 this.pc += 2;
                 return;
@@ -829,10 +810,10 @@ export default class CPU {
 
                     if (b0 !== 0x18) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this._r._f.zero) { this.pc += 2; return; }
-                        if (cc === CC.Z && !this._r._f.zero) { this.pc += 2; return; }
-                        if (cc === CC.NC && this._r._f.carry) { this.pc += 2; return; }
-                        if (cc === CC.C && !this._r._f.carry) { this.pc += 2; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 2; return; }
+                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 2; return; }
+                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 2; return; }
+                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 2; return; }
                     }
 
                     this.pc += unTwo8b(b1);
@@ -847,17 +828,17 @@ export default class CPU {
 
                     const value = b1;
 
-                    const newValue = (value + this._r.gen[R8.A]) & 0xFF;
-                    const didOverflow = ((value + this._r.gen[R8.A]) >> 8) !== 0;
+                    const newValue = (value + this.reg[R8.A]) & 0xFF;
+                    const didOverflow = ((value + this.reg[R8.A]) >> 8) !== 0;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = (this._r.gen[R8.A] & 0xF) + (value & 0xF) > 0xF;
-                    this._r._f.carry = didOverflow;
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = (this.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
+                    this.reg._f.carry = didOverflow;
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
                 this.pc += 2;
                 return;
@@ -867,17 +848,17 @@ export default class CPU {
 
                     const value = b1;
 
-                    const newValue = (value + this._r.gen[R8.A] + (this._r._f.carry ? 1 : 0)) & 0xFF;
-                    const didOverflow = ((value + this._r.gen[R8.A] + (this._r._f.carry ? 1 : 0)) >> 8) !== 0;
+                    const newValue = (value + this.reg[R8.A] + (this.reg._f.carry ? 1 : 0)) & 0xFF;
+                    const didOverflow = ((value + this.reg[R8.A] + (this.reg._f.carry ? 1 : 0)) >> 8) !== 0;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = (this._r.gen[R8.A] & 0xF) + (value & 0xF) + (this._r._f.carry ? 1 : 0) > 0xF;
-                    this._r._f.carry = didOverflow;
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = (this.reg[R8.A] & 0xF) + (value & 0xF) + (this.reg._f.carry ? 1 : 0) > 0xF;
+                    this.reg._f.carry = didOverflow;
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
                 this.pc += 2;
                 return;
@@ -887,16 +868,16 @@ export default class CPU {
 
                     const value = b1;
 
-                    const newValue = (this._r.gen[R8.A] - value) & 0xFF;
+                    const newValue = (this.reg[R8.A] - value) & 0xFF;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (value & 0xF) > (this._r.gen[R8.A] & 0xF);
-                    this._r._f.carry = value > this._r.gen[R8.A];
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (value & 0xF) > (this.reg[R8.A] & 0xF);
+                    this.reg._f.carry = value > this.reg[R8.A];
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
                 this.pc += 2;
                 return;
@@ -906,16 +887,16 @@ export default class CPU {
 
                     const value = b1;
 
-                    const newValue = (this._r.gen[R8.A] - value - (this._r._f.carry ? 1 : 0)) & 0xFF;
+                    const newValue = (this.reg[R8.A] - value - (this.reg._f.carry ? 1 : 0)) & 0xFF;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (value & 0xF) > (this._r.gen[R8.A] & 0xF) - (this._r._f.carry ? 1 : 0);
-                    this._r._f.carry = value > this._r.gen[R8.A] - (this._r._f.carry ? 1 : 0);
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (value & 0xF) > (this.reg[R8.A] & 0xF) - (this.reg._f.carry ? 1 : 0);
+                    this.reg._f.carry = value > this.reg[R8.A] - (this.reg._f.carry ? 1 : 0);
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
                 this.pc += 2;
                 return;
@@ -934,14 +915,14 @@ export default class CPU {
                     const b1 = this.fetchMem8(this.pc + 1);
 
                     const target: R8 = (b0 & 0b111000) >> 3;
-                    this._r.gen[target] = b1;
+                    this.reg[target] = b1;
                 }
                 this.pc += 2;
                 return;
 
             case 0xF9: // LD SP, HL
                 {
-                    this._r.sp = this._r.hl;
+                    this.reg.sp = this.reg.hl;
                     // Register read timing
                     this.cycles += 4;
                 }
@@ -956,7 +937,7 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
                     const dest: R8 = (b0 & 0b111000) >> 3;
-                    this._r.gen[dest] = this._r.gen[source];
+                    this.reg[dest] = this.reg[source];
                 }
                 this.pc += 1;
                 return;
@@ -969,14 +950,14 @@ export default class CPU {
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
 
-                    const value = this._r.paired[target];
+                    const value = this.reg[target];
                     const upperByte = value >> 8;
                     const lowerByte = value & 0b11111111;
 
-                    this._r.sp = (this._r.sp - 1) & 0xFFFF;
-                    this.writeMem8(this._r.sp, upperByte);
-                    this._r.sp = (this._r.sp - 1) & 0xFFFF;
-                    this.writeMem8(this._r.sp, lowerByte);
+                    this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                    this.writeMem8(this.reg.sp, upperByte);
+                    this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                    this.writeMem8(this.reg.sp, lowerByte);
 
                     // 4 cycle penalty
                     this.cycles += 4;
@@ -992,12 +973,12 @@ export default class CPU {
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
 
-                    const lowerByte = this.fetchMem8(this._r.sp);
-                    this._r.sp = (this._r.sp + 1) & 0xFFFF;
-                    const upperByte = this.fetchMem8(this._r.sp);
-                    this._r.sp = (this._r.sp + 1) & 0xFFFF;
+                    const lowerByte = this.fetchMem8(this.reg.sp);
+                    this.reg.sp = (this.reg.sp + 1) & 0xFFFF;
+                    const upperByte = this.fetchMem8(this.reg.sp);
+                    this.reg.sp = (this.reg.sp + 1) & 0xFFFF;
 
-                    this._r.paired[target] = (upperByte << 8) | lowerByte;
+                    this.reg[target] = (upperByte << 8) | lowerByte;
                 }
                 this.pc += 1;
                 return;
@@ -1014,12 +995,12 @@ export default class CPU {
                 {
                     const dest: R8 = (b0 & 0b111000) >> 3;
 
-                    const oldValue = this._r.gen[dest];
+                    const oldValue = this.reg[dest];
                     const newValue = (oldValue + 1) & 0xFF;
-                    this._r.gen[dest] = newValue;
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = (oldValue & 0xF) + (1 & 0xF) > 0xF;
+                    this.reg[dest] = newValue;
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = (oldValue & 0xF) + (1 & 0xF) > 0xF;
                 }
                 this.pc += 1;
                 return;
@@ -1036,13 +1017,13 @@ export default class CPU {
                 {
                     const dest: R8 = (b0 & 0b111000) >> 3;
 
-                    const oldValue = this._r.gen[dest];
+                    const oldValue = this.reg[dest];
                     const newValue = (oldValue - 1) & 0xFF;
-                    this._r.gen[dest] = newValue;
+                    this.reg[dest] = newValue;
 
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (1 & 0xF) > (oldValue & 0xF);
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (1 & 0xF) > (oldValue & 0xF);
                 }
                 this.pc += 1;
                 return;
@@ -1054,7 +1035,7 @@ export default class CPU {
             case 0x33: // INC SP
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
-                    this._r.paired[target] = (this._r.paired[target] + 1) & 0xFFFF;
+                    this.reg[target] = (this.reg[target] + 1) & 0xFFFF;
                     this.cycles += 4;
                 }
                 this.pc += 1;
@@ -1067,7 +1048,7 @@ export default class CPU {
             case 0x3B: // DEC SP
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
-                    this._r.paired[target] = (this._r.paired[target] - 1) & 0xFFFF;
+                    this.reg[target] = (this.reg[target] - 1) & 0xFFFF;
                     this.cycles += 4;
                 }
                 this.pc += 1;
@@ -1085,19 +1066,19 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    let value = this._r.gen[source];
-                    this._r._f.half_carry = (this._r.gen[R8.A] & 0xF) + (value & 0xF) > 0xF;
+                    let value = this.reg[source];
+                    this.reg._f.half_carry = (this.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
 
-                    let newValue = (value + this._r.gen[R8.A]) & 0xFF;
-                    let didOverflow = ((value + this._r.gen[R8.A]) >> 8) !== 0;
+                    let newValue = (value + this.reg[R8.A]) & 0xFF;
+                    let didOverflow = ((value + this.reg[R8.A]) >> 8) !== 0;
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
 
                     // Set flags
-                    this._r._f.carry = didOverflow;
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = false;
+                    this.reg._f.carry = didOverflow;
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = false;
                 }
 
                 this.pc += 1;
@@ -1114,19 +1095,19 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    let value = this._r.gen[source];
+                    let value = this.reg[source];
 
-                    let newValue = (value + this._r.gen[R8.A] + (this._r._f.carry ? 1 : 0)) & 0xFF;
-                    let didOverflow = ((value + this._r.gen[R8.A] + (this._r._f.carry ? 1 : 0)) >> 8) !== 0;
+                    let newValue = (value + this.reg[R8.A] + (this.reg._f.carry ? 1 : 0)) & 0xFF;
+                    let didOverflow = ((value + this.reg[R8.A] + (this.reg._f.carry ? 1 : 0)) >> 8) !== 0;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = (this._r.gen[R8.A] & 0xF) + (value & 0xF) + (this._r._f.carry ? 1 : 0) > 0xF;
-                    this._r._f.carry = didOverflow;
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = (this.reg[R8.A] & 0xF) + (value & 0xF) + (this.reg._f.carry ? 1 : 0) > 0xF;
+                    this.reg._f.carry = didOverflow;
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
 
                 this.pc += 1;
@@ -1143,18 +1124,18 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    const value = this._r.gen[source];
+                    const value = this.reg[source];
 
-                    const newValue = (this._r.gen[R8.A] - value) & 0xFF;
+                    const newValue = (this.reg[R8.A] - value) & 0xFF;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (value & 0xF) > (this._r.gen[R8.A] & 0xF);
-                    this._r._f.carry = value > this._r.gen[R8.A];
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (value & 0xF) > (this.reg[R8.A] & 0xF);
+                    this.reg._f.carry = value > this.reg[R8.A];
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
 
                 this.pc += 1;
@@ -1171,18 +1152,18 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    const value = this._r.gen[source];
+                    const value = this.reg[source];
 
-                    const newValue = (this._r.gen[R8.A] - value - (this._r._f.carry ? 1 : 0)) & 0xFF;
+                    const newValue = (this.reg[R8.A] - value - (this.reg._f.carry ? 1 : 0)) & 0xFF;
 
                     // Set flags
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (value & 0xF) > (this._r.gen[R8.A] & 0xF) - (this._r._f.carry ? 1 : 0);
-                    this._r._f.carry = value > this._r.gen[R8.A] - (this._r._f.carry ? 1 : 0);
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (value & 0xF) > (this.reg[R8.A] & 0xF) - (this.reg._f.carry ? 1 : 0);
+                    this.reg._f.carry = value > this.reg[R8.A] - (this.reg._f.carry ? 1 : 0);
 
                     // Set register values
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
                 }
 
                 this.pc += 1;
@@ -1199,16 +1180,16 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    const value = this._r.gen[source];
+                    const value = this.reg[source];
 
-                    const final = value & this._r.gen[R8.A];
-                    this._r.gen[R8.A] = final;
+                    const final = value & this.reg[R8.A];
+                    this.reg[R8.A] = final;
 
                     // Set flags
-                    this._r._f.zero = this._r.gen[R8.A] === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = true;
-                    this._r._f.carry = false;
+                    this.reg._f.zero = this.reg[R8.A] === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = true;
+                    this.reg._f.carry = false;
                 }
 
                 this.pc += 1;
@@ -1225,15 +1206,15 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    const value = this._r.gen[source];
+                    const value = this.reg[source];
 
-                    const final = value ^ this._r.gen[R8.A];
-                    this._r.gen[R8.A] = final;
+                    const final = value ^ this.reg[R8.A];
+                    this.reg[R8.A] = final;
 
-                    this._r._f.zero = final === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = false;
+                    this.reg._f.zero = final === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = false;
                 }
 
                 this.pc += 1;
@@ -1250,15 +1231,15 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    const value = this._r.gen[source];
+                    const value = this.reg[source];
 
-                    const final = value | this._r.gen[R8.A];
-                    this._r.gen[R8.A] = final;
+                    const final = value | this.reg[R8.A];
+                    this.reg[R8.A] = final;
 
-                    this._r._f.zero = final === 0;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = false;
+                    this.reg._f.zero = final === 0;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = false;
                 }
 
                 this.pc += 1;
@@ -1275,17 +1256,17 @@ export default class CPU {
                 {
                     const source: R8 = b0 & 0b111;
 
-                    const r8 = this._r.gen[source];
+                    const r8 = this.reg[source];
 
-                    const newValue = (this._r.gen[R8.A] - r8) & 0xFF;
+                    const newValue = (this.reg[R8.A] - r8) & 0xFF;
 
                     // DO not set register values for CP
 
                     // Set flags
-                    this._r._f.carry = r8 > this._r.gen[R8.A];
-                    this._r._f.zero = newValue === 0;
-                    this._r._f.negative = true;
-                    this._r._f.half_carry = (this._r.gen[R8.A] & 0xF) - (r8 & 0xF) < 0;
+                    this.reg._f.carry = r8 > this.reg[R8.A];
+                    this.reg._f.zero = newValue === 0;
+                    this.reg._f.negative = true;
+                    this.reg._f.half_carry = (this.reg[R8.A] & 0xF) - (r8 & 0xF) < 0;
                 }
 
                 this.pc += 1;
@@ -1293,15 +1274,15 @@ export default class CPU {
 
 
             case 0x2F: // CPL
-                this._r.gen[R8.A] = this._r.gen[R8.A] ^ 0b11111111;
+                this.reg[R8.A] = this.reg[R8.A] ^ 0b11111111;
 
-                this._r._f.negative = true;
-                this._r._f.half_carry = true;
+                this.reg._f.negative = true;
+                this.reg._f.half_carry = true;
                 this.pc += 1;
                 return;
             case 0xD9: // RETI
-                const stackLowerByte = this.fetchMem8((this._r.sp++) & 0xFFFF);
-                const stackUpperByte = this.fetchMem8((this._r.sp++) & 0xFFFF);
+                const stackLowerByte = this.fetchMem8((this.reg.sp++) & 0xFFFF);
+                const stackUpperByte = this.fetchMem8((this.reg.sp++) & 0xFFFF);
 
                 const returnAddress = ((stackUpperByte << 8) | stackLowerByte) & 0xFFFF;
                 // console.info(`Returning to 0x${returnAddress.toString(16)}`);
@@ -1313,27 +1294,27 @@ export default class CPU {
                 this.pc += 1;
                 return;
             case 0x27: // DAA
-                if (!this._r._f.negative) {
-                    if (this._r._f.carry || this._r.gen[R8.A] > 0x99) {
-                        this._r.gen[R8.A] = (this._r.gen[R8.A] + 0x60) & 0xFF;
-                        this._r._f.carry = true;
+                if (!this.reg._f.negative) {
+                    if (this.reg._f.carry || this.reg[R8.A] > 0x99) {
+                        this.reg[R8.A] = (this.reg[R8.A] + 0x60) & 0xFF;
+                        this.reg._f.carry = true;
                     }
-                    if (this._r._f.half_carry || (this._r.gen[R8.A] & 0x0f) > 0x09) {
-                        this._r.gen[R8.A] = (this._r.gen[R8.A] + 0x6) & 0xFF;
+                    if (this.reg._f.half_carry || (this.reg[R8.A] & 0x0f) > 0x09) {
+                        this.reg[R8.A] = (this.reg[R8.A] + 0x6) & 0xFF;
                     }
                 }
                 else {
-                    if (this._r._f.carry) {
-                        this._r.gen[R8.A] = (this._r.gen[R8.A] - 0x60) & 0xFF;
-                        this._r._f.carry = true;
+                    if (this.reg._f.carry) {
+                        this.reg[R8.A] = (this.reg[R8.A] - 0x60) & 0xFF;
+                        this.reg._f.carry = true;
                     }
-                    if (this._r._f.half_carry) {
-                        this._r.gen[R8.A] = (this._r.gen[R8.A] - 0x6) & 0xFF;
+                    if (this.reg._f.half_carry) {
+                        this.reg[R8.A] = (this.reg[R8.A] - 0x6) & 0xFF;
                     }
                 }
 
-                this._r._f.zero = this._r.gen[R8.A] === 0;
-                this._r._f.half_carry = false;
+                this.reg._f.zero = this.reg[R8.A] === 0;
+                this.reg._f.half_carry = false;
                 this.pc += 1;
                 return;
             case 0x00: // NOP
@@ -1342,48 +1323,48 @@ export default class CPU {
 
             /** LD between A and R16 */
             case 0x02: // LD [BC], A
-                this.writeMem8(this._r.paired[R16.BC], this._r.gen[R8.A]);
+                this.writeMem8(this.reg[R16.BC], this.reg[R8.A]);
                 this.pc += 1;
                 return;
             case 0x12: // LD [DE], A
-                this.writeMem8(this._r.paired[R16.DE], this._r.gen[R8.A]);
+                this.writeMem8(this.reg[R16.DE], this.reg[R8.A]);
                 this.pc += 1;
                 return;
             case 0x22: // LD [HL+], A
-                this.writeMem8(this._r.hl, this._r.gen[R8.A]);
-                this._r.hl = (this._r.hl + 1) & 0xFFFF;
+                this.writeMem8(this.reg.hl, this.reg[R8.A]);
+                this.reg.hl = (this.reg.hl + 1) & 0xFFFF;
                 this.pc += 1;
                 return;
             case 0x32: // LD [HL-], A
-                this.writeMem8(this._r.hl, this._r.gen[R8.A]);
-                this._r.hl = (this._r.hl - 1) & 0xFFFF;
+                this.writeMem8(this.reg.hl, this.reg[R8.A]);
+                this.reg.hl = (this.reg.hl - 1) & 0xFFFF;
                 this.pc += 1;
                 return;
             case 0x0A: // LD A, [BC]
-                this._r.gen[R8.A] = this.fetchMem8(this._r.paired[R16.BC]);
+                this.reg[R8.A] = this.fetchMem8(this.reg[R16.BC]);
                 this.pc += 1;
                 return;
             case 0x1A: // LD A, [DE]
-                this._r.gen[R8.A] = this.fetchMem8(this._r.paired[R16.DE]);
+                this.reg[R8.A] = this.fetchMem8(this.reg[R16.DE]);
                 this.pc += 1;
                 return;
             case 0x2A: // LD A, [HL+]
-                this._r.gen[R8.A] = this.fetchMem8(this._r.hl);
-                this._r.hl = (this._r.hl + 1) & 0xFFFF;
+                this.reg[R8.A] = this.fetchMem8(this.reg.hl);
+                this.reg.hl = (this.reg.hl + 1) & 0xFFFF;
                 this.pc += 1;
                 return;
             case 0x3A: // LD A, [HL-]
-                this._r.gen[R8.A] = this.fetchMem8(this._r.hl);
-                this._r.hl = (this._r.hl - 1) & 0xFFFF;
+                this.reg[R8.A] = this.fetchMem8(this.reg.hl);
+                this.reg.hl = (this.reg.hl - 1) & 0xFFFF;
                 this.pc += 1;
                 return;
 
             case 0xF2: // LD A, [$FF00+C]
-                this._r.gen[R8.A] = this.fetchMem8((0xFF00 | this._r.gen[R8.C]) & 0xFFFF);
+                this.reg[R8.A] = this.fetchMem8((0xFF00 | this.reg[R8.C]) & 0xFFFF);
                 this.pc += 1;
                 return;
             case 0xE2: // LD [$FF00+C], A
-                this.writeMem8((0xFF00 | this._r.gen[R8.C]) & 0xFFFF, this._r.gen[R8.A]);
+                this.writeMem8((0xFF00 | this.reg[R8.C]) & 0xFFFF, this.reg[R8.A]);
                 this.pc += 1;
                 return;
 
@@ -1398,7 +1379,7 @@ export default class CPU {
 
             /** JP */
             case 0xE9: // JP HL
-                this.pc = this._r.hl - 1;
+                this.pc = this.reg.hl - 1;
                 this.pc += 1;
                 return;
 
@@ -1406,68 +1387,68 @@ export default class CPU {
             /** A rotate */
             case 0x07: // RLC A
                 {
-                    const value = this._r.gen[R8.A];
+                    const value = this.reg[R8.A];
 
                     const leftmostBit = (value & 0b10000000) >> 7;
 
                     const newValue = ((value << 1) | leftmostBit) & 0xFF;
 
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
 
-                    this._r._f.zero = false;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = (value >> 7) === 1;
+                    this.reg._f.zero = false;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = (value >> 7) === 1;
                 }
                 this.pc += 1;
                 return;
             case 0x0F: // RRC A
                 {
-                    const value = this._r.gen[R8.A];
+                    const value = this.reg[R8.A];
 
                     const rightmostBit = (value & 1) << 7;
                     const newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
 
-                    this._r._f.zero = false;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = (value & 1) === 1;
+                    this.reg._f.zero = false;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = (value & 1) === 1;
                 }
                 this.pc += 1;
                 return;
             case 0x1F: // RR A
                 {
-                    const value = this._r.gen[R8.A];
+                    const value = this.reg[R8.A];
 
-                    const carryMask = (this._r.f & 0b00010000) << 3;
+                    const carryMask = (this.reg.f & 0b00010000) << 3;
 
                     const newValue = ((value >> 1) | carryMask) & 0xFF;
 
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
 
-                    this._r._f.zero = false;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = !!(value & 1);
+                    this.reg._f.zero = false;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = !!(value & 1);
                 }
                 this.pc += 1;
                 return;
             case 0x17: // RL A
                 {
-                    const value = this._r.gen[R8.A];
+                    const value = this.reg[R8.A];
 
-                    const carryMask = (this._r.f & 0b00010000) >> 4;
+                    const carryMask = (this.reg.f & 0b00010000) >> 4;
 
                     const newValue = ((value << 1) | carryMask) & 0xFF;
 
-                    this._r.gen[R8.A] = newValue;
+                    this.reg[R8.A] = newValue;
 
-                    this._r._f.zero = false;
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = false;
-                    this._r._f.carry = (value >> 7) === 1;
+                    this.reg._f.zero = false;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = false;
+                    this.reg._f.carry = (value >> 7) === 1;
                 }
                 this.pc += 1;
                 return;
@@ -1495,15 +1476,15 @@ export default class CPU {
 
             /** Carry flag */
             case 0x37: // SCF
-                this._r._f.negative = false;
-                this._r._f.half_carry = false;
-                this._r._f.carry = true;
+                this.reg._f.negative = false;
+                this.reg._f.half_carry = false;
+                this.reg._f.carry = true;
                 this.pc += 1;
                 return;
             case 0x3F: // CCF
-                this._r._f.negative = false;
-                this._r._f.half_carry = false;
-                this._r._f.carry = !this._r._f.carry;
+                this.reg._f.negative = false;
+                this.reg._f.half_carry = false;
+                this.reg._f.carry = !this.reg._f.carry;
                 this.pc += 1;
                 return;
 
@@ -1520,14 +1501,14 @@ export default class CPU {
                         this.cycles += 4; // Branch decision?
 
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this._r._f.zero) { this.pc += 1; return; }
-                        if (cc === CC.Z && !this._r._f.zero) { this.pc += 1; return; }
-                        if (cc === CC.NC && this._r._f.carry) { this.pc += 1; return; }
-                        if (cc === CC.C && !this._r._f.carry) { this.pc += 1; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 1; return; }
+                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 1; return; }
+                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 1; return; }
+                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 1; return; }
                     }
 
-                    const stackLowerByte = this.fetchMem8((this._r.sp++) & 0xFFFF);
-                    const stackUpperByte = this.fetchMem8((this._r.sp++) & 0xFFFF);
+                    const stackLowerByte = this.fetchMem8((this.reg.sp++) & 0xFFFF);
+                    const stackUpperByte = this.fetchMem8((this.reg.sp++) & 0xFFFF);
 
                     const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
                     // console.info(`Returning to 0x${returnAddress.toString(16)}`);
@@ -1548,18 +1529,18 @@ export default class CPU {
             case 0x39: // ADD HL, SP
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
-                    const r16Value = this._r.paired[target];
+                    const r16Value = this.reg[target];
 
-                    const newValue = (r16Value + this._r.hl) & 0xFFFF;
-                    const didOverflow = ((r16Value + this._r.hl) >> 16) !== 0;
+                    const newValue = (r16Value + this.reg.hl) & 0xFFFF;
+                    const didOverflow = ((r16Value + this.reg.hl) >> 16) !== 0;
 
                     // Set flag
-                    this._r._f.negative = false;
-                    this._r._f.half_carry = (this._r.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
-                    this._r._f.carry = didOverflow;
+                    this.reg._f.negative = false;
+                    this.reg._f.half_carry = (this.reg.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
+                    this.reg._f.carry = didOverflow;
 
                     // Set register values
-                    this._r.hl = newValue;
+                    this.reg.hl = newValue;
 
                     // Register read takes 4 more cycles
                     this.cycles += 4;
@@ -1581,10 +1562,10 @@ export default class CPU {
                     const pcUpperByte = ((this.pc + 1) & 0xFFFF) >> 8;
                     const pcLowerByte = ((this.pc + 1) & 0xFFFF) & 0xFF;
 
-                    this._r.sp = (this._r.sp - 1) & 0xFFFF;
-                    this.writeMem8(this._r.sp, pcUpperByte);
-                    this._r.sp = (this._r.sp - 1) & 0xFFFF;
-                    this.writeMem8(this._r.sp, pcLowerByte);
+                    this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                    this.writeMem8(this.reg.sp, pcUpperByte);
+                    this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                    this.writeMem8(this.reg.sp, pcLowerByte);
 
                     this.pc = target - 1;
 
@@ -1627,17 +1608,17 @@ export default class CPU {
                         case 0x06:
                         case 0x07:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
                                 const leftmostBit = (value & 0b10000000) >> 7;
                                 const newValue = ((value << 1) | leftmostBit) & 0xFF;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = (value >> 7) === 1;
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = (value >> 7) === 1;
                             }
                             this.pc += 2;
                             return;
@@ -1652,17 +1633,17 @@ export default class CPU {
                         case 0x0E:
                         case 0x0F:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
                                 const rightmostBit = (value & 1) << 7;
                                 const newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = !!(value & 1);
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = !!(value & 1);
                             }
                             this.pc += 2;
                             return;
@@ -1678,18 +1659,18 @@ export default class CPU {
                         case 0x16:
                         case 0x17:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
-                                const carryMask = (this._r.f & 0b00010000) >> 4;
+                                const carryMask = (this.reg.f & 0b00010000) >> 4;
 
                                 const newValue = ((value << 1) | carryMask) & 0xFF;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = (value >> 7) === 1;
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = (value >> 7) === 1;
                             }
                             this.pc += 2;
                             return;
@@ -1704,18 +1685,18 @@ export default class CPU {
                         case 0x1E:
                         case 0x1F:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
-                                const carryMask = (this._r.f & 0b00010000) << 3;
+                                const carryMask = (this.reg.f & 0b00010000) << 3;
 
                                 const newValue = ((value >> 1) | carryMask) & 0xFF;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = !!(value & 1);
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = !!(value & 1);
                             }
                             this.pc += 2;
                             return;
@@ -1730,17 +1711,17 @@ export default class CPU {
                         case 0x26:
                         case 0x27:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
                                 const newValue = (value << 1) & 0xFF;
                                 const didOverflow = ((value << 1) >> 8) !== 0;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = didOverflow;
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = didOverflow;
                             }
                             this.pc += 2;
                             return;
@@ -1755,17 +1736,17 @@ export default class CPU {
                         case 0x2E:
                         case 0x2F:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
                                 const leftmostBit = value & 0b10000000;
                                 const newValue = (value >> 1) | leftmostBit;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = !!(value & 1);
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = !!(value & 1);
                             }
                             this.pc += 2;
                             return;
@@ -1780,17 +1761,17 @@ export default class CPU {
                         case 0x36:
                         case 0x37:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
                                 const lowerNybble = value & 0b00001111;
                                 const upperNybble = (value >> 4) & 0b00001111;
 
-                                this._r.gen[t] = (lowerNybble << 4) | upperNybble;
+                                this.reg[t] = (lowerNybble << 4) | upperNybble;
 
-                                this._r._f.zero = value === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = false;
+                                this.reg._f.zero = value === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = false;
                             }
                             this.pc += 2;
                             return;
@@ -1805,16 +1786,16 @@ export default class CPU {
                         case 0x3E:
                         case 0x3F:
                             {
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
                                 const newValue = value >> 1;
 
-                                this._r.gen[t] = newValue;
+                                this.reg[t] = newValue;
 
-                                this._r._f.zero = newValue === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = false;
-                                this._r._f.carry = !!(value & 1);
+                                this.reg._f.zero = newValue === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = false;
+                                this.reg._f.carry = !!(value & 1);
                             }
                             this.pc += 2;
                             return;
@@ -1827,11 +1808,11 @@ export default class CPU {
                             {
                                 const bit = (b1 & 0b111000) >> 3;
 
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
 
-                                this._r._f.zero = (value & (1 << bit)) === 0;
-                                this._r._f.negative = false;
-                                this._r._f.half_carry = true;
+                                this.reg._f.zero = (value & (1 << bit)) === 0;
+                                this.reg._f.negative = false;
+                                this.reg._f.half_carry = true;
                             }
                             this.pc += 2;
                             return;
@@ -1844,12 +1825,12 @@ export default class CPU {
                             {
                                 const bit = (b1 & 0b111000) >> 3;
 
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
                                 const mask = 0b1 << bit;
 
                                 const final = value & ~(mask);
 
-                                this._r.gen[t] = final;
+                                this.reg[t] = final;
                             }
                             this.pc += 2;
                             return;
@@ -1862,12 +1843,12 @@ export default class CPU {
                             {
                                 const bit = (b1 & 0b111000) >> 3;
 
-                                const value = this._r.gen[t];
+                                const value = this.reg[t];
                                 const mask = 0b1 << bit;
 
                                 const final = value | mask;
 
-                                this._r.gen[t] = final;
+                                this.reg[t] = final;
                             }
                             this.pc += 2;
                             return;
