@@ -536,6 +536,13 @@ export default class CPU {
         this.breakpoints[point] = false;
     }
 
+    /**
+     * Executes an instruction.
+     * 
+     * Timings are atomic by instruction in this emulator, so running components in between fetch, decode, and execute I just don't care about.
+     * In more accurate emulators, sub-instruction timings are important. About this? I don't care. My emulator isn't striving to be the most accurate.
+     * 
+     */
     fetchDecodeExecute(): void {
         const b0 = this.fetchMem8(this.pc + 0);
 

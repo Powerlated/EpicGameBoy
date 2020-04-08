@@ -366,6 +366,7 @@ class GPU {
                 case 1:
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
+
                         this.lcdcY++;
 
                         this.currentWindowLine = 0;

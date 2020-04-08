@@ -121,7 +121,7 @@ export function startDebugging() {
         (window as any).fps = fps;
         lastFrameCount = gpu.totalFrameCount;
 
-        document.title = `Optime GB (${Math.round(100 * (fps / 60))}%)`;
+        document.title = `Optime GB (${fps}fps)`;
 
         const cpu = ((window as any).gb.cpu as CPU);
         (window as any).cyclesPerSecond = Math.round((cpu.cycles - lastCyclesCount) / (diff / 1000));

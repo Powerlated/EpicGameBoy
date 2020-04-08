@@ -32,17 +32,6 @@ export class JoypadRegister {
     private _a = false;
     private _b = false;
 
-    public get down() { return this._down; }
-    public get up() { return this._up; }
-    public get left() { return this._left; }
-    public get right() { return this._right; }
-
-    public get start() { return this._start; }
-    public get select() { return this._select; }
-    public get a() { return this._a; }
-    public get b() { return this._b; }
-
-
     public set down(v: boolean) {
         this._down = v;
         if (v === true) this.gb.interrupts.requested.joypad = true;
@@ -80,20 +69,21 @@ export class JoypadRegister {
     get numerical(): number {
         let n = 0xFF;
 
-        if (this.selectButtons) n &= ~(1 << 5);
-        if (this.selectDpad) n &= ~(1 << 4);
-
         if (this.selectDpad) {
-            if (this.down) n &= ~(1 << 3);
-            if (this.up) n &= ~(1 << 2);
-            if (this.left) n &= ~(1 << 1);
-            if (this.right) n &= ~(1 << 0);
+            n &= ~(1 << 4);
+
+            if (this._down) n &= ~(1 << 3);
+            if (this._up) n &= ~(1 << 2);
+            if (this._left) n &= ~(1 << 1);
+            if (this._right) n &= ~(1 << 0);
         }
         if (this.selectButtons) {
-            if (this.start) n &= ~(1 << 3);
-            if (this.select) n &= ~(1 << 2);
-            if (this.b) n &= ~(1 << 1);
-            if (this.a) n &= ~(1 << 0);
+            n &= ~(1 << 5);
+
+            if (this._start) n &= ~(1 << 3);
+            if (this._select) n &= ~(1 << 2);
+            if (this._b) n &= ~(1 << 1);
+            if (this._a) n &= ~(1 << 0);
         }
         return n;
     }

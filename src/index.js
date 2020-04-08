@@ -221,6 +221,10 @@ function repeatDisassemble() {
 
 }
 
+// Set the turbo (TAB) speed multiplier
+window.speedMul = 10;
+
+
 function init() {
     
     let gb = new GameBoy(true);
@@ -293,7 +297,7 @@ function init() {
                 break;
 
             case "Tab":
-                gb.speedMul = 10;
+                gb.speedMul = window.speedMul;
                 break;
         }
     };

@@ -237,6 +237,8 @@ class MemoryBus {
                 case 0xFF01:
                     // console.info(`SERIAL PORT READ`);
                     return 0xFF;
+                case 0xFF02:
+                    return 0x00;
                 case 0xFF04: // Timer divider
                     return this.gb.timer.addr_0xFF04;
                 case 0xFF05: // Timer counter
