@@ -12,26 +12,13 @@ module.exports = {
                 use: 'ts-loader',
                 exclude: /node_modules/,
             },
-            {
-                test: /\.css$/i,
-                use: ['style-loader', 'css-loader'],
-            },
-            {
-                test: /\.(woff|woff2|eot|ttf|otf)$/,
-                use: [
-                    'file-loader',
-                ],
-            },
         ],
     },
     plugins: [
         new CopyPlugin([
-            {
-                from: './src/roms.js',
-            },
-            {
-                from: './src/ProggyClean.ttf'
-            }
+            { from: './src/roms.js', },
+            { from: './src/ProggyClean.ttf' },
+            { from: './src/index.css' }
         ]),
     ],
     performance: { hints: false },
