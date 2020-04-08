@@ -240,9 +240,8 @@ class GPU {
     modeClock: number = 0;
 
     // Have events happened this scanline yet?
-    bgDrawn = false; 
-    windowDrawn = false; 
-    oamScanned = false; 
+    bgDrawn = false;
+    windowDrawn = false;
 
     // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
@@ -268,11 +267,6 @@ class GPU {
                 // Read from OAM - Scanline active
                 case 2:
                     if (this.modeClock >= 80) {
-                        if (this.oamScanned == false) {
-                            this.scanOAM();
-                            this.oamScanned = true;
-                        }
-
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
                     }
@@ -328,7 +322,6 @@ class GPU {
                             }
                         }
 
-                        this.oamScanned = false;
                         this.bgDrawn = false;
                         this.windowDrawn = false;
 
@@ -386,9 +379,6 @@ class GPU {
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
                         this.lcdStatus.mode = 2;
-                        if (this.renderingThisFrame()) {
-                            this.scanOAM();
-                        }
                     }
                     break;
             }
@@ -433,36 +423,6 @@ class GPU {
 
     scannedEntries: OAMEntry[] = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags(0)));
     scannedEntriesCount = 0;
-
-    scanOAM() {
-        this.scannedEntriesCount = 0;
-        // OAM Scan, maximum of 10 sprites
-        for (let sprite = 0; sprite < 40 && this.scannedEntriesCount < 10; sprite++) {
-            const base = sprite * 4;
-
-            let yPos = this.oam[base + 0];
-            const xPos = this.oam[base + 1];
-            const tile = this.oam[base + 2];
-
-            // Continue to next sprite if it is offscreen
-            if (xPos < 0 || xPos >= 168 || yPos < 0 || yPos >= 160) continue;
-
-            const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
-
-            let screenYPos = yPos - 16;
-
-            // Push sprite to scanned if it is on the current scanline
-            if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT) {
-                let entry = this.scannedEntries[this.scannedEntriesCount];
-                entry.xPos = xPos;
-                entry.yPos = yPos;
-                entry.tile = tile;
-                entry.flags.numerical = this.oam[base + 3];
-                this.scannedEntriesCount++;
-            }
-        }
-    }
-
     reset() {
         this.totalFrameCount = 0;
 
@@ -911,9 +871,34 @@ class GPU {
     }
 
     renderSprites() {
-        for (let sprite = 0; sprite < this.scannedEntriesCount; sprite++) {
+        this.scannedEntriesCount = 0;
+        // OAM Scan, maximum of 10 sprites
+        for (let sprite = 0; sprite < 40 && this.scannedEntriesCount < 10; sprite++) {
+            const base = sprite * 4;
+
+            let yPos = this.oam[base + 0];
+            const xPos = this.oam[base + 1];
+            const tile = this.oam[base + 2];
+
+            // Continue to next sprite if it is offscreen
+            if (xPos < 0 || xPos >= 168 || yPos < 0 || yPos >= 160) continue;
+
             const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
 
+            let screenYPos = yPos - 16;
+
+            // Push sprite to scanned if it is on the current scanline
+            if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT) {
+                let entry = this.scannedEntries[this.scannedEntriesCount];
+                entry.xPos = xPos;
+                entry.yPos = yPos;
+                entry.tile = tile;
+                entry.flags.numerical = this.oam[base + 3];
+                this.scannedEntriesCount++;
+            }
+        }
+
+        for (let sprite = 0; sprite < this.scannedEntriesCount; sprite++) {
             // Render sprites in OAM order (reverse of scan order)
             let scannedSprite = this.scannedEntries[this.scannedEntriesCount - sprite - 1];
 
