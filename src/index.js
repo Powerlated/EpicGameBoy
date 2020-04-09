@@ -226,7 +226,7 @@ window.speedMul = 10;
 
 
 function init() {
-    
+
     let gb = new GameBoy(true);
     window.cpu = gb.cpu;
     window.gb = gb;
@@ -368,3 +368,8 @@ function dragOverHandler(ev) {
 }
 
 init();
+
+
+window.onbeforeunload = e => {
+    return "Are you sure you want to close Optime GB?"
+};
