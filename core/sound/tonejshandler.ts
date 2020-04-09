@@ -128,7 +128,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
     pulse1() {
         // Pulse 1
-        if (this.ch1 && this.s.pulse1.enabled && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && (this.s.pulse1.outputLeft || this.s.pulse1.outputRight)) {
+        if (this.s.enabled && this.ch1 && this.s.pulse1.enabled && this.s.pulse1.dacEnabled && (this.s.pulse1.outputLeft || this.s.pulse1.outputRight)) {
             if (this.s.pulse1.updated) {
                 this.pulsePan1.pan.value = this.s.pulse1.pan;
                 this.pulseOsc1.mute = false;
@@ -149,7 +149,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
     pulse2() {
         // Pulse 2
-        if (this.ch2 && this.s.enabled && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && (this.s.pulse2.outputLeft || this.s.pulse2.outputRight)) {
+        if (this.s.enabled && this.ch2 && this.s.pulse2.enabled && this.s.pulse2.dacEnabled && (this.s.pulse2.outputLeft || this.s.pulse2.outputRight)) {
             if (this.s.pulse2.updated) {
                 this.pulsePan2.pan.value = this.s.pulse2.pan;
                 this.pulseOsc2.mute = false;
@@ -169,7 +169,7 @@ export default class ToneJsHandler implements AudioPlugin {
     }
 
     wave() {
-        if (this.ch3 && this.s.enabled && this.s.wave.enabled && this.s.wave.dacEnabled&& (this.s.wave.outputLeft || this.s.wave.outputRight)) {
+        if (this.s.enabled && this.ch3 && this.s.wave.enabled && this.s.wave.dacEnabled && (this.s.wave.outputLeft || this.s.wave.outputRight)) {
             if (this.s.wave.updated) {
                 this.waveVolume.mute = false;
 
@@ -224,7 +224,7 @@ export default class ToneJsHandler implements AudioPlugin {
 
     noise() {
         // Noise
-        if (this.ch4 && this.s.enabled && this.s.noise.enabled && this.s.noise.dacEnabled && (this.s.noise.outputLeft || this.s.noise.outputRight)) {
+        if (this.s.noise.enabled && this.ch4 && this.s.noise.dacEnabled && (this.s.noise.outputLeft || this.s.noise.outputRight)) {
             if (this.s.noise.updated) {
                 this.noiseVolumeShaper.setMap((i: number) => { return i * (this.s.noise.volume / 15); });
 
@@ -239,7 +239,7 @@ export default class ToneJsHandler implements AudioPlugin {
                     this.noise15Volume.mute = true;
                     this.noise7Volume.mute = false;
 
-                    this.noise7Volume.volume.value = -12;
+                    this.noise7Volume.volume.value = -10;
 
                     if (isFinite(rate))
                         this.noise7Src.playbackRate.value = rate / (48000 / 16);
@@ -248,7 +248,7 @@ export default class ToneJsHandler implements AudioPlugin {
                     this.noise15Volume.mute = false;
                     this.noise7Volume.mute = true;
 
-                    this.noise15Volume.volume.value = -12;
+                    this.noise15Volume.volume.value = -10;
 
                     if (isFinite(rate))
                         this.noise15Src.playbackRate.value = rate / (48000 / 16);

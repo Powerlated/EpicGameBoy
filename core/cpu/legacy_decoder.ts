@@ -1,4 +1,4 @@
-import Ops from "./old_cpu_ops";
+import Ops from "./legacy_cpu_ops";
 import { Op, CC, R8, R16 } from "./cpu";
 
 /** @deprecated

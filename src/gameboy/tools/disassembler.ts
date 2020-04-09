@@ -1,8 +1,8 @@
 import CPU, { CC, Op, R8, OperandType, R16 } from "../../../core/cpu/cpu";
 
-import Ops from "../../../core/cpu/old_cpu_ops";
+import Ops from "../../../core/cpu/legacy_cpu_ops";
 import { unTwo8b, hexN, hexN_LC, pad, hex } from "./util";
-import Decoder from "../../../core/cpu/old_decoder";
+import Decoder from "../../../core/cpu/legacy_decoder";
 
 function tr(type: OperandType) {
     switch (type) {
