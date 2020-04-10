@@ -227,7 +227,8 @@ window.speedMul = 10;
 function init() {
     let gb = new GameBoy(true);
     // Set the audio plugin
-    gb.soundChip.ap = new ToneJsAudioPlugin(gb.soundChip);
+    gb.soundChip.ap = new ToneJsAudioPlugin();
+    gb.gpu.rp = new CanvasRenderPlugin();
 
     window.cpu = gb.cpu;
     window.gb = gb;

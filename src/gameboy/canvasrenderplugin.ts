@@ -1,10 +1,11 @@
-import GPU from "./gpu";
+import GPU from "../../core/video/gpu";
+import { RenderPlugin } from "../../core/video/renderplugin";
 
-export default class GPUCanvas {
+export default class GPUCanvas implements RenderPlugin {
     ctxGameboy: CanvasRenderingContext2D;
     ctxTileset: CanvasRenderingContext2D;
 
-    constructor(gpu: GPU) {
+    constructor() {
         const cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
         this.ctxGameboy = cGameboy.getContext("2d")!;
         const cTileset = document.getElementById("tileset") as HTMLCanvasElement;

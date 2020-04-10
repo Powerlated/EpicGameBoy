@@ -1,13 +1,13 @@
-import SoundChip from "./sound";
+import SoundChip from "../sound/sound";
+
 
 export interface AudioPlugin {
-    s: SoundChip;
-
-    pulse1(): void;
-    pulse2(): void;
-    wave(): void;
-    updateWaveTable(): void;
-    noise(): void;
+    
+    pulse1(s: SoundChip): void;
+    pulse2(s: SoundChip): void;
+    wave(s: SoundChip): void;
+    updateWaveTable(s: SoundChip): void;
+    noise(s: SoundChip): void;
 
     reset(): void;
 

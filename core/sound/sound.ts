@@ -212,7 +212,7 @@ export default class SoundChip {
 
             if (this.wave.waveTableUpdated === true) {
                 if (this.ap != undefined)
-                    this.ap.updateWaveTable();
+                    this.ap.updateWaveTable(this);
                 this.wave.waveTableUpdated = false;
             }
         }
@@ -221,19 +221,19 @@ export default class SoundChip {
     tjsCheck() {
         if (this.ap != undefined) {
             if (this.pulse1.updated) {
-                this.ap.pulse1();
+                this.ap.pulse1(this);
                 this.pulse1.updated = false;
             }
             if (this.pulse2.updated) {
-                this.ap.pulse2();
+                this.ap.pulse2(this);
                 this.pulse2.updated = false;
             }
             if (this.wave.updated) {
-                this.ap.wave();
+                this.ap.wave(this);
                 this.wave.updated = false;
             }
             if (this.noise.updated) {
-                this.ap.noise();
+                this.ap.noise(this);
                 this.noise.updated = false;
             }
         }
@@ -499,10 +499,10 @@ export default class SoundChip {
         this.noise = new NoiseChannel();
 
         if (this.ap != undefined) {
-            this.ap.pulse1();
-            this.ap.pulse2();
-            this.ap.wave();
-            this.ap.noise();
+            this.ap.pulse1(this);
+            this.ap.pulse2(this);
+            this.ap.wave(this);
+            this.ap.noise(this);
         }
 
         this.clockMain = 0;

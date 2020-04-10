@@ -1,7 +1,7 @@
 import GameBoy from "../gameboy";
-import GPUCanvas from "./canvas";
 import { TickSignal } from "tone";
 import { hex } from "../../src/gameboy/tools/util";
+import { RenderPlugin } from "./renderplugin";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -211,7 +211,6 @@ class GPU {
     vram = this.vram0;
 
     totalFrameCount = 0;
-    canvas = new GPUCanvas(this);
 
     // [tile][pixel]
     tileset0 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 0
@@ -251,6 +250,8 @@ class GPU {
 
     lcdStatusConditionMet = false;
     lcdStatusFired = false;
+
+    rp: RenderPlugin | null = null;
 
     // Skip frames when turboing
     renderingThisFrame = () => (this.totalFrameCount % this.gb.speedMul) === 0;
@@ -342,7 +343,9 @@ class GPU {
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
                             if (this.renderingThisFrame()) {
-                                this.canvas.drawGameboy(this.imageGameboy);
+                                if (this.rp != undefined) {
+                                    this.rp.drawGameboy(this.imageGameboy);
+                                }
                             }
                             this.lcdStatus.mode = 1;
                             this.totalFrameCount++;
