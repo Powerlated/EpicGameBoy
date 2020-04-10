@@ -5,10 +5,8 @@ export default class GPUCanvas implements VideoPlugin {
     ctxGameboy: CanvasRenderingContext2D;
     ctxTileset: CanvasRenderingContext2D;
 
-    constructor() {
-        const cGameboy = document.getElementById("gameboy") as HTMLCanvasElement;
+    constructor(cGameboy: HTMLCanvasElement, cTileset: HTMLCanvasElement) {
         this.ctxGameboy = cGameboy.getContext("2d")!;
-        const cTileset = document.getElementById("tileset") as HTMLCanvasElement;
         this.ctxTileset = cTileset.getContext("2d")!;
     }
 

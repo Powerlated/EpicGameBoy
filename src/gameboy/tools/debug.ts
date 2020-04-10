@@ -157,13 +157,13 @@ function updateDebug() {
     const debugP = document.getElementById('debug')!;
     const lastDebugText = "";
     const gb = ((window as any).gb as GameBoy);
-    const cpu = ((window as any).cpu as CPU);
+    const cpu = ((window as any).gb.cpu as CPU);
     const fps = (window as any).fps;
     const cyclesPerSecond = (window as any).cyclesPerSecond;
     const gpu = ((window as any).gb.gpu as GPU);
     const displaySerial = (window as any).displaySerial;
-    const r = cpu.gb.interrupts.requested;
-    const e = cpu.gb.interrupts.enabled;
+    const r = gb.interrupts.requested;
+    const e = gb.interrupts.enabled;
     let debugText =
         `
                 Total Instructions Executed: ${cpu.totalI}
@@ -172,19 +172,19 @@ function updateDebug() {
 
                 Halted: ${cpu.halted}
 
-                IME/E/R: ${cpu.gb.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
+                IME/E/R: ${gb.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu.reg._f.zero ? "Z" : "-"}${cpu.reg._f.negative ? "N" : "-"}${cpu.reg._f.half_carry ? "H" : "-"}${cpu.reg._f.carry ? "C" : "-"}
         
                 <span class="code">
-                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(cpu.gb.bus.readMem16(cpu.reg.sp), 4)}]
+                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(gb.bus.readMem16(cpu.reg.sp), 4)}]
 
                 AF: ${hex(cpu.reg.af, 4)} ${pad(cpu.reg.a.toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
                 BC: ${hex(cpu.reg.bc, 4)} ${pad(cpu.reg.b.toString(2), 8, '0')} ${pad(cpu.reg.c.toString(2), 8, '0')}
                 DE: ${hex(cpu.reg.de, 4)} ${pad(cpu.reg.d.toString(2), 8, '0')} ${pad(cpu.reg.e.toString(2), 8, '0')}
                 HL: ${hex(cpu.reg.hl, 4)} ${pad(cpu.reg.h.toString(2), 8, '0')} ${pad(cpu.reg.l.toString(2), 8, '0')}
-                [HL]: ${hex(cpu.gb.bus.readMem8(cpu.reg.hl), 2)}
+                [HL]: ${hex(gb.bus.readMem8(cpu.reg.hl), 2)}
                 </span>------------------------------
                 Scroll X/Y: ${gpu.scrX}/${gpu.scrY}
                 Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}
@@ -196,10 +196,10 @@ function updateDebug() {
                 Total Frames: ${gpu.totalFrameCount}
                 Frames Per Second: ${fps}
                 ------------------------------
-                Joypad: ${pad(cpu.gb.joypad.getNumerical().toString(2), 8, '0')}
+                Joypad: ${pad(gb.joypad.getNumerical().toString(2), 8, '0')}
 
                 Serial Out: 
-                <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>
+                <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(gb.bus.serialOut.slice(0, 2560))) : ""}</span>
                 ------------------------------
                 Pulse 1 Frequency: ${gb.soundChip.pulse1.frequencyHz}
                 Pulse 2 Frequency: ${gb.soundChip.pulse2.frequencyHz}

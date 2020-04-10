@@ -27,7 +27,7 @@ function loadDmgBootRom() {
 
     gb.bus.bootromLoaded = true;
 
-    disassemble(cpu);
+    disassemble(gb.cpu);
 }
 
 let disassemblyP = document.getElementById('disassembly-output');
@@ -43,7 +43,7 @@ function disassemble(cpu) {
 
 function executeAtPc() {
     let cpu = window.cpu;
-    let pc = cpu.pc;
+    let pc = gb.cpu.pc;
     cpu.debugging = false;
     if (cpu.breakpoints[pc]) {
         cpu.clearBreakpoint(pc);
@@ -215,7 +215,7 @@ function repeatDisassemble() {
     requestAnimationFrame(repeatDisassemble);
 
     if (window.globalDebug) {
-        disassemble(cpu);
+        disassemble(gb.cpu);
     }
 
 }
@@ -227,12 +227,12 @@ function init() {
     let gb = new GameBoy(true);
     // Set the audio and video plugin
     gb.soundChip.ap = new ToneJsAudioPlugin();
-    gb.gpu.vp = new CanvasVideoPlugin();
 
-    window.cpu = gb.cpu;
+    let cGameboy = document.getElementById("gameboy");
+    let cTileset = document.getElementById("tileset");
+    gb.gpu.vp = new CanvasVideoPlugin(cGameboy, cTileset);
+
     window.gb = gb;
-
-
     loadRom('pokeyellow');
     startDebugging();
 
@@ -372,5 +372,5 @@ init();
 
 
 window.onbeforeunload = e => {
-    return "Are you sure you want to close Optime GB?"
+    return "Are you sure you want to close Optime GB?";
 };
