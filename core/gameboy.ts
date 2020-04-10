@@ -93,7 +93,7 @@ export default class GameBoy {
     frame() {
         let now = performance.now();
         let deltaMs = now - this.lastTime;
-        if (deltaMs > 100) deltaMs = 100;
+        if (deltaMs > 20) deltaMs = 20;
         this.lastTime = now;
 
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
