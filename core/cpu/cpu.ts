@@ -553,43 +553,39 @@ export default class CPU {
             case 0x21: // LD HL, N16
             case 0x31: // LD SP, N16
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-                    const b2 = this.fetchMem8(this.pc + 2);
+                    const n16 = this.fetchMem16(this.pc + 1);
 
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
-                    this.reg[target] = (b2 << 8) | b1;
+                    this.reg[target] = n16;
                 }
                 this.pc += 3;
                 return;
 
             case 0xFA: // LD A, [N16]
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-                    const b2 = this.fetchMem8(this.pc + 2);
+                    const n16 = this.fetchMem16(this.pc + 1);
 
-                    this.reg[R8.A] = this.fetchMem8((b2 << 8) | b1);
+                    this.reg[R8.A] = this.fetchMem8(n16);
                 }
                 this.pc += 3;
                 return;
             case 0xEA: // LD [N16], A
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-                    const b2 = this.fetchMem8(this.pc + 2);
+                    const n16 = this.fetchMem16(this.pc + 1);
 
-                    this.writeMem8((b2 << 8) | b1, this.reg[R8.A]);
+                    this.writeMem8(n16, this.reg[R8.A]);
                 }
                 this.pc += 3;
                 return;
             case 0x08: // LD [N16], SP
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-                    const b2 = this.fetchMem8(this.pc + 2);
+                    const n16 = this.fetchMem16(this.pc + 1);
 
                     const spUpperByte = this.reg.sp >> 8;
                     const spLowerByte = this.reg.sp & 0b11111111;
 
-                    this.writeMem8((b2 << 8) | b1 + 0, spLowerByte);
-                    this.writeMem8((b2 << 8) | b1 + 1, (spUpperByte) & 0xFFFF);
+                    this.writeMem8(n16 + 0, spLowerByte);
+                    this.writeMem8(n16 + 1, (spUpperByte) & 0xFFFF);
                 }
                 this.pc += 3;
                 return;
@@ -600,8 +596,7 @@ export default class CPU {
             case 0xD2: // JP NC, N16
             case 0xDA: // JP C, N16
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-                    const b2 = this.fetchMem8(this.pc + 2);
+                    const n16 = this.fetchMem16(this.pc + 1);
 
                     // If unconditional, don't check
                     if (b0 !== 0xC3) {
@@ -612,7 +607,7 @@ export default class CPU {
                         if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; return; }
                     }
 
-                    this.pc = ((b2 << 8) | b1 + 0x0) - 3;
+                    this.pc = n16 - 3;
                     this.cycles += 4; // Branching takes 4 cycles
                 }
                 this.pc += 3;
@@ -625,8 +620,7 @@ export default class CPU {
             case 0xCC: // CALL Z, N16
             case 0xC4: // CALL NZ, N16
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-                    const b2 = this.fetchMem8(this.pc + 2);
+                    const n16 = this.fetchMem16(this.pc + 1);
 
                     if (b0 !== 0xCD) {
                         const cc: CC = (b0 & 0b11000) >> 3;
@@ -646,7 +640,7 @@ export default class CPU {
                     this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
                     this.writeMem8(this.reg.sp, pcLowerByte);
 
-                    this.pc = ((b2 << 8) | b1) - 3;
+                    this.pc = n16 - 3;
 
                     this.cycles += 4; // Branching takes 4 cycles
                 }
