@@ -2,13 +2,14 @@ import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
 import GameBoy from "../gameboy";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { AudioPlugin } from "./audioplugin";
+import { HWIO } from "../memory/hwio";
 
 // TODO: Figure out why wave sound length isn't working in Pokemon Yellow
 
 const CLOCK_MAIN_STEPS = 32768;
 const CLOCK_ENVELOPE_STEPS = 65536;
 const CLOCK_LENGTH_STEPS = 16384;
-export default class SoundChip {
+export default class SoundChip implements HWIO {
     static lerp(v0: number, v1: number, t: number): number {
         return v0 * (1 - t) + v1 * t;
     }
@@ -211,7 +212,7 @@ export default class SoundChip {
 
 
             if (this.wave.waveTableUpdated === true) {
-                if (this.ap != undefined)
+                if (this.ap !== null)
                     this.ap.updateWaveTable(this);
                 this.wave.waveTableUpdated = false;
             }
@@ -219,7 +220,7 @@ export default class SoundChip {
     }
 
     tjsCheck() {
-        if (this.ap != undefined) {
+        if (this.ap !== null) {
             if (this.pulse1.updated) {
                 this.ap.pulse1(this);
                 this.pulse1.updated = false;
@@ -439,7 +440,7 @@ export default class SoundChip {
         }
     }
 
-    readHwio(addr: number): number | undefined {
+    readHwio(addr: number): number | null {
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
             let i = this.soundRegisters[addr];
 
@@ -488,6 +489,8 @@ export default class SoundChip {
 
             return i;
         }
+
+        return null;
     }
 
     reset() {
@@ -498,7 +501,7 @@ export default class SoundChip {
         this.wave = new WaveChannel();
         this.noise = new NoiseChannel();
 
-        if (this.ap != undefined) {
+        if (this.ap !== null) {
             this.ap.pulse1(this);
             this.ap.pulse2(this);
             this.ap.wave(this);
@@ -513,13 +516,13 @@ export default class SoundChip {
         this.clockPulse1FreqSweep = 0;
         this.clockLength = 0;
 
-        if (this.ap != undefined) {
+        if (this.ap !== null) {
             this.ap.reset();
         }
     }
 
     setMuted(muted: boolean) {
-        if (this.ap != undefined) {
+        if (this.ap !== null) {
             this.ap.setMuted(muted);
         }
     }

@@ -1,5 +1,6 @@
 import MemoryBus from "../memory/memorybus";
 import GameBoy from "../gameboy";
+import { HWIO } from "../memory/hwio";
 
 class InterruptFlag {
     private _vblank = false;
@@ -71,11 +72,31 @@ export const SERIAL_LINK_VECTOR = 0x58;
 export const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
-export default class InterruptController {
+export default class InterruptController implements HWIO {
     gb: GameBoy;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
+    }
+
+    readHwio(addr: number): number | null {
+        switch (addr) {
+            case 0xFF0F:
+                return this.enabled.numerical;
+            case 0xFFFF:
+                return this.requested.numerical;
+        }
+        return null;
+    }
+    writeHwio(addr: number, value: number): void {
+        switch (addr) {
+            case 0xFF0F:
+                this.enabled.numerical = value;
+                break;
+            case 0xFFFF:
+                this.requested.numerical = value;
+                break;
+        }
     }
 
     masterEnabled = true; // IME

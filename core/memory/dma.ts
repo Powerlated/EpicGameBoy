@@ -1,6 +1,7 @@
 import GameBoy from "../gameboy";
+import { HWIO } from "./hwio";
 
-export class DMAController {
+export class DMAController implements HWIO {
 
     gb: GameBoy;
 
@@ -111,6 +112,7 @@ export class DMAController {
                 }
                 break;
         }
+        return null;
     }
 
     writeHwio(addr: number, value: number) {

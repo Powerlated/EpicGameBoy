@@ -1,7 +1,8 @@
 import GameBoy from "../gameboy";
 import { hex } from "../../src/gameboy/tools/util";
+import { HWIO } from "../memory/hwio";
 
-export default class Timer {
+export default class Timer implements HWIO {
     static TimerSpeeds = [1024, 16, 64, 256]; // In terms of 4194304hz division 
 
     gb: GameBoy;
@@ -19,6 +20,36 @@ export default class Timer {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
+    }
+
+    readHwio(addr: number): number | null {
+        switch (addr) {
+            case 0xFF04: // Timer divider
+                return this.addr_0xFF04;
+            case 0xFF05: // Timer counter
+                return this.addr_0xFF05;
+            case 0xFF06: // Timer modulo
+                return this.addr_0xFF06;
+            case 0xFF07: // Timer control
+                return this.addr_0xFF07 | 0b11111000;
+        }
+        return null;
+    }
+    writeHwio(addr: number, value: number): void {
+        switch (addr) {
+            case 0xFF04: // Timer divider
+                this.addr_0xFF04 = value;
+                break;
+            case 0xFF05: // Timer counter
+                this.addr_0xFF05 = value;
+                break;
+            case 0xFF06: // Timer modulo
+                this.addr_0xFF06 = value;
+                break;
+            case 0xFF07: // Timer control
+                this.addr_0xFF07 = value;
+                break;
+        }
     }
 
     cyclesBehind = 0;

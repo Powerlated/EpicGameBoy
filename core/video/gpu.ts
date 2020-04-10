@@ -2,6 +2,7 @@ import GameBoy from "../gameboy";
 import { TickSignal } from "tone";
 import { hex } from "../../src/gameboy/tools/util";
 import { RenderPlugin } from "./renderplugin";
+import { HWIO } from "../memory/hwio";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -201,7 +202,7 @@ export const colors555: Uint8Array[] = [
     new Uint8Array([0x00 >> 3, 0x00 >> 3, 0x00 >> 3]),
 ];
 
-class GPU {
+class GPU implements HWIO {
     gb: GameBoy;
 
     vram0 = new Uint8Array(0x2000);
@@ -343,7 +344,7 @@ class GPU {
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
                             if (this.renderingThisFrame()) {
-                                if (this.rp != undefined) {
+                                if (this.rp !== null) {
                                     this.rp.drawGameboy(this.imageGameboy);
                                 }
                             }
@@ -572,6 +573,8 @@ class GPU {
                 if (this.gb.cgb) return this.cgbObjPalette.data[this.cgbObjPaletteIndex];
                 break;
         }
+
+        return null;
     }
 
     writeHwio(addr: number, value: number) {

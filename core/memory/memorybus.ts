@@ -118,25 +118,13 @@ class MemoryBus {
             this.gb.gpu.writeHwio(addr, value);
             this.gb.dma.writeHwio(addr, value);
             this.gb.soundChip.writeHwio(addr, value);
+            this.gb.interrupts.writeHwio(addr, value);
+            this.gb.joypad.writeHwio(addr, value);
+            this.gb.timer.writeHwio(addr, value);
             switch (addr) {
-                case 0xFF00: // Joypad write
-                    this.gb.joypad.numerical = value;
-                    break;
                 case 0xFF01:
                     // console.info(`[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: ` + hex(value, 2));
                     this.serialOut.push(value);
-                    break;
-                case 0xFF04: // Timer divider
-                    this.gb.timer.addr_0xFF04 = value;
-                    break;
-                case 0xFF05: // Timer counter
-                    this.gb.timer.addr_0xFF05 = value;
-                    break;
-                case 0xFF06: // Timer modulo
-                    this.gb.timer.addr_0xFF06 = value;
-                    break;
-                case 0xFF07: // Timer control
-                    this.gb.timer.addr_0xFF07 = value;
                     break;
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
@@ -224,29 +212,19 @@ class MemoryBus {
         // Hardware I/O registers
         else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
             let val;
-            val = this.gb.gpu.readHwio(addr);
-            if (val != undefined) return val;
-            val = this.gb.soundChip.readHwio(addr);
-            if (val != undefined) return val;
-            val = this.gb.dma.readHwio(addr);
-            if (val != undefined) return val;
+            // We're using null checks here since null is a 
+            val = this.gb.gpu.readHwio(addr); if (val !== null) return val;
+            val = this.gb.soundChip.readHwio(addr); if (val !== null) return val;
+            val = this.gb.dma.readHwio(addr); if (val !== null) return val;
+            val = this.gb.interrupts.readHwio(addr); if (val !== null) return val;
+            val = this.gb.joypad.readHwio(addr); if (val !== null) return val;
+            val = this.gb.timer.readHwio(addr); if (val !== null) return val;
             switch (addr) {
-                case 0xFF00: // Joypad read
-                    // writeDebug("Polled joypad")
-                    return this.gb.joypad.numerical | 0b11000000;
                 case 0xFF01:
                     // console.info(`SERIAL PORT READ`);
                     return 0xFF;
                 case 0xFF02:
                     return 0x00;
-                case 0xFF04: // Timer divider
-                    return this.gb.timer.addr_0xFF04;
-                case 0xFF05: // Timer counter
-                    return this.gb.timer.addr_0xFF05;
-                case 0xFF06: // Timer modulo
-                    return this.gb.timer.addr_0xFF06;
-                case 0xFF07: // Timer control
-                    return this.gb.timer.addr_0xFF07 | 0b11111000;
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
                         let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;

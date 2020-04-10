@@ -1,6 +1,7 @@
 import GameBoy from "../gameboy";
+import { HWIO } from "../memory/hwio";
 
-export class JoypadRegister {
+export class JoypadRegister implements HWIO {
 
     /* Pandocs - Joypad Input
     Bit 7 - Not used
@@ -17,6 +18,23 @@ export class JoypadRegister {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
+    }
+
+    readHwio(addr: number): number | null {
+        switch (addr) {
+            case 0xFF00: // Joypad read
+                // writeDebug("Polled joypad")
+                return this.numerical | 0b11000000;
+        }
+
+        return null
+    }
+    writeHwio(addr: number, value: number): void {
+        switch (addr) {
+            case 0xFF00: // Joypad write
+                this.numerical = value;
+                break;
+        }
     }
 
     selectButtons = false;
