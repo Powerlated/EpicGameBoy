@@ -85,17 +85,22 @@ export default class GameBoy {
 
     speed() {
         this.cpu.debugging = false;
-        this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
+        this.speedIntervals.push(setInterval(() => { this.frame(); }, 0));
         this.soundChip.setMuted(false);
     }
 
+    lastTime = 0;
     frame() {
-        let i = 0;
-        // const max = 70224; // Full frame GPU timing
-        const max = 67000 * this.speedMul; // Full frame GPU timing
+        let now = performance.now();
+        let deltaMs = now - this.lastTime;
+        if (deltaMs > 100) deltaMs = 100;
+        this.lastTime = now;
 
-        while (i < max && !this.stopNow) {
-            if (this.cpu.breakpoints[this.cpu.pc]) {
+        const max = 4194.304 * deltaMs * this.speedMul;
+        console.log(deltaMs);
+
+        for (let i = 0; i < max && !this.stopNow;) {
+            if (this.cpu.breakpoints[this.cpu.pc] === true) {
                 this.speedStop();
                 return;
             }
