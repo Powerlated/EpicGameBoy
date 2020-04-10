@@ -1,7 +1,7 @@
 import GameBoy from "../gameboy";
 import { TickSignal } from "tone";
 import { hex } from "../../src/gameboy/tools/util";
-import { RenderPlugin } from "./renderplugin";
+import { VideoPlugin } from "./videoplugin";
 import { HWIO } from "../memory/hwio";
 
 class LCDCRegister {
@@ -248,7 +248,7 @@ class GPU implements HWIO {
     lcdStatusConditionMet = false;
     lcdStatusFired = false;
 
-    rp: RenderPlugin | null = null;
+    rp: VideoPlugin | null = null;
 
     // Skip frames when turboing
     renderingThisFrame = () => (this.totalFrameCount % this.gb.speedMul) === 0;

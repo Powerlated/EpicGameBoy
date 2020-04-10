@@ -1,7 +1,7 @@
 import GPU from "../../core/video/gpu";
-import { RenderPlugin } from "../../core/video/renderplugin";
+import { VideoPlugin } from "../../core/video/videoplugin";
 
-export default class GPUCanvas implements RenderPlugin {
+export default class GPUCanvas implements VideoPlugin {
     ctxGameboy: CanvasRenderingContext2D;
     ctxTileset: CanvasRenderingContext2D;
 

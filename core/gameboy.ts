@@ -41,7 +41,7 @@ export default class GameBoy {
     }
 
     step(): number {
-        let cyclesBehind = 0;
+        let cyclesRan = 0;
 
         let runFor = this.getCyclesUntilNextSync();
 
@@ -54,20 +54,20 @@ export default class GameBoy {
                 lastInstructionCycles = this.cpu.step();
             }
 
-            cyclesBehind += lastInstructionCycles;
+            cyclesRan += lastInstructionCycles;
 
             if (this.oamDmaTCyclesRemaining > 0) {
                 this.oamDmaTCyclesRemaining -= lastInstructionCycles;
             }
-        } while (cyclesBehind < runFor);
+        } while (cyclesRan < runFor);
 
         // This is the value we are going to pass to the other components 
-        let stepCycles = cyclesBehind;
-        // In double speed mode make the CPU run 2x relatively faster than all the other components
+        let stepCycles = cyclesRan;
+        // In double speed mode make the CPU run 2x relatively faster than Sound and GPU
         if (this.doubleSpeed) stepCycles >>= 1;
 
         // Timer runs at double speed as well, so use the unmodified value for timer
-        this.timer.step(cyclesBehind);
+        this.timer.step(cyclesRan);
         this.soundChip.step(stepCycles);
         this.gpu.step(stepCycles);
 

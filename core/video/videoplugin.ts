@@ -1,3 +1,3 @@
-export interface RenderPlugin {
+export interface VideoPlugin {
     drawGameboy(data: ImageData): void;
 }
