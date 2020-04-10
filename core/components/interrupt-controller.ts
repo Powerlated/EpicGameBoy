@@ -53,7 +53,7 @@ class InterruptFlag {
 
     private _numerical = 0;
 
-    set numerical(i: number) {
+    setNumerical(i: number) {
         this.vblank = (i & (1 << 0)) !== 0;
         this.lcdStat = (i & (1 << 1)) !== 0;
         this.timer = (i & (1 << 2)) !== 0;
@@ -65,7 +65,7 @@ class InterruptFlag {
         return;
     }
 
-    get numerical() {
+    getNumerical() {
         return this._numerical;
     }
 }
@@ -94,7 +94,7 @@ export default class InterruptController {
     reset() {
         this.masterEnabled = true;
 
-        this.enabled.numerical = 0;
-        this.requested.numerical = 0;
+        this.enabled.setNumerical(0);
+        this.requested.setNumerical(0);
     }
 }

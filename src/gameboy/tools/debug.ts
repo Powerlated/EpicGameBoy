@@ -172,7 +172,7 @@ function updateDebug() {
 
                 Halted: ${cpu.halted}
 
-                IME/E/R: ${cpu.gb.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
+                IME/E/R: ${cpu.gb.interrupts.masterEnabled}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.getNumerical(), 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.getNumerical(), 2)})
 
                 PC: ${hex(cpu.pc, 4)}
                 Flags: ${cpu.reg._f.zero ? "Z" : "-"}${cpu.reg._f.negative ? "N" : "-"}${cpu.reg._f.half_carry ? "H" : "-"}${cpu.reg._f.carry ? "C" : "-"}
@@ -190,13 +190,13 @@ function updateDebug() {
                 Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}
                 LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
 
-                LCDC: ${pad(gpu.lcdControl.numerical.toString(2), 8, '0')}
-                LCD Status: ${pad(gpu.lcdStatus.numerical.toString(2), 7, '0')}
+                LCDC: ${pad(gpu.lcdControl.getNumerical().toString(2), 8, '0')}
+                LCD Status: ${pad(gpu.lcdStatus.getNumerical().toString(2), 7, '0')}
 
                 Total Frames: ${gpu.totalFrameCount}
                 Frames Per Second: ${fps}
                 ------------------------------
-                Joypad: ${pad(cpu.gb.joypad.numerical.toString(2), 8, '0')}
+                Joypad: ${pad(cpu.gb.joypad.getNumerical().toString(2), 8, '0')}
 
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(cpu.gb.bus.serialOut.slice(0, 2560))) : ""}</span>

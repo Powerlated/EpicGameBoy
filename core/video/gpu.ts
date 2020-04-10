@@ -15,7 +15,7 @@ class LCDCRegister {
     spriteDisplay___1 = false; // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
     bgWindowEnable0 = false; // Bit 0 - BG/Window Display/Priority     (0=Off, 1=On)
 
-    get numerical(): number {
+    getNumerical(): number {
         let flagN = 0;
         if (this.lcdDisplayEnable7) flagN = flagN | 0b10000000;
         if (this.windowTilemapSelect___6) flagN = flagN | 0b01000000;
@@ -28,7 +28,7 @@ class LCDCRegister {
         return flagN;
     }
 
-    set numerical(i: number) {
+    setNumerical(i: number) {
         this.lcdDisplayEnable7 = (i & (1 << 7)) !== 0;
         this.windowTilemapSelect___6 = (i & (1 << 6)) !== 0;
         this.enableWindow____5 = (i & (1 << 5)) !== 0;
@@ -54,7 +54,7 @@ class LCDStatusRegister {
     // 2: During Searching OAM
     // 3: During Transferring Data to LCD Driver
 
-    get numerical(): number {
+    getNumerical(): number {
         let flagN = 0;
         if (this.lyCoincidenceInterrupt6) flagN = flagN | 0b01000000;
         if (this.mode2OamInterrupt_____5) flagN = flagN | 0b00100000;
@@ -66,7 +66,7 @@ class LCDStatusRegister {
         return flagN;
     }
 
-    set numerical(i: number) {
+    setNumerical(i: number) {
         this.lyCoincidenceInterrupt6 = (i & (1 << 6)) !== 0;
         this.mode2OamInterrupt_____5 = (i & (1 << 5)) !== 0;
         this.mode1VblankInterrupt__4 = (i & (1 << 4)) !== 0;
@@ -84,7 +84,7 @@ export class OAMFlags {
     vramBank = false; // CGB only (0, 1)
     paletteNumberCGB = 0;
 
-    get numerical(): number {
+    getNumerical(): number {
         let n = 0;
         if (this.behindBG)
             n |= 0b10000000;
@@ -101,7 +101,7 @@ export class OAMFlags {
         return n;
     }
 
-    set numerical(i: number) {
+    setNumerical(i: number) {
         this.behindBG = (i & (1 << 7)) !== 0;
         this.yFlip = (i & (1 << 6)) !== 0;
         this.xFlip = (i & (1 << 5)) !== 0;
@@ -109,10 +109,6 @@ export class OAMFlags {
         this.vramBank = (i & (1 << 3)) !== 0;
 
         this.paletteNumberCGB = i & 0b111;
-    }
-
-    constructor(numerical: number) {
-        this.numerical = numerical;
     }
 }
 
@@ -170,7 +166,7 @@ class CGBTileFlags {
     bgPalette = 0; // Bit 0-2
 
 
-    get numerical(): number {
+    getNumerical(): number {
         let n = 0;
         if (this.ignoreSpritePriority)
             n |= 0b10000000;
@@ -185,7 +181,7 @@ class CGBTileFlags {
         return n;
     }
 
-    set numerical(i: number) {
+    setNumerical(i: number) {
         this.ignoreSpritePriority = (i & (1 << 7)) !== 0;
         this.yFlip = (i & (1 << 6)) !== 0;
         this.xFlip = (i & (1 << 5)) !== 0;
@@ -425,7 +421,7 @@ class GPU implements HWIO {
         this.gb = gb;
     }
 
-    scannedEntries: OAMEntry[] = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags(0)));
+    scannedEntries: OAMEntry[] = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags()));
     scannedEntriesCount = 0;
     reset() {
         this.totalFrameCount = 0;
@@ -527,7 +523,7 @@ class GPU implements HWIO {
         } else if (this.vramBank === 1) {
             // Write to CGB tile flags
             if (index >= 0x9800 && index < 0xA000) {
-                this.cgbTileAttrs[index - 0x9800].numerical = value;
+                this.cgbTileAttrs[index - 0x9800].setNumerical(value);
             }
         }
     }
@@ -536,10 +532,10 @@ class GPU implements HWIO {
         switch (addr) {
             case 0xFF40:
                 // console.info(`LCD CONTROL READ`);
-                return this.lcdControl.numerical;
+                return this.lcdControl.getNumerical();
             case 0xFF41:
                 // console.info(`LCDC STATUS READ`);
-                return this.lcdStatus.numerical | 0b10000000;
+                return this.lcdStatus.getNumerical() | 0b10000000;
             case 0xFF42:
                 return this.scrY;
             case 0xFF43:
@@ -580,10 +576,10 @@ class GPU implements HWIO {
     writeHwio(addr: number, value: number) {
         switch (addr) {
             case 0xFF40: // LCD Control
-                this.lcdControl.numerical = value;
+                this.lcdControl.setNumerical(value);
                 break;
             case 0xFF41: // LCDC Status
-                this.lcdStatus.numerical = value;
+                this.lcdStatus.setNumerical(value);
                 if (!this.gb.cgb) {
                     this.gb.interrupts.requested.lcdStat = true;
                 }
@@ -899,7 +895,7 @@ class GPU implements HWIO {
                 entry.xPos = xPos;
                 entry.yPos = yPos;
                 entry.tile = tile;
-                entry.flags.numerical = this.oam[base + 3];
+                entry.flags.setNumerical(this.oam[base + 3]);
                 this.scannedEntriesCount++;
             }
         }

@@ -371,8 +371,8 @@ export default class CPU {
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((this.gb.interrupts.requested.numerical &
-            this.gb.interrupts.enabled.numerical) && this.halted === true) {
+        if ((this.gb.interrupts.requested.getNumerical() &
+            this.gb.interrupts.enabled.getNumerical()) && this.halted === true) {
             this.halted = false;
 
             // UnHALTing takes 4 cycles
@@ -385,7 +385,7 @@ export default class CPU {
         if (this.gb.interrupts.masterEnabled) {
 
             // If servicing any interrupt, disable the master flag
-            if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical) > 0) {
+            if ((this.gb.interrupts.requested.getNumerical() & this.gb.interrupts.enabled.getNumerical()) > 0) {
                 this.gb.interrupts.masterEnabled = false;
 
 
@@ -1449,8 +1449,8 @@ export default class CPU {
             case 0x76: // HALT
                 if (
                     (
-                        this.gb.interrupts.enabled.numerical &
-                        this.gb.interrupts.requested.numerical &
+                        this.gb.interrupts.enabled.getNumerical() &
+                        this.gb.interrupts.requested.getNumerical() &
                         0x1F
                     ) !== 0
                 ) {
@@ -1458,8 +1458,8 @@ export default class CPU {
                     this.haltBug = true;
                     this.pc++; this.pc &= 0xFFFF;
                 } else (
-                    this.gb.interrupts.enabled.numerical &
-                    this.gb.interrupts.requested.numerical &
+                    this.gb.interrupts.enabled.getNumerical() &
+                    this.gb.interrupts.requested.getNumerical() &
                     0x1F) === 0;
                 {
                     this.halted = true;

@@ -24,7 +24,7 @@ export class JoypadRegister implements HWIO {
         switch (addr) {
             case 0xFF00: // Joypad read
                 // writeDebug("Polled joypad")
-                return this.numerical | 0b11000000;
+                return this.getNumerical() | 0b11000000;
         }
 
         return null
@@ -32,7 +32,7 @@ export class JoypadRegister implements HWIO {
     writeHwio(addr: number, value: number): void {
         switch (addr) {
             case 0xFF00: // Joypad write
-                this.numerical = value;
+                this.setNumerical(value);
                 break;
         }
     }
@@ -84,7 +84,7 @@ export class JoypadRegister implements HWIO {
         if (v === true) this.gb.interrupts.requested.joypad = true;
     }
 
-    get numerical(): number {
+    getNumerical(): number {
         let n = 0xFF;
 
         if (this.selectDpad) {
@@ -106,7 +106,7 @@ export class JoypadRegister implements HWIO {
         return n;
     }
 
-    set numerical(i: number) {
+    setNumerical(i: number) {
         this.selectButtons = ((i >> 5) & 1) === 0; // Bit 5
         this.selectDpad = ((i >> 4) & 1) === 0; // Bit 4
     }
