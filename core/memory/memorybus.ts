@@ -84,14 +84,14 @@ class MemoryBus {
             this.ext.mbc.write(addr, value);
         }
 
-        // SET Interrupt request flags
-        else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            this.gb.interrupts.requested.numerical = value;
-        }
-
         // Write to High RAM
         else if (addr >= 0xFF80 && addr <= 0xFFFE) {
             this.highRam[addr - 0xFF80] = value;
+        }
+
+        // SET Interrupt request flags
+        else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+            this.gb.interrupts.requested.numerical = value;
         }
 
         // SET Interrupt enable flags
@@ -118,7 +118,6 @@ class MemoryBus {
             this.gb.gpu.writeHwio(addr, value);
             this.gb.dma.writeHwio(addr, value);
             this.gb.soundChip.writeHwio(addr, value);
-            this.gb.interrupts.writeHwio(addr, value);
             this.gb.joypad.writeHwio(addr, value);
             this.gb.timer.writeHwio(addr, value);
             switch (addr) {
@@ -216,7 +215,6 @@ class MemoryBus {
             val = this.gb.gpu.readHwio(addr); if (val !== null) return val;
             val = this.gb.soundChip.readHwio(addr); if (val !== null) return val;
             val = this.gb.dma.readHwio(addr); if (val !== null) return val;
-            val = this.gb.interrupts.readHwio(addr); if (val !== null) return val;
             val = this.gb.joypad.readHwio(addr); if (val !== null) return val;
             val = this.gb.timer.readHwio(addr); if (val !== null) return val;
             switch (addr) {

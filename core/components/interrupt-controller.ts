@@ -2,6 +2,11 @@ import MemoryBus from "../memory/memorybus";
 import GameBoy from "../gameboy";
 import { HWIO } from "../memory/hwio";
 
+/**
+ * Instances of this class are checked every single time the CPU 
+ * executes an instruction, so I cache and lazy-update the 
+ * numerical values for performance reasons.
+ */
 class InterruptFlag {
     private _vblank = false;
     private _lcdStat = false;
@@ -18,35 +23,35 @@ class InterruptFlag {
     set vblank(i: boolean) {
         this._vblank = i;
         this._numerical &= 0b11111110;
-        if (this.vblank)
-            this._numerical |= 0b00000001;
+        if (this.vblank === true)
+            this._numerical |= 0b11100001;
     };
     set lcdStat(i: boolean) {
         this._lcdStat = i;
         this._numerical &= 0b11111101;
-        if (this.lcdStat)
-            this._numerical |= 0b00000010;
+        if (this.lcdStat === true)
+            this._numerical |= 0b11100010;
     };
     set timer(i: boolean) {
         this._timer = i;
         this._numerical &= 0b11111011;
-        if (this.timer)
-            this._numerical |= 0b00000100;
+        if (this.timer === true)
+            this._numerical |= 0b11100100;
     };
     set serial(i: boolean) {
         this._serial = i;
         this._numerical &= 0b11110111;
-        if (this.serial)
-            this._numerical |= 0b00001000;
+        if (this.serial === true)
+            this._numerical |= 0b11101000;
     };
     set joypad(i: boolean) {
         this._joypad = i;
         this._numerical &= 0b11101111;
-        if (this.joypad)
-            this._numerical |= 0b00010000;
+        if (this.joypad === true)
+            this._numerical |= 0b11110000;
     };
 
-    _numerical = 0;
+    private _numerical = 0;
 
     set numerical(i: number) {
         this.vblank = (i & (1 << 0)) !== 0;
@@ -60,7 +65,7 @@ class InterruptFlag {
         return;
     }
 
-    get numerical(): number {
+    get numerical() {
         return this._numerical;
     }
 }
@@ -72,31 +77,11 @@ export const SERIAL_LINK_VECTOR = 0x58;
 export const JOYPAD_PRESS_VECTOR = 0x60;
 
 // http://bgb.bircd.org/pandocs.htm / Useful info
-export default class InterruptController implements HWIO {
+export default class InterruptController {
     gb: GameBoy;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
-    }
-
-    readHwio(addr: number): number | null {
-        switch (addr) {
-            case 0xFF0F:
-                return this.enabled.numerical;
-            case 0xFFFF:
-                return this.requested.numerical;
-        }
-        return null;
-    }
-    writeHwio(addr: number, value: number): void {
-        switch (addr) {
-            case 0xFF0F:
-                this.enabled.numerical = value;
-                break;
-            case 0xFFFF:
-                this.requested.numerical = value;
-                break;
-        }
     }
 
     masterEnabled = true; // IME
