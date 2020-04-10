@@ -98,7 +98,6 @@ export default class GameBoy {
 
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
         const max = 4213.440 * deltaMs * this.speedMul;
-        console.log(deltaMs);
 
         for (let i = 0; i < max && !this.stopNow;) {
             if (this.cpu.breakpoints[this.cpu.pc] === true) {
