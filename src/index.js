@@ -223,12 +223,11 @@ function repeatDisassemble() {
 // Set the turbo (TAB) speed multiplier
 window.speedMul = 10;
 
-
 function init() {
     let gb = new GameBoy(true);
-    // Set the audio plugin
+    // Set the audio and video plugin
     gb.soundChip.ap = new ToneJsAudioPlugin();
-    gb.gpu.rp = new CanvasRenderPlugin();
+    gb.gpu.vp = new CanvasVideoPlugin();
 
     window.cpu = gb.cpu;
     window.gb = gb;

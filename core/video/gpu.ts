@@ -248,7 +248,7 @@ class GPU implements HWIO {
     lcdStatusConditionMet = false;
     lcdStatusFired = false;
 
-    rp: VideoPlugin | null = null;
+    vp: VideoPlugin | null = null;
 
     // Skip frames when turboing
     renderingThisFrame = () => (this.totalFrameCount % this.gb.speedMul) === 0;
@@ -290,7 +290,9 @@ class GPU implements HWIO {
                             // Only IF the window is onscreen
                             if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                 if (this.renderingThisFrame()) {
-                                    this.renderWindow();
+                                    if (this.vp !== null) {
+                                        this.renderWindow();
+                                    }
                                 }
                                 this.currentWindowLine++;
                             }
@@ -301,7 +303,9 @@ class GPU implements HWIO {
                     if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                         if (this.bgDrawn == false) {
                             if (this.renderingThisFrame()) {
-                                this.renderBg();
+                                if (this.vp !== null) {
+                                    this.renderBg();
+                                }
                             }
                             this.bgDrawn = true;
                         }
@@ -316,7 +320,9 @@ class GPU implements HWIO {
                         // Render sprites at end of scanline
                         if (this.lcdControl.spriteDisplay___1) {
                             if (this.renderingThisFrame()) {
-                                this.renderSprites();
+                                if (this.vp !== null) {
+                                    this.renderSprites();
+                                }
                             }
                         }
 
@@ -340,8 +346,8 @@ class GPU implements HWIO {
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
                             if (this.renderingThisFrame()) {
-                                if (this.rp !== null) {
-                                    this.rp.drawGameboy(this.imageGameboy);
+                                if (this.vp !== null) {
+                                    this.vp.drawGameboy(this.imageGameboy);
                                 }
                             }
                             this.lcdStatus.mode = 1;
