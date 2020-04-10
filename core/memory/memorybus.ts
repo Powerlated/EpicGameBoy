@@ -201,11 +201,11 @@ class MemoryBus {
 
         // GET Interrupt request flags
         else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            return this.gb.interrupts.requested.getNumerical() | 0b11100000;
+            return this.gb.interrupts.requested.numerical;
         }
         // GET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.gb.interrupts.enabled.getNumerical();
+            return this.gb.interrupts.enabled.numerical;
         }
 
         // Hardware I/O registers

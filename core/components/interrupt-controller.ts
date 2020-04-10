@@ -22,36 +22,36 @@ class InterruptFlag {
 
     set vblank(i: boolean) {
         this._vblank = i;
-        this._numerical &= 0b11111110;
+        this.numerical &= 0b11111110;
         if (this.vblank === true)
-            this._numerical |= 0b11100001;
+            this.numerical |= 0b11100001;
     };
     set lcdStat(i: boolean) {
         this._lcdStat = i;
-        this._numerical &= 0b11111101;
+        this.numerical &= 0b11111101;
         if (this.lcdStat === true)
-            this._numerical |= 0b11100010;
+            this.numerical |= 0b11100010;
     };
     set timer(i: boolean) {
         this._timer = i;
-        this._numerical &= 0b11111011;
+        this.numerical &= 0b11111011;
         if (this.timer === true)
-            this._numerical |= 0b11100100;
+            this.numerical |= 0b11100100;
     };
     set serial(i: boolean) {
         this._serial = i;
-        this._numerical &= 0b11110111;
+        this.numerical &= 0b11110111;
         if (this.serial === true)
-            this._numerical |= 0b11101000;
+            this.numerical |= 0b11101000;
     };
     set joypad(i: boolean) {
         this._joypad = i;
-        this._numerical &= 0b11101111;
+        this.numerical &= 0b11101111;
         if (this.joypad === true)
-            this._numerical |= 0b11110000;
+            this.numerical |= 0b11110000;
     };
 
-    private _numerical = 0;
+    numerical = 0;
 
     setNumerical(i: number) {
         this.vblank = (i & (1 << 0)) !== 0;
@@ -61,12 +61,8 @@ class InterruptFlag {
         this.joypad = (i & (1 << 4)) !== 0;
 
         // Just store this flag and return it later, it's faster
-        this._numerical = i;
+        this.numerical = i;
         return;
-    }
-
-    getNumerical() {
-        return this._numerical;
     }
 }
 

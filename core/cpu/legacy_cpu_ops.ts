@@ -45,8 +45,8 @@ export default class Ops {
 
         if (
             (
-                cpu.gb.interrupts.enabled.getNumerical() &
-                cpu.gb.interrupts.requested.getNumerical() &
+                cpu.gb.interrupts.enabled.numerical &
+                cpu.gb.interrupts.requested.numerical &
                 0x1F
             ) !== 0
         ) {
@@ -54,8 +54,8 @@ export default class Ops {
             cpu.haltBug = true;
             cpu.pc++; cpu.pc &= 0xFFFF;
         } else (
-            cpu.gb.interrupts.enabled.getNumerical() &
-            cpu.gb.interrupts.requested.getNumerical() &
+            cpu.gb.interrupts.enabled.numerical &
+            cpu.gb.interrupts.requested.numerical &
             0x1F) === 0;
         {
             cpu.halted = true;
