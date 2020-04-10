@@ -1,10 +1,10 @@
 import GameBoy from "../gameboy";
 import Disassembler from "../../src/gameboy/tools/disassembler";
+
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { hex, pad, hexN_LC, hexN, r_pad, assert, unTwo8b } from "../../src/gameboy/tools/util";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
 import Decoder from './legacy_decoder';
-import * as Timings from '../../src/gameboy/data/cpu_instruction_timings';
 
 function undefErr(cpu: CPU, name: string) {
     alert(`

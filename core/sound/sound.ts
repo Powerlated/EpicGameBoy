@@ -1,8 +1,7 @@
 import { PulseChannel, WaveChannel, NoiseChannel } from "./channels";
-import ToneJsHandler from "./tonejshandler";
-import * as Tone from "tone";
 import GameBoy from "../gameboy";
 import { writeDebug } from "../../src/gameboy/tools/debug";
+import { AudioPlugin } from "./audioplugin";
 
 // TODO: Figure out why wave sound length isn't working in Pokemon Yellow
 
@@ -30,15 +29,10 @@ export default class SoundChip {
     wave = new WaveChannel();
     noise = new NoiseChannel();
 
-
-
-    tjs = new ToneJsHandler(this);
+    ap: AudioPlugin | null = null;
 
     constructor(gb: GameBoy) {
         this.gb = gb;
-
-        // Tone.context.latencyHint = "fastest"
-        Tone.context.lookAhead = 0;
     }
 
     handlePulse1Sweep() {
@@ -217,28 +211,31 @@ export default class SoundChip {
 
 
             if (this.wave.waveTableUpdated === true) {
-                this.tjs.updateWaveTable();
+                if (this.ap != undefined)
+                    this.ap.updateWaveTable();
                 this.wave.waveTableUpdated = false;
             }
         }
     }
 
     tjsCheck() {
-        if (this.pulse1.updated) {
-            this.tjs.pulse1();
-            this.pulse1.updated = false;
-        }
-        if (this.pulse2.updated) {
-            this.tjs.pulse2();
-            this.pulse2.updated = false;
-        }
-        if (this.wave.updated) {
-            this.tjs.wave();
-            this.wave.updated = false;
-        }
-        if (this.noise.updated) {
-            this.tjs.noise();
-            this.noise.updated = false;
+        if (this.ap != undefined) {
+            if (this.pulse1.updated) {
+                this.ap.pulse1();
+                this.pulse1.updated = false;
+            }
+            if (this.pulse2.updated) {
+                this.ap.pulse2();
+                this.pulse2.updated = false;
+            }
+            if (this.wave.updated) {
+                this.ap.wave();
+                this.wave.updated = false;
+            }
+            if (this.noise.updated) {
+                this.ap.noise();
+                this.noise.updated = false;
+            }
         }
     }
 
@@ -501,10 +498,12 @@ export default class SoundChip {
         this.wave = new WaveChannel();
         this.noise = new NoiseChannel();
 
-        this.tjs.pulse1();
-        this.tjs.pulse2();
-        this.tjs.wave();
-        this.tjs.noise();
+        if (this.ap != undefined) {
+            this.ap.pulse1();
+            this.ap.pulse2();
+            this.ap.wave();
+            this.ap.noise();
+        }
 
         this.clockMain = 0;
         this.clockEnvelopeMain = 0;
@@ -514,6 +513,14 @@ export default class SoundChip {
         this.clockPulse1FreqSweep = 0;
         this.clockLength = 0;
 
-        this.tjs.reset();
+        if (this.ap != undefined) {
+            this.ap.reset();
+        }
+    }
+
+    setMuted(muted: boolean) {
+        if (this.ap != undefined) {
+            this.ap.setMuted(muted);
+        }
     }
 }

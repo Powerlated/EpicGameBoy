@@ -1,6 +1,6 @@
-import SoundChip from "./sound";
 import * as Tone from "tone";
-import { AudioPlugin } from "./audioplugin";
+import { AudioPlugin } from "../../core/sound/audioplugin";
+import SoundChip from "../../core/sound/sound";
 
 const widths = [0.5, 0.5, 0, 0.5]; // CORRECT
 // const widths = [0.75, 0.5, 0, 0.5]
@@ -34,7 +34,7 @@ function convertVolumeWave(v: number) {
     return base + mute + (10 * Math.log(v / 16));
 }
 
-export default class ToneJsHandler implements AudioPlugin {
+export default class ToneJsAudioPlugin implements AudioPlugin {
     pulseOsc1: Tone.PulseOscillator;
     pulseVolumeShaper1: Tone.WaveShaper;
     pulsePan1: Tone.Panner;
@@ -63,9 +63,6 @@ export default class ToneJsHandler implements AudioPlugin {
     ch2 = true;
     ch3 = true;
     ch4 = true;
-
-
-
 
     masterVolume: Tone.Volume;
 

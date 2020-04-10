@@ -79,14 +79,14 @@ export default class GameBoy {
 
     speedStop() {
         this.speedIntervals.forEach(i => { clearInterval(i); });
-        this.soundChip.tjs.setMuted(true);
+        this.soundChip.setMuted(true);
         this.stopNow = true;
     }
 
     speed() {
         this.cpu.debugging = false;
         this.speedIntervals.push(setInterval(() => { this.frame(); }, 16));
-        this.soundChip.tjs.setMuted(false);
+        this.soundChip.setMuted(false);
     }
 
     frame() {
@@ -149,7 +149,7 @@ export default class GameBoy {
         } else if (this.gpu.lcdControl.lcdDisplayEnable7) {
             final = gpu;
         }
-        
+
         return final;
     }
 

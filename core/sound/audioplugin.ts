@@ -1,11 +1,15 @@
 import SoundChip from "./sound";
 
 export interface AudioPlugin {
-    s: SoundChip
+    s: SoundChip;
 
-    pulse1(): void
-    pulse2(): void
-    wave(): void
-    updateWaveTable(): void
-    noise(): void
+    pulse1(): void;
+    pulse2(): void;
+    wave(): void;
+    updateWaveTable(): void;
+    noise(): void;
+
+    reset(): void;
+
+    setMuted(muted: boolean): void;
 }

@@ -1,4 +1,3 @@
-
 function loadRom(rom) {
     let raw = atob(ROMS_BASE64[rom]);
     let rawLength = raw.length;
@@ -226,8 +225,10 @@ window.speedMul = 10;
 
 
 function init() {
-
     let gb = new GameBoy(true);
+    // Set the audio plugin
+    gb.soundChip.ap = new ToneJsAudioPlugin(gb.soundChip);
+
     window.cpu = gb.cpu;
     window.gb = gb;
 
