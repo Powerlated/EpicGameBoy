@@ -273,6 +273,13 @@ function init() {
             }
         }
 
+        if (e.getModifierState("Control")) {
+            if (e.key === "r") {
+                $('#reset-button').click();
+                e.preventDefault();
+            }
+        }
+
         if (block.includes(e.key)) {
             e.preventDefault();
         }

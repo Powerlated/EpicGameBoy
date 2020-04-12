@@ -63,7 +63,7 @@
             <button onclick="gb.speed()">Run</button>
             <button onclick="gb.speedStop();">Stop</button>
             <button onclick="gb.frame()">Render Frame</button>
-            <button onclick="gb.reset()">Reset</button>
+            <button id="reset-button" onclick="gb.reset()">Reset</button>
 
             <div style="display: none">
                 <label for="enableLogging">Enable Logging</label>
@@ -119,6 +119,7 @@
         <div class="interactive-panel shortcuts">
             <b>SHIFT+B: Big Screen</b>
             <b>SHIFT+D: Debugger</b>
+            <b>CTRL+R: Reset</b>
             <b>S: Step</b>
         </div>
         <div class="interactive-panel shortcuts">
