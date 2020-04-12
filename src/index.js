@@ -1,8 +1,15 @@
+/** 
+ * @param {string} selector  
+*/
+function $(selector) {
+    return document.querySelector(selector);
+}
+
 function loadRom(rom) {
     let raw = atob(ROMS_BASE64[rom]);
     let rawLength = raw.length;
 
-    let array = new Uint8Array(new ArrayBuffer(4194304));
+    let array = new Uint8Array(new ArrayBuffer(raw.length));
 
     for (let i = 0; i < rawLength; i++) {
         array[i] = raw.charCodeAt(i);
@@ -95,19 +102,19 @@ function downloadLog() {
     downloadText("EpicGameBoy.log", gb.cpu.log.join('\n'));
 }
 
-document.querySelector('#enableLogging').addEventListener('change', function (e) {
+$('#enableLogging').addEventListener('change', function (e) {
     cpu.logging = e.target.checked;
 }, false);
 
 let drawTilesetInterval = 0;
-document.getElementById('tileset').style.display = "none";
-document.querySelector('#drawTileset').addEventListener('change', function (e) {
+$('#tileset').style.display = "none";
+$('#drawTileset').addEventListener('change', function (e) {
     if (e.target.checked) {
         startDrawingTiles();
-        document.getElementById('tileset').style.display = "block";
+        $('#tileset').style.display = "block";
     } else {
         stopDrawingTiles();
-        document.getElementById('tileset').style.display = "none";
+        $('#tileset').style.display = "none";
     }
 
 }, false);
@@ -123,32 +130,32 @@ function stopDrawingTiles() {
     clearInterval(drawTilesetInterval);
 }
 
-document.querySelector('#displaySerialInput').addEventListener('change', function (e) {
+$('#displaySerialInput').addEventListener('change', function (e) {
     window.displaySerial = e.target.checked;
 }, false);
 
-document.querySelector('#big-screen').addEventListener('change', function (e) {
+$('#big-screen').addEventListener('change', function (e) {
     if (e.target.checked) {
-        document.getElementById('palette').classList.add('hidden');
-        document.getElementById('tileset').classList.add('hidden');
+        $('#palette').classList.add('hidden');
+        $('#tileset').classList.add('hidden');
 
-        document.getElementById('gameboy').classList.add('bigscreen');
+        $('#gameboy').classList.add('bigscreen');
     } else {
-        document.getElementById('palette').classList.remove('hidden');
-        document.getElementById('tileset').classList.remove('hidden');
+        $('#palette').classList.remove('hidden');
+        $('#tileset').classList.remove('hidden');
 
-        document.getElementById('gameboy').classList.remove('bigscreen');
+        $('#gameboy').classList.remove('bigscreen');
     }
 }, false);
 
-document.querySelector('#haltInput').addEventListener('change', function (e) {
+$('#haltInput').addEventListener('change', function (e) {
     cpu.setBreakpoint(parseInt(`0x${e.target.value}`));
 }, false);
-document.querySelector('#halt2Input').addEventListener('change', function (e) {
+$('#halt2Input').addEventListener('change', function (e) {
     cpu.haltWhen = parseInt(`${e.target.value}`);
     writeDebug(`Set halt instructions executed to ${parseInt(cpu.haltWhen).toString(10)}`);
 }, false);
-document.querySelector('#enableDebugger').addEventListener('change', function (e) {
+$('#enableDebugger').addEventListener('change', function (e) {
     if (e.target.checked) {
         showDebug();
     } else {
@@ -171,7 +178,7 @@ function hideDebug() {
     }
 }
 
-document.querySelector('#bootromInput').addEventListener('change', function () {
+$('#bootromInput').addEventListener('change', function () {
     var reader = new FileReader();
     reader.onload = function () {
         var arrayBuffer = this.result;
@@ -187,7 +194,7 @@ document.querySelector('#bootromInput').addEventListener('change', function () {
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
-document.querySelector('#gameromInput').addEventListener('change', function () {
+$('#gameromInput').addEventListener('change', function () {
     var reader = new FileReader();
     reader.onload = function () {
         var arrayBuffer = this.result;
@@ -200,7 +207,7 @@ document.querySelector('#gameromInput').addEventListener('change', function () {
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
-document.querySelector('#saveInput').addEventListener('change', function () {
+$('#saveInput').addEventListener('change', function () {
     var reader = new FileReader();
     reader.onload = function () {
         var arrayBuffer = this.result;
@@ -253,15 +260,15 @@ function init() {
 
         if (e.getModifierState("Shift")) {
             if (e.key === "D") {
-                document.querySelector('#enableDebugger').click();
+                $('#enableDebugger').click();
                 e.preventDefault();
             }
             if (e.key === "T") {
-                document.querySelector('#drawTileset').click();
+                $('#drawTileset').click();
                 e.preventDefault();
             }
             if (e.key === "B") {
-                document.querySelector('#big-screen').click();
+                $('#big-screen').click();
                 e.preventDefault();
             }
         }
@@ -340,10 +347,10 @@ function init() {
     };
 
     // Start tone.js
-    document.querySelector('html').addEventListener('click', () => {
+    window.addEventListener('click', () => {
         Tone.start();
     });
-    document.querySelector('html').addEventListener('touchstart', () => {
+    window.addEventListener('touchstart', () => {
         Tone.start();
     });
 };
@@ -364,9 +371,14 @@ function dropHandler(ev) {
     reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
 }
 
-function dragOverHandler(ev) {
+function dragoverHandler(ev) {
     ev.preventDefault();
 }
+
+window.addEventListener('drop', dropHandler);
+window.addEventListener('dragover', dragoverHandler);
+
+
 
 init();
 

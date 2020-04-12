@@ -4,8 +4,6 @@ import { writeDebug } from "../../src/gameboy/tools/debug";
 import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
 
-// TODO: Figure out why wave sound length isn't working in Pokemon Yellow
-
 const CLOCK_MAIN_STEPS = 32768;
 const CLOCK_ENVELOPE_STEPS = 65536;
 const CLOCK_LENGTH_STEPS = 16384;
@@ -17,9 +15,9 @@ export default class SoundChip implements HWIO {
     enabled = false;
 
     gb: GameBoy;
-    clockEnvelopePulse1 = 0;
-    clockEnvelopePulse2 = 0;
-    clockEnvelopeNoise = 0;
+    ticksEnvelopePulse1 = 0;
+    ticksEnvelopePulse2 = 0;
+    ticksEnvelopeNoise = 0;
 
     clockPulse1FreqSweep = 0;
 
@@ -94,8 +92,8 @@ export default class SoundChip implements HWIO {
     }
 
     volumeEnvelope() {
-        this.clockEnvelopePulse1++;
-        if (this.clockEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
+        this.ticksEnvelopePulse1++;
+        if (this.ticksEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
             if (this.pulse1.volumeEnvelopeSweep !== 0) {
                 if (this.pulse1.volumeEnvelopeUp) {
                     if (this.pulse1.volume < 15) {
@@ -109,11 +107,11 @@ export default class SoundChip implements HWIO {
                     }
                 }
             }
-            this.clockEnvelopePulse1 = 0;
+            this.ticksEnvelopePulse1 = 0;
         }
 
-        this.clockEnvelopePulse2++;
-        if (this.clockEnvelopePulse2 >= this.pulse2.volumeEnvelopeSweep) {
+        this.ticksEnvelopePulse2++;
+        if (this.ticksEnvelopePulse2 >= this.pulse2.volumeEnvelopeSweep) {
             if (this.pulse2.volumeEnvelopeSweep !== 0) {
                 if (this.pulse2.volumeEnvelopeUp) {
                     if (this.pulse2.volume < 15) {
@@ -127,11 +125,11 @@ export default class SoundChip implements HWIO {
                     }
                 }
             }
-            this.clockEnvelopePulse2 = 0;
+            this.ticksEnvelopePulse2 = 0;
         }
 
-        this.clockEnvelopeNoise++;
-        if (this.clockEnvelopeNoise >= this.noise.volumeEnvelopeSweep) {
+        this.ticksEnvelopeNoise++;
+        if (this.ticksEnvelopeNoise >= this.noise.volumeEnvelopeSweep) {
             if (this.noise.volumeEnvelopeSweep !== 0) {
                 if (this.noise.volumeEnvelopeUp) {
                     if (this.noise.volume < 15) {
@@ -145,7 +143,7 @@ export default class SoundChip implements HWIO {
                     }
                 }
             }
-            this.clockEnvelopeNoise = 0;
+            this.ticksEnvelopeNoise = 0;
         }
         this.tjsCheck();
     }
@@ -169,7 +167,6 @@ export default class SoundChip implements HWIO {
             }
         }
 
-        // TODO: Wave length isn't working in some way or another
         if (this.wave.lengthCounter > 0 && this.wave.lengthEnable) {
             this.wave.lengthCounter--;
             if (this.wave.lengthCounter === 0) {
@@ -485,9 +482,9 @@ export default class SoundChip implements HWIO {
         }
 
         this.clockFrameSequencer = 0;
-        this.clockEnvelopePulse1 = 0;
-        this.clockEnvelopePulse2 = 0;
-        this.clockEnvelopeNoise = 0;
+        this.ticksEnvelopePulse1 = 0;
+        this.ticksEnvelopePulse2 = 0;
+        this.ticksEnvelopeNoise = 0;
 
         this.clockPulse1FreqSweep = 0;
 

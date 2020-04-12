@@ -2,7 +2,6 @@ import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
 import ExternalBus from "../externalbus";
 
-// TODO: Implement RTC features in MBC3
 export default class MBC3 extends MBCWithRAM implements MBC {
     selectRtc = false;
     ext: ExternalBus;

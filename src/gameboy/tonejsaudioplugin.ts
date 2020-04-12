@@ -289,7 +289,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         let LFSR_MUL = 16;
 
         let waveTable = new Array(32768 * LFSR_MUL).fill(0);
-        // TODO: Hook LFSR into the rest of the sound chip
+        
         waveTable = waveTable.map((v, i) => {
             let bit = lfsr(LFSR_MUL);
             let out;
