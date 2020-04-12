@@ -1,7 +1,6 @@
 import * as Tone from "tone";
 
 export interface BasicChannel {
-    triggered: boolean;
     volume: number;
     enabled: boolean;
 
@@ -33,7 +32,6 @@ export class PulseChannel implements BasicChannel {
     outputLeft = false;
     outputRight = false;
 
-    triggered = false;
     freqSweepTime = 0;
     freqSweepUp = false;
     freqSweepShiftNum = 0;
@@ -95,11 +93,9 @@ export class WaveChannel implements BasicChannel {
 
     restartSound = false;
 
-
     outputLeft = false;
     outputRight = false;
 
-    triggered = false;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
@@ -159,7 +155,6 @@ export class NoiseChannel implements BasicChannel {
     outputLeft = false;
     outputRight = false;
 
-    triggered = false;
     shiftClockFrequency = 0;
     counterStep = false;
     envelopeSweep = 0;

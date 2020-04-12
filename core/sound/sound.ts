@@ -17,13 +17,14 @@ export default class SoundChip implements HWIO {
     enabled = false;
 
     gb: GameBoy;
-    clockMain = 0;
-    clockEnvelopeMain = 0;
     clockEnvelopePulse1 = 0;
     clockEnvelopePulse2 = 0;
     clockEnvelopeNoise = 0;
+
     clockPulse1FreqSweep = 0;
-    clockLength = 0;
+
+    clockFrameSequencer = 0;
+    frameSequencerStep = 0;
 
     pulse1 = new PulseChannel();
     pulse2 = new PulseChannel();
@@ -36,11 +37,45 @@ export default class SoundChip implements HWIO {
         this.gb = gb;
     }
 
-    handlePulse1Sweep() {
+
+
+    step(cycles: number) {
+        // #region CLOCK
+        if (this.enabled) {
+            this.clockFrameSequencer += cycles;
+
+            // 512Hz Frame Sequencer
+            while (this.clockFrameSequencer >= 8192) {
+                switch (this.frameSequencerStep) {
+                    case 0:
+                    case 4:
+                        this.length();
+                        break;
+                    case 2:
+                    case 6:
+                        this.length();
+                        this.frequencySweep();
+                        break;
+                    case 7:
+                        this.volumeEnvelope();
+                        break;
+                    default:
+                        break;
+                }
+
+                this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
+                this.clockFrameSequencer -= 8192;
+            }
+        } else {
+            this.clockFrameSequencer = 0;
+        }
+    }
+
+    frequencySweep() {
         // writeDebug("Frequency sweep")
         let actualTime = this.pulse1.freqSweepTime;
         if (actualTime == 0) actualTime = 8;
-        if (this.clockPulse1FreqSweep > actualTime) {
+        if (this.clockPulse1FreqSweep > actualTime && this.pulse1.freqSweepTime !== 0) {
             this.clockPulse1FreqSweep = 0;
             let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
             const diff = freq >> this.pulse1.freqSweepShiftNum;
@@ -58,164 +93,105 @@ export default class SoundChip implements HWIO {
         this.clockPulse1FreqSweep++;
     }
 
-    step(cycles: number) {
-        // #region CLOCK
-        if (this.enabled) {
-            this.clockLength += cycles;
-            this.clockMain += cycles;
-            this.clockEnvelopeMain += cycles;
-        } else {
-            this.clockLength = 0;
-            this.clockMain = 0;
-            this.clockEnvelopeMain = 0;
-        }
-
-        if (this.pulse1.triggered) {
-            this.pulse1.trigger();
-
-            if (this.pulse1.freqSweepShiftNum > 0) {
-                this.handlePulse1Sweep();
+    volumeEnvelope() {
+        this.clockEnvelopePulse1++;
+        if (this.clockEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
+            if (this.pulse1.volumeEnvelopeSweep !== 0) {
+                if (this.pulse1.volumeEnvelopeUp) {
+                    if (this.pulse1.volume < 15) {
+                        this.pulse1.volume++;
+                        this.pulse1.update();
+                    }
+                } else {
+                    if (this.pulse1.volume > 0) {
+                        this.pulse1.volume--;
+                        this.pulse1.update();
+                    }
+                }
             }
-
-            this.pulse1.triggered = false;
             this.clockEnvelopePulse1 = 0;
         }
-        if (this.pulse2.triggered) {
-            this.pulse2.trigger();
-            this.pulse2.triggered = false;
+
+        this.clockEnvelopePulse2++;
+        if (this.clockEnvelopePulse2 >= this.pulse2.volumeEnvelopeSweep) {
+            if (this.pulse2.volumeEnvelopeSweep !== 0) {
+                if (this.pulse2.volumeEnvelopeUp) {
+                    if (this.pulse2.volume < 15) {
+                        this.pulse2.volume++;
+                        this.pulse2.update();
+                    }
+                } else {
+                    if (this.pulse2.volume > 0) {
+                        this.pulse2.volume--;
+                        this.pulse2.update();
+                    }
+                }
+            }
             this.clockEnvelopePulse2 = 0;
         }
-        if (this.wave.triggered) {
-            this.wave.trigger();
-            this.wave.triggered = false;
-        }
-        if (this.noise.triggered) {
-            this.noise.trigger();
-            this.noise.triggered = false;
+
+        this.clockEnvelopeNoise++;
+        if (this.clockEnvelopeNoise >= this.noise.volumeEnvelopeSweep) {
+            if (this.noise.volumeEnvelopeSweep !== 0) {
+                if (this.noise.volumeEnvelopeUp) {
+                    if (this.noise.volume < 15) {
+                        this.noise.volume++;
+                        this.noise.update();
+                    }
+                } else {
+                    if (this.noise.volume > 0) {
+                        this.noise.volume--;
+                        this.noise.update();
+                    }
+                }
+            }
             this.clockEnvelopeNoise = 0;
         }
+        this.tjsCheck();
+    }
 
-        // 4194304hz Divide by 65536 = 64hz
-        while (this.clockEnvelopeMain >= CLOCK_ENVELOPE_STEPS) {
-            this.clockEnvelopePulse1++;
-            if (this.clockEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
-                if (this.pulse1.volumeEnvelopeSweep !== 0) {
-                    if (this.pulse1.volumeEnvelopeUp) {
-                        if (this.pulse1.volume < 15) {
-                            this.pulse1.volume++;
-                            this.pulse1.update();
-                        }
-                    } else {
-                        if (this.pulse1.volume > 0) {
-                            this.pulse1.volume--;
-                            this.pulse1.update();
-                        }
-                    }
-                }
-                this.clockEnvelopePulse1 = 0;
-            }
 
-            this.clockEnvelopePulse2++;
-            if (this.clockEnvelopePulse2 >= this.pulse2.volumeEnvelopeSweep) {
-                if (this.pulse2.volumeEnvelopeSweep !== 0) {
-                    if (this.pulse2.volumeEnvelopeUp) {
-                        if (this.pulse2.volume < 15) {
-                            this.pulse2.volume++;
-                            this.pulse2.update();
-                        }
-                    } else {
-                        if (this.pulse2.volume > 0) {
-                            this.pulse2.volume--;
-                            this.pulse2.update();
-                        }
-                    }
-                }
-                this.clockEnvelopePulse2 = 0;
+    length() {
+        if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
+            this.pulse1.lengthCounter--;
+            if (this.pulse1.lengthCounter === 0) {
+                writeDebug("PULSE 1 length become 0");
+                this.pulse1.enabled = false;
+                this.pulse1.update();
             }
-
-            this.clockEnvelopeNoise++;
-            if (this.clockEnvelopeNoise >= this.noise.volumeEnvelopeSweep) {
-                if (this.noise.volumeEnvelopeSweep !== 0) {
-                    if (this.noise.volumeEnvelopeUp) {
-                        if (this.noise.volume < 15) {
-                            this.noise.volume++;
-                            this.noise.update();
-                        }
-                    } else {
-                        if (this.noise.volume > 0) {
-                            this.noise.volume--;
-                            this.noise.update();
-                        }
-                    }
-                }
-                this.clockEnvelopeNoise = 0;
-            }
-            this.clockEnvelopeMain -= CLOCK_ENVELOPE_STEPS;
-            this.tjsCheck();
         }
 
-        // 4194304hz Divide by 32768 = 128hz
-        while (this.clockMain >= CLOCK_MAIN_STEPS) {
-            // #region LENGTH
-            if (this.pulse1.enabled) {
-                if (this.pulse1.freqSweepTime !== 0) {
-                    this.handlePulse1Sweep();
-                }
+        if (this.pulse2.lengthCounter > 0 && this.pulse2.lengthEnable) {
+            this.pulse2.lengthCounter--;
+            if (this.pulse2.lengthCounter === 0) {
+                this.pulse2.enabled = false;
+                this.pulse2.update();
             }
-
-            // this.noiseOsc.mute = !this.noiseChannel.enabled
-
-            // #endregion
-
-            this.clockMain -= CLOCK_MAIN_STEPS;
-            this.tjsCheck();
         }
 
-
-        // 256 hz
-        while (this.clockLength >= CLOCK_LENGTH_STEPS) {
-            if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
-                this.pulse1.lengthCounter--;
-                if (this.pulse1.lengthCounter === 0) {
-                    writeDebug("PULSE 1 length become 0");
-                    this.pulse1.enabled = false;
-                    this.pulse1.update();
-                }
+        // TODO: Wave length isn't working in some way or another
+        if (this.wave.lengthCounter > 0 && this.wave.lengthEnable) {
+            this.wave.lengthCounter--;
+            if (this.wave.lengthCounter === 0) {
+                this.wave.enabled = false;
+                this.wave.update();
             }
+        }
 
-            if (this.pulse2.lengthCounter > 0 && this.pulse2.lengthEnable) {
-                this.pulse2.lengthCounter--;
-                if (this.pulse2.lengthCounter === 0) {
-                    this.pulse2.enabled = false;
-                    this.pulse2.update();
-                }
+        if (this.noise.lengthCounter > 0 && this.noise.lengthEnable) {
+            this.noise.lengthCounter--;
+            if (this.noise.lengthCounter === 0) {
+                this.noise.enabled = false;
+                this.noise.update();
             }
-
-            // TODO: Wave length isn't working in some way or another
-            if (this.wave.lengthCounter > 0 && this.wave.lengthEnable) {
-                this.wave.lengthCounter--;
-                if (this.wave.lengthCounter === 0) {
-                    this.wave.enabled = false;
-                    this.wave.update();
-                }
-            }
-
-            if (this.noise.lengthCounter > 0 && this.noise.lengthEnable) {
-                this.noise.lengthCounter--;
-                if (this.noise.lengthCounter === 0) {
-                    this.noise.enabled = false;
-                    this.noise.update();
-                }
-            }
-            this.clockLength -= CLOCK_LENGTH_STEPS;
-            this.tjsCheck();
+        }
+        this.tjsCheck();
 
 
-            if (this.wave.waveTableUpdated === true) {
-                if (this.ap !== null)
-                    this.ap.updateWaveTable(this);
-                this.wave.waveTableUpdated = false;
-            }
+        if (this.wave.waveTableUpdated === true) {
+            if (this.ap !== null)
+                this.ap.updateWaveTable(this);
+            this.wave.waveTableUpdated = false;
         }
     }
 
@@ -276,7 +252,7 @@ export default class SoundChip implements HWIO {
                 case 0xFF14: // NR14
                     this.pulse1.frequencyUpper = value & 0b111;
                     this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
-                    this.pulse1.triggered = ((value >> 7) & 1) !== 0;
+                    if (((value >> 7) & 1) !== 0) this.pulse1.trigger();
                     this.pulse1.update();
                     break;
 
@@ -303,7 +279,7 @@ export default class SoundChip implements HWIO {
                 case 0xFF19: // NR24
                     this.pulse2.frequencyUpper = value & 0b111;
                     this.pulse2.lengthEnable = ((value >> 6) & 1) !== 0;
-                    this.pulse2.triggered = ((value >> 7) & 1) !== 0;
+                    if (((value >> 7) & 1) !== 0) this.pulse2.trigger();
                     this.pulse2.update();
                     break;
 
@@ -327,7 +303,7 @@ export default class SoundChip implements HWIO {
                     break;
                 case 0xFF1E: // NR34
                     this.wave.frequencyUpper = value & 0b111;
-                    this.wave.triggered = ((value >> 7) & 1) !== 0;
+                    if (((value >> 7) & 1) !== 0) this.wave.trigger();
                     this.wave.lengthEnable = ((value >> 6) & 1) !== 0;
                     this.wave.update();
                     break;
@@ -353,7 +329,7 @@ export default class SoundChip implements HWIO {
                     this.noise.update();
                     break;
                 case 0xFF23: // NR44
-                    this.noise.triggered = ((value >> 7) & 1) !== 0;
+                    if (((value >> 7) & 1) !== 0) this.noise.trigger();
                     this.noise.lengthEnable = ((value >> 6) & 1) !== 0;
                     this.noise.update();
                     break;
@@ -508,13 +484,12 @@ export default class SoundChip implements HWIO {
             this.ap.noise(this);
         }
 
-        this.clockMain = 0;
-        this.clockEnvelopeMain = 0;
+        this.clockFrameSequencer = 0;
         this.clockEnvelopePulse1 = 0;
         this.clockEnvelopePulse2 = 0;
         this.clockEnvelopeNoise = 0;
+
         this.clockPulse1FreqSweep = 0;
-        this.clockLength = 0;
 
         if (this.ap !== null) {
             this.ap.reset();
