@@ -2,8 +2,7 @@ import * as Tone from "tone";
 import { AudioPlugin } from "../../core/sound/audioplugin";
 import SoundChip from "../../core/sound/sound";
 
-const widths = [0.5, 0.5, 0, 0.5]; // CORRECT
-// const widths = [0.75, 0.5, 0, 0.5]
+const thresholds = [-0.75, -0.5, 0, 0.5]; // CORRECT
 
 function convertVolumePulse(v: number) {
     const base = -24;
@@ -35,11 +34,11 @@ function convertVolumeWave(v: number) {
 }
 
 export default class ToneJsAudioPlugin implements AudioPlugin {
-    pulseOsc1: Tone.PulseOscillator;
+    pulseOsc1: Tone.Oscillator;
     pulseVolumeShaper1: Tone.WaveShaper;
     pulsePan1: Tone.Panner;
 
-    pulseOsc2: Tone.PulseOscillator;
+    pulseOsc2: Tone.Oscillator;
     pulseVolumeShaper2: Tone.WaveShaper;
     pulsePan2: Tone.Panner;
 
@@ -66,15 +65,12 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
     masterVolume: Tone.Volume;
 
-    pulse1VolumeValue: number = 0;
-    pulse2VolumeValue: number = 0;
-
     constructor() {
         const highPass = new Tone.Filter(120, 'highpass', -12);
         this.masterVolume = new Tone.Volume();
 
 
-        this.pulseOsc1 = new Tone.PulseOscillator(0, .5);
+        this.pulseOsc1 = new Tone.Oscillator(0, "triangle");
         this.pulseOsc1.volume.value = -12;
         this.pulseOsc1.mute = true;
         this.pulseVolumeShaper1 = new Tone.WaveShaper((i: number) => 0);
@@ -82,7 +78,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.pulseOsc1.chain(this.pulseVolumeShaper1, this.pulsePan1, Tone.Master);
         this.pulseOsc1.start();
 
-        this.pulseOsc2 = new Tone.PulseOscillator(0, 0.5);
+        this.pulseOsc2 = new Tone.Oscillator(0, "triangle");
         this.pulseOsc2.volume.value = -12;
         this.pulseOsc2.mute = true;
         this.pulseVolumeShaper2 = new Tone.WaveShaper((i: number) => 0);
@@ -132,15 +128,17 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             if (s.pulse1.updated) {
                 this.pulsePan1.pan.value = s.pulse1.pan;
                 this.pulseOsc1.mute = false;
-                this.pulseOsc1.volume.value = -10;
-                this.pulse1VolumeValue = s.pulse1.volume;
+                this.pulseOsc1.volume.value = 0; 
                 this.pulseVolumeShaper1.setMap((i: number) => {
-                    let mul = 1;
-                    if (s.pulse1.width === 3) mul = -1;
-                    return i * (this.pulse1VolumeValue / 15);
+                    let vol = s.pulse1.volume / 15;
+                    if (i > thresholds[s.pulse1.width]) {
+                        return 0.4 * vol;
+                    } else {
+                        return -0.4 * vol;
+                    }
                 });
                 this.pulseOsc1.frequency.value = s.pulse1.frequencyHz;
-                this.pulseOsc1.width.value = widths[s.pulse1.width];
+                // this.pulseOsc1.width.value = widths[s.pulse1.width];
             }
         } else {
             this.pulseOsc1.mute = true;
@@ -153,15 +151,17 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             if (s.pulse2.updated) {
                 this.pulsePan2.pan.value = s.pulse2.pan;
                 this.pulseOsc2.mute = false;
-                this.pulseOsc2.volume.value = -8;
-                this.pulse2VolumeValue = s.pulse2.volume;
+                this.pulseOsc2.volume.value = 0;
                 this.pulseVolumeShaper2.setMap((i: number) => {
-                    let mul = 1;
-                    if (s.pulse2.width === 3) mul = -1;
-                    return i * (this.pulse2VolumeValue / 15);
+                    let vol = s.pulse2.volume / 15;
+                    if (i > thresholds[s.pulse2.width]) {
+                        return 0.4 * vol;
+                    } else {
+                        return -0.4 * vol;
+                    }
                 });
                 this.pulseOsc2.frequency.value = s.pulse2.frequencyHz;
-                this.pulseOsc2.width.value = widths[s.pulse2.width];
+                // this.pulseOsc2.width.value = widths[s.pulse2.width];
             }
         } else {
             this.pulseOsc2.mute = true;
@@ -289,7 +289,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         let LFSR_MUL = 16;
 
         let waveTable = new Array(32768 * LFSR_MUL).fill(0);
-        
+
         waveTable = waveTable.map((v, i) => {
             let bit = lfsr(LFSR_MUL);
             let out;
