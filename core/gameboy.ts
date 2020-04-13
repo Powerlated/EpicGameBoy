@@ -1,4 +1,4 @@
-import CPU from './cpu/cpu';
+import CPU, { R16 } from './cpu/cpu';
 import GPU from './video/gpu';
 import MemoryBus from './memory/memorybus';
 import Disassembler from '../src/gameboy/tools/disassembler';
@@ -180,16 +180,16 @@ export default class GameBoy {
 
             // Games check A for 0x11 to detect a CGB
             if (this.cgb) {
-                this.cpu.reg.af = 0x1180;
-                this.cpu.reg.bc = 0x0000;
-                this.cpu.reg.de = 0xFF56;
-                this.cpu.reg.hl = 0x000D;
+                this.cpu.reg[R16.AF] = 0x1180;
+                this.cpu.reg[R16.BC] = 0x0000;
+                this.cpu.reg[R16.DE] = 0xFF56;
+                this.cpu.reg[R16.HL] = 0x000D;
                 this.cpu.reg.sp = 0xFFFE;
             } else {
-                this.cpu.reg.af = 0x01B0;
-                this.cpu.reg.bc = 0x0013;
-                this.cpu.reg.de = 0x00D8;
-                this.cpu.reg.hl = 0x014D;
+                this.cpu.reg[R16.AF] = 0x01B0;
+                this.cpu.reg[R16.BC] = 0x0013;
+                this.cpu.reg[R16.DE] = 0x00D8;
+                this.cpu.reg[R16.HL] = 0x014D;
                 this.cpu.reg.sp = 0xFFFE;
             }
 

@@ -52,7 +52,7 @@ export default class Disassembler {
             case Ops.CALL_N16:
                 return pcTriplet[1] | pcTriplet[2] << 8;
             case Ops.JP_HL:
-                return cpu.reg.hl;
+                return cpu.reg[R16.HL];
             case Ops.RET:
             case Ops.RETI:
                 const stackLowerByte = cpu.gb.bus.readMem8((cpu.reg.sp) & 0xFFFF);

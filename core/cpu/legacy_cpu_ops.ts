@@ -124,15 +124,15 @@ export default class Ops {
     }
 
     static LD_iHL_N8(cpu: CPU, n8: number) {
-        cpu.writeMem8(cpu.reg.hl, n8);
+        cpu.writeMem8(cpu.reg[R16.HL], n8);
     }
 
     static LD_iHL_R8(cpu: CPU, r8: R8) {
-        cpu.writeMem8(cpu.reg.hl, cpu.reg[r8]);
+        cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[r8]);
     }
 
     static ADD_iHL(cpu: CPU) {
-        cpu.reg[R8.A] = (cpu.reg[R8.A] + cpu.fetchMem8(cpu.reg.hl)) & 0xFF;
+        cpu.reg[R8.A] = (cpu.reg[R8.A] + cpu.fetchMem8(cpu.reg[R16.HL])) & 0xFF;
     }
 
     static CP_A_iHL(cpu: CPU) {
@@ -222,7 +222,7 @@ export default class Ops {
     }
 
     static JP_HL(cpu: CPU) {
-        cpu.pc = cpu.reg.hl - 1;
+        cpu.pc = cpu.reg[R16.HL] - 1;
     }
 
 
@@ -267,7 +267,7 @@ export default class Ops {
         cpu.reg._f.half_carry = (signedVal & 0xF) + (cpu.reg.sp & 0xF) > 0xF;
         cpu.reg._f.carry = (signedVal & 0xFF) + (cpu.reg.sp & 0xFF) > 0xFF;
 
-        cpu.reg.hl = (unTwo8b(e8) + cpu.reg.sp) & 0xFFFF;
+        cpu.reg[R16.HL] = (unTwo8b(e8) + cpu.reg.sp) & 0xFFFF;
 
         // Register read timing
         cpu.cycles += 4;
@@ -303,24 +303,24 @@ export default class Ops {
 
     // LD [HL+],A | Store value in register A into byte pointed by HL and post-increment HL.  
     static LD_iHLinc_A(cpu: CPU) {
-        cpu.writeMem8(cpu.reg.hl, cpu.reg[R8.A]);
-        cpu.reg.hl = (cpu.reg.hl + 1) & 0xFFFF;
+        cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[R8.A]);
+        cpu.reg[R16.HL] = (cpu.reg[R16.HL] + 1) & 0xFFFF;
     }
     // LD [HL-],A | Store value in register A into byte pointed by HL and post-decrement HL. 
     static LD_iHLdec_A(cpu: CPU) {
-        cpu.writeMem8(cpu.reg.hl, cpu.reg[R8.A]);
-        cpu.reg.hl = (cpu.reg.hl - 1) & 0xFFFF;
+        cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[R8.A]);
+        cpu.reg[R16.HL] = (cpu.reg[R16.HL] - 1) & 0xFFFF;
     }
 
     // LD A,[HL+] | Store value in byte pointed by HL into A, then post-increment HL.
     static LD_A_iHLinc(cpu: CPU) {
-        cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg.hl);
-        cpu.reg.hl = (cpu.reg.hl + 1) & 0xFFFF;
+        cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.HL]);
+        cpu.reg[R16.HL] = (cpu.reg[R16.HL] + 1) & 0xFFFF;
     }
     // LD A,[HL-] | Store value in byte pointed by HL into A, then post-decrement HL.
     static LD_A_iHLdec(cpu: CPU) {
-        cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg.hl);
-        cpu.reg.hl = (cpu.reg.hl - 1) & 0xFFFF;
+        cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.HL]);
+        cpu.reg[R16.HL] = (cpu.reg[R16.HL] - 1) & 0xFFFF;
     }
 
     // ADD SP, e8
@@ -351,7 +351,7 @@ export default class Ops {
     }
 
     static LD_SP_HL(cpu: CPU) {
-        cpu.reg.sp = cpu.reg.hl;
+        cpu.reg.sp = cpu.reg[R16.HL];
 
         // Register read timing
         cpu.cycles += 4;
@@ -428,11 +428,11 @@ export default class Ops {
     static ADD_HL_R8(cpu: CPU, t: R8) {
         const value = cpu.reg[t];
 
-        const newValue = (value + cpu.reg.hl) & 0xFFFF;
-        const didOverflow = ((value + cpu.reg.hl) >> 8) !== 0;
+        const newValue = (value + cpu.reg[R16.HL]) & 0xFFFF;
+        const didOverflow = ((value + cpu.reg[R16.HL]) >> 8) !== 0;
 
         // Set register values
-        cpu.reg.hl = newValue;
+        cpu.reg[R16.HL] = newValue;
 
         // Set flags
         cpu.reg._f.carry = didOverflow;
@@ -444,16 +444,16 @@ export default class Ops {
     static ADD_HL_R16(cpu: CPU, r16: R16) {
         const r16Value = cpu.reg[r16];
 
-        const newValue = (r16Value + cpu.reg.hl) & 0xFFFF;
-        const didOverflow = ((r16Value + cpu.reg.hl) >> 16) !== 0;
+        const newValue = (r16Value + cpu.reg[R16.HL]) & 0xFFFF;
+        const didOverflow = ((r16Value + cpu.reg[R16.HL]) >> 16) !== 0;
 
         // Set flag
         cpu.reg._f.negative = false;
-        cpu.reg._f.half_carry = (cpu.reg.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
+        cpu.reg._f.half_carry = (cpu.reg[R16.HL] & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
         cpu.reg._f.carry = didOverflow;
 
         // Set register values
-        cpu.reg.hl = newValue;
+        cpu.reg[R16.HL] = newValue;
 
         // Register read takes 4 more cycles
         cpu.cycles += 4;

@@ -87,16 +87,6 @@ class Registers {
     set iHL(i: number) { this[R8.iHL] = i; }
     set a(i: number) { this[R8.A] = i; };
 
-    get af() { return this[R16.AF]; }
-    get bc() { return this[R16.BC]; }
-    get de() { return this[R16.DE]; }
-    get hl() { return this[R16.HL]; }
-
-    set af(i: number) { this[R16.AF] = i; }
-    set bc(i: number) { this[R16.BC] = i; }
-    set de(i: number) { this[R16.DE] = i; }
-    set hl(i: number) { this[R16.HL] = i; }
-
     /*
     * R8 internal magic numbers
     * 
@@ -117,8 +107,8 @@ class Registers {
     0x3 = 0;
     0x4 = 0;
     0x5 = 0;
-    get 0x6(): number { return this.cpu.fetchMem8(this.cpu.reg.hl); }
-    set 0x6(i: number) { this.cpu.writeMem8(this.cpu.reg.hl, i); }
+    get 0x6(): number { return this.cpu.fetchMem8(this.cpu.reg[R16.HL]); }
+    set 0x6(i: number) { this.cpu.writeMem8(this.cpu.reg[R16.HL], i); }
     0x7 = 0;
 
     /*
@@ -253,11 +243,11 @@ export default class CPU {
         this.reg[R8.H] = 0;
         this.reg[R8.L] = 0;
 
-        this.reg.af = 0;
-        this.reg.bc = 0;
-        this.reg.de = 0;
-        this.reg.hl = 0;
-        this.reg.sp = 0;
+        this.reg[R16.AF] = 0;
+        this.reg[R16.BC] = 0;
+        this.reg[R16.DE] = 0;
+        this.reg[R16.HL] = 0;
+        this.reg[R16.SP] = 0;
         this.totalI = 0;
         this.time = 0;
         this.pc = 0;
@@ -498,9 +488,9 @@ export default class CPU {
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
 
-            this.log.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg.bc, 4)} DE:${hexN_LC(this.reg.de, 4)} HL:${hexN_LC(this.reg.hl, 4)
+            this.log.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg[R16.BC], 4)} DE:${hexN_LC(this.reg[R16.DE], 4)} HL:${hexN_LC(this.reg[R16.HL], 4)
                 } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
-            this.fullLog.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg.bc, 4)} DE:${hexN_LC(this.reg.de, 4)} HL:${hexN_LC(this.reg.hl, 4)
+            this.fullLog.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg[R16.BC], 4)} DE:${hexN_LC(this.reg[R16.DE], 4)} HL:${hexN_LC(this.reg[R16.HL], 4)
                 } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
         }
 
@@ -676,7 +666,7 @@ export default class CPU {
                 {
                     const b1 = this.fetchMem8(this.pc + 1);
 
-                    this.writeMem8(this.reg.hl, b1);
+                    this.writeMem8(this.reg[R16.HL], b1);
                 }
                 this.pc += 2;
                 return;
@@ -693,7 +683,7 @@ export default class CPU {
                     this.reg._f.half_carry = (signedVal & 0xF) + (this.reg.sp & 0xF) > 0xF;
                     this.reg._f.carry = (signedVal & 0xFF) + (this.reg.sp & 0xFF) > 0xFF;
 
-                    this.reg.hl = (unTwo8b(b1) + this.reg.sp) & 0xFFFF;
+                    this.reg[R16.HL] = (unTwo8b(b1) + this.reg.sp) & 0xFFFF;
 
                     // Register read timing
                     this.cycles += 4;
@@ -909,7 +899,7 @@ export default class CPU {
 
             case 0xF9: // LD SP, HL
                 {
-                    this.reg.sp = this.reg.hl;
+                    this.reg.sp = this.reg[R16.HL];
                     // Register read timing
                     this.cycles += 4;
                 }
@@ -1318,13 +1308,13 @@ export default class CPU {
                 this.pc += 1;
                 return;
             case 0x22: // LD [HL+], A
-                this.writeMem8(this.reg.hl, this.reg[R8.A]);
-                this.reg.hl = (this.reg.hl + 1) & 0xFFFF;
+                this.writeMem8(this.reg[R16.HL], this.reg[R8.A]);
+                this.reg[R16.HL] = (this.reg[R16.HL] + 1) & 0xFFFF;
                 this.pc += 1;
                 return;
             case 0x32: // LD [HL-], A
-                this.writeMem8(this.reg.hl, this.reg[R8.A]);
-                this.reg.hl = (this.reg.hl - 1) & 0xFFFF;
+                this.writeMem8(this.reg[R16.HL], this.reg[R8.A]);
+                this.reg[R16.HL] = (this.reg[R16.HL] - 1) & 0xFFFF;
                 this.pc += 1;
                 return;
             case 0x0A: // LD A, [BC]
@@ -1336,13 +1326,13 @@ export default class CPU {
                 this.pc += 1;
                 return;
             case 0x2A: // LD A, [HL+]
-                this.reg[R8.A] = this.fetchMem8(this.reg.hl);
-                this.reg.hl = (this.reg.hl + 1) & 0xFFFF;
+                this.reg[R8.A] = this.fetchMem8(this.reg[R16.HL]);
+                this.reg[R16.HL] = (this.reg[R16.HL] + 1) & 0xFFFF;
                 this.pc += 1;
                 return;
             case 0x3A: // LD A, [HL-]
-                this.reg[R8.A] = this.fetchMem8(this.reg.hl);
-                this.reg.hl = (this.reg.hl - 1) & 0xFFFF;
+                this.reg[R8.A] = this.fetchMem8(this.reg[R16.HL]);
+                this.reg[R16.HL] = (this.reg[R16.HL] - 1) & 0xFFFF;
                 this.pc += 1;
                 return;
 
@@ -1366,7 +1356,7 @@ export default class CPU {
 
             /** JP */
             case 0xE9: // JP HL
-                this.pc = this.reg.hl - 1;
+                this.pc = this.reg[R16.HL] - 1;
                 this.pc += 1;
                 return;
 
@@ -1518,16 +1508,16 @@ export default class CPU {
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
                     const r16Value = this.reg[target];
 
-                    const newValue = (r16Value + this.reg.hl) & 0xFFFF;
-                    const didOverflow = ((r16Value + this.reg.hl) >> 16) !== 0;
+                    const newValue = (r16Value + this.reg[R16.HL]) & 0xFFFF;
+                    const didOverflow = ((r16Value + this.reg[R16.HL]) >> 16) !== 0;
 
                     // Set flag
                     this.reg._f.negative = false;
-                    this.reg._f.half_carry = (this.reg.hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
+                    this.reg._f.half_carry = (this.reg[R16.HL] & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
                     this.reg._f.carry = didOverflow;
 
                     // Set register values
-                    this.reg.hl = newValue;
+                    this.reg[R16.HL] = newValue;
 
                     // Register read takes 4 more cycles
                     this.cycles += 4;

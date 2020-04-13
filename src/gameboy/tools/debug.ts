@@ -1,7 +1,7 @@
 import GameBoy from "../../../core/gameboy";
 import Ops from "../../../core/cpu/legacy_cpu_ops";
 import GPU, { colors555 } from "../../../core/video/gpu";
-import CPU, { R8 } from "../../../core/cpu/cpu";
+import CPU, { R8, R16 } from "../../../core/cpu/cpu";
 import { hex, pad, hexN } from "./util";
 
 function test() {
@@ -32,16 +32,16 @@ function test() {
     cpu.reset();
 
     cpu.reg.c = 200;
-    cpu.reg.hl = 256;
+    cpu.reg[R16.HL] = 256;
     Ops.ADD_HL_R8(cpu, R8.C);
-    writeDebug(cpu.reg.hl);
+    writeDebug(cpu.reg[R16.HL]);
     writeDebug(cpu.reg._f.carry);
     writeDebug("ADDHL: Expect 456 and no carry bit.");
 
     cpu.reset();
 
-    cpu.reg.hl = 42069;
-    writeDebug(cpu.reg.hl);
+    cpu.reg[R16.HL] = 42069;
+    writeDebug(cpu.reg[R16.HL]);
     writeDebug("setting HL: Expect 42069.");
 
     cpu.reg.a = 20;
@@ -180,11 +180,11 @@ function updateDebug() {
                 <span class="code">
                 SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(gb.bus.readMem16(cpu.reg.sp), 4)}]
 
-                AF: ${hex(cpu.reg.af, 4)} ${pad(cpu.reg.a.toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
-                BC: ${hex(cpu.reg.bc, 4)} ${pad(cpu.reg.b.toString(2), 8, '0')} ${pad(cpu.reg.c.toString(2), 8, '0')}
-                DE: ${hex(cpu.reg.de, 4)} ${pad(cpu.reg.d.toString(2), 8, '0')} ${pad(cpu.reg.e.toString(2), 8, '0')}
-                HL: ${hex(cpu.reg.hl, 4)} ${pad(cpu.reg.h.toString(2), 8, '0')} ${pad(cpu.reg.l.toString(2), 8, '0')}
-                [HL]: ${hex(gb.bus.readMem8(cpu.reg.hl), 2)}
+                AF: ${hex(cpu.reg[R16.AF], 4)} ${pad(cpu.reg.a.toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
+                BC: ${hex(cpu.reg[R16.BC], 4)} ${pad(cpu.reg.b.toString(2), 8, '0')} ${pad(cpu.reg.c.toString(2), 8, '0')}
+                DE: ${hex(cpu.reg[R16.DE], 4)} ${pad(cpu.reg.d.toString(2), 8, '0')} ${pad(cpu.reg.e.toString(2), 8, '0')}
+                HL: ${hex(cpu.reg[R16.HL], 4)} ${pad(cpu.reg.h.toString(2), 8, '0')} ${pad(cpu.reg.l.toString(2), 8, '0')}
+                [HL]: ${hex(gb.bus.readMem8(cpu.reg[R16.HL]), 2)}
                 </span>------------------------------
                 Scroll X/Y: ${gpu.scrX}/${gpu.scrY}
                 Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}
