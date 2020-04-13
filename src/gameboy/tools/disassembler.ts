@@ -176,9 +176,9 @@ export default class Disassembler {
             return `
                 <span 
                     onclick="
-                        cpu.toggleBreakpoint(${disasmPc});
+                        gb.cpu.toggleBreakpoint(${disasmPc});
                         const disassemblyP = document.getElementById('disassembly-output'); 
-                        disassemblyP.innerHTML = Disassembler.disassemble(cpu);
+                        disassemblyP.innerHTML = Disassembler.disassemble(gb.cpu);
                     "
                 >${line}</span>`;
         };
