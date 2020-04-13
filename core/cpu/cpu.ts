@@ -68,7 +68,7 @@ class Registers {
     }
 
     sp = 0;
-    
+
     /*
     * R8 internal magic numbers
     * 
@@ -568,18 +568,18 @@ export default class CPU {
             case 0xD2: // JP NC, N16
             case 0xDA: // JP C, N16
                 {
-                    const n16 = this.fetchMem16(this.pc + 1);
-
                     // If unconditional, don't check
                     if (b0 !== 0xC3) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; return; }
-                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; this.cycles += 4; return; }
+                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; this.cycles += 4; return; }
+                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; this.cycles += 4; return; }
+                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; this.cycles += 4; return; }
                     }
 
+                    const n16 = this.fetchMem16(this.pc + 1);
                     this.pc = n16 - 3;
+
                     this.cycles += 4; // Branching takes 4 cycles
                 }
                 this.pc += 3;
@@ -592,14 +592,12 @@ export default class CPU {
             case 0xCC: // CALL Z, N16
             case 0xC4: // CALL NZ, N16
                 {
-                    const n16 = this.fetchMem16(this.pc + 1);
-
                     if (b0 !== 0xCD) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; return; }
-                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; return; }
-                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; this.cycles += 4; return; }
+                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; this.cycles += 4; return; }
+                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; this.cycles += 4; return; }
+                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; this.cycles += 4; return; }
                     }
 
                     const pcUpperByte = ((this.pc + 3) & 0xFFFF) >> 8;
@@ -612,6 +610,7 @@ export default class CPU {
                     this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
                     this.writeMem8(this.reg.sp, pcLowerByte);
 
+                    const n16 = this.fetchMem16(this.pc + 1);
                     this.pc = n16 - 3;
 
                     this.cycles += 4; // Branching takes 4 cycles
@@ -765,17 +764,17 @@ export default class CPU {
             case 0x30: // JR NC, E8
             case 0x38: // JR C, E8
                 {
-                    const b1 = this.fetchMem8(this.pc + 1);
-
                     if (b0 !== 0x18) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 2; return; }
-                        if (cc === CC.Z && !this.reg._f.zero) { this.pc += 2; return; }
-                        if (cc === CC.NC && this.reg._f.carry) { this.pc += 2; return; }
-                        if (cc === CC.C && !this.reg._f.carry) { this.pc += 2; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 2; this.cycles += 4; return; }
+                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 2; this.cycles += 4; return; }
+                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 2; this.cycles += 4; return; }
+                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 2; this.cycles += 4; return; }
                     }
 
+                    const b1 = this.fetchMem8(this.pc + 1);
                     this.pc += unTwo8b(b1);
+
                     this.cycles += 4; // Branching takes 4 cycles
                 }
                 this.pc += 2;
