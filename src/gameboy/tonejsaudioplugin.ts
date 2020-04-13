@@ -100,7 +100,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.noise7Src = new Tone.BufferSource(this.generateNoiseBuffer(true), () => { });
         this.noise7Src.loop = true;
         this.noise7Pan = new Tone.Panner(0);
-        this.noise7Volume = new Tone.Volume(0);
+        this.noise7Volume = new Tone.Volume(-4);
         this.noise7Volume.mute = true;
         this.noise7Src.chain(this.noise7Volume, this.noiseVolumeShaper, this.noise7Pan, Tone.Master);
         this.noise7Src.start();
