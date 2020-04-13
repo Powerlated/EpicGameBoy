@@ -1,6 +1,6 @@
 import GameBoy from "../gameboy";
 import { TickSignal } from "tone";
-import { hex } from "../../src/gameboy/tools/util";
+import { hex, unTwo8b } from "../../src/gameboy/tools/util";
 import { VideoPlugin } from "./videoplugin";
 import { HWIO } from "../memory/hwio";
 
@@ -210,8 +210,8 @@ class GPU implements HWIO {
     totalFrameCount = 0;
 
     // [tile][pixel]
-    tileset0 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 0
-    tileset1 = new Array(384).fill(0).map(() => new Uint8Array(64).fill(0)); // For bank 1
+    tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 0
+    tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 1
 
     tileset = this.tileset0; // Assign active tileset reference to tileset 0
 
@@ -433,8 +433,8 @@ class GPU implements HWIO {
         this.totalFrameCount = 0;
 
         // [tile][row][pixel]
-        this.tileset0 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
-        this.tileset1 = new Array(0x1800 + 1).fill(0).map(() => new Uint8Array(64).fill(0));
+        this.tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8)));
+        this.tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8)));
 
         this.lcdControl = new LCDCRegister();
         this.lcdStatus = new LCDStatusRegister();
@@ -515,7 +515,7 @@ class GPU implements HWIO {
                 // Update tile set
                 let tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
 
-                tileset[tile][(y << 3) + x] =
+                tileset[tile][y][x] =
                     (lsb !== 0 ? 1 : 0) +
                     (msb !== 0 ? 2 : 0);
             }
@@ -724,19 +724,16 @@ class GPU implements HWIO {
         this.cgbObjPalette.update(p >> 2);
     }
 
-
-
     imageGameboyPre = new Uint8Array(160 * 144);
     imageGameboyNoSprites = new Uint8Array(160 * 144);
-    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4), 160, 144);
-    imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4), 256, 192);
-
+    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+    imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
     showBorders = false;
 
-
     renderBg() {
-        const y = (this.lcdcY + this.scrY) & 0b111; // CORRECT
+        // This is the Y value within a tile
+        const y = (this.lcdcY + this.scrY) & 0b111;
 
         const mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 1024 : 0;
 
@@ -748,7 +745,7 @@ class GPU implements HWIO {
         let lineOffset = this.scrX >> 3;
 
         // How many pixels in we should start drawing at in the first tile
-        let x = (this.scrX) & 0b111;                // CORRECT
+        let x = this.scrX & 0b111;                // CORRECT
 
         let attr = this.cgbTileAttrs[mapOffset + lineOffset];
         let tile = this.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
@@ -756,23 +753,20 @@ class GPU implements HWIO {
 
         let canvasIndex = 160 * 4 * (this.lcdcY);
 
-        const xPos = this.windowXpos - 7;
-        // Loop through every single horizontal pixel for this line 
-        for (let i = 0; i < 160; i++) {
-            // Don't bother drawing if WINDOW is overlaying
-            if (this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos && i >= xPos) return;
+        const xPos = this.windowXpos - 7; // Get the real X position of the window
+        const endAt = this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos ? xPos : 160;
 
+        // Loop through every single horizontal pixel for this line 
+        for (let i = 0; i < endAt; i++) {
             if (!this.lcdControl.bgWindowTiledataSelect__4) {
                 // Two's Complement on high tileset
-                if (tile > 127) {
-                    tile -= 256;
-                }
+                if (tile > 127) tile -= 256;
                 tile += 256;
             }
 
             const adjX = attr.xFlip ? 7 - x : x;
             const adjY = attr.yFlip ? 7 - y : y;
-            const prePalette = tileset[tile][(adjY << 3) + adjX];
+            const prePalette = tileset[tile][adjY][adjX];
             const pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
             // Re-map the tile pixel through the palette
 
@@ -780,7 +774,6 @@ class GPU implements HWIO {
             this.imageGameboy.data[canvasIndex + 0] = pixel[0];
             this.imageGameboy.data[canvasIndex + 1] = pixel[1];
             this.imageGameboy.data[canvasIndex + 2] = pixel[2];
-            this.imageGameboy.data[canvasIndex + 3] = 255;
 
             this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
@@ -791,7 +784,6 @@ class GPU implements HWIO {
                 this.imageGameboy.data[canvasIndex + 0] = 0xFF;
                 this.imageGameboy.data[canvasIndex + 1] = 0;
                 this.imageGameboy.data[canvasIndex + 2] = 0;
-                this.imageGameboy.data[canvasIndex + 3] = 255;
             }
 
             canvasIndex += 4;
@@ -819,7 +811,7 @@ class GPU implements HWIO {
 
             const mapBase = this.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
 
-            const mapIndex = ((this.currentWindowLine >> 3) * 32) & 1023;
+            const mapIndex = ((this.currentWindowLine >> 3) << 5) & 1023;
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
             let attr = this.cgbTileAttrs[mapOffset];
@@ -829,26 +821,23 @@ class GPU implements HWIO {
             let canvasIndex = 160 * 4 * (this.lcdcY) + (xPos * 4);
 
             // Loop through every single horizontal pixel for this line 
-            for (let i = 0; i < 160; i++) {
+            for (let i = xPos; i < 160; i++) {
                 if (i >= xPos) {
                     if (!this.lcdControl.bgWindowTiledataSelect__4) {
                         // Two's Complement on high tileset
-                        if (tile > 127) {
-                            tile -= 256;
-                        }
+                        if (tile > 127) tile -= 256;
                         tile += 256;
                     }
 
                     const adjX = attr.xFlip ? 7 - x : x;
                     const adjY = attr.yFlip ? 7 - y : y;
-                    const prePalette = tileset[tile][(adjY << 3) + adjX];
+                    const prePalette = tileset[tile][adjY][adjX];
                     let pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
 
                     // Plot the pixel to canvas
                     this.imageGameboy.data[canvasIndex + 0] = pixel[0];
                     this.imageGameboy.data[canvasIndex + 1] = pixel[1];
                     this.imageGameboy.data[canvasIndex + 2] = pixel[2];
-                    this.imageGameboy.data[canvasIndex + 3] = 255;
 
                     this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
@@ -859,7 +848,6 @@ class GPU implements HWIO {
                         this.imageGameboy.data[canvasIndex + 0] = 0;
                         this.imageGameboy.data[canvasIndex + 1] = 0;
                         this.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                        this.imageGameboy.data[canvasIndex + 3] = 255;
                     }
                     canvasIndex += 4;
 
@@ -946,7 +934,7 @@ class GPU implements HWIO {
 
                 // Offset tile by +1 if rendering the top half of an 8x16 sprite
 
-                const prePalette = tileset[tile + tileOffset][(pixelY << 3) + pixelX];
+                const prePalette = tileset[tile + tileOffset][pixelY][pixelX];
                 const pixel = this.cgbObjPalette.shades[pal][prePalette];
 
                 let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
@@ -958,7 +946,6 @@ class GPU implements HWIO {
                     this.imageGameboy.data[canvasIndex + 0] = pixel[0];
                     this.imageGameboy.data[canvasIndex + 1] = pixel[1];
                     this.imageGameboy.data[canvasIndex + 2] = pixel[2];
-                    this.imageGameboy.data[canvasIndex + 3] = 255;
                 }
 
                 // Border debug
@@ -967,12 +954,10 @@ class GPU implements HWIO {
                         this.imageGameboy.data[canvasIndex + 0] = 0xFF;
                         this.imageGameboy.data[canvasIndex + 1] = 0;
                         this.imageGameboy.data[canvasIndex + 2] = 0xFF;
-                        this.imageGameboy.data[canvasIndex + 3] = 255;
                     } else {
                         this.imageGameboy.data[canvasIndex + 0] = 0;
                         this.imageGameboy.data[canvasIndex + 1] = 0xFF;
                         this.imageGameboy.data[canvasIndex + 2] = 0;
-                        this.imageGameboy.data[canvasIndex + 3] = 255;
                     }
                 }
             }
@@ -985,34 +970,34 @@ class GPU implements HWIO {
 
 
         this.tileset0.forEach((tile, tileIndex) => {
-            for (let i = 0; i < 64; i++) {
-                const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
-                let y = (i >> 3) + (8 * (tileIndex >> 5));
+            for (let tileX = 0; tileX < 8; tileX++) {
+                for (let tileY = 0; tileY < 8; tileY++) {
+                    const x = ((tileIndex << 3) + (tileX & 7)) % WIDTH;
+                    let y = tileY + (8 * (tileIndex >> 5));
 
-                const c = this.cgbBgPalette.shades[0][tile[i]];
+                    const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                let index = 4 * ((y * WIDTH) + x);
-                this.imageTileset.data[index + 0] = c[0];
-                this.imageTileset.data[index + 1] = c[1];
-                this.imageTileset.data[index + 2] = c[2];
-                this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
-
+                    let index = 4 * ((y * WIDTH) + x);
+                    this.imageTileset.data[index + 0] = c[0];
+                    this.imageTileset.data[index + 1] = c[1];
+                    this.imageTileset.data[index + 2] = c[2];
+                }
             }
         });
         this.tileset1.forEach((tile, tileIndex) => {
-            for (let i = 0; i < 64; i++) {
-                const x = ((tileIndex << 3) + (i & 7)) % WIDTH;
-                let y = (i >> 3) + (8 * (tileIndex >> 5));
+            for (let tileX = 0; tileX < 8; tileX++) {
+                for (let tileY = 0; tileY < 8; tileY++) {
+                    const x = ((tileIndex << 3) + (tileX & 7)) % WIDTH;
+                    let y = tileY + (8 * (tileIndex >> 5));
 
-                const c = this.cgbBgPalette.shades[0][tile[i]];
+                    const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                let offset = (256 * 96);
-                let index = 4 * (((y * WIDTH) + x) + offset);
-                this.imageTileset.data[index + 0] = c[0];
-                this.imageTileset.data[index + 1] = c[1];
-                this.imageTileset.data[index + 2] = c[2];
-                this.imageTileset.data[index + 3] = 0xFF; // 100% alpha
-
+                    let offset = (256 * 96);
+                    let index = 4 * (((y * WIDTH) + x) + offset);
+                    this.imageTileset.data[index + 0] = c[0];
+                    this.imageTileset.data[index + 1] = c[1];
+                    this.imageTileset.data[index + 2] = c[2];
+                }
             }
         });
     }
