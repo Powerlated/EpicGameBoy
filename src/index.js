@@ -19,7 +19,7 @@ function loadRom(rom) {
 }
 
 function loadDmgBootRom() {
-    let raw = atob(ROMS_BASE64.dmgBootRom);
+    let raw = atob(DMG_BOOT_ROM);
     let rawLength = raw.length;
 
     let array = new Uint8Array(new ArrayBuffer(256));

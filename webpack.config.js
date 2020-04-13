@@ -17,6 +17,7 @@ module.exports = {
     plugins: [
         new CopyPlugin([
             { from: './src/roms.js', },
+            { from: './src/bootrom.js', },
             { from: './src/ProggyClean.ttf' },
             { from: './src/index.css' }
         ]),
