@@ -14,24 +14,24 @@ function test() {
     writeDebug(cpu.reg.f);
     writeDebug("Expect both answers 128.");
 
-    cpu.reg.a = 100;
-    cpu.reg.b = 100;
+    cpu.reg[R8.A] = 100;
+    cpu.reg[R8.B] = 100;
     Ops.ADD_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("Expect 200.");
 
     cpu.reset();
 
-    cpu.reg.a = 200;
-    cpu.reg.b = 200;
+    cpu.reg[R8.A] = 200;
+    cpu.reg[R8.B] = 200;
     Ops.ADD_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug(cpu.reg._f.carry);
     writeDebug("Expect 144 and carry bit.");
 
     cpu.reset();
 
-    cpu.reg.c = 200;
+    cpu.reg[R8.C] = 200;
     cpu.reg[R16.HL] = 256;
     Ops.ADD_HL_R8(cpu, R8.C);
     writeDebug(cpu.reg[R16.HL]);
@@ -44,53 +44,53 @@ function test() {
     writeDebug(cpu.reg[R16.HL]);
     writeDebug("setting HL: Expect 42069.");
 
-    cpu.reg.a = 20;
-    cpu.reg.b = 16;
+    cpu.reg[R8.A] = 20;
+    cpu.reg[R8.B] = 16;
     Ops.SUB_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("SUB 20 - 16: Expect 4.");
 
-    cpu.reg.a = 20;
-    cpu.reg.b = 160;
+    cpu.reg[R8.A] = 20;
+    cpu.reg[R8.B] = 160;
     Ops.SUB_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("SUB 20 - 160: Expect 116.");
 
-    cpu.reg.a = 12;
-    cpu.reg.b = 25;
+    cpu.reg[R8.A] = 12;
+    cpu.reg[R8.B] = 25;
     Ops.AND_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("(DEC) 12 & 25: Expect (DEC) 8.");
 
-    cpu.reg.a = 12;
-    cpu.reg.b = 25;
+    cpu.reg[R8.A] = 12;
+    cpu.reg[R8.B] = 25;
     Ops.OR_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("(DEC) 12 | 25: Expect (DEC) 29.");
 
-    cpu.reg.a = 12;
-    cpu.reg.b = 25;
+    cpu.reg[R8.A] = 12;
+    cpu.reg[R8.B] = 25;
     Ops.XOR_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("(DEC) 12 ^ 25: Expect (DEC) 21.");
 
-    cpu.reg.a = 12;
+    cpu.reg[R8.A] = 12;
     Ops.INC_R8(cpu, R8.A);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("INC A: Expect 13.");
 
-    cpu.reg.a = 12;
+    cpu.reg[R8.A] = 12;
     Ops.DEC_R8(cpu, R8.A);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("DEC A: Expect 11.");
 
-    cpu.reg.a = 0b00001111;
-    cpu.reg.b = 0b00000001;
+    cpu.reg[R8.A] = 0b00001111;
+    cpu.reg[R8.B] = 0b00000001;
     Ops.ADD_A_R8(cpu, R8.B);
-    writeDebug(cpu.reg.a);
+    writeDebug(cpu.reg[R8.A]);
     writeDebug("Expect half carry.");
 
-    cpu.reg.h = 0b00010000;
+    cpu.reg[R8.H] = 0b00010000;
     Ops.BIT_R8(cpu, R8.H, 7);
     writeDebug("Expect zero.");
 
@@ -180,10 +180,10 @@ function updateDebug() {
                 <span class="code">
                 SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(gb.bus.readMem16(cpu.reg.sp), 4)}]
 
-                AF: ${hex(cpu.reg[R16.AF], 4)} ${pad(cpu.reg.a.toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
-                BC: ${hex(cpu.reg[R16.BC], 4)} ${pad(cpu.reg.b.toString(2), 8, '0')} ${pad(cpu.reg.c.toString(2), 8, '0')}
-                DE: ${hex(cpu.reg[R16.DE], 4)} ${pad(cpu.reg.d.toString(2), 8, '0')} ${pad(cpu.reg.e.toString(2), 8, '0')}
-                HL: ${hex(cpu.reg[R16.HL], 4)} ${pad(cpu.reg.h.toString(2), 8, '0')} ${pad(cpu.reg.l.toString(2), 8, '0')}
+                AF: ${hex(cpu.reg[R16.AF], 4)} ${pad(cpu.reg[R8.A].toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
+                BC: ${hex(cpu.reg[R16.BC], 4)} ${pad(cpu.reg[R8.B].toString(2), 8, '0')} ${pad(cpu.reg[R8.C].toString(2), 8, '0')}
+                DE: ${hex(cpu.reg[R16.DE], 4)} ${pad(cpu.reg[R8.D].toString(2), 8, '0')} ${pad(cpu.reg[R8.E].toString(2), 8, '0')}
+                HL: ${hex(cpu.reg[R16.HL], 4)} ${pad(cpu.reg[R8.H].toString(2), 8, '0')} ${pad(cpu.reg[R8.L].toString(2), 8, '0')}
                 [HL]: ${hex(gb.bus.readMem8(cpu.reg[R16.HL]), 2)}
                 </span>------------------------------
                 Scroll X/Y: ${gpu.scrX}/${gpu.scrY}

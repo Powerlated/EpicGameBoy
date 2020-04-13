@@ -68,25 +68,7 @@ class Registers {
     }
 
     sp = 0;
-
-    get b() { return this[R8.B]; };
-    get c() { return this[R8.C]; };
-    get d() { return this[R8.D]; };
-    get e() { return this[R8.E]; };
-    get h() { return this[R8.H]; };
-    get l() { return this[R8.L]; };
-    get iHL() { return this[R8.iHL]; }
-    get a() { return this[R8.A]; };
-
-    set b(i: number) { this[R8.B] = i; };
-    set c(i: number) { this[R8.C] = i; };
-    set d(i: number) { this[R8.D] = i; };
-    set e(i: number) { this[R8.E] = i; };
-    set h(i: number) { this[R8.H] = i; };
-    set l(i: number) { this[R8.L] = i; };
-    set iHL(i: number) { this[R8.iHL] = i; }
-    set a(i: number) { this[R8.A] = i; };
-
+    
     /*
     * R8 internal magic numbers
     * 
