@@ -360,35 +360,48 @@ export default class CPU {
             if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical) > 0) {
                 this.gb.interrupts.masterEnabled = false;
 
+                // CPU flushes prefetched instruction and runs DI instead, so takes 4 extra cycles
+                this.cycles += 4;
 
+                let vector = 0;
                 if (happened.vblank && enabled.vblank) {
                     happened.vblank = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
-                    this.jumpToInterrupt(VBLANK_VECTOR);
+                    vector = VBLANK_VECTOR;
                 } else if (happened.lcdStat && enabled.lcdStat) {
                     happened.lcdStat = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
-                    this.jumpToInterrupt(LCD_STATUS_VECTOR);
+                    vector = LCD_STATUS_VECTOR;
                 } else if (happened.timer && enabled.timer) {
                     happened.timer = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
-                    this.jumpToInterrupt(TIMER_OVERFLOW_VECTOR);
+                    vector = TIMER_OVERFLOW_VECTOR;
                 } else if (happened.serial && enabled.serial) {
                     happened.serial = false;
-                    this.jumpToInterrupt(SERIAL_LINK_VECTOR);
+                    vector = SERIAL_LINK_VECTOR;
                 } else if (happened.joypad && enabled.joypad) {
                     happened.joypad = false;
-                    this.jumpToInterrupt(JOYPAD_PRESS_VECTOR);
+                    vector = JOYPAD_PRESS_VECTOR;
                 }
+
+                const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
+                const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
+
+                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                this.writeMem8(this.reg.sp, pcUpperByte);
+                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                this.writeMem8(this.reg.sp, pcLowerByte);
+
+                this.pc = vector;
             }
         }
         //#endregion
@@ -478,18 +491,6 @@ export default class CPU {
 
         this.lastOperandDebug = operandDebug;
         this.lastInstructionDebug = insDebug;
-    }
-
-    jumpToInterrupt(vector: number) {
-        const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
-        const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
-
-        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-        this.writeMem8(this.reg.sp, pcUpperByte);
-        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-        this.writeMem8(this.reg.sp, pcLowerByte);
-
-        this.pc = vector;
     }
 
     toggleBreakpoint(point: number) {
