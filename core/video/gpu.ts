@@ -927,8 +927,12 @@ class GPU implements HWIO {
 
             const yPos = scannedSprite.yPos;
             const xPos = scannedSprite.xPos;
-            const tile = scannedSprite.tile;
+            let tile = scannedSprite.tile;
             const flags = scannedSprite.flags;
+
+            if (this.lcdControl.spriteSize______2) {
+                tile &= 0b11111110;
+            }
 
             const screenYPos = yPos - 16;
             let screenXPos = xPos - 8;
