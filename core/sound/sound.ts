@@ -78,26 +78,22 @@ export default class SoundChip implements HWIO {
         if (actualTime == 0) actualTime = 8;
         if (this.clockPulse1FreqSweep > actualTime) {
             this.clockPulse1FreqSweep = 0;
-            this.calcSweepAndSet();
+            if (this.pulse1.freqSweepShift !== 0) {
+                let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
+                const diff = freq >> this.pulse1.freqSweepShift;
+                let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
+                freq = newFreq;
+                if (newFreq > 2047) {
+                    this.pulse1.enabled = false;
+                }
+                this.pulse1.frequencyLower = freq & 0xFF;
+                this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
+                this.pulse1.updated = true;
+                // writeDebug("abs(Range): " + diff);
+                // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
+            }
         }
         this.clockPulse1FreqSweep++;
-    }
-
-    calcSweepAndSet() {
-        if (this.pulse1.freqSweepShift !== 0) {
-            let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
-            const diff = freq >> this.pulse1.freqSweepShift;
-            let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
-            freq = newFreq;
-            if (newFreq > 2047) {
-                this.pulse1.enabled = false;
-            }
-            this.pulse1.frequencyLower = freq & 0xFF;
-            this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
-            this.pulse1.updated = true;
-            // writeDebug("abs(Range): " + diff);
-            // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
-        }
     }
 
     volumeEnvelope() {
@@ -253,10 +249,7 @@ export default class SoundChip implements HWIO {
                 case 0xFF14: // NR14
                     this.pulse1.frequencyUpper = value & 0b111;
                     this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
-                    if (((value >> 7) & 1) !== 0) {
-                        this.calcSweepAndSet();
-                        this.pulse1.trigger();
-                    }
+                    if (((value >> 7) & 1) !== 0) this.pulse1.trigger();
                     this.pulse1.updated = true;
                     break;
 
