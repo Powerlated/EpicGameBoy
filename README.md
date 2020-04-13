@@ -7,3 +7,12 @@ But if you want to check it out anyways, it's in the `master` branch.
 
 # Dependencies
 Tone.js (for sound)
+
+# Building
+
+```
+npm install --dev
+webpack
+```
+
+Output will be in the `dist` directory.
