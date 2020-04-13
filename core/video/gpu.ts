@@ -136,6 +136,14 @@ class CGBPaletteData {
         new Uint8Array(3),
     ]);
 
+    rgb5to8Table = new Uint8Array(32);
+
+    constructor() {
+        for (let i = 0; i < 32; i++) {
+            this.rgb5to8Table[i] = i * (255 / 31);
+        }
+    }
+
     update(pal: number) {
         for (let col = 0; col < 4; col++) {
             let b0 = this.data[(pal * 8) + (col * 2) + 0];
@@ -147,13 +155,9 @@ class CGBPaletteData {
             let g = ((rgb555 >> 5) & 31);
             let b = ((rgb555 >> 10) & 31);
 
-            r = r * (255 / 31);
-            g = g * (255 / 31);
-            b = b * (255 / 31);
-
-            this.shades[pal][col][0] = r;
-            this.shades[pal][col][1] = g;
-            this.shades[pal][col][2] = b;
+            this.shades[pal][col][0] = this.rgb5to8Table[r];
+            this.shades[pal][col][1] = this.rgb5to8Table[g];
+            this.shades[pal][col][2] = this.rgb5to8Table[b];
         }
     }
 }
