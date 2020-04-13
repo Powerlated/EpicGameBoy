@@ -76,22 +76,21 @@ export default class SoundChip implements HWIO {
         // writeDebug("Frequency sweep")
         let actualTime = this.pulse1.freqSweepTime;
         if (actualTime == 0) actualTime = 8;
-        if (this.clockPulse1FreqSweep > actualTime) {
+        if (this.clockPulse1FreqSweep > actualTime && this.pulse1.freqSweepShift !== 0) {
             this.clockPulse1FreqSweep = 0;
-            if (this.pulse1.freqSweepShift !== 0) {
-                let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
-                const diff = freq >> this.pulse1.freqSweepShift;
-                let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
-                freq = newFreq;
-                if (newFreq > 2047) {
-                    this.pulse1.enabled = false;
-                }
-                this.pulse1.frequencyLower = freq & 0xFF;
-                this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
-                this.pulse1.updated = true;
-                // writeDebug("abs(Range): " + diff);
-                // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
+            
+            let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
+            const diff = freq >> this.pulse1.freqSweepShift;
+            let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
+            freq = newFreq;
+            if (newFreq > 2047) {
+                this.pulse1.enabled = false;
             }
+            this.pulse1.frequencyLower = freq & 0xFF;
+            this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
+            this.pulse1.updated = true;
+            // writeDebug("abs(Range): " + diff);
+            // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
         }
         this.clockPulse1FreqSweep++;
     }
