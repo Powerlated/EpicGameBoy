@@ -760,14 +760,14 @@ class GPU implements HWIO {
         const xPos = this.windowXpos - 7; // Get the real X position of the window
         const endAt = this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos ? xPos : 160;
 
+        if (!this.lcdControl.bgWindowTiledataSelect__4) {
+            // Two's Complement on high tileset
+            if (tile > 127) tile -= 256;
+            tile += 256;
+        }
+
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < endAt; i++) {
-            if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                // Two's Complement on high tileset
-                if (tile > 127) tile -= 256;
-                tile += 256;
-            }
-
             const adjX = attr.xFlip ? 7 - x : x;
             const adjY = attr.yFlip ? 7 - y : y;
             const prePalette = tileset[tile][adjY][adjX];
@@ -801,6 +801,12 @@ class GPU implements HWIO {
                 tile = this.tilemap[mapOffset + lineOffset];
                 attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
                 tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+
+                if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                    // Two's Complement on high tileset
+                    if (tile > 127) tile -= 256;
+                    tile += 256;
+                }
             }
         }
     }
@@ -824,15 +830,15 @@ class GPU implements HWIO {
 
             let canvasIndex = 160 * 4 * (this.lcdcY) + (xPos * 4);
 
+            if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                // Two's Complement on high tileset
+                if (tile > 127) tile -= 256;
+                tile += 256;
+            }
+
             // Loop through every single horizontal pixel for this line 
             for (let i = xPos; i < 160; i++) {
                 if (i >= xPos) {
-                    if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                        // Two's Complement on high tileset
-                        if (tile > 127) tile -= 256;
-                        tile += 256;
-                    }
-
                     const adjX = attr.xFlip ? 7 - x : x;
                     const adjY = attr.yFlip ? 7 - y : y;
                     const prePalette = tileset[tile][adjY][adjX];
@@ -863,7 +869,12 @@ class GPU implements HWIO {
                         tile = this.tilemap[mapOffset];
                         attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
                         tileset = attr.vramBank ? this.tileset1 : this.tileset0;
-                        // if (GPU._bgtile === 1 && tile < 128) tile += 256;
+
+                        if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                            // Two's Complement on high tileset
+                            if (tile > 127) tile -= 256;
+                            tile += 256;
+                        }
                     }
                 }
             }
