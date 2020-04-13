@@ -255,7 +255,7 @@ class GPU implements HWIO {
     vp: VideoPlugin | null = null;
 
     // Skip frames when turboing
-    renderingThisFrame = () => (this.totalFrameCount % this.gb.speedMul) === 0;
+    renderingThisFrame = false;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step(cycles: number) {
@@ -284,34 +284,32 @@ class GPU implements HWIO {
                     * 
                     * only AFTER the window has already been enabled.
                     */
-                    if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lcdcY == this.windowYpos) {
-                        this.currentWindowLine = this.windowYpos - this.lcdcY;
-                        this.windowOnscreenYetThisFrame = true;
-                    }
-                    // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                    if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
-                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                            // Only IF the window is onscreen
-                            if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
-                                if (this.renderingThisFrame()) {
+                    if (this.renderingThisFrame === true) {
+                        if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lcdcY == this.windowYpos) {
+                            this.currentWindowLine = this.windowYpos - this.lcdcY;
+                            this.windowOnscreenYetThisFrame = true;
+                        }
+                        // Delay window rendering based on its X position, and don't be too picky, it's only X position
+                        if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
+                            if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                                // Only IF the window is onscreen
+                                if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                     if (this.vp !== null) {
                                         this.renderWindow();
                                     }
+                                    this.currentWindowLine++;
                                 }
-                                this.currentWindowLine++;
                             }
+                            this.windowDrawn = true;
                         }
-                        this.windowDrawn = true;
-                    }
 
-                    if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                        if (this.bgDrawn == false) {
-                            if (this.renderingThisFrame()) {
+                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                            if (this.bgDrawn == false) {
                                 if (this.vp !== null) {
                                     this.renderBg();
                                 }
+                                this.bgDrawn = true;
                             }
-                            this.bgDrawn = true;
                         }
                     }
 
@@ -323,7 +321,7 @@ class GPU implements HWIO {
 
                         // Render sprites at end of scanline
                         if (this.lcdControl.spriteDisplay___1) {
-                            if (this.renderingThisFrame()) {
+                            if (this.renderingThisFrame === true) {
                                 if (this.vp !== null) {
                                     this.renderSprites();
                                 }
@@ -349,7 +347,7 @@ class GPU implements HWIO {
                             // Fire the Vblank interrupt
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
-                            if (this.renderingThisFrame()) {
+                            if (this.renderingThisFrame === true) {
                                 if (this.vp !== null) {
                                     this.vp.drawGameboy(this.imageGameboy);
                                 }
@@ -385,6 +383,8 @@ class GPU implements HWIO {
                 case 4:
                     if (this.modeClock >= 4) {
                         this.lcdcY = 0;
+
+                        this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
                     }
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
@@ -741,7 +741,7 @@ class GPU implements HWIO {
 
         const mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 1024 : 0;
 
-        var mapIndex = (((this.lcdcY + this.scrY) >> 3) << 5) & 1023;
+        const mapIndex = (((this.lcdcY + this.scrY) >> 3) << 5) & 1023;
 
         const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
@@ -766,11 +766,15 @@ class GPU implements HWIO {
             tile += 256;
         }
 
+        const adjY = attr.yFlip ? 7 - y : y;
+
+        let tileRow = tileset[tile][adjY];
+
         // Loop through every single horizontal pixel for this line 
         for (let i = 0; i < endAt; i++) {
             const adjX = attr.xFlip ? 7 - x : x;
-            const adjY = attr.yFlip ? 7 - y : y;
-            const prePalette = tileset[tile][adjY][adjX];
+
+            const prePalette = tileRow[adjX];
             const pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
             // Re-map the tile pixel through the palette
 
@@ -807,6 +811,8 @@ class GPU implements HWIO {
                     if (tile > 127) tile -= 256;
                     tile += 256;
                 }
+
+                tileRow = tileset[tile][adjY];
             }
         }
     }
@@ -836,12 +842,15 @@ class GPU implements HWIO {
                 tile += 256;
             }
 
+            const adjY = attr.yFlip ? 7 - y : y;
+
+            let tileRow = tileset[tile][adjY];
+
             // Loop through every single horizontal pixel for this line 
             for (let i = xPos; i < 160; i++) {
                 if (i >= xPos) {
                     const adjX = attr.xFlip ? 7 - x : x;
-                    const adjY = attr.yFlip ? 7 - y : y;
-                    const prePalette = tileset[tile][adjY][adjX];
+                    const prePalette = tileRow[adjX];
                     let pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
 
                     // Plot the pixel to canvas
@@ -865,6 +874,7 @@ class GPU implements HWIO {
                     x++;
                     if (x > 7) {
                         x &= 7;
+
                         mapOffset++;
                         tile = this.tilemap[mapOffset];
                         attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
@@ -875,6 +885,8 @@ class GPU implements HWIO {
                             if (tile > 127) tile -= 256;
                             tile += 256;
                         }
+
+                        tileRow = tileset[tile][adjY];
                     }
                 }
             }
@@ -883,6 +895,9 @@ class GPU implements HWIO {
 
     renderSprites() {
         this.scannedEntriesCount = 0;
+
+        const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
+
         // OAM Scan, maximum of 10 sprites
         for (let sprite = 0; sprite < 40 && this.scannedEntriesCount < 10; sprite++) {
             const base = sprite * 4;
@@ -893,9 +908,6 @@ class GPU implements HWIO {
 
             // Continue to next sprite if it is offscreen
             if (xPos < 0 || xPos >= 168 || yPos < 0 || yPos >= 160) continue;
-
-            const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
-
             let screenYPos = yPos - 16;
 
             // Push sprite to scanned if it is on the current scanline
@@ -935,6 +947,9 @@ class GPU implements HWIO {
                 tileOffset = h;
             }
 
+            const pixelY = flags.yFlip ? 7 - y : y;
+            const tileRow = tileset[tile + tileOffset][pixelY];
+
             // Draws the 8 pixels.
             for (let x = 0; x < 8; x++) {
                 screenXPos = x + xPos - 8;
@@ -943,13 +958,12 @@ class GPU implements HWIO {
                 if (screenXPos < 0 || screenXPos >= 160) continue;
 
                 const pixelX = flags.xFlip ? 7 - x : x;
-                const pixelY = flags.yFlip ? 7 - y : y;
 
                 const canvasIndex = ((this.lcdcY * 160) + screenXPos) * 4;
 
                 // Offset tile by +1 if rendering the top half of an 8x16 sprite
 
-                const prePalette = tileset[tile + tileOffset][pixelY][pixelX];
+                const prePalette = tileRow[pixelX];
                 const pixel = this.cgbObjPalette.shades[pal][prePalette];
 
                 let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
