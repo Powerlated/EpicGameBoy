@@ -275,7 +275,8 @@ function init() {
 
         if (e.getModifierState("Control")) {
             if (e.key === "r") {
-                $('#reset-button').click();
+                if (confirm('Are you sure you want to reset the emulated Game Boy?') === true)
+                    $('#reset-button').click();
                 e.preventDefault();
             }
         }
