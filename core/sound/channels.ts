@@ -3,9 +3,7 @@ import * as Tone from "tone";
 export interface BasicChannel {
     volume: number;
     enabled: boolean;
-
     updated: boolean;
-    update(): void;
 }
 
 export class PulseChannel implements BasicChannel {
@@ -34,7 +32,7 @@ export class PulseChannel implements BasicChannel {
 
     freqSweepTime = 0;
     freqSweepUp = false;
-    freqSweepShiftNum = 0;
+    freqSweepShift = 0;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
@@ -66,11 +64,10 @@ export class PulseChannel implements BasicChannel {
         if (this.dacEnabled) {
             this.enabled = true;
         }
-        this.update();
+        this.updated = true;
     }
 
     updated = false;
-    update() { this.updated = true; };
 }
 
 export class WaveChannel implements BasicChannel {
@@ -128,13 +125,10 @@ export class WaveChannel implements BasicChannel {
         if (this.dacEnabled) {
             this.enabled = true;
         }
-        this.update();
+        this.updated = true;
     }
 
     updated = false;
-    update() {
-        this.updated = true;
-    };
 }
 
 export class NoiseChannel implements BasicChannel {
@@ -183,9 +177,8 @@ export class NoiseChannel implements BasicChannel {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
-        this.update();
+        this.updated = true;
     }
 
     updated = false;
-    update() { this.updated = true; };
 }
