@@ -84,8 +84,8 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
 
         // Create a dummy AudioBuffer, this is updated by updateWaveTable();
-        const dummyBuffer = new AudioBuffer({ length: 1, sampleRate: 48000 });
-
+        const dummyBuffer = (Tone.context as any as AudioContext).createBuffer(1, 1, 48000);
+        
         this.waveSrc = new Tone.BufferSource(dummyBuffer, () => { });
         this.waveSrc.loop = true;
         this.wavePan = new Tone.Panner(0);

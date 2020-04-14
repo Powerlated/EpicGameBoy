@@ -8,6 +8,9 @@ But if you want to check it out anyways, it's in the `master` branch.
 # Dependencies
 Tone.js (for sound)
 
+* For some reason, the AudioBuffer constructor is broken on Safari.
+  Use AudioContext.createBuffer() as a replacement for the AudioBuffer constructor.
+
 # Building
 
 ```
