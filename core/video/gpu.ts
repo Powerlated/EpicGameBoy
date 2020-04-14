@@ -785,7 +785,7 @@ class GPU implements HWIO {
 
             this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
-            this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority ? 1 : 0;
+            this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
 
             // Scroll X/Y debug
             if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
@@ -862,7 +862,7 @@ class GPU implements HWIO {
 
                     this.imageGameboyPre[canvasIndex >> 2] = prePalette;
 
-                    this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority ? 1 : 0;
+                    this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
 
                     // Window X debug
                     if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
@@ -975,8 +975,10 @@ class GPU implements HWIO {
                 const pixel = this.cgbObjPalette.shades[pal][prePalette];
 
                 let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
-                if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] != 0 && !noTransparency) continue;
-                if (this.imageGameboyNoSprites[canvasIndex >> 2] == 1 && !noTransparency) continue;
+                if (noTransparency === false) {
+                    if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] !== 0) continue;
+                    if (this.imageGameboyNoSprites[canvasIndex >> 2] === 1) continue;
+                }
 
                 // Simulate transparency before transforming through object palette
                 if (prePalette !== 0) {
