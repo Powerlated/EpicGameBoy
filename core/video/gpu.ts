@@ -766,7 +766,7 @@ class GPU implements HWIO {
             tile += 256;
         }
 
-        const adjY = attr.yFlip ? 7 - y : y;
+        let adjY = attr.yFlip ? 7 - y : y;
 
         let tileRow = tileset[tile][adjY];
 
@@ -812,6 +812,8 @@ class GPU implements HWIO {
                     tile += 256;
                 }
 
+                adjY = attr.yFlip ? 7 - y : y;
+
                 tileRow = tileset[tile][adjY];
             }
         }
@@ -842,7 +844,7 @@ class GPU implements HWIO {
                 tile += 256;
             }
 
-            const adjY = attr.yFlip ? 7 - y : y;
+            let adjY = attr.yFlip ? 7 - y : y;
 
             let tileRow = tileset[tile][adjY];
 
@@ -885,6 +887,8 @@ class GPU implements HWIO {
                             if (tile > 127) tile -= 256;
                             tile += 256;
                         }
+
+                        adjY = attr.yFlip ? 7 - y : y;
 
                         tileRow = tileset[tile][adjY];
                     }
