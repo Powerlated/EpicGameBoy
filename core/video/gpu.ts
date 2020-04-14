@@ -755,7 +755,7 @@ class GPU implements HWIO {
         let tile = this.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
         let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-        let canvasIndex = 160 * 4 * (this.lcdcY);
+        let imgIndex = 160 * 4 * (this.lcdcY);
 
         const xPos = this.windowXpos - 7; // Get the real X position of the window
         const endAt = this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos ? xPos : 160;
@@ -779,22 +779,22 @@ class GPU implements HWIO {
             // Re-map the tile pixel through the palette
 
             // Plot the pixel to canvas
-            this.imageGameboy.data[canvasIndex + 0] = pixel[0];
-            this.imageGameboy.data[canvasIndex + 1] = pixel[1];
-            this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+            this.imageGameboy.data[imgIndex + 0] = pixel[0];
+            this.imageGameboy.data[imgIndex + 1] = pixel[1];
+            this.imageGameboy.data[imgIndex + 2] = pixel[2];
 
-            this.imageGameboyPre[canvasIndex >> 2] = prePalette;
+            this.imageGameboyPre[imgIndex >> 2] = prePalette;
 
-            this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
+            this.imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
 
             // Scroll X/Y debug
             if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                this.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                this.imageGameboy.data[canvasIndex + 1] = 0;
-                this.imageGameboy.data[canvasIndex + 2] = 0;
+                this.imageGameboy.data[imgIndex + 0] = 0xFF;
+                this.imageGameboy.data[imgIndex + 1] = 0;
+                this.imageGameboy.data[imgIndex + 2] = 0;
             }
 
-            canvasIndex += 4;
+            imgIndex += 4;
 
             // When this tile ends, read another
             x++;
@@ -836,7 +836,7 @@ class GPU implements HWIO {
             let tile = this.tilemap[mapOffset]; // Add line offset to get correct starting tile
             let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-            let canvasIndex = 160 * 4 * (this.lcdcY) + (xPos * 4);
+            let imgIndex = 160 * 4 * (this.lcdcY) + (xPos * 4);
 
             if (!this.lcdControl.bgWindowTiledataSelect__4) {
                 // Two's Complement on high tileset
@@ -856,21 +856,21 @@ class GPU implements HWIO {
                     let pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
 
                     // Plot the pixel to canvas
-                    this.imageGameboy.data[canvasIndex + 0] = pixel[0];
-                    this.imageGameboy.data[canvasIndex + 1] = pixel[1];
-                    this.imageGameboy.data[canvasIndex + 2] = pixel[2];
+                    this.imageGameboy.data[imgIndex + 0] = pixel[0];
+                    this.imageGameboy.data[imgIndex + 1] = pixel[1];
+                    this.imageGameboy.data[imgIndex + 2] = pixel[2];
 
-                    this.imageGameboyPre[canvasIndex >> 2] = prePalette;
+                    this.imageGameboyPre[imgIndex >> 2] = prePalette;
 
-                    this.imageGameboyNoSprites[canvasIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
+                    this.imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
 
                     // Window X debug
                     if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                        this.imageGameboy.data[canvasIndex + 0] = 0;
-                        this.imageGameboy.data[canvasIndex + 1] = 0;
-                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                        this.imageGameboy.data[imgIndex + 0] = 0;
+                        this.imageGameboy.data[imgIndex + 1] = 0;
+                        this.imageGameboy.data[imgIndex + 2] = 0xFF;
                     }
-                    canvasIndex += 4;
+                    imgIndex += 4;
 
                     // When this tile ends, read another
                     x++;
@@ -947,56 +947,57 @@ class GPU implements HWIO {
 
             let h = this.lcdcY > screenYPos + 7 ? 1 : 0;
 
-            let tileOffset = 0;
+            // Offset tile by +1 if rendering the top half of an 8x16 sprite
             if (flags.yFlip && this.lcdControl.spriteSize______2) {
-                if (h == 0) tileOffset = 1;
-                else if (h == 1) tileOffset = 0;
+                if (h == 0) {
+                    tile += 1;
+                }
             } else {
-                tileOffset = h;
+                tile += h;
             }
 
             const pixelY = flags.yFlip ? 7 - y : y;
-            const tileRow = tileset[tile + tileOffset][pixelY];
+            const tileRow = tileset[tile][pixelY];
+
+            let imgIndex = ((this.lcdcY * 160) + screenXPos) * 4;
 
             // Draws the 8 pixels.
             for (let x = 0; x < 8; x++) {
                 screenXPos = x + xPos - 8;
 
                 // If it's off the edges, skip this pixel
-                if (screenXPos < 0 || screenXPos >= 160) continue;
+                if (screenXPos < 0 || screenXPos >= 160) { imgIndex += 4; continue; }
 
-                const pixelX = flags.xFlip ? 7 - x : x;
+                const tileX = flags.xFlip ? 7 - x : x;
 
-                const canvasIndex = ((this.lcdcY * 160) + screenXPos) * 4;
+                // Simulate transparency 
+                const prePalette = tileRow[tileX];
+                if (prePalette === 0) { imgIndex += 4; continue; }
 
-                // Offset tile by +1 if rendering the top half of an 8x16 sprite
-
-                const prePalette = tileRow[pixelX];
                 const pixel = this.cgbObjPalette.shades[pal][prePalette];
 
                 let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
                 if (noTransparency === false) {
-                    if (flags.behindBG && this.imageGameboyPre[canvasIndex >> 2] !== 0) continue;
-                    if (this.imageGameboyNoSprites[canvasIndex >> 2] === 1) continue;
+                    if (flags.behindBG && this.imageGameboyPre[imgIndex >> 2] !== 0) { imgIndex += 4; continue; }
+                    if (this.imageGameboyNoSprites[imgIndex >> 2] === 1) { imgIndex += 4; continue; }
                 }
 
-                // Simulate transparency before transforming through object palette
-                if (prePalette !== 0) {
-                    this.imageGameboy.data[canvasIndex + 0] = pixel[0];
-                    this.imageGameboy.data[canvasIndex + 1] = pixel[1];
-                    this.imageGameboy.data[canvasIndex + 2] = pixel[2];
-                }
+                this.imageGameboy.data[imgIndex + 0] = pixel[0];
+                this.imageGameboy.data[imgIndex + 1] = pixel[1];
+                this.imageGameboy.data[imgIndex + 2] = pixel[2];
+
+                imgIndex += 4;
 
                 // Border debug
-                if (this.showBorders && (pixelX === 0 || pixelX === 7 || pixelY === 0 || pixelY === 7)) {
+                if (this.showBorders && (tileX === 0 || tileX === 7 || pixelY === 0 || pixelY === 7)) {
                     if (this.lcdControl.spriteSize______2) {
-                        this.imageGameboy.data[canvasIndex + 0] = 0xFF;
-                        this.imageGameboy.data[canvasIndex + 1] = 0;
-                        this.imageGameboy.data[canvasIndex + 2] = 0xFF;
+                        this.imageGameboy.data[imgIndex + 0] = 0xFF;
+                        this.imageGameboy.data[imgIndex + 1] = 0;
+                        this.imageGameboy.data[imgIndex + 2] = 0xFF;
                     } else {
-                        this.imageGameboy.data[canvasIndex + 0] = 0;
-                        this.imageGameboy.data[canvasIndex + 1] = 0xFF;
-                        this.imageGameboy.data[canvasIndex + 2] = 0;
+                        this.imageGameboy.data[imgIndex + 0] = 0;
+                        this.imageGameboy.data[imgIndex + 1] = 0xFF;
+                        this.imageGameboy.data[imgIndex + 2] = 0;
                     }
                 }
             }
