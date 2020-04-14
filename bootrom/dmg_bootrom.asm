@@ -78,11 +78,11 @@ ldh [$24], a
 MainLoop:
     ld hl, rBGP; rBGP $FF47
 
-    cp 20
+    or a
     jr z, SetBGP1
-    cp 30
+    cp 10
     jr z, SetBGP2
-    cp 40
+    cp 20
     jr z, SetBGP3
     cp 180
     jr z, SetBGP2
@@ -109,7 +109,7 @@ WaitForVBlank:
 
     ld a, [hl]
 
-    cp 255
+    inc a
     jr nz, MainLoop
     
     xor a
