@@ -188,7 +188,7 @@ function updateDebug() {
                 </span>------------------------------
                 Scroll X/Y: ${gpu.scrX}/${gpu.scrY}
                 Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}
-                LCDC Y-Coordinate: ${gpu.lcdcY} ${gpu.lcdcY >= 144 ? "(Vblank)" : ""}
+                LCDC Y-Coordinate: ${gpu.lY} ${gpu.lY >= 144 ? "(Vblank)" : ""}
 
                 LCDC: ${pad(gpu.lcdControl.getNumerical().toString(2), 8, '0')}
                 LCD Status: ${pad(gpu.lcdStatus.getNumerical().toString(2), 7, '0')}

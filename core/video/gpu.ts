@@ -228,7 +228,7 @@ class GPU implements HWIO {
     scrY = 0; // 0xFF42 - Scroll Y
     scrX = 0; // 0xFF43 - Scroll X
 
-    lcdcY = 0; // 0xFF44 - Current scanning line
+    lY = 0; // 0xFF44 - Current scanning line
     lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY === lcdcYCompare 
 
     windowYpos = 0; // 0xFF4A - Window Y Position
@@ -318,8 +318,8 @@ class GPU implements HWIO {
                     * only AFTER the window has already been enabled.
                     */
                     if (this.renderingThisFrame === true) {
-                        if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lcdcY == this.windowYpos) {
-                            this.currentWindowLine = this.windowYpos - this.lcdcY;
+                        if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lY == this.windowYpos) {
+                            this.currentWindowLine = this.windowYpos - this.lY;
                             this.windowOnscreenYetThisFrame = true;
                         }
                         // Delay window rendering based on its X position, and don't be too picky, it's only X position
@@ -372,7 +372,7 @@ class GPU implements HWIO {
                 case 0:
                     if (this.modeClock >= 204 - this.mode3CyclesOffset) {
                         this.modeClock -= 204 - this.mode3CyclesOffset;
-                        this.lcdcY++;
+                        this.lY++;
 
                         // Reset scanline specific flags
                         this.bgDrawn = false;
@@ -382,7 +382,7 @@ class GPU implements HWIO {
 
                         // If we're at LCDCy = 144, enter Vblank
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
-                        if (this.lcdcY >= 144) {
+                        if (this.lY >= 144) {
                             // Fire the Vblank interrupt
                             this.gb.interrupts.requested.vblank = true;
                             // Draw to the canvas
@@ -397,7 +397,6 @@ class GPU implements HWIO {
                         else {
                             // Enter back into OAM mode if not Vblank
                             this.lcdStatus.mode = 2;
-
                         }
                     }
                     break;
@@ -407,12 +406,12 @@ class GPU implements HWIO {
                     if (this.modeClock >= 456) {
                         this.modeClock -= 456;
 
-                        this.lcdcY++;
+                        this.lY++;
 
                         this.currentWindowLine = 0;
                         this.windowOnscreenYetThisFrame = false;
 
-                        if (this.lcdcY === 153) {
+                        if (this.lY === 153) {
                             this.lcdStatus.mode = 4;
                         }
                     }
@@ -421,7 +420,7 @@ class GPU implements HWIO {
                 // Between Line 153 and Line 0, reads as mode 0 in LCDstatus because 4 & 3 = 0 
                 case 4:
                     if (this.modeClock >= 4) {
-                        this.lcdcY = 0;
+                        this.lY = 0;
                         this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
                     }
                     if (this.modeClock >= 456) {
@@ -431,13 +430,12 @@ class GPU implements HWIO {
                     break;
             }
 
+            this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lY;
+
             // Determine LCD status interrupt conditions
-            this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lcdcY;
-            this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 && this.lYCompare === this.lcdcY;
+            this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 && this.lcdStatus.coincidenceFlag_______2;
             this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 && this.lcdStatus.mode === 0;
-            if (this.lcdStatus.mode === 4 && this.modeClock >= 100 && this.lcdStatus.mode2OamInterrupt_____5) this.lcdStatusMode2 = true;
-            if (this.lcdcY === 144 && this.lcdStatus.mode2OamInterrupt_____5) this.lcdStatusMode2 = true;
-            this.lcdStatusMode1 = (this.lcdStatus.mode1VblankInterrupt__4 || this.lcdStatus.mode2OamInterrupt_____5) && this.lcdStatus.mode === 1;
+            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 && this.lcdStatus.mode === 1;
             this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 && this.lcdStatus.mode === 2;
 
             // If any of the conditions are met, set the condition met flag
@@ -461,7 +459,7 @@ class GPU implements HWIO {
         } else {
             this.modeClock = 0;
             this.lcdStatus.mode = 0;
-            this.lcdcY = 0;
+            this.lY = 0;
         }
     }
 
@@ -485,7 +483,7 @@ class GPU implements HWIO {
         this.windowYpos = 0;
         this.windowXpos = 0;
 
-        this.lcdcY = 0; // 0xFF44 - Current scanning line
+        this.lY = 0; // 0xFF44 - Current scanning line
         this.modeClock = 0;
 
         // Zero out OAM
@@ -592,7 +590,7 @@ class GPU implements HWIO {
             case 0xFF43:
                 return this.scrX;
             case 0xFF44:
-                return this.lcdcY;
+                return this.lY;
             case 0xFF45:
                 return this.lYCompare;
             case 0xFF47: // Palette
@@ -757,11 +755,11 @@ class GPU implements HWIO {
 
     renderBg() {
         // This is the Y value within a tile
-        const y = (this.lcdcY + this.scrY) & 0b111;
+        const y = (this.lY + this.scrY) & 0b111;
 
         const mapBaseBg = this.lcdControl.bgTilemapSelect_3 ? 1024 : 0;
 
-        const mapIndex = (((this.lcdcY + this.scrY) >> 3) << 5) & 1023;
+        const mapIndex = (((this.lY + this.scrY) >> 3) << 5) & 1023;
 
         const mapOffset = mapBaseBg + mapIndex; // 1023   // CORRECT 0x1800
 
@@ -775,10 +773,10 @@ class GPU implements HWIO {
         let tile = this.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
         let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-        let imgIndex = 160 * 4 * (this.lcdcY);
+        let imgIndex = 160 * 4 * (this.lY);
 
         const xPos = this.windowXpos - 7; // Get the real X position of the window
-        const endAt = this.lcdControl.enableWindow____5 && this.lcdcY >= this.windowYpos ? xPos : 160;
+        const endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos ? xPos : 160;
 
         if (!this.lcdControl.bgWindowTiledataSelect__4) {
             // Two's Complement on high tileset
@@ -842,7 +840,7 @@ class GPU implements HWIO {
         const y = this.currentWindowLine & 0b111; // CORRECT
 
         // Make sure window is onscreen Y
-        if (this.lcdcY >= this.windowYpos) {
+        if (this.lY >= this.windowYpos) {
             let x = 0;                // CORRECT
 
             const mapBase = this.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
@@ -854,7 +852,7 @@ class GPU implements HWIO {
             let tile = this.tilemap[mapOffset]; // Add line offset to get correct starting tile
             let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-            let imgIndex = 160 * 4 * (this.lcdcY) + (xPos * 4);
+            let imgIndex = 160 * 4 * (this.lY) + (xPos * 4);
 
             if (!this.lcdControl.bgWindowTiledataSelect__4) {
                 // Two's Complement on high tileset
@@ -931,7 +929,7 @@ class GPU implements HWIO {
             let screenYPos = yPos - 16;
 
             // Push sprite to scanned if it is on the current scanline
-            if (this.lcdcY >= screenYPos && this.lcdcY < screenYPos + HEIGHT) {
+            if (this.lY >= screenYPos && this.lY < screenYPos + HEIGHT) {
                 let entry = this.scannedEntries[this.scannedEntriesCount];
                 entry.xPos = xPos;
                 entry.yPos = yPos;
@@ -960,11 +958,11 @@ class GPU implements HWIO {
             const screenYPos = yPos - 16;
             let screenXPos = xPos - 8;
 
-            const y = (this.lcdcY - yPos) & 7;
+            const y = (this.lY - yPos) & 7;
             const pal = this.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
             const tileset = flags.vramBank ? this.tileset1 : this.tileset0;
 
-            let h = this.lcdcY > screenYPos + 7 ? 1 : 0;
+            let h = this.lY > screenYPos + 7 ? 1 : 0;
 
             // Offset tile by +1 if rendering the top half of an 8x16 sprite
             if (flags.yFlip && this.lcdControl.spriteSize______2) {
@@ -978,7 +976,7 @@ class GPU implements HWIO {
             const pixelY = flags.yFlip ? 7 - y : y;
             const tileRow = tileset[tile][pixelY];
 
-            let imgIndex = ((this.lcdcY * 160) + screenXPos) * 4;
+            let imgIndex = ((this.lY * 160) + screenXPos) * 4;
 
             // Draws the 8 pixels.
             for (let x = 0; x < 8; x++) {
