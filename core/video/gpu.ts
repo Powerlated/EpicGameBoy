@@ -968,6 +968,22 @@ class GPU implements HWIO {
                 // If it's off the edges, skip this pixel
                 if (screenXPos < 0 || screenXPos >= 160) { imgIndex += 4; continue; }
 
+                // Border debug
+                if (this.showBorders && (x === 0 || x === 7 || pixelY === 0 || pixelY === 7)) {
+                    if (this.lcdControl.spriteSize______2) {
+                        this.imageGameboy.data[imgIndex + 0] = 0xFF;
+                        this.imageGameboy.data[imgIndex + 1] = 0;
+                        this.imageGameboy.data[imgIndex + 2] = 0xFF;
+                    } else {
+                        this.imageGameboy.data[imgIndex + 0] = 0;
+                        this.imageGameboy.data[imgIndex + 1] = 0xFF;
+                        this.imageGameboy.data[imgIndex + 2] = 0;
+                    }
+
+                    imgIndex += 4;
+                    continue;
+                }
+
                 const tileX = flags.xFlip ? 7 - x : x;
 
                 // Simulate transparency 
@@ -987,19 +1003,6 @@ class GPU implements HWIO {
                 this.imageGameboy.data[imgIndex + 2] = pixel[2];
 
                 imgIndex += 4;
-
-                // Border debug
-                if (this.showBorders && (tileX === 0 || tileX === 7 || pixelY === 0 || pixelY === 7)) {
-                    if (this.lcdControl.spriteSize______2) {
-                        this.imageGameboy.data[imgIndex + 0] = 0xFF;
-                        this.imageGameboy.data[imgIndex + 1] = 0;
-                        this.imageGameboy.data[imgIndex + 2] = 0xFF;
-                    } else {
-                        this.imageGameboy.data[imgIndex + 0] = 0;
-                        this.imageGameboy.data[imgIndex + 1] = 0xFF;
-                        this.imageGameboy.data[imgIndex + 2] = 0;
-                    }
-                }
             }
         }
     }
