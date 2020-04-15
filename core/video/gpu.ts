@@ -242,6 +242,8 @@ class GPU implements HWIO {
     // Have events happened this scanline yet?
     bgDrawn = false;
     windowDrawn = false;
+    oamScanned = false;
+    mode3CyclesOffset = 0;
 
     // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
@@ -268,6 +270,12 @@ class GPU implements HWIO {
             switch (this.lcdStatus.mode) {
                 // Read from OAM - Scanline active
                 case 2:
+                    if (this.oamScanned === false) {
+                        this.scanOAM();
+                        this.oamScanned = true;
+
+                        this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
+                    }
                     if (this.modeClock >= 80) {
                         this.modeClock -= 80;
                         this.lcdStatus.mode = 3;
@@ -297,6 +305,7 @@ class GPU implements HWIO {
                                     if (this.vp !== null) {
                                         this.renderWindow();
                                     }
+                                    this.mode3CyclesOffset += 8;
                                     this.currentWindowLine++;
                                 }
                             }
@@ -309,12 +318,14 @@ class GPU implements HWIO {
                                     this.renderBg();
                                 }
                                 this.bgDrawn = true;
+
+                                this.mode3CyclesOffset += this.scrX & 7;
                             }
                         }
                     }
 
-                    if (this.modeClock >= 172) {
-                        this.modeClock -= 172;
+                    if (this.modeClock >= 172 + this.mode3CyclesOffset) {
+                        this.modeClock -= 172 + this.mode3CyclesOffset;
 
                         // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;
@@ -328,18 +339,21 @@ class GPU implements HWIO {
                             }
                         }
 
-                        this.bgDrawn = false;
-                        this.windowDrawn = false;
-
                         this.gb.dma.continueHdma();
                     }
                     break;
 
                 // Hblank
                 case 0:
-                    if (this.modeClock >= 204) {
-                        this.modeClock -= 204;
+                    if (this.modeClock >= 204 - this.mode3CyclesOffset) {
+                        this.modeClock -= 204 - this.mode3CyclesOffset;
                         this.lcdcY++;
+
+                        // Reset scanline specific flags
+                        this.bgDrawn = false;
+                        this.windowDrawn = false;
+                        this.oamScanned = false;
+                        this.mode3CyclesOffset = 0;
 
                         // If we're at LCDCy = 144, enter Vblank
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
@@ -383,7 +397,6 @@ class GPU implements HWIO {
                 case 4:
                     if (this.modeClock >= 4) {
                         this.lcdcY = 0;
-
                         this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
                     }
                     if (this.modeClock >= 456) {
@@ -482,6 +495,11 @@ class GPU implements HWIO {
         this.dmgObj1Palette = 0;
 
         this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
+
+        this.bgDrawn = false;
+        this.windowDrawn = false;
+        this.oamScanned = false;
+        this.mode3CyclesOffset = 0;
     }
 
     read(index: number): number {
@@ -897,7 +915,7 @@ class GPU implements HWIO {
         }
     }
 
-    renderSprites() {
+    scanOAM() {
         this.scannedEntriesCount = 0;
 
         const HEIGHT = this.lcdControl.spriteSize______2 ? 16 : 8;
@@ -925,6 +943,9 @@ class GPU implements HWIO {
             }
         }
 
+    }
+
+    renderSprites() {
         for (let sprite = 0; sprite < this.scannedEntriesCount; sprite++) {
             // Render sprites in OAM order (reverse of scan order)
             let scannedSprite = this.scannedEntries[this.scannedEntriesCount - sprite - 1];

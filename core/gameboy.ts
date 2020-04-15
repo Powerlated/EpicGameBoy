@@ -126,7 +126,7 @@ export default class GameBoy {
             case 3:
                 // If we haven't drawn the BG, sync now
                 if (this.gpu.bgDrawn) {
-                    gpu = 172 - this.gpu.modeClock;
+                    gpu = 172 - this.gpu.modeClock + this.gpu.mode3CyclesOffset;
                 } else {
                     gpu = 0;
                 }
@@ -134,7 +134,7 @@ export default class GameBoy {
 
             // Hblank
             case 0:
-                gpu = 204 - this.gpu.modeClock;
+                gpu = 204 - this.gpu.modeClock - this.gpu.mode3CyclesOffset;
                 break;
 
             // Vblank
