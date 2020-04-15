@@ -29,12 +29,16 @@ export default class Timer implements HWIO {
     readHwio(addr: number): number | null {
         switch (addr) {
             case 0xFF04: // Timer divider
+                this.catchup();
                 return this.internal >> 8;
             case 0xFF05: // Timer counter
+                this.catchup();
                 return this.counter;
             case 0xFF06: // Timer modulo
+                this.catchup();
                 return this.modulo;
             case 0xFF07: // Timer control
+                this.catchup();
                 let n = 0;
 
                 n |= (this.control.speed & 0b11); // Bits 0-1
@@ -49,16 +53,19 @@ export default class Timer implements HWIO {
             case 0xFF04: // Timer divider
                 this.mainClock = 0;
                 this.internal = 0;
+                this.catchup();
                 break;
             case 0xFF05: // Timer counter
                 break;
             case 0xFF06: // Timer modulo
                 this.modulo = value;
+                this.catchup();
                 break;
             case 0xFF07: // Timer control
                 this.control.speed = value & 0b11; // Bits 0-1
                 this.control.running = (value >> 2) !== 0; // Bit 2
                 this.mainClock = 0;
+                this.catchup();
                 break;
         }
     }
