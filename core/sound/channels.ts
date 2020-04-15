@@ -1,5 +1,3 @@
-import * as Tone from "tone";
-
 export interface BasicChannel {
     volume: number;
     enabled: boolean;
@@ -34,6 +32,8 @@ export class PulseChannel implements BasicChannel {
     freqSweepUp = false;
     freqSweepShift = 0;
 
+    updated = false;
+
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
     }
@@ -66,8 +66,6 @@ export class PulseChannel implements BasicChannel {
         }
         this.updated = true;
     }
-
-    updated = false;
 }
 
 export class WaveChannel implements BasicChannel {
@@ -93,6 +91,7 @@ export class WaveChannel implements BasicChannel {
     outputLeft = false;
     outputRight = false;
 
+    updated = false;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
@@ -116,8 +115,6 @@ export class WaveChannel implements BasicChannel {
         return 65536 / (2048 - frequency);
     }
 
- 
-
     trigger() {
         if (this.lengthCounter === 0 || this.lengthEnable == false) {
             this.lengthCounter = 256;
@@ -127,8 +124,6 @@ export class WaveChannel implements BasicChannel {
         }
         this.updated = true;
     }
-
-    updated = false;
 }
 
 export class NoiseChannel implements BasicChannel {
@@ -152,6 +147,8 @@ export class NoiseChannel implements BasicChannel {
     shiftClockFrequency = 0;
     counterStep = false;
     envelopeSweep = 0;
+
+    updated = false;
 
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;
@@ -179,6 +176,4 @@ export class NoiseChannel implements BasicChannel {
         this.volume = this.volumeEnvelopeStart;
         this.updated = true;
     }
-
-    updated = false;
 }

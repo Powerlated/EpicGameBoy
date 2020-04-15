@@ -5,8 +5,8 @@ import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
 
 export default class SoundChip implements HWIO {
-    static lerp(v0: number, v1: number, t: number): number {
-        return v0 * (1 - t) + v1 * t;
+    constructor(gb: GameBoy) {
+        this.gb = gb;
     }
 
     enabled = false;
@@ -28,11 +28,7 @@ export default class SoundChip implements HWIO {
 
     ap: AudioPlugin | null = null;
 
-    constructor(gb: GameBoy) {
-        this.gb = gb;
-    }
-
-
+    soundRegisters = new Uint8Array(65536).fill(0);
 
     step(cycles: number) {
         // #region CLOCK
@@ -209,8 +205,6 @@ export default class SoundChip implements HWIO {
             }
         }
     }
-
-    soundRegisters = new Uint8Array(65536).fill(0);
 
     writeHwio(addr: number, value: number) {
         if (this.enabled) {

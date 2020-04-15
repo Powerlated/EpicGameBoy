@@ -24,6 +24,11 @@ const INTERRUPT_REQUEST_FLAGS_ADDR = 0xFF0F;
 const INTERRUPT_ENABLE_FLAGS_ADDR = 0xFFFF;
 
 class MemoryBus {
+    constructor(gb: GameBoy) {
+        this.gb = gb;
+        this.ext = new ExternalBus(this.gb);
+    }
+
     gb: GameBoy;
 
     ext: ExternalBus;
@@ -37,11 +42,6 @@ class MemoryBus {
 
     bootromEnabled = true;
     bootromLoaded = false;
-
-    constructor(gb: GameBoy) {
-        this.gb = gb;
-        this.ext = new ExternalBus(this.gb);
-    }
 
     loadSave(ram: Uint8Array) {
         console.info("Loaded Save");

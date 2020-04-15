@@ -11,6 +11,12 @@ import InterruptController from './components/interrupt-controller';
 import { JoypadRegister } from './components/joypad';
 
 export default class GameBoy {
+    constructor(cgb: boolean) {
+        writeDebug("New gameboy!");
+        this.cgb = cgb;
+        setInterval(() => { this.bus.ext.saveGameSram(); }, 100);
+    }
+
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
@@ -33,12 +39,6 @@ export default class GameBoy {
     stopNow = true;
 
     timer = new Timer(this);
-
-    constructor(cgb: boolean) {
-        writeDebug("New gameboy!");
-        this.cgb = cgb;
-        setInterval(() => { this.bus.ext.saveGameSram(); }, 100);
-    }
 
     step(): number {
         let cyclesRan = 0;

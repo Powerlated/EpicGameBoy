@@ -234,6 +234,31 @@ class GPU implements HWIO {
     windowYpos = 0; // 0xFF4A - Window Y Position
     windowXpos = 0; // 0xFF4B - Window X Position
 
+    // OAM Entries
+    scannedEntries: OAMEntry[] = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags()));
+    scannedEntriesCount = 0;
+
+    cgbBgPaletteIndex = 0; // 0xFF68
+    cgbBgPaletteIndexAutoInc = false;
+    cgbBgPalette = new CGBPaletteData();
+
+    cgbObjPaletteIndex = 0; // 0xFF6A
+    cgbObjPaletteIndexAutoInc = false;
+    cgbObjPalette = new CGBPaletteData();
+
+    vramBank = 0;
+
+    dmgBgPalette = 0;
+    dmgObj0Palette = 0;
+    dmgObj1Palette = 0;
+
+    imageGameboyPre = new Uint8Array(160 * 144);
+    imageGameboyNoSprites = new Uint8Array(160 * 144);
+    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+    imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
+
+    showBorders = false;
+
     currentWindowLine = 0; // Which line of the window is currently rendering
     windowOnscreenYetThisFrame = false;
 
@@ -444,8 +469,6 @@ class GPU implements HWIO {
         this.gb = gb;
     }
 
-    scannedEntries: OAMEntry[] = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags()));
-    scannedEntriesCount = 0;
     reset() {
         this.totalFrameCount = 0;
 
@@ -704,20 +727,6 @@ class GPU implements HWIO {
         }
     }
 
-    cgbBgPaletteIndex = 0; // 0xFF68
-    cgbBgPaletteIndexAutoInc = false;
-    cgbBgPalette = new CGBPaletteData();
-
-    cgbObjPaletteIndex = 0; // 0xFF6A
-    cgbObjPaletteIndexAutoInc = false;
-    cgbObjPalette = new CGBPaletteData();
-
-    vramBank = 0;
-
-    dmgBgPalette = 0;
-    dmgObj0Palette = 0;
-    dmgObj1Palette = 0;
-
     setDmgBgPalette(p: number, l: number) {
         let i = p * 2;
         let c = colors555[l];
@@ -746,13 +755,6 @@ class GPU implements HWIO {
         this.cgbObjPalette.update(p >> 2);
     }
 
-    imageGameboyPre = new Uint8Array(160 * 144);
-    imageGameboyNoSprites = new Uint8Array(160 * 144);
-    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
-    imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
-
-    showBorders = false;
-
     renderBg() {
         // This is the Y value within a tile
         const y = (this.lcdcY + this.scrY) & 0b111;
@@ -780,8 +782,7 @@ class GPU implements HWIO {
 
         if (!this.lcdControl.bgWindowTiledataSelect__4) {
             // Two's Complement on high tileset
-            if (tile > 127) tile -= 256;
-            tile += 256;
+            tile = unTwo8b(tile) + 256;
         }
 
         let adjY = attr.yFlip ? 7 - y : y;
@@ -826,8 +827,7 @@ class GPU implements HWIO {
 
                 if (!this.lcdControl.bgWindowTiledataSelect__4) {
                     // Two's Complement on high tileset
-                    if (tile > 127) tile -= 256;
-                    tile += 256;
+                    tile = unTwo8b(tile) + 256;
                 }
 
                 adjY = attr.yFlip ? 7 - y : y;
@@ -858,8 +858,7 @@ class GPU implements HWIO {
 
             if (!this.lcdControl.bgWindowTiledataSelect__4) {
                 // Two's Complement on high tileset
-                if (tile > 127) tile -= 256;
-                tile += 256;
+                tile = unTwo8b(tile) + 256;
             }
 
             let adjY = attr.yFlip ? 7 - y : y;
@@ -902,8 +901,7 @@ class GPU implements HWIO {
 
                         if (!this.lcdControl.bgWindowTiledataSelect__4) {
                             // Two's Complement on high tileset
-                            if (tile > 127) tile -= 256;
-                            tile += 256;
+                            tile = unTwo8b(tile) + 256;
                         }
 
                         adjY = attr.yFlip ? 7 - y : y;

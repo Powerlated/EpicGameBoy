@@ -8,19 +8,18 @@ import GameBoy from "../gameboy";
 import { loadSram, saveSram } from "../../src/gameboy/localstorage";
 
 export default class ExternalBus {
+    constructor(gb: GameBoy) {
+        this.gb = gb;
+        this.mbc = new NullMBC(this);
+    }
+
     mbc: MBC | MBCWithRAM;
     romBanks = 0;
     romData: Uint8Array[] = [];
 
     gb: GameBoy;
 
-
     romTitle: string = "";
-
-    constructor(gb: GameBoy) {
-        this.gb = gb;
-        this.mbc = new NullMBC(this);
-    }
 
     replaceRom(rom: Uint8Array) {
         console.info("Replaced ROM");

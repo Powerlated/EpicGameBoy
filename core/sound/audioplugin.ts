@@ -1,6 +1,5 @@
 import SoundChip from "../sound/sound";
 
-
 export interface AudioPlugin {
     
     pulse1(s: SoundChip): void;

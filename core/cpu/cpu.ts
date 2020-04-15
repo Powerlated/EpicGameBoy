@@ -171,6 +171,11 @@ export interface Op {
 };
 
 export default class CPU {
+    constructor(gb: GameBoy) {
+        this.gb = gb;
+        writeDebug("CPU Bootstrap!");
+    }
+
     halted = false;
     haltBug = false;
 
@@ -191,11 +196,6 @@ export default class CPU {
 
     scheduleEnableInterruptsForNextTick = false;
 
-    constructor(gb: GameBoy) {
-        this.gb = gb;
-        writeDebug("CPU Bootstrap!");
-    }
-
     // #region
 
     cycles = 0;
@@ -215,6 +215,8 @@ export default class CPU {
 
     opcodesRan = new Set();
 
+    minDebug = false;
+    jumpLog: string[] = [];
 
     reset() {
         this.reg[R8.A] = 0;
@@ -272,7 +274,6 @@ export default class CPU {
             this.gb.bus.writeMem8(addr, value);
         }
     }
-
 
     step(): number {
         if (this.invalidOpcodeExecuted) return 4;
@@ -408,9 +409,6 @@ export default class CPU {
         if (lastInstructionCycles == 0) lastInstructionCycles = 4;
         return lastInstructionCycles;
     }
-
-    minDebug = false;
-    jumpLog: string[] = [];
 
     addToLog(s: string) {
         this.jumpLog.unshift(s);

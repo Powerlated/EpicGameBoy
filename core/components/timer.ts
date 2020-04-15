@@ -18,6 +18,8 @@ export default class Timer implements HWIO {
     mainClock = 0;
 
 
+    cyclesBehind = 0;
+
     constructor(gb: GameBoy) {
         this.gb = gb;
     }
@@ -51,8 +53,6 @@ export default class Timer implements HWIO {
                 break;
         }
     }
-
-    cyclesBehind = 0;
 
     /**
      * DIV has a lower byte that increments every T-cycle.

@@ -3,11 +3,35 @@ import { HWIO } from "./hwio";
 
 export class DMAController implements HWIO {
 
-    gb: GameBoy;
-
     constructor(gb: GameBoy) {
         this.gb = gb;
     }
+
+    gb: GameBoy;
+
+    newDmaSourceLow = 0;
+    newDmaSourceHigh = 0;
+
+    get newDmaSource() {
+        return (this.newDmaSourceHigh << 8) | this.newDmaSourceLow;
+    }
+
+    newDmaDestLow = 0;
+    newDmaDestHigh = 0;
+
+    get newDmaDest() {
+        return ((this.newDmaDestHigh << 8) | this.newDmaDestLow) | 0x8000;
+    }
+
+    newDmaLength = 0;
+    hDmaRemaining = 0;
+    hDmaSourceAt = 0;
+    hDmaDestAt = 0;
+    hDmaCompleted = false;
+    hDmaPaused = false;
+
+    gDmaCompleted = false;
+
 
 
     // Source must be < 0xA000
@@ -54,29 +78,6 @@ export class DMAController implements HWIO {
 
         this.hDmaPaused = false;
     }
-
-    newDmaSourceLow = 0;
-    newDmaSourceHigh = 0;
-
-    get newDmaSource() {
-        return (this.newDmaSourceHigh << 8) | this.newDmaSourceLow;
-    }
-
-    newDmaDestLow = 0;
-    newDmaDestHigh = 0;
-
-    get newDmaDest() {
-        return ((this.newDmaDestHigh << 8) | this.newDmaDestLow) | 0x8000;
-    }
-
-    newDmaLength = 0;
-    hDmaRemaining = 0;
-    hDmaSourceAt = 0;
-    hDmaDestAt = 0;
-    hDmaCompleted = false;
-    hDmaPaused = false;
-
-    gDmaCompleted = false;
 
     newDma(startAddr: number, destination: number, length: number) {
         this.gb.cpuPausedTCyclesRemaining += 8 * (this.newDmaLength >> 4);
