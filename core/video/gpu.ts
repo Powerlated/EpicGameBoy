@@ -17,14 +17,14 @@ class LCDCRegister {
 
     getNumerical(): number {
         let flagN = 0;
-        if (this.lcdDisplayEnable7) flagN = flagN | 0b10000000;
-        if (this.windowTilemapSelect___6) flagN = flagN | 0b01000000;
-        if (this.enableWindow____5) flagN = flagN | 0b00100000;
-        if (this.bgWindowTiledataSelect__4) flagN = flagN | 0b00010000;
-        if (this.bgTilemapSelect_3) flagN = flagN | 0b00001000;
-        if (this.spriteSize______2) flagN = flagN | 0b00000100;
-        if (this.spriteDisplay___1) flagN = flagN | 0b00000010;
-        if (this.bgWindowEnable0) flagN = flagN | 0b00000001;
+        if (this.lcdDisplayEnable7) flagN = flagN | (1 << 7);
+        if (this.windowTilemapSelect___6) flagN = flagN | (1 << 6);
+        if (this.enableWindow____5) flagN = flagN | (1 << 5);
+        if (this.bgWindowTiledataSelect__4) flagN = flagN | (1 << 4);
+        if (this.bgTilemapSelect_3) flagN = flagN | (1 << 3);
+        if (this.spriteSize______2) flagN = flagN | (1 << 2);
+        if (this.spriteDisplay___1) flagN = flagN | (1 << 1);
+        if (this.bgWindowEnable0) flagN = flagN | (1 << 0);
         return flagN;
     }
 
@@ -56,11 +56,11 @@ class LCDStatusRegister {
 
     getNumerical(): number {
         let flagN = 0;
-        if (this.lyCoincidenceInterrupt6) flagN = flagN | 0b01000000;
-        if (this.mode2OamInterrupt_____5) flagN = flagN | 0b00100000;
-        if (this.mode1VblankInterrupt__4) flagN = flagN | 0b00010000;
-        if (this.mode0HblankInterrupt__3) flagN = flagN | 0b00001000;
-        if (this.coincidenceFlag_______2) flagN = flagN | 0b00000100;
+        if (this.lyCoincidenceInterrupt6) flagN = flagN | (1 << 6);
+        if (this.mode2OamInterrupt_____5) flagN = flagN | (1 << 5);
+        if (this.mode1VblankInterrupt__4) flagN = flagN | (1 << 4);
+        if (this.mode0HblankInterrupt__3) flagN = flagN | (1 << 3);
+        if (this.coincidenceFlag_______2) flagN = flagN | (1 << 2);
 
         flagN = flagN | (this.mode & 0b11);
         return flagN;
@@ -129,7 +129,7 @@ export class OAMEntry {
 class CGBPaletteData {
     data = new Uint8Array(64);
 
-    shades: Array<Array<Uint8Array>> = new Array(8).fill(0).map(() => [
+    shades: Uint8Array[][] = new Array(8).fill(0).map(() => [
         new Uint8Array(3),
         new Uint8Array(3),
         new Uint8Array(3),

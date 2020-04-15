@@ -23,31 +23,31 @@ class InterruptFlag {
     set vblank(i: boolean) {
         this._vblank = i;
         this.numerical &= 0b11111110;
-        if (this.vblank === true)
+        if (i === true)
             this.numerical |= 0b11100001;
     };
     set lcdStat(i: boolean) {
         this._lcdStat = i;
         this.numerical &= 0b11111101;
-        if (this.lcdStat === true)
+        if (i === true)
             this.numerical |= 0b11100010;
     };
     set timer(i: boolean) {
         this._timer = i;
         this.numerical &= 0b11111011;
-        if (this.timer === true)
+        if (i === true)
             this.numerical |= 0b11100100;
     };
     set serial(i: boolean) {
         this._serial = i;
         this.numerical &= 0b11110111;
-        if (this.serial === true)
+        if (i === true)
             this.numerical |= 0b11101000;
     };
     set joypad(i: boolean) {
         this._joypad = i;
         this.numerical &= 0b11101111;
-        if (this.joypad === true)
+        if (i === true)
             this.numerical |= 0b11110000;
     };
 
