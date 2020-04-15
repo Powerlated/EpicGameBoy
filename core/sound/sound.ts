@@ -4,9 +4,6 @@ import { writeDebug } from "../../src/gameboy/tools/debug";
 import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
 
-const CLOCK_MAIN_STEPS = 32768;
-const CLOCK_ENVELOPE_STEPS = 65536;
-const CLOCK_LENGTH_STEPS = 16384;
 export default class SoundChip implements HWIO {
     static lerp(v0: number, v1: number, t: number): number {
         return v0 * (1 - t) + v1 * t;
@@ -47,22 +44,23 @@ export default class SoundChip implements HWIO {
                 switch (this.frameSequencerStep) {
                     case 0:
                     case 4:
-                        this.tjsCheck();
                         this.length();
+                        this.tjsCheck();
                         break;
                     case 2:
                     case 6:
-                        this.tjsCheck();
                         this.length();
                         this.frequencySweep();
+                        this.tjsCheck();
                         break;
                     case 7:
-                        this.tjsCheck();
                         this.volumeEnvelope();
+                        this.tjsCheck();
                         break;
                     default:
                         break;
                 }
+
 
                 this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
                 this.clockFrameSequencer -= 8192;
@@ -78,7 +76,7 @@ export default class SoundChip implements HWIO {
         if (actualTime == 0) actualTime = 8;
         if (this.clockPulse1FreqSweep > actualTime && this.pulse1.freqSweepShift !== 0) {
             this.clockPulse1FreqSweep = 0;
-            
+
             let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
             const diff = freq >> this.pulse1.freqSweepShift;
             let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;

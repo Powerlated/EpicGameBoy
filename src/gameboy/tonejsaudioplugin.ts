@@ -55,8 +55,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
     noiseVolumeShaper: Tone.WaveShaper;
 
-    noise7Pan: Tone.Panner;
-    noise15Pan: Tone.Panner;
+    noisePan: Tone.Panner;
 
     ch1 = true;
     ch2 = true;
@@ -85,7 +84,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
         // Create a dummy AudioBuffer, this is updated by updateWaveTable();
         const dummyBuffer = (Tone.context as any as AudioContext).createBuffer(1, 1, 48000);
-        
+
         this.waveSrc = new Tone.BufferSource(dummyBuffer, () => { });
         this.waveSrc.loop = true;
         this.wavePan = new Tone.Panner(0);
@@ -96,21 +95,20 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.waveSrc.start();
 
         this.noiseVolumeShaper = new Tone.WaveShaper((i: number) => 0);
+        this.noisePan = new Tone.Panner(0);
 
         this.noise7Src = new Tone.BufferSource(this.generateNoiseBuffer(true), () => { });
         this.noise7Src.loop = true;
-        this.noise7Pan = new Tone.Panner(0);
-        this.noise7Volume = new Tone.Volume(-4);
+        this.noise7Volume = new Tone.Volume(0);
         this.noise7Volume.mute = true;
-        this.noise7Src.chain(this.noise7Volume, this.noiseVolumeShaper, this.noise7Pan, Tone.Master);
+        this.noise7Src.chain(this.noise7Volume, this.noiseVolumeShaper, this.noisePan, Tone.Master);
         this.noise7Src.start();
 
         this.noise15Src = new Tone.BufferSource(this.generateNoiseBuffer(false), () => { });
         this.noise15Src.loop = true;
-        this.noise15Pan = new Tone.Panner(0);
-        this.noise15Volume = new Tone.Volume(-2);
+        this.noise15Volume = new Tone.Volume(0);
         this.noise15Volume.mute = true;
-        this.noise15Src.chain(this.noise15Volume, this.noiseVolumeShaper, this.noise15Pan, Tone.Master);
+        this.noise15Src.chain(this.noise15Volume, this.noiseVolumeShaper, this.noisePan, Tone.Master);
         this.noise15Src.start();
 
         this.masterVolume = new Tone.Volume(-12);
@@ -226,13 +224,12 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.noise.enabled && this.ch4 && s.noise.dacEnabled && (s.noise.outputLeft || s.noise.outputRight)) {
             if (s.noise.updated) {
                 this.noiseVolumeShaper.setMap((i: number) => {
-                    const mul = 0.6;
+                    const mul = 1
 
                     return i * (s.noise.volume / 15) * mul;
                 });
 
-                this.noise7Pan.pan.value = s.noise.pan;
-                this.noise15Pan.pan.value = s.noise.pan;
+                this.noisePan.pan.value = s.noise.pan;
 
                 let div = [8, 16, 32, 48, 64, 80, 96, 112][s.noise.divisorCode];
                 let rate = 4194304 / (div << s.noise.shiftClockFrequency);
