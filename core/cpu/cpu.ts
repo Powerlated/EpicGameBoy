@@ -284,8 +284,8 @@ export default class CPU {
             this.scheduleEnableInterruptsForNextTick = false;
             this.gb.interrupts.masterEnabled = true;
 
-            if (this.minDebug)
-                this.addToLog(`--- INTERRUPTS ENABLED ---`);
+            // if (this.minDebug)
+            //     this.addToLog(`--- INTERRUPTS ENABLED ---`);
         }
 
 
@@ -348,8 +348,9 @@ export default class CPU {
             this.gb.interrupts.enabled.numerical) && this.halted === true) {
             this.halted = false;
 
-            // UnHALTing takes 4 cycles
+
             this.cycles += 4;
+            // UnHALTing takes 4 cycles
         }
 
         //#region Service interrupts
@@ -448,28 +449,13 @@ export default class CPU {
         //     alert(`[Arg length 3] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);
         // }
 
-        let insDebug = "";
-        let operandDebug = "";
-
-
         if (this.debugging) {
             console.debug(`PC: ${this.pc}`);
             writeDebug(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
             writeDebug("Instruction length: " + ins.length);
         }
 
-        if (this.debugging || this.logging) {
-            if (ins.length === 3) {
-                insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 2), 2)}`;
-                operandDebug = `${hex(this.gb.bus.readMem16(this.pc + 1), 4)}`;
-            } else if (ins.length === 2) {
-                insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} ${hexN_LC(this.gb.bus.readMem8(this.pc + 1), 2)} ..`;
-                operandDebug = `${hex(this.gb.bus.readMem8(this.pc + 1), 2)}`;
-            } else {
-                insDebug = `${hexN_LC(this.gb.bus.readMem8(this.pc), 2)} .. ..`;
-            }
-            this.currentIns = `${ins.op.name} ${ins.type === undefined ? "" : ins.type}${ins.type2 === undefined ? "" : ins.type2}`;
-        }
+        const pcTriplet = Uint8Array.of(this.gb.bus.readMem8(this.pc + 0), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2));
 
         if (this.logging) {
 
@@ -478,14 +464,12 @@ export default class CPU {
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
 
+            /*
             this.log.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg[R16.BC], 4)} DE:${hexN_LC(this.reg[R16.DE], 4)} HL:${hexN_LC(this.reg[R16.HL], 4)
-                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)}`);
+                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)}`); */
             this.fullLog.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg[R16.BC], 4)} DE:${hexN_LC(this.reg[R16.DE], 4)} HL:${hexN_LC(this.reg[R16.HL], 4)
-                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${r_pad(insDebug, 8, ' ')} ${this.currentIns} ${operandDebug}`);
+                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${Disassembler.disassembleOp(ins, pcTriplet, this, this.pc)}`);
         }
-
-        this.lastOperandDebug = operandDebug;
-        this.lastInstructionDebug = insDebug;
     }
 
     toggleBreakpoint(point: number) {

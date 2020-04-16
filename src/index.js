@@ -99,7 +99,7 @@ function downloadLog() {
 
         document.body.removeChild(element);
     }
-    downloadText("EpicGameBoy.log", gb.cpu.log.join('\n'));
+    downloadText("EpicGameBoy.log", gb.cpu.fullLog.join('\n'));
 }
 
 $('#enableLogging').addEventListener('change', function (e) {
