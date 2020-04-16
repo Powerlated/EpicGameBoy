@@ -43,35 +43,29 @@ export default class GameBoy {
     step(): number {
         let cyclesRan = 0;
 
-        let runFor = this.getCyclesUntilNextSync();
+        let lastInstructionCycles = 4;
+        if (this.cpuPausedTCyclesRemaining > 0) {
+            this.cpuPausedTCyclesRemaining -= 4;
+        } else {
+            lastInstructionCycles = this.cpu.step();
+        }
 
-        // Use a do-while loop because we want the CPU to run at least once
-        do {
-            let lastInstructionCycles = 4;
-            if (this.cpuPausedTCyclesRemaining > 0) {
-                this.cpuPausedTCyclesRemaining -= 4;
-            } else {
-                lastInstructionCycles = this.cpu.step();
-            }
+        cyclesRan += lastInstructionCycles;
 
-            cyclesRan += lastInstructionCycles;
+        if (this.oamDmaTCyclesRemaining > 0) {
+            this.oamDmaTCyclesRemaining -= lastInstructionCycles;
+        }
 
-            if (this.oamDmaTCyclesRemaining > 0) {
-                this.oamDmaTCyclesRemaining -= lastInstructionCycles;
-            }
-        } while (cyclesRan < runFor);
+        return lastInstructionCycles;
+    }
 
-        // This is the value we are going to pass to the other components 
-        let stepCycles = cyclesRan;
-        // In double speed mode make the CPU run 2x relatively faster than Sound and GPU
-        if (this.doubleSpeed) stepCycles >>= 1;
-
+    tick(cycles: number) {
+        let otherSpeed = cycles;
+        if (this.doubleSpeed) otherSpeed >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
-        this.timer.step(cyclesRan);
-        this.soundChip.step(stepCycles);
-        this.gpu.step(stepCycles);
-
-        return stepCycles;
+        this.timer.step(cycles);
+        this.soundChip.step(otherSpeed);
+        this.gpu.step(otherSpeed);
     }
 
     speedMul = 1;
@@ -114,7 +108,7 @@ export default class GameBoy {
     }
 
     getCyclesUntilNextSync(): number {
-        let timer = Timer.TimerSpeeds[this.timer.control.speed] - this.timer.mainClock;
+        let timer = 4194304 / Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
             // OAM Mode

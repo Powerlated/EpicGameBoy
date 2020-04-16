@@ -244,8 +244,13 @@ export default class CPU {
 
     // #endregion
 
+    tick(i: number) {
+        this.cycles += i;
+        this.gb.tick(i);
+    }
+
     fetchMem8(addr: number): number {
-        this.cycles += 4;
+        this.tick(4);
 
         // The CPU can only access high RAM during OAM DMA
         if (this.gb.oamDmaTCyclesRemaining > 0) {
@@ -265,7 +270,7 @@ export default class CPU {
     }
 
     writeMem8(addr: number, value: number) {
-        this.cycles += 4;
+        this.tick(4);
         if (this.gb.oamDmaTCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
                 this.gb.bus.writeMem8(addr, value);
@@ -276,7 +281,9 @@ export default class CPU {
     }
 
     step(): number {
-        if (this.invalidOpcodeExecuted) return 4;
+        if (this.invalidOpcodeExecuted) {
+            this.tick(4);
+        }
 
         const c = this.cycles;
 
@@ -341,6 +348,8 @@ export default class CPU {
             // }
 
             // this.opcodesRan.add(pcTriplet[0]);
+        } else {
+            this.tick(4);
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
@@ -349,7 +358,7 @@ export default class CPU {
             this.halted = false;
 
 
-            this.cycles += 4;
+            this.tick(4);
             // UnHALTing takes 4 cycles
         }
 
@@ -407,7 +416,6 @@ export default class CPU {
         this.haltBug = false;
 
         let lastInstructionCycles = this.cycles - c;
-        if (lastInstructionCycles == 0) lastInstructionCycles = 4;
         return lastInstructionCycles;
     }
 
@@ -551,16 +559,16 @@ export default class CPU {
                     // If unconditional, don't check
                     if (b0 !== 0xC3) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; this.cycles += 8; return; }
-                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; this.cycles += 8; return; }
-                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; this.cycles += 8; return; }
-                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; this.cycles += 8; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; this.tick(8); return; }
+                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; this.tick(8); return; }
+                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; this.tick(8); return; }
+                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; this.tick(8); return; }
                     }
 
                     const n16 = this.fetchMem16(this.pc + 1);
                     this.pc = n16 - 3;
 
-                    this.cycles += 4; // Branching takes 4 cycles
+                    this.tick(4); // Branching takes 4 cycles
                 }
                 this.pc += 3;
                 return;
@@ -574,10 +582,10 @@ export default class CPU {
                 {
                     if (b0 !== 0xCD) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; this.cycles += 8; return; }
-                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; this.cycles += 8; return; }
-                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; this.cycles += 8; return; }
-                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; this.cycles += 8; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 3; this.tick(8); return; }
+                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 3; this.tick(8); return; }
+                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 3; this.tick(8); return; }
+                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 3; this.tick(8); return; }
                     }
 
                     const pcUpperByte = ((this.pc + 3) & 0xFFFF) >> 8;
@@ -593,7 +601,7 @@ export default class CPU {
                     const n16 = this.fetchMem16(this.pc + 1);
                     this.pc = n16 - 3;
 
-                    this.cycles += 4; // Branching takes 4 cycles
+                    this.tick(4); // Branching takes 4 cycles
                 }
                 this.pc += 3;
                 return;
@@ -647,7 +655,7 @@ export default class CPU {
                     this.reg[R16.HL] = (unTwo8b(b1) + this.reg.sp) & 0xFFFF;
 
                     // Register read timing
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 2;
                 return;
@@ -665,7 +673,7 @@ export default class CPU {
                     this.reg.sp = (this.reg.sp + value) & 0xFFFF;
 
                     // Extra time
-                    this.cycles += 8;
+                    this.tick(8);
                 }
                 this.pc += 2;
                 return;
@@ -746,16 +754,16 @@ export default class CPU {
                 {
                     if (b0 !== 0x18) {
                         const cc: CC = (b0 & 0b11000) >> 3;
-                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 2; this.cycles += 4; return; }
-                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 2; this.cycles += 4; return; }
-                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 2; this.cycles += 4; return; }
-                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 2; this.cycles += 4; return; }
+                        if (cc === CC.NZ && this.reg._f.zero) { this.pc += 2; this.tick(4); return; }
+                        else if (cc === CC.Z && !this.reg._f.zero) { this.pc += 2; this.tick(4); return; }
+                        else if (cc === CC.NC && this.reg._f.carry) { this.pc += 2; this.tick(4); return; }
+                        else if (cc === CC.C && !this.reg._f.carry) { this.pc += 2; this.tick(4); return; }
                     }
 
                     const b1 = this.fetchMem8(this.pc + 1);
                     this.pc += unTwo8b(b1);
 
-                    this.cycles += 4; // Branching takes 4 cycles
+                    this.tick(4); // Branching takes 4 cycles
                 }
                 this.pc += 2;
                 return;
@@ -862,7 +870,7 @@ export default class CPU {
                 {
                     this.reg.sp = this.reg[R16.HL];
                     // Register read timing
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 1;
                 return;
@@ -898,7 +906,7 @@ export default class CPU {
                     this.writeMem8(this.reg.sp, lowerByte);
 
                     // 4 cycle penalty
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 1;
                 return;
@@ -974,7 +982,7 @@ export default class CPU {
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
                     this.reg[target] = (this.reg[target] + 1) & 0xFFFF;
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 1;
                 return;
@@ -987,7 +995,7 @@ export default class CPU {
                 {
                     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
                     this.reg[target] = (this.reg[target] - 1) & 0xFFFF;
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 1;
                 return;
@@ -1227,7 +1235,7 @@ export default class CPU {
 
                 this.pc = returnAddress - 1;
 
-                this.cycles += 4; // Branching takes 4 cycles
+                this.tick(4); // Branching takes 4 cycles
                 this.scheduleEnableInterruptsForNextTick = true;
                 this.pc += 1;
                 return;
@@ -1436,7 +1444,7 @@ export default class CPU {
             case 0xC0: // RET NZ
                 {
                     if (b0 !== 0xC9) {
-                        this.cycles += 4; // Branch decision?
+                        this.tick(4); // Branch decision?
 
                         const cc: CC = (b0 & 0b11000) >> 3;
                         if (cc === CC.NZ && this.reg._f.zero) { this.pc += 1; return; }
@@ -1453,7 +1461,7 @@ export default class CPU {
 
                     this.pc = returnAddress - 1;
 
-                    this.cycles += 4; // Branching takes 4 cycles
+                    this.tick(4); // Branching takes 4 cycles
                 }
                 this.pc += 1;
                 return;
@@ -1481,7 +1489,7 @@ export default class CPU {
                     this.reg[R16.HL] = newValue;
 
                     // Register read takes 4 more cycles
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 1;
                 return;
@@ -1507,7 +1515,7 @@ export default class CPU {
 
                     this.pc = target - 1;
 
-                    this.cycles += 4;
+                    this.tick(4);
                 }
                 this.pc += 1;
                 return;
