@@ -111,7 +111,6 @@ export default class GameBoy {
         }
     }
 
-    /*
     getCyclesUntilNextSync(): number {
         let timer = 4194304 / Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
@@ -154,10 +153,10 @@ export default class GameBoy {
             final = gpu;
         }
 
+        if (final < 4) final = 4;
+
         return final;
     }
-    */
-
 
     reset() {
         this.cpu.reset();

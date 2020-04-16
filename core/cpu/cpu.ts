@@ -338,7 +338,7 @@ export default class CPU {
 
             // this.opcodesRan.add(pcTriplet[0]);
         } else {
-            this.tick(4);
+            this.tick(this.gb.getCyclesUntilNextSync());
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
