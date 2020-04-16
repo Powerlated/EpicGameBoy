@@ -673,6 +673,7 @@ class GPU implements HWIO {
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.setNumerical(value);
+                // console.log(this.lcdStatus);
                 break;
             case 0xFF42:
                 this.scrY = value;

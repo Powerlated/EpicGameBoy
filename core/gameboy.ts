@@ -46,33 +46,39 @@ export default class GameBoy {
     step(): number {
         let cyclesRan = 0;
 
-        let lastInstructionCycles = 4;
-        if (this.cpuPausedTCyclesRemaining > 0) {
-            this.cpuPausedTCyclesRemaining -= 4;
-        } else {
-            lastInstructionCycles = this.cpu.step();
-        }
+        let runFor = this.getCyclesUntilNextSync();
 
-        cyclesRan += lastInstructionCycles;
+        // Use a do-while loop because we want the CPU to run at least once
+        do {
+            let lastInstructionCycles = 4;
+            if (this.cpuPausedTCyclesRemaining > 0) {
+                this.cpuPausedTCyclesRemaining -= 4;
+                this.tick(4);
+            } else {
+                lastInstructionCycles = this.cpu.step();
+            }
 
-        if (this.doubleSpeed) lastInstructionCycles >>= 1;
-        return lastInstructionCycles;
+            cyclesRan += lastInstructionCycles;
+
+            if (this.oamDmaTCyclesRemaining > 0) {
+                this.oamDmaTCyclesRemaining -= lastInstructionCycles;
+            }
+        } while (cyclesRan < runFor);
+
+        // This is the value we are going to pass to the other components 
+        let stepCycles = cyclesRan;
+        // In double speed mode make the CPU run 2x relatively faster than Sound and GPU
+        if (this.doubleSpeed) stepCycles >>= 1;
+
+        // Timer runs at double speed as well, so use the unmodified value for timer
+        this.soundChip.step(stepCycles);
+        this.gpu.step(stepCycles);
+
+        return stepCycles;
     }
 
     tick(cycles: number) {
-        if (this.oamDmaTCyclesRemaining > 0) {
-            this.oamDmaTCyclesRemaining -= cycles;
-            if (this.oamDmaTCyclesRemaining < 0) {
-                this.oamDmaTCyclesRemaining = 0;
-            }
-        }
-
-        let otherSpeed = cycles;
-        if (this.doubleSpeed) otherSpeed >>= 1;
-        // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.step(cycles);
-        this.soundChip.step(otherSpeed);
-        this.gpu.step(otherSpeed);
     }
 
     speedStop() {
@@ -111,7 +117,7 @@ export default class GameBoy {
         }
     }
 
-    getCyclesUntilNextSync(): number {
+    protected getCyclesUntilNextSync(): number {
         let timer = 4194304 / Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
@@ -141,7 +147,7 @@ export default class GameBoy {
                 break;
 
             // Line 153
-            case 4:
+            case 5:
                 break;
         }
 

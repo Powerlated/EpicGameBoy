@@ -338,7 +338,7 @@ export default class CPU {
 
             // this.opcodesRan.add(pcTriplet[0]);
         } else {
-            this.tick(this.gb.getCyclesUntilNextSync());
+            this.tick(4);
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
@@ -391,7 +391,7 @@ export default class CPU {
                 }
 
                 // 2 M-cycles doing nothing
-                this.tick(8);
+                // this.tick(8);
 
                 const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
                 const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
@@ -402,7 +402,7 @@ export default class CPU {
                 this.writeMem8(this.reg.sp, pcLowerByte);
 
                 // Setting PC takes 1 M-cycle
-                this.tick(4);
+                // this.tick(4);
 
                 this.pc = vector;
             }
