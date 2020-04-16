@@ -342,7 +342,7 @@ export default class CPU {
             this.halted = false;
 
 
-            this.cycles += 4;
+            // this.cycles += 4;
             // UnHALTing takes 4 cycles
         }
 

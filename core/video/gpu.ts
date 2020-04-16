@@ -260,17 +260,15 @@ class GPU implements HWIO {
     showBorders = false;
 
     currentWindowLine = 0; // Which line of the window is currently rendering
-    windowOnscreenYetThisFrame = false;
+    windowOnscreenYetThisFrame = false; // Has the window been triggered this frame yet?
 
     lineClock: number = 0;
 
-    // Have events happened this scanline yet?
+    // Have events happened this scanline yet? - for internal tracking
     bgDrawn = false;
     windowDrawn = false;
     oamScanned = false;
-
     mode5lYReset = false;
-
 
     // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
