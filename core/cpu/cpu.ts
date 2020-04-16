@@ -343,7 +343,7 @@ export default class CPU {
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
         if ((this.gb.interrupts.requested.numerical &
-            this.gb.interrupts.enabled.numerical) && this.halted === true) {
+            this.gb.interrupts.enabled.numerical) !== 0 && this.halted === true) {
             this.halted = false;
 
 

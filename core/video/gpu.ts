@@ -268,7 +268,9 @@ class GPU implements HWIO {
     bgDrawn = false;
     windowDrawn = false;
     oamScanned = false;
-    mode3CyclesOffset = 0;
+
+    mode5lYReset = false;
+
 
     // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
@@ -284,6 +286,13 @@ class GPU implements HWIO {
     // Skip frames when turboing
     renderingThisFrame = false;
 
+    hitHblank = false;
+
+    dirtyScanlines: boolean[] = new Array(144).fill(false);
+    screenDirty = false;
+    screenDirtyUntil = 0;
+    currentScanlineDirty = false;
+
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     step(cycles: number) {
         // THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
@@ -296,12 +305,16 @@ class GPU implements HWIO {
                 // Read from OAM - Scanline active
                 case 2:
                     if (this.oamScanned === false) {
-                        this.scanOAM();
+                        if (this.renderingThisFrame === true) {
+                            this.scanOAM();
+                        }
                         this.oamScanned = true;
 
                         this.updateSTAT();
 
-                        this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
+                        this.currentScanlineDirty = this.dirtyScanlines[this.lY] || this.screenDirty;
+
+                        // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
                     }
                     if (this.lineClock >= 80) {
                         this.lineClock -= 80;
@@ -322,48 +335,50 @@ class GPU implements HWIO {
                     * only AFTER the window has already been enabled.
                     */
                     if (this.renderingThisFrame === true) {
-                        if (this.lcdControl.enableWindow____5 && !this.windowOnscreenYetThisFrame && this.windowXpos < 160 && this.windowYpos < 144 && this.lY == this.windowYpos) {
+                        if (
+                            this.lcdControl.enableWindow____5 &&
+                            this.windowOnscreenYetThisFrame === false &&
+                            this.windowXpos < 160 && this.windowYpos < 144 &&
+                            this.lY == this.windowYpos
+                        ) {
                             this.currentWindowLine = this.windowYpos - this.lY;
                             this.windowOnscreenYetThisFrame = true;
                         }
+                        const enabled = (!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb;
                         // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                        if (this.windowDrawn == false && this.lineClock >= this.windowXpos + 12) {
-                            if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                        if (enabled === true) {
+                            if (this.windowDrawn == false && this.lineClock >= this.windowXpos + 12) {
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
-                                    if (this.vp !== null) {
+                                    if (this.currentScanlineDirty === true && this.vp !== null) {
                                         this.renderWindow();
                                     }
-                                    this.mode3CyclesOffset += 8;
+                                    // this.mode3CyclesOffset += 8;
                                     this.currentWindowLine++;
                                 }
+                                this.windowDrawn = true;
                             }
-                            this.windowDrawn = true;
-                        }
 
-                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                             if (this.bgDrawn == false) {
-                                if (this.vp !== null) {
+                                if (this.currentScanlineDirty === true && this.vp !== null) {
                                     this.renderBg();
                                 }
                                 this.bgDrawn = true;
 
-                                this.mode3CyclesOffset += this.scrX & 7;
+                                // this.mode3CyclesOffset += this.scrX & 7;
                             }
                         }
                     }
-
                     if (this.lineClock >= 172) {
                         this.lineClock -= 172;
 
                         // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;
-                        this.updateSTAT();
 
                         // Render sprites at end of scanline
                         if (this.lcdControl.spriteDisplay___1) {
                             if (this.renderingThisFrame === true) {
-                                if (this.vp !== null) {
+                                if (this.currentScanlineDirty === true && this.vp !== null) {
                                     this.renderSprites();
                                 }
                             }
@@ -375,17 +390,33 @@ class GPU implements HWIO {
 
                 // Hblank
                 case 0:
+                    if (this.hitHblank === false && this.lineClock >= 4) {
+                        this.hitHblank = true;
+
+                        this.updateSTAT();
+                    }
                     if (this.lineClock >= 204) {
                         this.lineClock -= 204;
-
-                        this.lY++;
-                        this.updateSTAT();
 
                         // Reset scanline specific flags
                         this.bgDrawn = false;
                         this.windowDrawn = false;
                         this.oamScanned = false;
-                        this.mode3CyclesOffset = 0;
+                        this.hitHblank = false;
+                        // this.mode3CyclesOffset = 0;
+                        this.setDirty = false;
+
+                        if (this.renderingThisFrame === true) {
+                            this.dirtyScanlines[this.lY] = false;
+                            this.currentScanlineDirty = false;
+
+                            if (this.lY === this.screenDirtyUntil) {
+                                this.screenDirty = false;
+                            }
+                        }
+
+                        this.lY++;
+                        this.updateSTAT();
 
                         // If we're at LCDCy = 144, enter Vblank
                         // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
@@ -430,9 +461,9 @@ class GPU implements HWIO {
                     }
                     break;
 
-                // Between Line 153 and Line 0, reads as mode 0 in LCDstatus because 5 & 3 = 0 
+                // Between Line 153 and Line 0, reads as mode 1 (Vblank) in LCDstatus because 5 & 3 = 1
                 case 5:
-                    if (this.lineClock >= 4 && this.mode5lYReset === false) {
+                    if (this.mode5lYReset === false && this.lineClock >= 4) {
                         this.lY = 0;
                         this.updateSTAT();
 
@@ -457,14 +488,11 @@ class GPU implements HWIO {
         }
     }
 
-    mode5lYReset = false;
-
     updateSTAT() {
         this.lcdStatus.coincidenceFlag_______2 = this.lY == this.lYCompare;
 
         // Determine LCD status interrupt conditions
         this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
-
         this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && (this.lcdStatus.mode & 3) === 0;
         this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && (this.lcdStatus.mode & 3) === 1;
         this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && (this.lcdStatus.mode & 3) === 2;
@@ -493,6 +521,13 @@ class GPU implements HWIO {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
+    }
+
+    setDirty = false;
+
+    setScreenDirty() {
+        this.screenDirtyUntil = this.lY - 1;
+        this.screenDirty = true;
     }
 
     reset() {
@@ -556,7 +591,7 @@ class GPU implements HWIO {
         this.bgDrawn = false;
         this.windowDrawn = false;
         this.oamScanned = false;
-        this.mode3CyclesOffset = 0;
+        // this.mode3CyclesOffset = 0;
 
         this.lcdStatusMode0 = false;
         this.lcdStatusMode1 = false;
@@ -583,6 +618,8 @@ class GPU implements HWIO {
 
         this.vram[adjIndex] = value;
         const tile = adjIndex >> 4;
+
+        this.setScreenDirty();
 
         // Write to tile set
         if (index >= 0x8000 && index < 0x9800) {
@@ -670,15 +707,17 @@ class GPU implements HWIO {
         switch (addr) {
             case 0xFF40: // LCD Control
                 this.lcdControl.setNumerical(value);
+                this.setScreenDirty();
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.setNumerical(value);
-                // console.log(this.lcdStatus);
                 break;
             case 0xFF42:
+                if (this.scrY !== value) this.setScreenDirty();
                 this.scrY = value;
                 break;
             case 0xFF43:
+                if (this.scrX !== value) this.setScreenDirty();
                 this.scrX = value;
                 break;
             case 0xFF44: break;
@@ -688,6 +727,7 @@ class GPU implements HWIO {
             case 0xFF47: // Palette
                 this.dmgBgPalette = value;
                 if (!this.gb.cgb) {
+                    this.setScreenDirty();
                     this.setDmgBgPalette(0, (value >> 0) & 0b11);
                     this.setDmgBgPalette(1, (value >> 2) & 0b11);
                     this.setDmgBgPalette(2, (value >> 4) & 0b11);
@@ -697,6 +737,7 @@ class GPU implements HWIO {
             case 0xFF48: // Palette OBJ 0
                 this.dmgObj0Palette = value;
                 if (!this.gb.cgb) {
+                    this.setScreenDirty();
                     this.setDmgObjPalette(0, (value >> 0) & 0b11);
                     this.setDmgObjPalette(1, (value >> 2) & 0b11);
                     this.setDmgObjPalette(2, (value >> 4) & 0b11);
@@ -706,6 +747,7 @@ class GPU implements HWIO {
             case 0xFF49: // Palette OBJ 1
                 this.dmgObj1Palette = value;
                 if (!this.gb.cgb) {
+                    this.setScreenDirty();
                     this.setDmgObjPalette(4, (value >> 0) & 0b11);
                     this.setDmgObjPalette(5, (value >> 2) & 0b11);
                     this.setDmgObjPalette(6, (value >> 4) & 0b11);
@@ -713,9 +755,11 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF4A: // Window Y Position
+                if (this.windowYpos !== value) this.setScreenDirty();
                 this.windowYpos = value;
                 break;
             case 0xFF4B: // Window X Position
+                if (this.windowXpos !== value) this.setScreenDirty();
                 this.windowXpos = value;
                 break;
             case 0xFF4F: // CGB - VRAM Bank
@@ -738,6 +782,7 @@ class GPU implements HWIO {
                 break;
             case 0xFF69: // CGB - Background Palette Data
                 if (this.gb.cgb) {
+                    this.setScreenDirty();
                     this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
                     this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3);
 
@@ -755,6 +800,7 @@ class GPU implements HWIO {
                 break;
             case 0xFF6B: // CGB - Sprite Palette Data
                 if (this.gb.cgb) {
+                    this.setScreenDirty();
                     this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
                     this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3);
 
@@ -978,6 +1024,29 @@ class GPU implements HWIO {
                 entry.tile = tile;
                 entry.flags.setNumerical(this.oam[base + 3]);
                 this.scannedEntriesCount++;
+
+                // They see me unrollin', they hatin...
+                this.dirtyScanlines[screenYPos - 1] = true;
+                this.dirtyScanlines[screenYPos + 0] = true;
+                this.dirtyScanlines[screenYPos + 1] = true;
+                this.dirtyScanlines[screenYPos + 2] = true;
+                this.dirtyScanlines[screenYPos + 3] = true;
+                this.dirtyScanlines[screenYPos + 4] = true;
+                this.dirtyScanlines[screenYPos + 5] = true;
+                this.dirtyScanlines[screenYPos + 6] = true;
+                this.dirtyScanlines[screenYPos + 7] = true;
+                this.dirtyScanlines[screenYPos + 8] = true;
+
+                if (this.lcdControl.spriteSize______2 === true) {
+                    this.dirtyScanlines[screenYPos + 9] = true;
+                    this.dirtyScanlines[screenYPos + 10] = true;
+                    this.dirtyScanlines[screenYPos + 11] = true;
+                    this.dirtyScanlines[screenYPos + 12] = true;
+                    this.dirtyScanlines[screenYPos + 13] = true;
+                    this.dirtyScanlines[screenYPos + 14] = true;
+                    this.dirtyScanlines[screenYPos + 15] = true;
+                    this.dirtyScanlines[screenYPos + 16] = true;
+                }
             }
         }
 

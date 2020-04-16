@@ -117,7 +117,7 @@ export default class GameBoy {
         }
     }
 
-    protected getCyclesUntilNextSync(): number {
+    getCyclesUntilNextSync(): number {
         let timer = 4194304 / Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
@@ -130,7 +130,7 @@ export default class GameBoy {
             case 3:
                 // If we haven't drawn the BG, sync now
                 if (this.gpu.bgDrawn) {
-                    gpu = 172 - this.gpu.lineClock + this.gpu.mode3CyclesOffset;
+                    gpu = 172 - this.gpu.lineClock;
                 } else {
                     gpu = 0;
                 }
@@ -138,7 +138,7 @@ export default class GameBoy {
 
             // Hblank
             case 0:
-                gpu = 204 - this.gpu.lineClock - this.gpu.mode3CyclesOffset;
+                gpu = 204 - this.gpu.lineClock;
                 break;
 
             // Vblank
@@ -158,8 +158,6 @@ export default class GameBoy {
         } else if (this.gpu.lcdControl.lcdDisplayEnable7) {
             final = gpu;
         }
-
-        if (final < 4) final = 4;
 
         return final;
     }
