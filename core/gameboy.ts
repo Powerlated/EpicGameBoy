@@ -40,6 +40,9 @@ export default class GameBoy {
 
     timer = new Timer(this);
 
+    speedMul = 1;
+    speedIntervals: Array<number> = [];
+
     step(): number {
         let cyclesRan = 0;
 
@@ -52,14 +55,18 @@ export default class GameBoy {
 
         cyclesRan += lastInstructionCycles;
 
-        if (this.oamDmaTCyclesRemaining > 0) {
-            this.oamDmaTCyclesRemaining -= lastInstructionCycles;
-        }
-
+        if (this.doubleSpeed) lastInstructionCycles >>= 1;
         return lastInstructionCycles;
     }
 
     tick(cycles: number) {
+        if (this.oamDmaTCyclesRemaining > 0) {
+            this.oamDmaTCyclesRemaining -= cycles;
+            if (this.oamDmaTCyclesRemaining < 0) {
+                this.oamDmaTCyclesRemaining = 0;
+            }
+        }
+
         let otherSpeed = cycles;
         if (this.doubleSpeed) otherSpeed >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
@@ -67,9 +74,6 @@ export default class GameBoy {
         this.soundChip.step(otherSpeed);
         this.gpu.step(otherSpeed);
     }
-
-    speedMul = 1;
-    speedIntervals: Array<number> = [];
 
     speedStop() {
         this.speedIntervals.forEach(i => { clearInterval(i); });

@@ -323,7 +323,7 @@ class GPU implements HWIO {
                             this.windowOnscreenYetThisFrame = true;
                         }
                         // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                        if (this.windowDrawn == false && this.modeClock >= this.windowXpos) {
+                        if (this.windowDrawn == false && this.modeClock >= this.windowXpos + 8) {
                             if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
@@ -349,8 +349,8 @@ class GPU implements HWIO {
                         }
                     }
 
-                    if (this.modeClock >= 172 + this.mode3CyclesOffset) {
-                        this.modeClock -= 172 + this.mode3CyclesOffset;
+                    if (this.modeClock >= 172) {
+                        this.modeClock -= 172;
 
                         // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;
@@ -370,8 +370,8 @@ class GPU implements HWIO {
 
                 // Hblank
                 case 0:
-                    if (this.modeClock >= 204 - this.mode3CyclesOffset) {
-                        this.modeClock -= 204 - this.mode3CyclesOffset;
+                    if (this.modeClock >= 204) {
+                        this.modeClock -= 204;
                         this.lY++;
 
                         // Reset scanline specific flags
@@ -424,37 +424,39 @@ class GPU implements HWIO {
                         this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
                     }
                     if (this.modeClock >= 456) {
+
                         this.modeClock -= 456;
                         this.lcdStatus.mode = 2;
                     }
                     break;
             }
 
-            this.lcdStatus.coincidenceFlag_______2 = this.lYCompare === this.lY;
+
+            // If the condition is met and the interrupt has not been fired yet, request the interrupt
+            if (this.lcdStatusFired === false && this.lcdStatusConditionMet === true) {
+                this.gb.interrupts.requested.lcdStat = true;
+                this.lcdStatusFired = true;
+            }
+
+            this.lcdStatus.coincidenceFlag_______2 = this.lY == this.lYCompare;
 
             // Determine LCD status interrupt conditions
-            this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 && this.lcdStatus.coincidenceFlag_______2;
-            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 && this.lcdStatus.mode === 0;
-            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 && this.lcdStatus.mode === 1;
-            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 && this.lcdStatus.mode === 2;
+            this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
+            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && this.lcdStatus.mode === 0;
+            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && this.lcdStatus.mode === 1;
+            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && this.lcdStatus.mode === 2;
 
             // If any of the conditions are met, set the condition met flag
             if (
-                this.lcdStatusMode0 ||
-                this.lcdStatusMode1 ||
-                this.lcdStatusMode2 ||
-                this.lcdStatusCoincidence
+                this.lcdStatusMode0 === true ||
+                this.lcdStatusMode1 === true ||
+                this.lcdStatusMode2 === true ||
+                this.lcdStatusCoincidence === true
             ) {
                 this.lcdStatusConditionMet = true;
             } else {
                 this.lcdStatusConditionMet = false;
                 this.lcdStatusFired = false;
-            }
-
-            // If the condition is met and the interrupt has not been fired yet, request the interrupt
-            if (!this.lcdStatusFired && this.lcdStatusConditionMet) {
-                this.gb.interrupts.requested.lcdStat = true;
-                this.lcdStatusFired = true;
             }
         } else {
             this.modeClock = 0;
@@ -469,43 +471,44 @@ class GPU implements HWIO {
 
     reset() {
         this.totalFrameCount = 0;
+        this.vram0 = new Uint8Array(0x2000);
+        this.vram1 = new Uint8Array(0x2000);
 
-        // [tile][row][pixel]
-        this.tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8)));
-        this.tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8)));
+        this.oam = new Uint8Array(160);
+        this.vram = this.vram0;
 
-        this.lcdControl = new LCDCRegister();
-        this.lcdStatus = new LCDStatusRegister();
+        this.totalFrameCount = 0;
 
-        this.scrY = 0;
-        this.scrX = 0;
+        // [tile][pixel]
+        this.tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 0
+        this.tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 1
 
-        this.windowYpos = 0;
-        this.windowXpos = 0;
+        this.tileset = this.tileset0; // Assign active tileset reference to tileset 0
+
+        this.tilemap = new Uint8Array(2048);                                       // For bank 0
+        this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
+
+        this.lcdControl = new LCDCRegister(); // 0xFF40
+        this.lcdStatus = new LCDStatusRegister(); // 0xFF41
+
+        this.scrY = 0; // 0xFF42 - Scroll Y
+        this.scrX = 0; // 0xFF43 - Scroll X
 
         this.lY = 0; // 0xFF44 - Current scanning line
-        this.modeClock = 0;
+        this.lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY === lcdcYCompare 
 
-        // Zero out OAM
-        this.oam.forEach((v, i, a) => {
-            a[i] = 0;
-        });
+        this.windowYpos = 0; // 0xFF4A - Window Y Position
+        this.windowXpos = 0; // 0xFF4B - Window X Position
 
-        // Zero out VRAM
-        this.vram0.forEach((v, i, a) => {
-            a[i] = 0;
-        });
-        this.vram1.forEach((v, i, a) => {
-            a[i] = 0;
-        });
+        // OAM Entries
+        this.scannedEntries = new Array(40).fill(0).map(() => new OAMEntry(0, 0, 0, new OAMFlags()));
+        this.scannedEntriesCount = 0;
 
-        this.tilemap = new Uint8Array(2048);
-
-        this.cgbBgPaletteIndex = 0;
+        this.cgbBgPaletteIndex = 0; // 0xFF68
         this.cgbBgPaletteIndexAutoInc = false;
         this.cgbBgPalette = new CGBPaletteData();
 
-        this.cgbObjPaletteIndex = 0;
+        this.cgbObjPaletteIndex = 0; // 0xFF6A
         this.cgbObjPaletteIndexAutoInc = false;
         this.cgbObjPalette = new CGBPaletteData();
 
@@ -515,12 +518,30 @@ class GPU implements HWIO {
         this.dmgObj0Palette = 0;
         this.dmgObj1Palette = 0;
 
-        this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
+        this.imageGameboyPre = new Uint8Array(160 * 144);
+        this.imageGameboyNoSprites = new Uint8Array(160 * 144);
+        this.imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+        this.imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
+        this.currentWindowLine = 0; // Which line of the window is currently rendering
+        this.windowOnscreenYetThisFrame = false;
+
+        this.modeClock = 0;
+
+        // Have events happened this scanline yet?
         this.bgDrawn = false;
         this.windowDrawn = false;
         this.oamScanned = false;
         this.mode3CyclesOffset = 0;
+
+        // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
+        this.lcdStatusMode0 = false;
+        this.lcdStatusMode1 = false;
+        this.lcdStatusMode2 = false;
+        this.lcdStatusCoincidence = false;
+
+        this.lcdStatusConditionMet = false;
+        this.lcdStatusFired = false;
     }
 
     read(index: number): number {

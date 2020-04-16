@@ -90,7 +90,7 @@ export default class InterruptController {
     reset() {
         this.masterEnabled = true;
 
-        this.enabled.setNumerical(0);
-        this.requested.setNumerical(0);
+        this.enabled = new InterruptFlag(); // 0xFFFF
+        this.requested = new InterruptFlag(); // 0xFF0F
     }
 }

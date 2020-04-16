@@ -219,19 +219,7 @@ export default class CPU {
     jumpLog: string[] = [];
 
     reset() {
-        this.reg[R8.A] = 0;
-        this.reg[R8.B] = 0;
-        this.reg[R8.C] = 0;
-        this.reg[R8.D] = 0;
-        this.reg[R8.E] = 0;
-        this.reg[R8.H] = 0;
-        this.reg[R8.L] = 0;
-
-        this.reg[R16.AF] = 0;
-        this.reg[R16.BC] = 0;
-        this.reg[R16.DE] = 0;
-        this.reg[R16.HL] = 0;
-        this.reg[R16.SP] = 0;
+        this.reg = new Registers(this);
         this.totalI = 0;
         this.time = 0;
         this.pc = 0;
@@ -314,6 +302,7 @@ export default class CPU {
 
             // Call this one beautiful function that executes one instruction
             this.fetchDecodeExecute();
+            this.pc &= 0xFFFF;
 
             this.totalI++;
 
@@ -401,6 +390,9 @@ export default class CPU {
                     vector = JOYPAD_PRESS_VECTOR;
                 }
 
+                // 2 M-cycles doing nothing
+                this.tick(8);
+
                 const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
                 const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
 
@@ -408,6 +400,9 @@ export default class CPU {
                 this.writeMem8(this.reg.sp, pcUpperByte);
                 this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
                 this.writeMem8(this.reg.sp, pcLowerByte);
+
+                // Setting PC takes 1 M-cycle
+                this.tick(4);
 
                 this.pc = vector;
             }

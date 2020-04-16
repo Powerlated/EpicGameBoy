@@ -63,20 +63,17 @@ export class DMAController implements HWIO {
     }
 
     reset() {
-        this.newDmaDestHigh = 0;
-        this.newDmaDestLow = 0;
-
-        this.newDmaSourceHigh = 0;
         this.newDmaSourceLow = 0;
-
+        this.newDmaSourceHigh = 0;
+        this.newDmaDestLow = 0;
+        this.newDmaDestHigh = 0;
         this.newDmaLength = 0;
-
-        this.hDmaDestAt = 0;
-        this.hDmaSourceAt = 0;
         this.hDmaRemaining = 0;
+        this.hDmaSourceAt = 0;
+        this.hDmaDestAt = 0;
         this.hDmaCompleted = false;
-
         this.hDmaPaused = false;
+        this.gDmaCompleted = false;
     }
 
     newDma(startAddr: number, destination: number, length: number) {

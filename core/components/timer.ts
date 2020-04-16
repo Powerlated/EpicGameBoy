@@ -121,5 +121,7 @@ export default class Timer implements HWIO {
         this.internal = 0;
 
         this.queueReload = false;
+        this.previous = false;
+        
     }
 }
