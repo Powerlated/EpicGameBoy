@@ -122,10 +122,6 @@ class MemoryBus {
             }
         }
 
-        // GET Interrupt request flags
-        else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            return this.gb.interrupts.requested.numerical;
-        }
         // GET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
             return this.gb.interrupts.enabled.numerical;
@@ -133,19 +129,24 @@ class MemoryBus {
 
         // Hardware I/O registers
         else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            let val;
-            // We're using null checks here since null is a 
-            val = this.gb.gpu.readHwio(addr); if (val !== null) return val;
-            val = this.gb.soundChip.readHwio(addr); if (val !== null) return val;
-            val = this.gb.dma.readHwio(addr); if (val !== null) return val;
-            val = this.gb.joypad.readHwio(addr); if (val !== null) return val;
-            val = this.gb.timer.readHwio(addr); if (val !== null) return val;
+            if (addr === 0xFF00) {
+                return this.gb.joypad.readHwio(addr); // Joypad
+            } else if (addr >= 0xFF01 && addr <= 0xFF02) {
+                return this.gb.serial.readHwio(addr); // Serial
+            } else if (addr >= 0xFF03 && addr <= 0xFF07) {
+                return this.gb.timer.readHwio(addr); // Timer
+            } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+                return this.gb.interrupts.requested.numerical; // IF
+            } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
+                return this.gb.soundChip.readHwio(addr); // Sound Chip
+            } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
+                return this.gb.gpu.readHwio(addr); // DMG/CGB PPU Registers
+            } else if (addr >= 0xFF51 && addr <= 0xFF55) {
+                return this.gb.dma.readHwio(addr); // DMA
+            } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
+                return this.gb.gpu.readHwio(addr); // CGB Palette Data
+            }
             switch (addr) {
-                case 0xFF01:
-                    // console.info(`SERIAL PORT READ`);
-                    return 0xFF;
-                case 0xFF02:
-                    return 0x00;
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
                         let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
@@ -167,7 +168,7 @@ class MemoryBus {
         return 0xFF;
     }
 
-    writeMem8(addr: number, value: number) {
+    writeMem8(addr: number, value: number): void {
         // ROM Write (MBC Control)
         if (addr < 0x8000) {
             this.ext.mbc.write(addr, value);
@@ -222,16 +223,24 @@ class MemoryBus {
 
         // Hardware I/O registers
         else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            this.gb.gpu.writeHwio(addr, value);
-            this.gb.dma.writeHwio(addr, value);
-            this.gb.soundChip.writeHwio(addr, value);
-            this.gb.joypad.writeHwio(addr, value);
-            this.gb.timer.writeHwio(addr, value);
+            if (addr === 0xFF00) {
+                this.gb.joypad.writeHwio(addr, value);
+            } else if (addr >= 0xFF01 && addr <= 0xFF02) {
+                this.gb.serial.writeHwio(addr, value);
+            } else if (addr >= 0xFF03 && addr <= 0xFF07) {
+                this.gb.timer.writeHwio(addr, value);
+            } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+                this.gb.interrupts.requested.setNumerical(value);
+            } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
+                this.gb.soundChip.writeHwio(addr, value);
+            } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
+                this.gb.gpu.writeHwio(addr, value);
+            } else if (addr >= 0xFF51 && addr <= 0xFF55) {
+                this.gb.dma.writeHwio(addr, value);
+            } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
+                this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
+            }
             switch (addr) {
-                case 0xFF01:
-                    // console.info(`[PC: ${ hex(this.cpu.pc, 4) }, INS: #${ this.cpu.totalI }]SERIAL PORT WRITE: ` + hex(value, 2));
-                    this.serialOut.push(value);
-                    break;
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
                         this.gb.prepareSpeedSwitch = (value & 1) === 1;

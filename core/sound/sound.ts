@@ -404,7 +404,7 @@ export default class SoundChip implements HWIO {
         }
     }
 
-    readHwio(addr: number): number | null {
+    readHwio(addr: number): number {
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
             let i = this.soundRegisters[addr];
 
@@ -454,7 +454,7 @@ export default class SoundChip implements HWIO {
             return i;
         }
 
-        return null;
+        return 0xFF;
     }
 
     reset() {

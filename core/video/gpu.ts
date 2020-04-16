@@ -716,7 +716,7 @@ class GPU implements HWIO {
                 break;
         }
 
-        return null;
+        return 0xFF;
     }
 
     writeHwio(addr: number, value: number) {
@@ -739,6 +739,9 @@ class GPU implements HWIO {
             case 0xFF44: break;
             case 0xFF45:
                 this.lYCompare = value;
+                break;
+            case 0xFF46:
+                this.gb.dma.oamDma(value << 8);
                 break;
             case 0xFF47: // Palette
                 this.dmgBgPalette = value;

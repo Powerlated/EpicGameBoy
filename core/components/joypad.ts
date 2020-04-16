@@ -20,14 +20,14 @@ export class JoypadRegister implements HWIO {
         this.gb = gb;
     }
 
-    readHwio(addr: number): number | null {
+    readHwio(addr: number): number {
         switch (addr) {
             case 0xFF00: // Joypad read
                 // writeDebug("Polled joypad")
                 return this.getNumerical() | 0b11000000;
         }
 
-        return null
+        return 0xFF;
     }
     writeHwio(addr: number, value: number): void {
         switch (addr) {

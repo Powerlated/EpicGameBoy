@@ -110,14 +110,11 @@ export class DMAController implements HWIO {
                 }
                 break;
         }
-        return null;
+        return 0xFF;
     }
 
     writeHwio(addr: number, value: number) {
         switch (addr) {
-            case 0xFF46:
-                this.oamDma(value << 8);
-                break;
             case 0xFF51:
                 if (this.gb.cgb) this.newDmaSourceHigh = value;
                 break;

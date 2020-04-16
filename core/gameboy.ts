@@ -9,6 +9,7 @@ import Decoder from './cpu/legacy_decoder';
 import { DMAController } from './memory/dma';
 import InterruptController from './components/interrupt-controller';
 import { JoypadRegister } from './components/joypad';
+import { SerialPort } from './components/serial';
 
 export default class GameBoy {
     constructor(cgb: boolean) {
@@ -20,6 +21,8 @@ export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
+
+    serial = new SerialPort();
 
     joypad = new JoypadRegister(this);
 

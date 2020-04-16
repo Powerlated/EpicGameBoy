@@ -27,7 +27,7 @@ export default class Timer implements HWIO {
 
     queueReload = false;
 
-    readHwio(addr: number): number | null {
+    readHwio(addr: number): number {
         switch (addr) {
             case 0xFF04: // Timer divider
                 return this.internal >> 8;
@@ -43,7 +43,7 @@ export default class Timer implements HWIO {
 
                 return n;
         }
-        return null;
+        return 0xFF;
     }
     writeHwio(addr: number, value: number): void {
         switch (addr) {
