@@ -22,23 +22,20 @@ export default class Timer implements HWIO {
     };
 
     internal = 0;
-    mainClock = 0;
 
-    cyclesBehind = 0;
+    previous = false;
+
+    queueReload = false;
 
     readHwio(addr: number): number | null {
         switch (addr) {
             case 0xFF04: // Timer divider
-                this.catchup();
                 return this.internal >> 8;
             case 0xFF05: // Timer counter
-                this.catchup();
                 return this.counter;
             case 0xFF06: // Timer modulo
-                this.catchup();
                 return this.modulo;
             case 0xFF07: // Timer control
-                this.catchup();
                 let n = 0;
 
                 n |= (this.control.speed & 0b11); // Bits 0-1
@@ -51,21 +48,17 @@ export default class Timer implements HWIO {
     writeHwio(addr: number, value: number): void {
         switch (addr) {
             case 0xFF04: // Timer divider
-                this.mainClock = 0;
                 this.internal = 0;
-                this.catchup();
                 break;
             case 0xFF05: // Timer counter
+                this.counter = value;
                 break;
             case 0xFF06: // Timer modulo
                 this.modulo = value;
-                this.catchup();
                 break;
             case 0xFF07: // Timer control
                 this.control.speed = value & 0b11; // Bits 0-1
                 this.control.running = (value >> 2) !== 0; // Bit 2
-                this.mainClock = 0;
-                this.catchup();
                 break;
         }
     }
@@ -77,32 +70,45 @@ export default class Timer implements HWIO {
      * firing the interrupt and reloading with modulo. 
      */
     step(cycles: number) {
-        this.cyclesBehind += cycles;
+        for (let i = 0; i < cycles; i += 4) {
+            this.internal += 4;
+            this.internal &= 0xFFFF;
 
-        if (this.gb.interrupts.enabled.timer) {
-            this.catchup();
-        }
-    }
+            if (this.queueReload === true) {
+                this.queueReload = false;
 
-    catchup() {
-        // Get the mtime
-        this.internal += this.cyclesBehind;
-        this.internal &= 0xFFFF;
-
-        this.mainClock += this.cyclesBehind;
-
-        while (this.mainClock >= Timer.TimerSpeeds[this.control.speed]) {
-            if (this.control.running) {
-                this.counter++;
+                this.counter = this.modulo;
+                this.gb.interrupts.requested.timer = true;
             }
-            this.mainClock -= Timer.TimerSpeeds[this.control.speed];
-        }
 
-        while (this.counter >= 256) {
-            this.counter = this.modulo;
-            this.gb.interrupts.requested.timer = true;
+            let now: boolean;
+
+            switch (this.control.speed) {
+                case 1:
+                    now = (this.internal & (1 << 3)) !== 0;
+                    break;
+                case 2:
+                    now = (this.internal & (1 << 5)) !== 0;
+                    break;
+                case 3:
+                    now = (this.internal & (1 << 7)) !== 0;
+                    break;
+                default:
+                case 0:
+                    now = (this.internal & (1 << 9)) !== 0;
+                    break;
+            }
+
+            const condition = this.control.running && now;
+            if (condition === false && this.previous === true) {
+                this.counter++;
+                if (this.counter > 255) {
+                    this.counter = 0;
+                    this.queueReload = true;
+                }
+            }
+            this.previous = condition;
         }
-        this.cyclesBehind = 0;
     }
 
     reset() {
@@ -112,9 +118,8 @@ export default class Timer implements HWIO {
         this.control.speed = 0;
         this.control.running = false;
 
-        this.mainClock = 0;
         this.internal = 0;
 
-        this.cyclesBehind = 0;
+        this.queueReload = false;
     }
 }
