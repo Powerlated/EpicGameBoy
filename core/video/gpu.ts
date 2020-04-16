@@ -620,7 +620,7 @@ class GPU implements HWIO {
 
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return 0xFF;
+        if (this.lcdStatus.mode === 3) return 0xFF;
 
         let adjIndex = index - 0x8000;
 
@@ -629,47 +629,49 @@ class GPU implements HWIO {
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode === 3 && this.lcdControl.lcdDisplayEnable7) return;
+        if (this.lcdStatus.mode === 3) return;
         let adjIndex = index - 0x8000;
 
-        this.vram[adjIndex] = value;
-        const tile = adjIndex >> 4;
+        if (this.vram[adjIndex] !== value) {
+            this.setScreenDirty();
 
-        this.setScreenDirty();
+            this.vram[adjIndex] = value;
+            const tile = adjIndex >> 4;
 
-        // Write to tile set
-        if (index >= 0x8000 && index < 0x9800) {
-            adjIndex &= 0xFFFE;
+            // Write to tile set
+            if (index >= 0x8000 && index < 0x9800) {
+                adjIndex &= 0xFFFE;
 
-            // Work out which tile and row was updated
-            const y = (index & 0xF) >> 1;
+                // Work out which tile and row was updated
+                const y = (index & 0xF) >> 1;
 
-            for (var x = 0; x < 8; x++) {
-                // Find bit index for this pixel
-                const bytes = [this.vram[adjIndex], this.vram[adjIndex + 1]];
+                for (var x = 0; x < 8; x++) {
+                    // Find bit index for this pixel
+                    const bytes = [this.vram[adjIndex], this.vram[adjIndex + 1]];
 
-                const mask = 0b1 << (7 - x);
-                const lsb = bytes[0] & mask;
-                const msb = bytes[1] & mask;
+                    const mask = 0b1 << (7 - x);
+                    const lsb = bytes[0] & mask;
+                    const msb = bytes[1] & mask;
 
-                // Update tile set
-                let tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
+                    // Update tile set
+                    let tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
 
-                tileset[tile][y][x] =
-                    (lsb !== 0 ? 1 : 0) +
-                    (msb !== 0 ? 2 : 0);
+                    tileset[tile][y][x] =
+                        (lsb !== 0 ? 1 : 0) +
+                        (msb !== 0 ? 2 : 0);
+                }
             }
-        }
 
-        if (this.vramBank === 0) {
-            // Write to tile map
-            if (index >= 0x9800 && index < 0xA000) {
-                this.tilemap[index - 0x9800] = value;
-            }
-        } else if (this.vramBank === 1) {
-            // Write to CGB tile flags
-            if (index >= 0x9800 && index < 0xA000) {
-                this.cgbTileAttrs[index - 0x9800].setNumerical(value);
+            if (this.vramBank === 0) {
+                // Write to tile map
+                if (index >= 0x9800 && index < 0xA000) {
+                    this.tilemap[index - 0x9800] = value;
+                }
+            } else if (this.vramBank === 1) {
+                // Write to CGB tile flags
+                if (index >= 0x9800 && index < 0xA000) {
+                    this.cgbTileAttrs[index - 0x9800].setNumerical(value);
+                }
             }
         }
     }
@@ -744,9 +746,14 @@ class GPU implements HWIO {
                 this.gb.dma.oamDma(value << 8);
                 break;
             case 0xFF47: // Palette
-                this.dmgBgPalette = value;
-                if (!this.gb.cgb) {
+                if (
+                    this.gb.cgb === false &&
+                    this.dmgBgPalette !== value
+                ) {
                     this.setScreenDirty();
+                }
+                this.dmgBgPalette = value;
+                if (this.gb.cgb === false) {
                     this.setDmgBgPalette(0, (value >> 0) & 0b11);
                     this.setDmgBgPalette(1, (value >> 2) & 0b11);
                     this.setDmgBgPalette(2, (value >> 4) & 0b11);
@@ -754,9 +761,14 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF48: // Palette OBJ 0
-                this.dmgObj0Palette = value;
-                if (!this.gb.cgb) {
+                if (
+                    this.gb.cgb === false &&
+                    this.dmgObj0Palette !== value
+                ) {
                     this.setScreenDirty();
+                }
+                this.dmgObj0Palette = value;
+                if (this.gb.cgb === false) {
                     this.setDmgObjPalette(0, (value >> 0) & 0b11);
                     this.setDmgObjPalette(1, (value >> 2) & 0b11);
                     this.setDmgObjPalette(2, (value >> 4) & 0b11);
@@ -764,8 +776,14 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF49: // Palette OBJ 1
+                if (
+                    this.gb.cgb === false &&
+                    this.dmgObj1Palette !== value
+                ) {
+                    this.setScreenDirty();
+                }
                 this.dmgObj1Palette = value;
-                if (!this.gb.cgb) {
+                if (this.gb.cgb === false) {
                     this.setScreenDirty();
                     this.setDmgObjPalette(4, (value >> 0) & 0b11);
                     this.setDmgObjPalette(5, (value >> 2) & 0b11);
@@ -782,7 +800,7 @@ class GPU implements HWIO {
                 this.windowXpos = value;
                 break;
             case 0xFF4F: // CGB - VRAM Bank
-                if (this.gb.cgb) {
+                if (this.gb.cgb === true) {
                     this.vramBank = (value & 1);
                     if (this.vramBank === 1) {
                         // console.log("VRAM BANK -> 1");
@@ -794,14 +812,16 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF68: // CGB - Background Palette Index
-                if (this.gb.cgb) {
+                if (this.gb.cgb === true) {
                     this.cgbBgPaletteIndex = value & 0x3F;
                     this.cgbBgPaletteIndexAutoInc = (value >> 7) !== 0;
                 }
                 break;
             case 0xFF69: // CGB - Background Palette Data
-                if (this.gb.cgb) {
-                    this.setScreenDirty();
+                if (this.gb.cgb === true) {
+                    if (this.cgbBgPalette.data[this.cgbBgPaletteIndex] !== value) {
+                        this.setScreenDirty();
+                    }
                     this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
                     this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3);
 
@@ -812,14 +832,16 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF6A: // CGB - Sprite Palette Index
-                if (this.gb.cgb) {
+                if (this.gb.cgb === true) {
                     this.cgbObjPaletteIndex = value & 0x3F;
                     this.cgbObjPaletteIndexAutoInc = (value >> 7) !== 0;
                 }
                 break;
             case 0xFF6B: // CGB - Sprite Palette Data
-                if (this.gb.cgb) {
-                    this.setScreenDirty();
+                if (this.gb.cgb === true) {
+                    if (this.cgbObjPalette.data[this.cgbObjPaletteIndex] !== value) {
+                        this.setScreenDirty();
+                    }
                     this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
                     this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3);
 
