@@ -111,20 +111,21 @@ export default class GameBoy {
         }
     }
 
+    /*
     getCyclesUntilNextSync(): number {
         let timer = 4194304 / Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
             // OAM Mode
             case 2:
-                gpu = 80 - this.gpu.modeClock;
+                gpu = 80 - this.gpu.lineClock;
                 break;
 
             // VRAM Mode
             case 3:
                 // If we haven't drawn the BG, sync now
                 if (this.gpu.bgDrawn) {
-                    gpu = 172 - this.gpu.modeClock + this.gpu.mode3CyclesOffset;
+                    gpu = 172 - this.gpu.lineClock + this.gpu.mode3CyclesOffset;
                 } else {
                     gpu = 0;
                 }
@@ -132,12 +133,12 @@ export default class GameBoy {
 
             // Hblank
             case 0:
-                gpu = 204 - this.gpu.modeClock - this.gpu.mode3CyclesOffset;
+                gpu = 204 - this.gpu.lineClock - this.gpu.mode3CyclesOffset;
                 break;
 
             // Vblank
             case 1:
-                gpu = 456 - this.gpu.modeClock;
+                gpu = 456 - this.gpu.lineClock;
                 break;
 
             // Line 153
@@ -155,6 +156,7 @@ export default class GameBoy {
 
         return final;
     }
+    */
 
 
     reset() {

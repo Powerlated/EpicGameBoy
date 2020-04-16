@@ -262,7 +262,7 @@ class GPU implements HWIO {
     currentWindowLine = 0; // Which line of the window is currently rendering
     windowOnscreenYetThisFrame = false;
 
-    modeClock: number = 0;
+    lineClock: number = 0;
 
     // Have events happened this scanline yet?
     bgDrawn = false;
@@ -291,18 +291,17 @@ class GPU implements HWIO {
 
 
         if (this.lcdControl.lcdDisplayEnable7) {
-            this.modeClock += cycles;
+            this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
                 // Read from OAM - Scanline active
                 case 2:
-                    if (this.oamScanned === false) {
+                    if (this.oamScanned === false && this.lineClock >= 4) {
                         this.scanOAM();
                         this.oamScanned = true;
 
                         this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
                     }
-                    if (this.modeClock >= 80) {
-                        this.modeClock -= 80;
+                    if (this.lineClock >= 80) {
                         this.lcdStatus.mode = 3;
                     }
                     break;
@@ -323,7 +322,7 @@ class GPU implements HWIO {
                             this.windowOnscreenYetThisFrame = true;
                         }
                         // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                        if (this.windowDrawn == false && this.modeClock >= this.windowXpos + 8) {
+                        if (this.windowDrawn == false && this.lineClock >= this.windowXpos + 8) {
                             if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
@@ -337,21 +336,17 @@ class GPU implements HWIO {
                             this.windowDrawn = true;
                         }
 
-                        if ((!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
-                            if (this.bgDrawn == false) {
-                                if (this.vp !== null) {
-                                    this.renderBg();
-                                }
-                                this.bgDrawn = true;
-
-                                this.mode3CyclesOffset += this.scrX & 7;
+                        if (this.bgDrawn == false && (!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb) {
+                            if (this.vp !== null) {
+                                this.renderBg();
                             }
+                            this.bgDrawn = true;
+
+                            this.mode3CyclesOffset += this.scrX & 7;
                         }
                     }
 
-                    if (this.modeClock >= 172) {
-                        this.modeClock -= 172;
-
+                    if (this.lineClock >= 252) {
                         // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;
 
@@ -370,8 +365,8 @@ class GPU implements HWIO {
 
                 // Hblank
                 case 0:
-                    if (this.modeClock >= 204) {
-                        this.modeClock -= 204;
+                    if (this.lineClock >= 456) {
+                        this.lineClock -= 456;
                         this.lY++;
 
                         // Reset scanline specific flags
@@ -403,8 +398,8 @@ class GPU implements HWIO {
 
                 // Vblank
                 case 1:
-                    if (this.modeClock >= 456) {
-                        this.modeClock -= 456;
+                    if (this.lineClock >= 456) {
+                        this.lineClock -= 456;
 
                         this.lY++;
 
@@ -412,39 +407,43 @@ class GPU implements HWIO {
                         this.windowOnscreenYetThisFrame = false;
 
                         if (this.lY === 153) {
-                            this.lcdStatus.mode = 4;
+                            this.lcdStatus.mode = 5;
                         }
                     }
                     break;
 
-                // Between Line 153 and Line 0, reads as mode 0 in LCDstatus because 4 & 3 = 0 
-                case 4:
-                    if (this.modeClock >= 4) {
+                // Between Line 153 and Line 0, reads as mode 1 in LCDstatus because 4 & 3 = 1
+                case 5:
+                    if (this.lineClock >= 4) {
                         this.lY = 0;
-                        this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
                     }
-                    if (this.modeClock >= 456) {
+                    if (this.lineClock >= 456) {
+                        this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
 
-                        this.modeClock -= 456;
+                        this.lineClock -= 456;
                         this.lcdStatus.mode = 2;
                     }
                     break;
             }
 
 
+
             // If the condition is met and the interrupt has not been fired yet, request the interrupt
             if (this.lcdStatusFired === false && this.lcdStatusConditionMet === true) {
                 this.gb.interrupts.requested.lcdStat = true;
                 this.lcdStatusFired = true;
+
+                console.log(`${this.lYCompare} == ${this.lY} STAT IRQ LINECLOCK: ${this.lineClock}`);
             }
 
             this.lcdStatus.coincidenceFlag_______2 = this.lY == this.lYCompare;
 
             // Determine LCD status interrupt conditions
             this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
-            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && this.lcdStatus.mode === 0;
-            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && this.lcdStatus.mode === 1;
-            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && this.lcdStatus.mode === 2;
+
+            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && (this.lcdStatus.mode & 3) === 0;
+            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && (this.lcdStatus.mode & 3) === 1;
+            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && (this.lcdStatus.mode & 3) === 2;
 
             // If any of the conditions are met, set the condition met flag
             if (
@@ -459,7 +458,7 @@ class GPU implements HWIO {
                 this.lcdStatusFired = false;
             }
         } else {
-            this.modeClock = 0;
+            this.lineClock = 0;
             this.lcdStatus.mode = 0;
             this.lY = 0;
         }
@@ -526,7 +525,7 @@ class GPU implements HWIO {
         this.currentWindowLine = 0; // Which line of the window is currently rendering
         this.windowOnscreenYetThisFrame = false;
 
-        this.modeClock = 0;
+        this.lineClock = 0;
 
         // Have events happened this scanline yet?
         this.bgDrawn = false;
@@ -650,9 +649,6 @@ class GPU implements HWIO {
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.setNumerical(value);
-                if (!this.gb.cgb) {
-                    this.gb.interrupts.requested.lcdStat = true;
-                }
                 break;
             case 0xFF42:
                 this.scrY = value;
