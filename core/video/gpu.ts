@@ -302,7 +302,7 @@ class GPU implements HWIO {
         if (this.lcdControl.lcdDisplayEnable7) {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
-                // Read from OAM - Scanline active
+                // Read from OAM
                 case 2:
                     if (this.oamScanned === false) {
                         if (this.renderingThisFrame === true) {
@@ -311,6 +311,10 @@ class GPU implements HWIO {
                         this.oamScanned = true;
 
                         this.updateSTAT();
+                        // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
+                    }
+                    if (this.lineClock >= 80) {
+                        this.lineClock -= 80;
 
                         if (
                             this.dirtyScanlines[this.lY] === true ||
@@ -318,27 +322,23 @@ class GPU implements HWIO {
                         ) {
                             this.currentScanlineDirty = true;
                         }
-                        // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
-                    }
-                    if (this.lineClock >= 80) {
-                        this.lineClock -= 80;
 
                         this.lcdStatus.mode = 3;
                         this.updateSTAT();
                     }
                     break;
 
-                // Read from VRAM - Scanline active
+                // Read from VRAM - Pixel Transfer
                 case 3:
-                    /* 
-                    * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
-                    * 
-                    *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
-                    *     B. Disabled entirely through bit 5 of LCD Control
-                    * 
-                    * only AFTER the window has already been enabled.
-                    */
                     if (this.renderingThisFrame === true) {
+                        /* 
+                        * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
+                        * 
+                        *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
+                        *     B. Disabled entirely through bit 5 of LCD Control
+                        * 
+                        * only AFTER the window has already been enabled.
+                        */
                         if (
                             this.lcdControl.enableWindow____5 &&
                             this.windowOnscreenYetThisFrame === false &&
@@ -348,10 +348,10 @@ class GPU implements HWIO {
                             this.currentWindowLine = this.windowYpos - this.lY;
                             this.windowOnscreenYetThisFrame = true;
                         }
-                        const enabled = (!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb;
-                        // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                        if (enabled === true) {
-                            if (this.windowDrawn == false && this.lineClock >= this.windowXpos + 12) {
+                        const bgWindowEnable = (!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb;
+                        if (bgWindowEnable === true) {
+                            // Delay window rendering based on its X position, and don't be too picky, it's only X position
+                            if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 12) {
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                     if (this.currentScanlineDirty === true && this.vp !== null) {
@@ -363,7 +363,7 @@ class GPU implements HWIO {
                                 this.windowDrawn = true;
                             }
 
-                            if (this.bgDrawn == false) {
+                            if (this.bgDrawn === false) {
                                 if (this.currentScanlineDirty === true && this.vp !== null) {
                                     this.renderBg();
                                 }
@@ -384,6 +384,19 @@ class GPU implements HWIO {
                             if (this.renderingThisFrame === true) {
                                 if (this.currentScanlineDirty === true && this.vp !== null) {
                                     this.renderSprites();
+                                }
+                            }
+                        }
+
+                        if (this.renderingThisFrame === true) {
+                            this.dirtyScanlines[this.lY] = false;
+                            this.currentScanlineDirty = false;
+
+                            if (this.lY === this.screenDirtyUntil) {
+                                if (this.lY >= 143) {
+                                    this.screenDirty = false;
+                                } else {
+                                    this.screenDirtyUntil = 143;
                                 }
                             }
                         }
@@ -409,15 +422,6 @@ class GPU implements HWIO {
                         this.hitHblank = false;
                         // this.mode3CyclesOffset = 0;
                         this.setDirty = false;
-
-                        if (this.renderingThisFrame === true) {
-                            this.dirtyScanlines[this.lY] = false;
-                            this.currentScanlineDirty = false;
-
-                            if (this.lY === this.screenDirtyUntil) {
-                                this.screenDirty = false;
-                            }
-                        }
 
                         this.lY++;
                         this.updateSTAT();
@@ -529,6 +533,16 @@ class GPU implements HWIO {
 
     setDirty = false;
 
+    /*
+    * Queues the entire screen for re-rendering
+    * becuase something big has changed.
+    * 
+    * Limited but not including to:
+    * - LCD Control
+    * - Palettes
+    * - Scroll X/Y
+    * - WIndow X/Y
+    */
     setScreenDirty() {
         this.screenDirtyUntil = this.lY - 1;
         this.screenDirty = true;
