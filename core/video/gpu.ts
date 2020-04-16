@@ -312,8 +312,12 @@ class GPU implements HWIO {
 
                         this.updateSTAT();
 
-                        this.currentScanlineDirty = this.dirtyScanlines[this.lY] || this.screenDirty;
-
+                        if (
+                            this.dirtyScanlines[this.lY] === true ||
+                            this.screenDirty === true
+                        ) {
+                            this.currentScanlineDirty = true;
+                        }
                         // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
                     }
                     if (this.lineClock >= 80) {

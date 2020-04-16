@@ -70,45 +70,43 @@ export default class Timer implements HWIO {
      * firing the interrupt and reloading with modulo. 
      */
     step(cycles: number) {
-        for (let i = 0; i < cycles; i += 4) {
-            this.internal += 4;
-            this.internal &= 0xFFFF;
+        this.internal += cycles;
+        this.internal &= 0xFFFF;
 
-            if (this.queueReload === true) {
-                this.queueReload = false;
+        if (this.queueReload === true) {
+            this.queueReload = false;
 
-                this.counter = this.modulo;
-                this.gb.interrupts.requested.timer = true;
-            }
-
-            let now: boolean;
-
-            switch (this.control.speed) {
-                case 1:
-                    now = (this.internal & (1 << 3)) !== 0;
-                    break;
-                case 2:
-                    now = (this.internal & (1 << 5)) !== 0;
-                    break;
-                case 3:
-                    now = (this.internal & (1 << 7)) !== 0;
-                    break;
-                default:
-                case 0:
-                    now = (this.internal & (1 << 9)) !== 0;
-                    break;
-            }
-
-            const condition = this.control.running && now;
-            if (condition === false && this.previous === true) {
-                this.counter++;
-                if (this.counter > 255) {
-                    this.counter = 0;
-                    this.queueReload = true;
-                }
-            }
-            this.previous = condition;
+            this.counter = this.modulo;
+            this.gb.interrupts.requested.timer = true;
         }
+
+        let now: boolean;
+
+        switch (this.control.speed) {
+            case 1:
+                now = (this.internal & (1 << 3)) !== 0;
+                break;
+            case 2:
+                now = (this.internal & (1 << 5)) !== 0;
+                break;
+            case 3:
+                now = (this.internal & (1 << 7)) !== 0;
+                break;
+            default:
+            case 0:
+                now = (this.internal & (1 << 9)) !== 0;
+                break;
+        }
+
+        const condition = this.control.running && now;
+        if (condition === false && this.previous === true) {
+            this.counter++;
+            if (this.counter > 255) {
+                this.counter = 0;
+                this.queueReload = true;
+            }
+        }
+        this.previous = condition;
     }
 
     reset() {
@@ -122,6 +120,6 @@ export default class Timer implements HWIO {
 
         this.queueReload = false;
         this.previous = false;
-        
+
     }
 }
