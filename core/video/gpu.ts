@@ -938,7 +938,7 @@ class GPU implements HWIO {
         let adjY: number;
         let tileRow: Uint8Array;
         let color: Uint8Array;
-        let pixel = 0;
+        let pixel = -x;
         let prePalette = 0;
         let palette: Uint8Array[];
         let attr: CGBTileFlags;
@@ -968,10 +968,10 @@ class GPU implements HWIO {
             tileRow = tileset[tile][adjY];
             tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
 
-            for (let i = 0; i < 8; i++) {
-                if (pixel - x >= endAt) return;
-                if (pixel >= x) {
-                    if (tileUpdated === true || this.currentScanlineDirty === true) {
+            if (tileUpdated === true || this.currentScanlineDirty === true) {
+                for (let i = 0; i < 8; i++) {
+                    if (pixel >= endAt) return;
+                    if (pixel >= 0) {
                         prePalette = tileRow[attr.xFlip ? 7 - i : i];
                         color = palette[prePalette];
                         img[imgIndex + 0] = color[0];
@@ -979,10 +979,15 @@ class GPU implements HWIO {
                         img[imgIndex + 2] = color[2];
                         imageGameboyPre[imgIndex >> 2] = prePalette;
                         imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+
+                        imgIndex += 4;
                     }
-                    imgIndex += 4;
+                    pixel++;
                 }
-                pixel++;
+            } else {
+                imgIndex += 32;
+                pixel += 8;
+                if (pixel >= endAt) return;
             }
 
             // When this tile ends, read another
