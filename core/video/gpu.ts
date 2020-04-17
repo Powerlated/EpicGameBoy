@@ -217,6 +217,9 @@ class GPU implements HWIO {
     tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 0
     tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 1
 
+    tilesetUpdated0: boolean[] = new Array(384).fill(false);
+    tilesetUpdated1: boolean[] = new Array(384).fill(false);
+
     tileset = this.tileset0; // Assign active tileset reference to tileset 0
 
     tilemap = new Uint8Array(2048);                                       // For bank 0
@@ -351,7 +354,7 @@ class GPU implements HWIO {
                             if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 12) {
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
-                                    if (this.currentScanlineDirty === true && this.vp !== null) {
+                                    if (this.vp !== null) {
                                         this.renderWindow();
                                     }
                                     // this.mode3CyclesOffset += 8;
@@ -361,7 +364,7 @@ class GPU implements HWIO {
                             }
 
                             if (this.bgDrawn === false) {
-                                if (this.currentScanlineDirty === true && this.vp !== null) {
+                                if (this.vp !== null) {
                                     this.renderBg();
                                 }
                                 this.bgDrawn = true;
@@ -443,6 +446,11 @@ class GPU implements HWIO {
                             if (this.renderingThisFrame === true) {
                                 if (this.vp !== null) {
                                     this.vp.drawGameboy(this.imageGameboy);
+                                }
+
+                                for (let i = 0; i < 384; i++) {
+                                    this.tilesetUpdated0[i] = false;
+                                    this.tilesetUpdated1[i] = false;
                                 }
                             }
 
@@ -655,9 +663,8 @@ class GPU implements HWIO {
         let adjIndex = index - 0x8000;
 
         if (this.vram[adjIndex] !== value) {
-            this.setScreenDirty();
-
             this.vram[adjIndex] = value;
+
             const tile = adjIndex >> 4;
 
             // Write to tile set
@@ -677,10 +684,13 @@ class GPU implements HWIO {
 
                     // Update tile set
                     let tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
+                    let tilesetUpdated = this.vramBank === 1 ? this.tilesetUpdated1 : this.tilesetUpdated0;
 
                     tileset[tile][y][x] =
                         (lsb !== 0 ? 1 : 0) +
                         (msb !== 0 ? 2 : 0);
+
+                    tilesetUpdated[tile] = true;
                 }
             }
 
@@ -934,6 +944,7 @@ class GPU implements HWIO {
         let attr: CGBTileFlags;
         let tile: number;
         let tileset: Uint8Array[][];
+        let tileUpdated: boolean;
 
         const img = this.imageGameboy.data;
         const imageGameboyPre = this.imageGameboyPre;
@@ -944,6 +955,7 @@ class GPU implements HWIO {
             tile = this.tilemap[mapOffset + lineOffset];
             attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
             tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+
             palette = this.cgbBgPalette.shades[attr.bgPalette];
 
             if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
@@ -954,17 +966,20 @@ class GPU implements HWIO {
             adjY = attr.yFlip ? 7 - y : y;
 
             tileRow = tileset[tile][adjY];
+            tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
 
             for (let i = 0; i < 8; i++) {
                 if (pixel - x >= endAt) return;
                 if (pixel >= x) {
-                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
-                    color = palette[prePalette];
-                    img[imgIndex + 0] = color[0];
-                    img[imgIndex + 1] = color[1];
-                    img[imgIndex + 2] = color[2];
-                    imageGameboyPre[imgIndex >> 2] = prePalette;
-                    imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                    if (tileUpdated === true || this.currentScanlineDirty === true) {
+                        prePalette = tileRow[attr.xFlip ? 7 - i : i];
+                        color = palette[prePalette];
+                        img[imgIndex + 0] = color[0];
+                        img[imgIndex + 1] = color[1];
+                        img[imgIndex + 2] = color[2];
+                        imageGameboyPre[imgIndex >> 2] = prePalette;
+                        imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                    }
                     imgIndex += 4;
                 }
                 pixel++;
@@ -985,7 +1000,6 @@ class GPU implements HWIO {
 
             const y = this.currentWindowLine & 0b111; // CORRECT
             const img = this.imageGameboy.data;
-            const shades = this.cgbBgPalette.shades;
             const imageGameboyPre = this.imageGameboyPre;
             const imageGameboyNoSprites = this.imageGameboyNoSprites;
 
@@ -999,6 +1013,7 @@ class GPU implements HWIO {
             let attr: CGBTileFlags;
             let tile: number;
             let tileset: Uint8Array[][];
+            let tileUpdated: boolean;
 
             let imgIndex = 160 * 4 * (this.lY) + (pixel * 4);
 
@@ -1016,16 +1031,19 @@ class GPU implements HWIO {
                 adjY = attr.yFlip ? 7 - y : y;
 
                 tileRow = tileset[tile][adjY];
+                tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
 
                 for (let i = 0; i < 8; i++) {
                     if (pixel >= 160) return;
-                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
-                    color = palette[prePalette];
-                    img[imgIndex + 0] = color[0];
-                    img[imgIndex + 1] = color[1];
-                    img[imgIndex + 2] = color[2];
-                    imageGameboyPre[imgIndex >> 2] = prePalette;
-                    imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                    if (tileUpdated === true || this.currentScanlineDirty === true) {
+                        prePalette = tileRow[attr.xFlip ? 7 - i : i];
+                        color = palette[prePalette];
+                        img[imgIndex + 0] = color[0];
+                        img[imgIndex + 1] = color[1];
+                        img[imgIndex + 2] = color[2];
+                        imageGameboyPre[imgIndex >> 2] = prePalette;
+                        imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                    }
                     imgIndex += 4;
                     pixel++;
                 }
