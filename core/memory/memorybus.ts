@@ -116,7 +116,7 @@ class MemoryBus {
         // Read from OAM
         else if (addr >= 0xFE00 && addr <= 0xFE9F) {
             if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
-                return this.gb.gpu.oam[addr - 0xFE00];
+                return this.gb.gpu.readOam(addr - 0xFE00);
             } else {
                 return 0xFF;
             }
@@ -215,7 +215,7 @@ class MemoryBus {
         // Write to OAM
         else if (addr >= 0xFE00 && addr <= 0xFE9F) {
             if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
-                this.gb.gpu.oam[addr - 0xFE00] = value;
+                this.gb.gpu.writeOam(addr - 0xFE00, value);
             }
             writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
         }

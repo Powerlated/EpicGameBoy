@@ -18,4 +18,3 @@ window.CanvasVideoPlugin = CanvasVideoPlugin;
 
 window.GameBoy = GameBoy.GameBoy;
 window.Disassembler = GameBoy.Disassembler;
-window.Decoder = GameBoy.Decoder;

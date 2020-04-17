@@ -208,7 +208,7 @@ class GPU implements HWIO {
     vram0 = new Uint8Array(0x2000);
     vram1 = new Uint8Array(0x2000);
 
-    oam = new Uint8Array(160);
+    private oam = new Uint8Array(160);
     vram = this.vram0;
 
     totalFrameCount = 0;
@@ -387,6 +387,29 @@ class GPU implements HWIO {
                         }
 
                         if (this.renderingThisFrame === true) {
+                            let index = 160 * 4 * (this.lY);
+                            const img = this.imageGameboy.data;
+
+                            // if (this.currentScanlineDirty === true) {
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
+                            //     index += 4;
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
+                            //     index += 4;
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
+                            //     index += 4;
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
+                            //     index += 4;
+                            // } else {
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
+                            //     index += 4;
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
+                            //     index += 4;
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
+                            //     index += 4;
+                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
+                            //     index += 4;
+                            // }
+
                             this.dirtyScanlines[this.lY] = false;
                             this.currentScanlineDirty = false;
 
@@ -610,6 +633,14 @@ class GPU implements HWIO {
 
         this.lcdStatusConditionMet = false;
         this.lcdStatusFired = false;
+    }
+
+    writeOam(index: number, value: number) {
+        this.oam[index] = value;
+    }
+
+    readOam(index: number): number {
+        return this.oam[index];
     }
 
     read(index: number): number {
@@ -927,7 +958,7 @@ class GPU implements HWIO {
             tileRow = tileset[tile][adjY];
 
             for (let i = 0; i < 8; i++) {
-                if (pixel - x >= endAt) return; 
+                if (pixel - x >= endAt) return;
                 if (pixel >= x) {
                     prePalette = tileRow[attr.xFlip ? 7 - i : i];
                     color = shades[attr.bgPalette][prePalette];
@@ -983,7 +1014,7 @@ class GPU implements HWIO {
                 }
 
                 adjY = attr.yFlip ? 7 - y : y;
-                
+
                 tileRow = tileset[tile][adjY];
 
                 for (let i = 0; i < 8; i++) {

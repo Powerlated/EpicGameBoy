@@ -41,9 +41,9 @@ export class DMAController implements HWIO {
         for (let i = 0; i < 0xA0; i++) {
             // If $FE00, read from external bus 
             if (startAddr === 0xFE00) {
-                this.gb.gpu.oam[i] = this.gb.bus.ext.mbc.read(startAddr + i);
+                this.gb.gpu.writeOam(i, this.gb.bus.ext.mbc.read(startAddr + i));
             } else { // General bus read
-                this.gb.gpu.oam[i] = this.gb.bus.readMem8(startAddr + i);
+                this.gb.gpu.writeOam(i, this.gb.bus.readMem8(startAddr + i));
             }
         }
     }
