@@ -297,8 +297,16 @@ export default class CPU {
             //     }
             // }
 
-            // Call this one beautiful function that executes one instruction
-            this.fetchDecodeExecute();
+            
+            const b0 = this.fetchMem8(this.pc + 0);
+
+            if (b0 !== 0xCB) {
+                UNPREFIXED_EXECUTORS[b0](this, b0);
+            } else {
+                const b1 = this.fetchMem8(this.pc + 1);
+                CB_PREFIXED_EXECUTORS[b1](this, b1);
+            }
+
             this.pc &= 0xFFFF;
 
             this.totalI++;
@@ -486,24 +494,6 @@ export default class CPU {
     clearBreakpoint(point: number) {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints[point] = false;
-    }
-
-    /**
-     * Executes an instruction.
-     * 
-     * Timings are atomic by instruction in this emulator, so running components in between fetch, decode, and execute I just don't care about.
-     * In more accurate emulators, sub-instruction timings are important. About this? I don't care. My emulator isn't striving to be the most accurate.
-     * 
-     */
-    fetchDecodeExecute(): void {
-        const b0 = this.fetchMem8(this.pc + 0);
-
-        if (b0 !== 0xCB) {
-            UNPREFIXED_EXECUTORS[b0](this, b0);
-        } else {
-            const b1 = this.fetchMem8(this.pc + 1);
-            CB_PREFIXED_EXECUTORS[b1](this, b1);
-        }
     }
 }
 
