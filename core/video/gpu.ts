@@ -393,6 +393,7 @@ class GPU implements HWIO {
                         }
 
                         if (this.renderingThisFrame === true) {
+                            /*
                             let index = 160 * 4 * (this.lY);
                             const img = this.imageGameboy.data;
 
@@ -407,6 +408,7 @@ class GPU implements HWIO {
                                 img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
                                 img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
                             }
+                            */
 
                             if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
                             this.currentScanlineDirty = false;

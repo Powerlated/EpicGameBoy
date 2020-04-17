@@ -3,10 +3,6 @@ html {
     font-weight: 500;
 }
 
-canvas {
-    will-change: initial;
-}
-
 @font-face {
     font-family: ProggyClean;
     src: url(ProggyClean.ttf);
