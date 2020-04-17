@@ -223,8 +223,6 @@ class GPU implements HWIO {
     tileset = this.tileset0; // Assign active tileset reference to tileset 0
 
     tilemap = new Uint8Array(2048); // For bank 0
-    tilemapUpdated: boolean[] = new Array(64).fill(false);
-
     cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
 
     lcdControl = new LCDCRegister(); // 0xFF40
@@ -455,10 +453,6 @@ class GPU implements HWIO {
                                 for (let i = 0; i < 384; i++) {
                                     this.tilesetUpdated0[i] = false;
                                     this.tilesetUpdated1[i] = false;
-                                }
-
-                                for (let i = 0; i < 2048; i++) {
-                                    this.tilemapUpdated[i] = false;
                                 }
                             }
 
@@ -707,7 +701,7 @@ class GPU implements HWIO {
                 if (index >= 0x9800 && index < 0xA000) {
                     if (this.tilemap[index - 0x9800] !== value) {
                         this.tilemap[index - 0x9800] = value;
-                        this.tilemapUpdated[(index - 0x9800) >> 5] = true;
+                        this.setScreenDirty();
                     }
                 }
             } else if (this.vramBank === 1) {
@@ -977,7 +971,7 @@ class GPU implements HWIO {
             adjY = attr.yFlip ? 7 - y : y;
 
             tileRow = tileset[tile][adjY];
-            tileUpdated = (attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile]) || this.tilemapUpdated[(mapOffset + lineOffset) >> 5] === true;
+            tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
 
             if (tileUpdated === true || this.currentScanlineDirty === true) {
                 for (let i = 0; i < 8; i++) {
@@ -1047,7 +1041,7 @@ class GPU implements HWIO {
                 adjY = attr.yFlip ? 7 - y : y;
 
                 tileRow = tileset[tile][adjY];
-                tileUpdated = (attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile]) || this.tilemapUpdated[(mapOffset) >> 5] === true;
+                tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
 
                 if (tileUpdated === true || this.currentScanlineDirty === true) {
                     for (let i = 0; i < 8; i++) {
