@@ -95,7 +95,7 @@ export default class GameBoy {
 
     speed() {
         this.cpu.debugging = false;
-        this.speedIntervals.push(setInterval(() => { this.frame(); }, 10));
+        this.speedIntervals.push(setInterval(this.frame.bind(this), 10));
         this.soundChip.setMuted(false);
     }
 

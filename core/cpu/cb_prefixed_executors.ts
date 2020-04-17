@@ -5,7 +5,7 @@ import { R8 } from "./cpu";
 const CB_PREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default CB_PREFIXED_EXECUTORS;
 
-const RLC_R8 = (cpu: CPU, b1: number) => {
+function RLC_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -23,7 +23,7 @@ const RLC_R8 = (cpu: CPU, b1: number) => {
 };
 
 // RRC r8
-const RRC_R8 = (cpu: CPU, b1: number) => {
+function RRC_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -41,7 +41,7 @@ const RRC_R8 = (cpu: CPU, b1: number) => {
 };
 
 // RL r8
-const RL_R8 = (cpu: CPU, b1: number) => {
+function RL_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -60,7 +60,7 @@ const RL_R8 = (cpu: CPU, b1: number) => {
 };
 
 // RR r8
-const RR_R8 = (cpu: CPU, b1: number) => {
+function RR_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -79,7 +79,7 @@ const RR_R8 = (cpu: CPU, b1: number) => {
 };
 
 // SLA r8
-const SLA_R8 = (cpu: CPU, b1: number) => {
+function SLA_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -97,7 +97,7 @@ const SLA_R8 = (cpu: CPU, b1: number) => {
 };
 
 // SRA r8
-const SRA_R8 = (cpu: CPU, b1: number) => {
+function SRA_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -115,7 +115,7 @@ const SRA_R8 = (cpu: CPU, b1: number) => {
 };
 
 // SWAP r8
-const SWAP_R8 = (cpu: CPU, b1: number) => {
+function SWAP_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -133,7 +133,7 @@ const SWAP_R8 = (cpu: CPU, b1: number) => {
 };
 
 // SRL r8
-const SRL_R8 = (cpu: CPU, b1: number) => {
+function SRL_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -150,7 +150,7 @@ const SRL_R8 = (cpu: CPU, b1: number) => {
 };
 
 // BIT r8
-const BIT_R8 = (cpu: CPU, b1: number) => {
+function BIT_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -164,7 +164,7 @@ const BIT_R8 = (cpu: CPU, b1: number) => {
 };
 
 // RES r8
-const RES_R8 = (cpu: CPU, b1: number) => {
+function RES_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -179,7 +179,7 @@ const RES_R8 = (cpu: CPU, b1: number) => {
 };
 
 // SET r8
-const SET_R8 = (cpu: CPU, b1: number) => {
+function SET_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -200,6 +200,8 @@ const topOpsTable = [
     SWAP_R8, SRL_R8
 ];
 
+// Generate these with an algorithm because there's
+// no way I'm copy pasting 256 times.
 for (let i = 0; i < 256; i++) {
     if (i >= 0x00 && i <= 0x3F) {
         CB_PREFIXED_EXECUTORS[i] = topOpsTable[(i & 0b111000) >> 3];
@@ -209,5 +211,5 @@ for (let i = 0; i < 256; i++) {
         CB_PREFIXED_EXECUTORS[i] = RES_R8;
     } else if (i >= 0xC0 && i <= 0xFF) {
         CB_PREFIXED_EXECUTORS[i] = SET_R8;
-    } 
+    }
 }
