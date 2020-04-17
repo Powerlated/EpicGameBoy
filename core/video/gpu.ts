@@ -892,144 +892,114 @@ class GPU implements HWIO {
         // How many pixels in we should start drawing at in the first tile
         let x = this.scrX & 0b111;                // CORRECT
 
-        let attr = this.cgbTileAttrs[mapOffset + lineOffset];
-        let tile = this.tilemap[mapOffset + lineOffset]; // Add line offset to get correct starting tile
-        let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
-
         let imgIndex = 160 * 4 * (this.lY);
 
         const xPos = this.windowXpos - 7; // Get the real X position of the window
         const endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos ? xPos : 160;
 
-        if (!this.lcdControl.bgWindowTiledataSelect__4) {
-            // Two's Complement on high tileset
-            tile = unTwo8b(tile) + 256;
-        }
+        let adjY: number;
+        let tileRow: Uint8Array;
+        let color: Uint8Array;
+        let pixel = 0;
+        let prePalette = 0;
+        let attr: CGBTileFlags;
+        let tile: number;
+        let tileset: Uint8Array[][];
 
-        let adjY = attr.yFlip ? 7 - y : y;
+        const img = this.imageGameboy.data;
+        const shades = this.cgbBgPalette.shades;
+        const imageGameboyPre = this.imageGameboyPre;
+        const imageGameboyNoSprites = this.imageGameboyNoSprites;
 
-        let tileRow = tileset[tile][adjY];
 
-        // Loop through every single horizontal pixel for this line 
-        for (let i = 0; i < endAt; i++) {
-            const adjX = attr.xFlip ? 7 - x : x;
+        while (true) {
+            tile = this.tilemap[mapOffset + lineOffset];
+            attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
+            tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-            const prePalette = tileRow[adjX];
-            const pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
-            // Re-map the tile pixel through the palette
-
-            // Plot the pixel to canvas
-            this.imageGameboy.data[imgIndex + 0] = pixel[0];
-            this.imageGameboy.data[imgIndex + 1] = pixel[1];
-            this.imageGameboy.data[imgIndex + 2] = pixel[2];
-
-            this.imageGameboyPre[imgIndex >> 2] = prePalette;
-
-            this.imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
-
-            // Scroll X/Y debug
-            if (this.showBorders && (((mapOffset + lineOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                this.imageGameboy.data[imgIndex + 0] = 0xFF;
-                this.imageGameboy.data[imgIndex + 1] = 0;
-                this.imageGameboy.data[imgIndex + 2] = 0;
+            if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
+                // Two's Complement on high tileset
+                tile = unTwo8b(tile) + 256;
             }
 
-            imgIndex += 4;
+            adjY = attr.yFlip ? 7 - y : y;
+
+            tileRow = tileset[tile][adjY];
+
+            for (let i = 0; i < 8; i++) {
+                if (pixel - x >= endAt) return; 
+                if (pixel >= x) {
+                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
+                    color = shades[attr.bgPalette][prePalette];
+                    img[imgIndex + 0] = color[0];
+                    img[imgIndex + 1] = color[1];
+                    img[imgIndex + 2] = color[2];
+                    imageGameboyPre[imgIndex >> 2] = prePalette;
+                    imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                    imgIndex += 4;
+                }
+                pixel++;
+            }
 
             // When this tile ends, read another
-            x++;
-            if (x > 7) {
-                x &= 7;
-                lineOffset++;
-                lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
-                tile = this.tilemap[mapOffset + lineOffset];
-                attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
+            lineOffset++;
+            lineOffset &= 31; // Wrap around after 32 tiles (width of tilemap) 
+        }
+    }
+
+    renderWindow() {
+        // Make sure window is onscreen Y
+        if (this.lY >= this.windowYpos) {
+            const mapBase = this.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
+            const mapIndex = ((this.currentWindowLine >> 3) << 5) & 1023;
+            let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
+
+            const y = this.currentWindowLine & 0b111; // CORRECT
+            const img = this.imageGameboy.data;
+            const shades = this.cgbBgPalette.shades;
+            const imageGameboyPre = this.imageGameboyPre;
+            const imageGameboyNoSprites = this.imageGameboyNoSprites;
+
+
+            let adjY: number;
+            let tileRow: Uint8Array;
+            let color: Uint8Array;
+            let pixel = this.windowXpos - 7;;
+            let prePalette = 0;
+            let attr: CGBTileFlags;
+            let tile: number;
+            let tileset: Uint8Array[][];
+
+            let imgIndex = 160 * 4 * (this.lY) + (pixel * 4);
+
+            while (true) {
+                tile = this.tilemap[mapOffset];
+                attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
                 tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-                if (!this.lcdControl.bgWindowTiledataSelect__4) {
+                if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
                     // Two's Complement on high tileset
                     tile = unTwo8b(tile) + 256;
                 }
 
                 adjY = attr.yFlip ? 7 - y : y;
-
+                
                 tileRow = tileset[tile][adjY];
-            }
-        }
-    }
 
-    renderWindow() {
-        const xPos = this.windowXpos - 7;
-        const y = this.currentWindowLine & 0b111; // CORRECT
-
-        // Make sure window is onscreen Y
-        if (this.lY >= this.windowYpos) {
-            let x = 0;                // CORRECT
-
-            const mapBase = this.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
-
-            const mapIndex = ((this.currentWindowLine >> 3) << 5) & 1023;
-            let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
-
-            let attr = this.cgbTileAttrs[mapOffset];
-            let tile = this.tilemap[mapOffset]; // Add line offset to get correct starting tile
-            let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
-
-            let imgIndex = 160 * 4 * (this.lY) + (xPos * 4);
-
-            if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                // Two's Complement on high tileset
-                tile = unTwo8b(tile) + 256;
-            }
-
-            let adjY = attr.yFlip ? 7 - y : y;
-
-            let tileRow = tileset[tile][adjY];
-
-            // Loop through every single horizontal pixel for this line 
-            for (let i = xPos; i < 160; i++) {
-                if (i >= xPos) {
-                    const adjX = attr.xFlip ? 7 - x : x;
-                    const prePalette = tileRow[adjX];
-                    let pixel = this.cgbBgPalette.shades[attr.bgPalette][prePalette];
-
-                    // Plot the pixel to canvas
-                    this.imageGameboy.data[imgIndex + 0] = pixel[0];
-                    this.imageGameboy.data[imgIndex + 1] = pixel[1];
-                    this.imageGameboy.data[imgIndex + 2] = pixel[2];
-
-                    this.imageGameboyPre[imgIndex >> 2] = prePalette;
-
-                    this.imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority && prePalette !== 0 ? 1 : 0;
-
-                    // Window X debug
-                    if (this.showBorders && (((mapOffset) % 32 === 0 && x === 0) || (mapIndex < 16 && y === 0))) {
-                        this.imageGameboy.data[imgIndex + 0] = 0;
-                        this.imageGameboy.data[imgIndex + 1] = 0;
-                        this.imageGameboy.data[imgIndex + 2] = 0xFF;
-                    }
+                for (let i = 0; i < 8; i++) {
+                    if (pixel >= 160) return;
+                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
+                    color = shades[attr.bgPalette][prePalette];
+                    img[imgIndex + 0] = color[0];
+                    img[imgIndex + 1] = color[1];
+                    img[imgIndex + 2] = color[2];
+                    imageGameboyPre[imgIndex >> 2] = prePalette;
+                    imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
                     imgIndex += 4;
-
-                    // When this tile ends, read another
-                    x++;
-                    if (x > 7) {
-                        x &= 7;
-
-                        mapOffset++;
-                        tile = this.tilemap[mapOffset];
-                        attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
-                        tileset = attr.vramBank ? this.tileset1 : this.tileset0;
-
-                        if (!this.lcdControl.bgWindowTiledataSelect__4) {
-                            // Two's Complement on high tileset
-                            tile = unTwo8b(tile) + 256;
-                        }
-
-                        adjY = attr.yFlip ? 7 - y : y;
-
-                        tileRow = tileset[tile][adjY];
-                    }
+                    pixel++;
                 }
+
+                mapOffset++;
             }
         }
     }
