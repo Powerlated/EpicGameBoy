@@ -129,6 +129,23 @@ class MemoryBus {
 
         // Hardware I/O registers
         else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
+            switch (addr) {
+                case 0xFF4D: // KEY1
+                    if (this.gb.cgb) {
+                        let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
+                        let bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
+                        return bit7 | bit0;
+                    }
+                    break;
+                case 0xFF50:
+                    return 0xFF;
+                case 0xFF70:
+                    if (this.gb.cgb) {
+                        return this.workRamBankIndex;
+                    }
+                    return 0xFF;
+            }
+
             if (addr === 0xFF00) {
                 return this.gb.joypad.readHwio(addr); // Joypad
             } else if (addr >= 0xFF01 && addr <= 0xFF02) {
@@ -145,24 +162,6 @@ class MemoryBus {
                 return this.gb.dma.readHwio(addr); // DMA
             } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
                 return this.gb.gpu.readHwio(addr); // CGB Palette Data
-            }
-            switch (addr) {
-                case 0xFF4D: // KEY1
-                    if (this.gb.cgb) {
-                        let bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
-                        let bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
-                        return bit7 | bit0;
-                    }
-                    break;
-                case 0xFF50:
-                    return 0xFF;
-                case 0xFF70:
-                    if (this.gb.cgb) {
-                        return this.workRamBankIndex;
-                    }
-                    return 0xFF;
-                default:
-                    return 0xFF;
             }
         }
         return 0xFF;
@@ -223,23 +222,6 @@ class MemoryBus {
 
         // Hardware I/O registers
         else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            if (addr === 0xFF00) {
-                this.gb.joypad.writeHwio(addr, value);
-            } else if (addr >= 0xFF01 && addr <= 0xFF02) {
-                this.gb.serial.writeHwio(addr, value);
-            } else if (addr >= 0xFF03 && addr <= 0xFF07) {
-                this.gb.timer.writeHwio(addr, value);
-            } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-                this.gb.interrupts.requested.setNumerical(value);
-            } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
-                this.gb.soundChip.writeHwio(addr, value);
-            } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
-                this.gb.gpu.writeHwio(addr, value);
-            } else if (addr >= 0xFF51 && addr <= 0xFF55) {
-                this.gb.dma.writeHwio(addr, value);
-            } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
-                this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
-            }
             switch (addr) {
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
@@ -259,8 +241,24 @@ class MemoryBus {
                         this.workRamBankIndex = value & 0b111;
                     }
                     break;
-                default:
-                    return;
+            }
+
+            if (addr === 0xFF00) {
+                this.gb.joypad.writeHwio(addr, value);
+            } else if (addr >= 0xFF01 && addr <= 0xFF02) {
+                this.gb.serial.writeHwio(addr, value);
+            } else if (addr >= 0xFF03 && addr <= 0xFF07) {
+                this.gb.timer.writeHwio(addr, value);
+            } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+                this.gb.interrupts.requested.setNumerical(value);
+            } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
+                this.gb.soundChip.writeHwio(addr, value);
+            } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
+                this.gb.gpu.writeHwio(addr, value);
+            } else if (addr >= 0xFF51 && addr <= 0xFF55) {
+                this.gb.dma.writeHwio(addr, value);
+            } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
+                this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
             }
         }
     }
