@@ -4,9 +4,9 @@ import Disassembler from "../../src/gameboy/tools/disassembler";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { hex, pad, hexN_LC, hexN, r_pad, assert, unTwo8b } from "../../src/gameboy/tools/util";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
-import Decoder from './legacy_decoder';
 import UNPREFIXED_EXECUTORS from "./unprefixed_executors";
 import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
+import Decoder from "./legacy_decoder";
 
 function undefErr(cpu: CPU, name: string) {
     alert(`
@@ -15,7 +15,7 @@ function undefErr(cpu: CPU, name: string) {
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
     Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${Decoder.rgOpcode(cpu.gb.bus.readMem8(cpu.pc)).op.name}
+    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.readMem8(cpu.pc)].name}
     `);
 }
 
@@ -26,7 +26,7 @@ function overflow8bErr(cpu: CPU, name: string, overflow: any) {
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
     Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${Decoder.rgOpcode(cpu.gb.bus.readMem8(cpu.pc)).op.name}
+    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.readMem8(cpu.pc)].name}
     `);
 }
 
@@ -37,7 +37,7 @@ function overflow16bErr(cpu: CPU, name: string, overflow: any) {
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
     Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${Decoder.rgOpcode(cpu.gb.bus.readMem8(cpu.pc)).op.name}
+    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.readMem8(cpu.pc)].name}
     `);
 }
 
@@ -420,7 +420,7 @@ export default class CPU {
 
         const ins = isCB ? Decoder.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : Decoder.rgOpcode(this.gb.bus.readMem8(this.pc));
 
-        if (!ins.op) {
+        if (!ins) {
             alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
         }
 
@@ -437,9 +437,9 @@ export default class CPU {
             console.error("Reading error at: 0x" + this.pc.toString(16));
         }
 
-        if (ins.length === undefined) {
-            alert(`[${ins.op.name}] Op has no length specified.`);
-        }
+        // if (ins.length === undefined) {
+        //     alert(`[${ins.op.name}] Op has no length specified.`);
+        // }
 
         // if ((ins.op.length === 1 && (!ins.type)) || (ins.op.length === 2 && (!ins.type || !ins.type2))) {
         //     alert(`[Arg length 1 || 2] Implementation error: ${ins.op.name} 0x${this.fetchMem8(this.pc).toString(16)}`);

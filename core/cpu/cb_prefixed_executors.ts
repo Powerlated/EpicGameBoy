@@ -5,7 +5,7 @@ import { R8 } from "./cpu";
 const CB_PREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default CB_PREFIXED_EXECUTORS;
 
-function RLC_R8(cpu: CPU, b1: number): void {
+export function RLC_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -23,7 +23,7 @@ function RLC_R8(cpu: CPU, b1: number): void {
 };
 
 // RRC r8
-function RRC_R8(cpu: CPU, b1: number): void {
+export function RRC_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -41,7 +41,7 @@ function RRC_R8(cpu: CPU, b1: number): void {
 };
 
 // RL r8
-function RL_R8(cpu: CPU, b1: number): void {
+export function RL_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -60,7 +60,7 @@ function RL_R8(cpu: CPU, b1: number): void {
 };
 
 // RR r8
-function RR_R8(cpu: CPU, b1: number): void {
+export function RR_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -79,7 +79,7 @@ function RR_R8(cpu: CPU, b1: number): void {
 };
 
 // SLA r8
-function SLA_R8(cpu: CPU, b1: number): void {
+export function SLA_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -97,7 +97,7 @@ function SLA_R8(cpu: CPU, b1: number): void {
 };
 
 // SRA r8
-function SRA_R8(cpu: CPU, b1: number): void {
+export function SRA_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -115,7 +115,7 @@ function SRA_R8(cpu: CPU, b1: number): void {
 };
 
 // SWAP r8
-function SWAP_R8(cpu: CPU, b1: number): void {
+export function SWAP_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -133,7 +133,7 @@ function SWAP_R8(cpu: CPU, b1: number): void {
 };
 
 // SRL r8
-function SRL_R8(cpu: CPU, b1: number): void {
+export function SRL_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -150,7 +150,7 @@ function SRL_R8(cpu: CPU, b1: number): void {
 };
 
 // BIT r8
-function BIT_R8(cpu: CPU, b1: number): void {
+export function BIT_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -164,7 +164,7 @@ function BIT_R8(cpu: CPU, b1: number): void {
 };
 
 // RES r8
-function RES_R8(cpu: CPU, b1: number): void {
+export function RES_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -179,7 +179,7 @@ function RES_R8(cpu: CPU, b1: number): void {
 };
 
 // SET r8
-function SET_R8(cpu: CPU, b1: number): void {
+export function SET_R8(cpu: CPU, b1: number): void {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
