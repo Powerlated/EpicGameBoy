@@ -284,7 +284,8 @@ class GPU implements HWIO {
     // Skip frames when turboing
     renderingThisFrame = false;
 
-    dirtyScanlines: boolean[] = new Array(144).fill(false);
+    dirtyScanlines = new Uint8Array(144).fill(0);
+    dirtySprites: boolean[] = new Array(40).fill(false);
     screenDirty = false;
     screenDirtyUntil = 0;
     currentScanlineDirty = false;
@@ -313,7 +314,7 @@ class GPU implements HWIO {
                         this.lineClock -= 80;
 
                         if (
-                            this.dirtyScanlines[this.lY] === true ||
+                            this.dirtyScanlines[this.lY] > 0 ||
                             this.screenDirty === true
                         ) {
                             this.currentScanlineDirty = true;
@@ -390,27 +391,19 @@ class GPU implements HWIO {
                             let index = 160 * 4 * (this.lY);
                             const img = this.imageGameboy.data;
 
-                            // if (this.currentScanlineDirty === true) {
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
-                            //     index += 4;
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
-                            //     index += 4;
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
-                            //     index += 4;
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0;
-                            //     index += 4;
-                            // } else {
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
-                            //     index += 4;
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
-                            //     index += 4;
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
-                            //     index += 4;
-                            //     img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF;
-                            //     index += 4;
-                            // }
+                            if (this.currentScanlineDirty === true) {
+                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                            } else {
+                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                            }
 
-                            this.dirtyScanlines[this.lY] = false;
+                            if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
                             this.currentScanlineDirty = false;
 
                             if (this.lY === this.screenDirtyUntil) {
@@ -636,7 +629,11 @@ class GPU implements HWIO {
     }
 
     writeOam(index: number, value: number) {
-        this.oam[index] = value;
+        if (this.oam[index] !== value) {
+            this.oam[index] = value;
+
+            this.dirtySprites[index >> 2] = true;
+        }
     }
 
     readOam(index: number): number {
@@ -933,12 +930,12 @@ class GPU implements HWIO {
         let color: Uint8Array;
         let pixel = 0;
         let prePalette = 0;
+        let palette: Uint8Array[];
         let attr: CGBTileFlags;
         let tile: number;
         let tileset: Uint8Array[][];
 
         const img = this.imageGameboy.data;
-        const shades = this.cgbBgPalette.shades;
         const imageGameboyPre = this.imageGameboyPre;
         const imageGameboyNoSprites = this.imageGameboyNoSprites;
 
@@ -947,6 +944,7 @@ class GPU implements HWIO {
             tile = this.tilemap[mapOffset + lineOffset];
             attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
             tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+            palette = this.cgbBgPalette.shades[attr.bgPalette];
 
             if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
                 // Two's Complement on high tileset
@@ -961,7 +959,7 @@ class GPU implements HWIO {
                 if (pixel - x >= endAt) return;
                 if (pixel >= x) {
                     prePalette = tileRow[attr.xFlip ? 7 - i : i];
-                    color = shades[attr.bgPalette][prePalette];
+                    color = palette[prePalette];
                     img[imgIndex + 0] = color[0];
                     img[imgIndex + 1] = color[1];
                     img[imgIndex + 2] = color[2];
@@ -997,6 +995,7 @@ class GPU implements HWIO {
             let color: Uint8Array;
             let pixel = this.windowXpos - 7;;
             let prePalette = 0;
+            let palette: Uint8Array[];
             let attr: CGBTileFlags;
             let tile: number;
             let tileset: Uint8Array[][];
@@ -1007,6 +1006,7 @@ class GPU implements HWIO {
                 tile = this.tilemap[mapOffset];
                 attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
                 tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+                palette = this.cgbBgPalette.shades[attr.bgPalette];
 
                 if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
                     // Two's Complement on high tileset
@@ -1020,7 +1020,7 @@ class GPU implements HWIO {
                 for (let i = 0; i < 8; i++) {
                     if (pixel >= 160) return;
                     prePalette = tileRow[attr.xFlip ? 7 - i : i];
-                    color = shades[attr.bgPalette][prePalette];
+                    color = palette[prePalette];
                     img[imgIndex + 0] = color[0];
                     img[imgIndex + 1] = color[1];
                     img[imgIndex + 2] = color[2];
@@ -1061,27 +1061,26 @@ class GPU implements HWIO {
                 entry.flags.setNumerical(this.oam[base + 3]);
                 this.scannedEntriesCount++;
 
+
                 // They see me unrollin', they hatin...
-                this.dirtyScanlines[screenYPos - 1] = true;
-                this.dirtyScanlines[screenYPos + 0] = true;
-                this.dirtyScanlines[screenYPos + 1] = true;
-                this.dirtyScanlines[screenYPos + 2] = true;
-                this.dirtyScanlines[screenYPos + 3] = true;
-                this.dirtyScanlines[screenYPos + 4] = true;
-                this.dirtyScanlines[screenYPos + 5] = true;
-                this.dirtyScanlines[screenYPos + 6] = true;
-                this.dirtyScanlines[screenYPos + 7] = true;
-                this.dirtyScanlines[screenYPos + 8] = true;
+                this.dirtyScanlines[screenYPos + 0] = 2;
+                this.dirtyScanlines[screenYPos + 1] = 2;
+                this.dirtyScanlines[screenYPos + 2] = 2;
+                this.dirtyScanlines[screenYPos + 3] = 2;
+                this.dirtyScanlines[screenYPos + 4] = 2;
+                this.dirtyScanlines[screenYPos + 5] = 2;
+                this.dirtyScanlines[screenYPos + 6] = 2;
+                this.dirtyScanlines[screenYPos + 7] = 2;
 
                 if (this.lcdControl.spriteSize______2 === true) {
-                    this.dirtyScanlines[screenYPos + 9] = true;
-                    this.dirtyScanlines[screenYPos + 10] = true;
-                    this.dirtyScanlines[screenYPos + 11] = true;
-                    this.dirtyScanlines[screenYPos + 12] = true;
-                    this.dirtyScanlines[screenYPos + 13] = true;
-                    this.dirtyScanlines[screenYPos + 14] = true;
-                    this.dirtyScanlines[screenYPos + 15] = true;
-                    this.dirtyScanlines[screenYPos + 16] = true;
+                    this.dirtyScanlines[screenYPos + 8] = 2;
+                    this.dirtyScanlines[screenYPos + 9] = 2;
+                    this.dirtyScanlines[screenYPos + 10] = 2;
+                    this.dirtyScanlines[screenYPos + 11] = 2;
+                    this.dirtyScanlines[screenYPos + 12] = 2;
+                    this.dirtyScanlines[screenYPos + 13] = 2;
+                    this.dirtyScanlines[screenYPos + 14] = 2;
+                    this.dirtyScanlines[screenYPos + 15] = 2;
                 }
             }
         }
