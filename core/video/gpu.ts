@@ -222,7 +222,9 @@ class GPU implements HWIO {
 
     tileset = this.tileset0; // Assign active tileset reference to tileset 0
 
-    tilemap = new Uint8Array(2048);                                       // For bank 0
+    tilemap = new Uint8Array(2048); // For bank 0
+    tilemapUpdated: boolean[] = new Array(64).fill(false);
+
     cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
 
     lcdControl = new LCDCRegister(); // 0xFF40
@@ -451,6 +453,10 @@ class GPU implements HWIO {
                                 for (let i = 0; i < 384; i++) {
                                     this.tilesetUpdated0[i] = false;
                                     this.tilesetUpdated1[i] = false;
+                                }
+
+                                for (let i = 0; i < 2048; i++) {
+                                    this.tilemapUpdated[i] = false;
                                 }
                             }
 
@@ -697,7 +703,10 @@ class GPU implements HWIO {
             if (this.vramBank === 0) {
                 // Write to tile map
                 if (index >= 0x9800 && index < 0xA000) {
-                    this.tilemap[index - 0x9800] = value;
+                    if (this.tilemap[index - 0x9800] !== value) {
+                        this.tilemap[index - 0x9800] = value;
+                        this.tilemapUpdated[(index - 0x9800) >> 5] = true;
+                    }
                 }
             } else if (this.vramBank === 1) {
                 // Write to CGB tile flags
@@ -966,7 +975,7 @@ class GPU implements HWIO {
             adjY = attr.yFlip ? 7 - y : y;
 
             tileRow = tileset[tile][adjY];
-            tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
+            tileUpdated = (attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile]) || this.tilemapUpdated[(mapOffset + lineOffset) >> 5] === true;
 
             if (tileUpdated === true || this.currentScanlineDirty === true) {
                 for (let i = 0; i < 8; i++) {
@@ -1036,11 +1045,11 @@ class GPU implements HWIO {
                 adjY = attr.yFlip ? 7 - y : y;
 
                 tileRow = tileset[tile][adjY];
-                tileUpdated = attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile];
+                tileUpdated = (attr.vramBank ? this.tilesetUpdated1[tile] : this.tilesetUpdated0[tile]) || this.tilemapUpdated[(mapOffset) >> 5] === true;
 
-                for (let i = 0; i < 8; i++) {
-                    if (pixel >= 160) return;
-                    if (tileUpdated === true || this.currentScanlineDirty === true) {
+                if (tileUpdated === true || this.currentScanlineDirty === true) {
+                    for (let i = 0; i < 8; i++) {
+                        if (pixel >= 160) return;
                         prePalette = tileRow[attr.xFlip ? 7 - i : i];
                         color = palette[prePalette];
                         img[imgIndex + 0] = color[0];
@@ -1048,9 +1057,15 @@ class GPU implements HWIO {
                         img[imgIndex + 2] = color[2];
                         imageGameboyPre[imgIndex >> 2] = prePalette;
                         imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+
+                        imgIndex += 4;
+                        pixel++;
                     }
-                    imgIndex += 4;
-                    pixel++;
+                }
+                else {
+                    imgIndex += 32;
+                    pixel += 8;
+                    if (pixel >= 160) return;
                 }
 
                 mapOffset++;
