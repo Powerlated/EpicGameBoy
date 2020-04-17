@@ -284,8 +284,6 @@ class GPU implements HWIO {
     // Skip frames when turboing
     renderingThisFrame = false;
 
-    hitHblank = false;
-
     dirtyScanlines: boolean[] = new Array(144).fill(false);
     screenDirty = false;
     screenDirtyUntil = 0;
@@ -376,6 +374,8 @@ class GPU implements HWIO {
 
                         // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;
+                        this.updateSTAT();
+
 
                         // Render sprites at end of scanline
                         if (this.lcdControl.spriteDisplay___1) {
@@ -405,11 +405,6 @@ class GPU implements HWIO {
 
                 // Hblank
                 case 0:
-                    if (this.hitHblank === false && this.lineClock >= 4) {
-                        this.hitHblank = true;
-
-                        this.updateSTAT();
-                    }
                     if (this.lineClock >= 204) {
                         this.lineClock -= 204;
 
@@ -417,7 +412,6 @@ class GPU implements HWIO {
                         this.bgDrawn = false;
                         this.windowDrawn = false;
                         this.oamScanned = false;
-                        this.hitHblank = false;
                         // this.mode3CyclesOffset = 0;
                         this.setDirty = false;
 
