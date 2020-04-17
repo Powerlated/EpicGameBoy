@@ -109,12 +109,15 @@ export default class GameBoy {
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
         const max = 4213.440 * deltaMs * this.speedMul;
 
-        for (let i = 0; i < max && !this.stopNow;) {
-            if (this.cpu.breakpoints[this.cpu.pc] === true) {
-                this.speedStop();
-                return;
-            }
 
+        for (let i = 0; i < max;) {
+            i += this.step();
+            i += this.step();
+            i += this.step();
+            i += this.step();
+            i += this.step();
+            i += this.step();
+            i += this.step();
             i += this.step();
         }
 
@@ -124,7 +127,7 @@ export default class GameBoy {
     }
 
     getCyclesUntilNextSync(): number {
-        let timer = 4194304 / Timer.TimerSpeeds[this.timer.control.speed];
+        let timer = Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
             // OAM Mode

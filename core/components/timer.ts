@@ -5,7 +5,7 @@ import { HWIO } from "../memory/hwio";
 
 export default class Timer implements HWIO {
 
-    static TimerSpeeds = [1024, 16, 64, 256]; // In terms of 4194304hz division 
+    static TimerSpeeds = [4096, 262144, 65536, 16384]; // In terms of HZ 
 
 
     constructor(gb: GameBoy) {

@@ -471,6 +471,8 @@ export default class CPU {
         }
     }
 
+    enableBreakpoints = false;
+
     toggleBreakpoint(point: number) {
         if (!this.breakpoints[point]) {
             this.setBreakpoint(point);
@@ -478,13 +480,16 @@ export default class CPU {
             this.clearBreakpoint(point);
         }
     }
+
     setBreakpoint(point: number) {
         writeDebug("Set breakpoint at " + hex(point, 4));
         this.breakpoints[point] = true;
+        this.enableBreakpoints = true;
     }
     clearBreakpoint(point: number) {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints[point] = false;
+        this.enableBreakpoints = true;
     }
 }
 

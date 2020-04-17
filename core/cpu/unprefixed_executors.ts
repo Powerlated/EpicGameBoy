@@ -1055,12 +1055,14 @@ const ADD_HL_R16 = (cpu: CPU, b0: number) => {
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     const r16Value = cpu.reg[target];
 
-    const newValue = (r16Value + cpu.reg[R16.HL]) & 0xFFFF;
-    const didOverflow = ((r16Value + cpu.reg[R16.HL]) >> 16) !== 0;
+    const hl = cpu.reg[R16.HL];
+
+    const newValue = (r16Value + hl) & 0xFFFF;
+    const didOverflow = (r16Value + hl) > 0xFFFF;
 
     // Set flag
     cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = (cpu.reg[R16.HL] & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
+    cpu.reg._f.half_carry = (hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
     cpu.reg._f.carry = didOverflow;
 
     // Set register values
