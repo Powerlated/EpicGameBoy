@@ -297,7 +297,7 @@ export default class CPU {
             //     }
             // }
 
-            
+
             const b0 = this.fetchMem8(this.pc + 0);
 
             if (b0 !== 0xCB) {
@@ -346,52 +346,44 @@ export default class CPU {
             this.cycles += 4;
         }
 
-        // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((this.gb.interrupts.requested.numerical &
-            this.gb.interrupts.enabled.numerical) !== 0 && this.halted === true) {
-            this.halted = false;
 
-
-            // this.cycles += 4;
-            // UnHALTing takes 4 cycles
-        }
-
-        //#region Service interrupts
-        const happened = this.gb.interrupts.requested;
+        const requested = this.gb.interrupts.requested;
         const enabled = this.gb.interrupts.enabled;
-        if (this.gb.interrupts.masterEnabled) {
+        // If the CPU is HALTed and there are requested interrupts, unHALT
+        if ((requested.numerical & enabled.numerical) !== 0) {
+            if (this.halted === true) this.halted = false;
 
-            // If servicing any interrupt, disable the master flag
-            if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical) > 0) {
+            if (this.gb.interrupts.masterEnabled) {
+                // If servicing any interrupt, disable the master flag
                 this.gb.interrupts.masterEnabled = false;
 
                 let vector = 0;
-                if (happened.vblank && enabled.vblank) {
-                    happened.vblank = false;
+                if (requested.vblank && enabled.vblank) {
+                    requested.vblank = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
                     vector = VBLANK_VECTOR;
-                } else if (happened.lcdStat && enabled.lcdStat) {
-                    happened.lcdStat = false;
+                } else if (requested.lcdStat && enabled.lcdStat) {
+                    requested.lcdStat = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
                     vector = LCD_STATUS_VECTOR;
-                } else if (happened.timer && enabled.timer) {
-                    happened.timer = false;
+                } else if (requested.timer && enabled.timer) {
+                    requested.timer = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
                     vector = TIMER_OVERFLOW_VECTOR;
-                } else if (happened.serial && enabled.serial) {
-                    happened.serial = false;
+                } else if (requested.serial && enabled.serial) {
+                    requested.serial = false;
                     vector = SERIAL_LINK_VECTOR;
-                } else if (happened.joypad && enabled.joypad) {
-                    happened.joypad = false;
+                } else if (requested.joypad && enabled.joypad) {
+                    requested.joypad = false;
                     vector = JOYPAD_PRESS_VECTOR;
                 }
 
@@ -412,7 +404,6 @@ export default class CPU {
                 this.pc = vector;
             }
         }
-        //#endregion
         this.haltBug = false;
 
         let lastInstructionCycles = this.cycles - c;
