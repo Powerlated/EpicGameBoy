@@ -55,16 +55,16 @@ export function JP(cpu: CPU, b0: number): void {
     // If unconditional, don't check
     if (b0 !== 0xC3) {
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 3; cpu.cycles += 8; return; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 3; cpu.cycles += 8; return; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 3; cpu.cycles += 8; return; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 3; cpu.cycles += 8; return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
     }
 
     const n16 = cpu.fetchMem16(cpu.pc + 1);
     cpu.pc = n16 - 3;
 
-    cpu.cycles += 4; // Branching takes 4 cycles
+    cpu.tick(4); // Branching takes 4 cycles
     cpu.pc += 3;
 };
 UNPREFIXED_EXECUTORS[0xC3] = JP; // JP N16
@@ -77,10 +77,10 @@ UNPREFIXED_EXECUTORS[0xDA] = JP; // JP C, N16
 export function CALL(cpu: CPU, b0: number): void {
     if (b0 !== 0xCD) {
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 3; cpu.cycles += 8; return; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 3; cpu.cycles += 8; return; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 3; cpu.cycles += 8; return; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 3; cpu.cycles += 8; return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
     }
 
     const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
@@ -96,7 +96,7 @@ export function CALL(cpu: CPU, b0: number): void {
     const n16 = cpu.fetchMem16(cpu.pc + 1);
     cpu.pc = n16 - 3;
 
-    cpu.cycles += 4; // Branching takes 4 cycles
+    cpu.tick(4); // Branching takes 4 cycles
 
     cpu.pc += 3;
 };
@@ -155,7 +155,7 @@ export function LD_HL_SPplusE8(cpu: CPU, b0: number): void {
     cpu.reg[R16.HL] = (unTwo8b(b1) + cpu.reg.sp) & 0xFFFF;
 
     // Register read timing
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 2;
 };
@@ -174,7 +174,7 @@ export function ADD_SP_E8(cpu: CPU, b0: number): void {
     cpu.reg.sp = (cpu.reg.sp + value) & 0xFFFF;
 
     // Extra time
-    cpu.cycles += 8;
+    cpu.tick(8);
 
     cpu.pc += 2;
 };
@@ -253,16 +253,16 @@ UNPREFIXED_EXECUTORS[0xFE] = CP_A_N8;  // CP A, N8
 export function JR(cpu: CPU, b0: number): void {
     if (b0 !== 0x18) {
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 2; cpu.cycles += 4; return; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 2; cpu.cycles += 4; return; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 2; cpu.cycles += 4; return; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 2; cpu.cycles += 4; return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 2; cpu.tick(4); return; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 2; cpu.tick(4); return; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 2; cpu.tick(4); return; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 2; cpu.tick(4); return; }
     }
 
     const b1 = cpu.fetchMem8(cpu.pc + 1);
     cpu.pc += unTwo8b(b1);
 
-    cpu.cycles += 4; // Branching takes 4 cycles
+    cpu.tick(4); // Branching takes 4 cycles
 
     cpu.pc += 2;
 };
@@ -380,7 +380,7 @@ UNPREFIXED_EXECUTORS[0x3E] = LD_R8_N8; // LD A, N8
 export function LD_SP_HL(cpu: CPU, b0: number): void {
     cpu.reg.sp = cpu.reg[R16.HL];
     // Register read timing
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 1;
 };
@@ -474,7 +474,7 @@ export function PUSH_R16(cpu: CPU, b0: number): void {
     cpu.writeMem8(cpu.reg.sp, lowerByte);
 
     // 4 cycle penalty
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 1;
 };
@@ -550,7 +550,7 @@ UNPREFIXED_EXECUTORS[0x3D] = DEC_R8;  // DEC A
 export function INC_R16(cpu: CPU, b0: number): void {
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     cpu.reg[target] = (cpu.reg[target] + 1) & 0xFFFF;
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 1;
 };
@@ -563,7 +563,7 @@ UNPREFIXED_EXECUTORS[0x33] = INC_R16;  // INC SP
 export function DEC_R16(cpu: CPU, b0: number): void {
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     cpu.reg[target] = (cpu.reg[target] - 1) & 0xFFFF;
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 1;
 };
@@ -802,7 +802,7 @@ export function RETI(cpu: CPU, b0: number): void {
 
     cpu.pc = returnAddress - 1;
 
-    cpu.cycles += 4; // Branching takes 4 cycles
+    cpu.tick(4); // Branching takes 4 cycles
     cpu.scheduleEnableInterruptsForNextTick = true;
     cpu.pc += 1;
 };
@@ -1042,7 +1042,7 @@ export function CCF(cpu: CPU, b0: number): void {  // CCF
 /** RET */
 export function RET(cpu: CPU, b0: number): void {
     if (b0 !== 0xC9) {
-        cpu.cycles += 4; // Branch decision?
+        cpu.tick(4); // Branch decision?
 
         const cc: CC = (b0 & 0b11000) >> 3;
         if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 1; return; }
@@ -1060,7 +1060,7 @@ export function RET(cpu: CPU, b0: number): void {
 
     cpu.pc = returnAddress - 1;
 
-    cpu.cycles += 4; // Branching takes 4 cycles
+    cpu.tick(4); // Branching takes 4 cycles
 
     cpu.pc += 1;
 };
@@ -1092,7 +1092,7 @@ export function ADD_HL_R16(cpu: CPU, b0: number): void {
     cpu.reg[R16.HL] = newValue;
 
     // Register read takes 4 more cycles
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 1;
 };
@@ -1114,7 +1114,7 @@ export function RST(cpu: CPU, b0: number): void {
 
     cpu.pc = target - 1;
 
-    cpu.cycles += 4;
+    cpu.tick(4);
 
     cpu.pc += 1;
 };

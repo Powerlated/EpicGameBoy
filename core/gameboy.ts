@@ -72,12 +72,18 @@ export default class GameBoy {
         // In double speed mode make the CPU run 2x relatively faster than Sound and GPU
         if (this.doubleSpeed) stepCycles >>= 1;
 
+        return stepCycles;
+    }
+
+    tick(cyclesRan: number) {
+        let stepCycles = cyclesRan;
+
+        if (this.doubleSpeed === true ) stepCycles >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
-        this.soundChip.step(stepCycles);
-        this.gpu.step(stepCycles);
         this.timer.step(cyclesRan);
 
-        return stepCycles;
+        this.soundChip.step(stepCycles);
+        this.gpu.step(stepCycles);
     }
 
     speedStop() {
@@ -96,7 +102,7 @@ export default class GameBoy {
     frame() {
         let now = performance.now();
         let deltaMs = now - this.lastTime;
-        if (deltaMs > (1000/60)) deltaMs = (1000/60); // limit this for performance reasons
+        if (deltaMs > (1000 / 60)) deltaMs = (1000 / 60); // limit this for performance reasons
         this.lastTime = now;
 
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.

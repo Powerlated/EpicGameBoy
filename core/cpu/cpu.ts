@@ -220,6 +220,11 @@ export default class CPU {
     minDebug = false;
     jumpLog: string[] = [];
 
+    tick(cycles: number) {
+        this.cycles += cycles;
+        this.gb.tick(cycles);
+    }
+
     reset() {
         this.reg = new Registers(this);
         this.totalI = 0;
@@ -235,7 +240,7 @@ export default class CPU {
     // #endregion
 
     fetchMem8(addr: number): number {
-        this.cycles += 4;
+        this.tick(4);
 
         // The CPU can only access high RAM during OAM DMA
         if (this.gb.oamDmaTCyclesRemaining > 0) {
@@ -255,7 +260,7 @@ export default class CPU {
     }
 
     writeMem8(addr: number, value: number) {
-        this.cycles += 4;
+        this.tick(4);
         if (this.gb.oamDmaTCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
                 this.gb.bus.writeMem8(addr, value);
@@ -267,7 +272,7 @@ export default class CPU {
 
     step(): number {
         if (this.invalidOpcodeExecuted) {
-            this.cycles += 4;
+            this.tick(4);
         }
 
         const c = this.cycles;
@@ -343,7 +348,7 @@ export default class CPU {
 
             // this.opcodesRan.add(pcTriplet[0]);
         } else {
-            this.cycles += 4;
+            this.tick(4);
         }
 
 
@@ -388,7 +393,7 @@ export default class CPU {
                 }
 
                 // 2 M-cycles doing nothing
-                // this.cycles +=8;
+                this.tick(8);
 
                 const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
                 const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
@@ -399,7 +404,7 @@ export default class CPU {
                 this.writeMem8(this.reg.sp, pcLowerByte);
 
                 // Setting PC takes 1 M-cycle
-                // this.cycles +=4;
+                this.tick(4);
 
                 this.pc = vector;
             }
