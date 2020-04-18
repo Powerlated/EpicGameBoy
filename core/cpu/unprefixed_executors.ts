@@ -468,13 +468,13 @@ export function PUSH_R16(cpu: CPU, b0: number): number {
     const upperByte = value >> 8;
     const lowerByte = value & 0b11111111;
 
+    // 4 cycle penalty
+    cpu.tick(4);
+
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
     cpu.writeMem8(cpu.reg.sp, upperByte);
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
     cpu.writeMem8(cpu.reg.sp, lowerByte);
-
-    // 4 cycle penalty
-    cpu.tick(4);
 
     return 1;
 };
@@ -1102,6 +1102,7 @@ export function RST(cpu: CPU, b0: number): number {
     const target = b0 & 0b111000;
     const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
     const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
+
 
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
     cpu.writeMem8(cpu.reg.sp, pcUpperByte);

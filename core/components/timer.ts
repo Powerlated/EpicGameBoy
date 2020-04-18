@@ -47,16 +47,17 @@ export default class Timer implements HWIO {
     }
     writeHwio(addr: number, value: number): void {
         switch (addr) {
-            case 0xFF04: // Timer divider
+            case 0xFF04: // Timer divider - DIV
                 this.internal = 0;
                 break;
-            case 0xFF05: // Timer counter
+            case 0xFF05: // Timer counter - TIMA
                 this.counter = value;
-                break;
-            case 0xFF06: // Timer modulo
+                this.queueReload = false;
+                break; 
+            case 0xFF06: // Timer modulo - TMA
                 this.modulo = value;
                 break;
-            case 0xFF07: // Timer control
+            case 0xFF07: // Timer control - TAC
                 this.control.speed = value & 0b11; // Bits 0-1
                 this.control.running = (value >> 2) !== 0; // Bit 2
                 break;
@@ -71,13 +72,13 @@ export default class Timer implements HWIO {
      */
     step(cycles: number) {
         while (cycles > 0) {
-            if (cycles >= 8) {
-                cycles -= 8;
-                this.internal += 8;
-            } else {
-                cycles -= 4;
-                this.internal += 4;
-            }
+            // if (cycles >= 8) {
+            //     cycles -= 8;
+            //     this.internal += 8;
+            // } else {
+            cycles -= 4;
+            this.internal += 4;
+            // }
             this.internal &= 0xFFFF;
 
             if (this.queueReload === true) {

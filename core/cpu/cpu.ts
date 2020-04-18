@@ -244,7 +244,7 @@ export default class CPU {
         this.tick(4);
 
         // The CPU can only access high RAM during OAM DMA
-        if (this.gb.oamDmaTCyclesRemaining > 0) {
+        if (this.gb.oamDmaCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFFFE) {
                 return this.gb.bus.readMem8(addr);
             } else {
@@ -262,7 +262,7 @@ export default class CPU {
 
     writeMem8(addr: number, value: number) {
         this.tick(4);
-        if (this.gb.oamDmaTCyclesRemaining > 0) {
+        if (this.gb.oamDmaCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
                 this.gb.bus.writeMem8(addr, value);
             }
@@ -325,7 +325,7 @@ export default class CPU {
                 this.pc &= 0xFFFF;
             } else {
                 this.haltBug = false;
-                console.log("PC NO INCREMENT")
+                console.log("PC NO INCREMENT");
             }
 
             this.totalI++;

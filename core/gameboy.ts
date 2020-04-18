@@ -34,7 +34,7 @@ export default class GameBoy {
     prepareSpeedSwitch = false;
 
     cpuPausedTCyclesRemaining = 0;
-    oamDmaTCyclesRemaining = 0;
+    oamDmaCyclesRemaining = 0;
 
     soundChip = new SoundChip(this);
 
@@ -51,16 +51,14 @@ export default class GameBoy {
         // Use a do-while loop because we want the CPU to run at least once
         let lastInstructionCycles = 4;
         if (this.cpuPausedTCyclesRemaining > 0) {
-            this.cpuPausedTCyclesRemaining -= 4;
+            this.cpuPausedTCyclesRemaining = 0;
+            this.tick(this.cpuPausedTCyclesRemaining);
         } else {
             lastInstructionCycles = this.cpu.step();
         }
 
         cyclesRan += lastInstructionCycles;
 
-        if (this.oamDmaTCyclesRemaining > 0) {
-            this.oamDmaTCyclesRemaining -= lastInstructionCycles;
-        }
 
         // This is the value we are going to pass to the other components 
         let stepCycles = cyclesRan;
@@ -73,10 +71,13 @@ export default class GameBoy {
     tick(cyclesRan: number) {
         let stepCycles = cyclesRan;
 
+        if (this.oamDmaCyclesRemaining > 0) {
+            this.oamDmaCyclesRemaining -= cyclesRan;
+        }
+
         if (this.doubleSpeed === true) stepCycles >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.step(cyclesRan);
-
         this.soundChip.step(stepCycles);
         this.gpu.step(stepCycles);
     }
@@ -178,7 +179,7 @@ export default class GameBoy {
         this.prepareSpeedSwitch = false;
 
         this.cpuPausedTCyclesRemaining = 0;
-        this.oamDmaTCyclesRemaining = 0;
+        this.oamDmaCyclesRemaining = 0;
 
         if (this.bus.bootromEnabled && (!this.bus.bootromLoaded || this.cgb)) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
