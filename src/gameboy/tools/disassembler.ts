@@ -1,7 +1,7 @@
 import CPU, { CC, Op, R8, OperandType, R16 } from "../../../core/cpu/cpu";
 
 import { unTwo8b, hexN, hexN_LC, pad, hex } from "./util";
-import { LD_A_iFF00plusN8, RST, ADD_A_N8, ADC_A_N8, SUB_A_N8, SBC_A_N8, AND_A_N8, XOR_A_N8, OR_A_N8, CP_A_N8, ADD_A_R8, ADC_A_R8, SUB_A_R8, SBC_A_R8, AND_A_R8, XOR_A_R8, OR_A_R8, CP_A_R8, LD_R8_R8, LD_R8_N8, LD_iHLdec_A, LD_iHLinc_A, LD_iFF00plusC_A, LD_A_iFF00plusC, LD_iFF00plusN8_A, LD_A_iN16, LD_iN16_SP, LD_A_iHLinc, LD_iN16_A, JP_HL, ADD_HL_R16, LD_HL_SPplusE8, RETI, JP, CALL, RET, JR } from "../../../core/cpu/unprefixed_executors";
+import { LD_A_iFF00plusN8, RST, ADD_A_N8, ADC_A_N8, SUB_A_N8, SBC_A_N8, AND_A_N8, XOR_A_N8, OR_A_N8, CP_A_N8, ADD_A_R8, ADC_A_R8, SUB_A_R8, SBC_A_R8, AND_A_R8, XOR_A_R8, OR_A_R8, CP_A_R8, LD_R8_R8, LD_R8_N8, LD_iHLdec_A, LD_iHLinc_A, LD_iFF00plusC_A, LD_A_iFF00plusC, LD_iFF00plusN8_A, LD_A_iN16, LD_iN16_SP, LD_A_iHLinc, LD_iN16_A, JP_HL, ADD_HL_R16, LD_HL_SPplusE8, RETI, JP, CALL, RET, JR, PUSH_R16, POP_R16, LD_R16_N16, HALT, RLCA, RRCA, RRA, RLA } from "../../../core/cpu/unprefixed_executors";
 import Decoder from "../../../core/cpu/legacy_decoder";
 
 function tr(type: OperandType) {
@@ -78,7 +78,9 @@ export default class Disassembler {
                 case LD_A_iFF00plusC: return ["LD", "A,($FF00+C)"];
                 case LD_A_iFF00plusN8: return ["LD", `A,($FF${hexN(pcTriplet[1], 2)})`];
                 case RST: return ["RST", `${hexN(ins.type, 2)}h`];
-                case LD_A_iN16: return ["LD", `A,(${ins.type})`];
+
+                case LD_A_iN16: return ["LD", `A,($${hexN(doublet, 4)})`];
+                case LD_iN16_A: return ["LD", `($${hexN(doublet, 4)}),A`];
 
                 case ADD_A_N8: return ["ADD", `A,$${hexN(pcTriplet[1], 2)}`];
                 case ADC_A_N8: return ["ADC", `A,$${hexN(pcTriplet[1], 2)}`];
@@ -98,18 +100,37 @@ export default class Disassembler {
                 case OR_A_R8: return ["OR", `A,${tr(ins.type!)}`];
                 case CP_A_R8: return ["CP", `A,${tr(ins.type!)}`];
 
+                case PUSH_R16: return ["PUSH", `${tr(ins.type!)}`];
+                case POP_R16: return ["POP", `${tr(ins.type!)}`];
+
+                case LD_R16_N16: return ["LD", `${tr(ins.type!)},$${hexN(doublet, 4)}`];
+
                 case LD_R8_R8: return ["LD", `${tr(ins.type!)},${tr(ins.type2!)}`];
                 case LD_R8_N8: return ["LD", `${tr(ins.type!)},$${hexN(pcTriplet[1], 2)}`];
 
                 case ADD_HL_R16: return ["ADD", `HL,${tr(ins.type!)}`];
 
                 case LD_iN16_SP: return ["LD", `($${hexN(doublet, 4)}),SP`];
+
+                case CALL: return ["CALL", `$${hexN(doublet, 4)}`];
+                case RET: return ["RET", `$${hexN(doublet, 4)}`];
+
+                case JP: return ["JP", `$${hexN(doublet, 4)}`];
+
+                case HALT: return ["HALT"];
+
+                case RLCA: return ["RLCA"];
+                case RRCA: return ["RRCA"];
+                case RRA: return ["RRA"];
+                case RLA: return ["RLA"];
+
                 case LD_A_iHLinc: return ["LD", "A,(HL+)"];
                 case LD_iN16_A: return ["LD", `($${hexN(doublet, 4)}),A`];
                 case LD_A_iN16: return ["LD", `A,($${hexN(doublet, 4)})`];
                 case LD_HL_SPplusE8: return ["LD", `HL,(SP+${unTwo8b(pcTriplet[1])})`];
                 case JP_HL: return ["JP", "HL"];
                 case ADD_HL_R16: return ["ADD HL,", ins.type];
+
 
 
                 default: return null;
