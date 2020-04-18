@@ -36,7 +36,7 @@ export class DMAController implements HWIO {
 
     // Source must be < 0xA000
     oamDma(startAddr: number) {
-        this.gb.oamDmaCyclesRemaining = 640;
+        this.gb.oamDmaCyclesRemaining = 648;
         // writeDebug(`OAM DMA @ ${hex(startAddr, 4)}`);
         for (let i = 0; i < 0xA0; i++) {
             // If $FE00, read from external bus 

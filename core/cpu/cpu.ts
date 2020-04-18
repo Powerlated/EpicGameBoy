@@ -244,7 +244,7 @@ export default class CPU {
         this.tick(4);
 
         // The CPU can only access high RAM during OAM DMA
-        if (this.gb.oamDmaCyclesRemaining > 0) {
+        if (this.gb.oamDmaCyclesRemaining > 0 && this.gb.oamDmaCyclesRemaining <= 640) {
             if (addr >= 0xFF80 && addr <= 0xFFFE) {
                 return this.gb.bus.readMem8(addr);
             } else {

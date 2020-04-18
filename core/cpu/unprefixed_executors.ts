@@ -84,6 +84,10 @@ export function CALL(cpu: CPU, b0: number): number {
         else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(8); return 3; }
     }
 
+    const n16 = cpu.fetchMem16(cpu.pc + 1);
+
+    cpu.tick(4); // Branching takes 4 cycles
+
     const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
     const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
 
@@ -94,10 +98,8 @@ export function CALL(cpu: CPU, b0: number): number {
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
     cpu.writeMem8(cpu.reg.sp, pcLowerByte);
 
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
     cpu.pc = n16 - 3;
 
-    cpu.tick(4); // Branching takes 4 cycles
 
     return 3;
 };
@@ -1047,7 +1049,6 @@ export function RET(cpu: CPU, b0: number): number {
         if (cc === CC.C && !cpu.reg._f.carry) { return 1; }
     }
 
-
     const stackLowerByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
     const stackUpperByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
 
@@ -1065,8 +1066,6 @@ UNPREFIXED_EXECUTORS[0xD8] = RET;  // RET C
 UNPREFIXED_EXECUTORS[0xD0] = RET;  // RET NC
 UNPREFIXED_EXECUTORS[0xC8] = RET;  // RET Z
 UNPREFIXED_EXECUTORS[0xC0] = RET;  // RET NZ
-
-
 
 
 /** ADD HL, R16 */
@@ -1103,6 +1102,7 @@ export function RST(cpu: CPU, b0: number): number {
     const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
     const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
 
+    cpu.tick(4);
 
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
     cpu.writeMem8(cpu.reg.sp, pcUpperByte);
@@ -1110,8 +1110,6 @@ export function RST(cpu: CPU, b0: number): number {
     cpu.writeMem8(cpu.reg.sp, pcLowerByte);
 
     cpu.pc = target - 1;
-
-    cpu.tick(4);
 
     return 1;
 };
