@@ -105,14 +105,8 @@ export default class GameBoy {
         const max = 4213.440 * deltaMs * this.speedMul;
 
 
-        for (let i = 0; i < max;) {
-            i += this.step();
-            i += this.step();
-            i += this.step();
-            i += this.step();
-            i += this.step();
-            i += this.step();
-            i += this.step();
+        let i= 0;
+        while (i < max) {
             i += this.step();
         }
 
