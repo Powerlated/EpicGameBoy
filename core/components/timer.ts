@@ -71,8 +71,13 @@ export default class Timer implements HWIO {
      */
     step(cycles: number) {
         while (cycles > 0) {
-            cycles -= 4;
-            this.internal += 4;
+            if (cycles >= 8) {
+                cycles -= 8;
+                this.internal += 8;
+            } else {
+                cycles -= 4;
+                this.internal += 4;
+            }
             this.internal &= 0xFFFF;
 
             if (this.queueReload === true) {
