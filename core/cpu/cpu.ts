@@ -179,6 +179,7 @@ export default class CPU {
     }
 
     halted = false;
+    haltBugQueued = false;
     haltBug = false;
 
     invalidOpcodeExecuted = false;
@@ -303,16 +304,29 @@ export default class CPU {
             // }
 
 
-            const b0 = this.fetchMem8(this.pc + 0);
+            if (this.haltBugQueued === true) {
+                this.haltBugQueued = false;
 
-            if (b0 !== 0xCB) {
-                UNPREFIXED_EXECUTORS[b0](this, b0);
-            } else {
-                const b1 = this.fetchMem8(this.pc + 1);
-                CB_PREFIXED_EXECUTORS[b1](this, b1);
+                this.haltBug = true;
             }
 
-            this.pc &= 0xFFFF;
+            const b0 = this.fetchMem8(this.pc + 0);
+
+            let length: number;
+            if (b0 !== 0xCB) {
+                length = UNPREFIXED_EXECUTORS[b0](this, b0);
+            } else {
+                const b1 = this.fetchMem8(this.pc + 1);
+                length = CB_PREFIXED_EXECUTORS[b1](this, b1);
+            }
+
+            if (this.haltBug === false) {
+                this.pc += length;
+                this.pc &= 0xFFFF;
+            } else {
+                this.haltBug = false;
+                console.log("PC NO INCREMENT")
+            }
 
             this.totalI++;
 
@@ -355,7 +369,7 @@ export default class CPU {
         const requested = this.gb.interrupts.requested;
         const enabled = this.gb.interrupts.enabled;
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((requested.numerical & enabled.numerical) !== 0) {
+        if ((requested.numerical & enabled.numerical & 0x1F) !== 0) {
             if (this.halted === true) this.halted = false;
 
             if (this.gb.interrupts.masterEnabled) {
@@ -409,7 +423,6 @@ export default class CPU {
                 this.pc = vector;
             }
         }
-        this.haltBug = false;
 
         let lastInstructionCycles = this.cycles - c;
         return lastInstructionCycles;

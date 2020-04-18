@@ -48,24 +48,19 @@ export default class GameBoy {
     step(): number {
         let cyclesRan = 0;
 
-        let runFor = this.getCyclesUntilNextSync();
-        if (this.doubleSpeed === true) runFor *= 2;
-
         // Use a do-while loop because we want the CPU to run at least once
-        do {
-            let lastInstructionCycles = 4;
-            if (this.cpuPausedTCyclesRemaining > 0) {
-                this.cpuPausedTCyclesRemaining -= 4;
-            } else {
-                lastInstructionCycles = this.cpu.step();
-            }
+        let lastInstructionCycles = 4;
+        if (this.cpuPausedTCyclesRemaining > 0) {
+            this.cpuPausedTCyclesRemaining -= 4;
+        } else {
+            lastInstructionCycles = this.cpu.step();
+        }
 
-            cyclesRan += lastInstructionCycles;
+        cyclesRan += lastInstructionCycles;
 
-            if (this.oamDmaTCyclesRemaining > 0) {
-                this.oamDmaTCyclesRemaining -= lastInstructionCycles;
-            }
-        } while (cyclesRan < runFor);
+        if (this.oamDmaTCyclesRemaining > 0) {
+            this.oamDmaTCyclesRemaining -= lastInstructionCycles;
+        }
 
         // This is the value we are going to pass to the other components 
         let stepCycles = cyclesRan;
@@ -78,7 +73,7 @@ export default class GameBoy {
     tick(cyclesRan: number) {
         let stepCycles = cyclesRan;
 
-        if (this.doubleSpeed === true ) stepCycles >>= 1;
+        if (this.doubleSpeed === true) stepCycles >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.step(cyclesRan);
 

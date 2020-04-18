@@ -1,18 +1,19 @@
 import CPU, { R16, R8, CC } from "./cpu";
 import { unTwo8b } from "../../src/gameboy/tools/util";
+import GameBoy from "../gameboy";
 
-export type Executor = (cpu: CPU, b0: number) => void;
+export type Executor = (cpu: CPU, b0: number) => number;
 
 const UNPREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default UNPREFIXED_EXECUTORS;
 
 /** LD R16, N16 */
-export function LD_R16_N16(cpu: CPU, b0: number): void {
+export function LD_R16_N16(cpu: CPU, b0: number): number {
     const n16 = cpu.fetchMem16(cpu.pc + 1);
 
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     cpu.reg[target] = n16;
-    cpu.pc += 3;
+    return 3;
 };
 UNPREFIXED_EXECUTORS[0x01] = LD_R16_N16; // LD BC, N16
 UNPREFIXED_EXECUTORS[0x11] = LD_R16_N16; // LD DE, N16
@@ -21,24 +22,24 @@ UNPREFIXED_EXECUTORS[0x31] = LD_R16_N16; // LD SP, N16
 
 
 // LD A, [N16]
-export function LD_A_iN16(cpu: CPU, b0: number): void {
+export function LD_A_iN16(cpu: CPU): number {
     const n16 = cpu.fetchMem16(cpu.pc + 1);
 
     cpu.reg[R8.A] = cpu.fetchMem8(n16);
-    cpu.pc += 3;
+    return 3;
 };
 UNPREFIXED_EXECUTORS[0xFA] = LD_A_iN16;
 
 // LD [N16], A
-export function LD_iN16_A(cpu: CPU, b0: number): void {
+export function LD_iN16_A(cpu: CPU): number {
     const n16 = cpu.fetchMem16(cpu.pc + 1);
 
     cpu.writeMem8(n16, cpu.reg[R8.A]);
-    cpu.pc += 3;
+    return 3;
 };
 UNPREFIXED_EXECUTORS[0xEA] = LD_iN16_A;
 
-export function LD_iN16_SP(cpu: CPU, b0: number): void {
+export function LD_iN16_SP(cpu: CPU): number {
     const n16 = cpu.fetchMem16(cpu.pc + 1);
 
     const spUpperByte = cpu.reg.sp >> 8;
@@ -47,25 +48,25 @@ export function LD_iN16_SP(cpu: CPU, b0: number): void {
     cpu.writeMem8(n16 + 0, spLowerByte);
     cpu.writeMem8(n16 + 1, (spUpperByte) & 0xFFFF);
 
-    cpu.pc += 3;
+    return 3;
 };
 UNPREFIXED_EXECUTORS[0x08] = LD_iN16_SP;
 
-export function JP(cpu: CPU, b0: number): void {
+export function JP(cpu: CPU, b0: number): number {
     // If unconditional, don't check
     if (b0 !== 0xC3) {
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick(8); return 3; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick(8); return 3; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick(8); return 3; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(8); return 3; }
     }
 
     const n16 = cpu.fetchMem16(cpu.pc + 1);
     cpu.pc = n16 - 3;
 
     cpu.tick(4); // Branching takes 4 cycles
-    cpu.pc += 3;
+    return 3;
 };
 UNPREFIXED_EXECUTORS[0xC3] = JP; // JP N16
 UNPREFIXED_EXECUTORS[0xC2] = JP; // JP NZ, N16
@@ -74,13 +75,13 @@ UNPREFIXED_EXECUTORS[0xD2] = JP; // JP NC, N16
 UNPREFIXED_EXECUTORS[0xDA] = JP; // JP C, N16
 
 /** CALL */
-export function CALL(cpu: CPU, b0: number): void {
+export function CALL(cpu: CPU, b0: number): number {
     if (b0 !== 0xCD) {
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 3; cpu.tick(8); return; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 3; cpu.tick(8); return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick(8); return 3; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick(8); return 3; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick(8); return 3; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(8); return 3; }
     }
 
     const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
@@ -98,7 +99,7 @@ export function CALL(cpu: CPU, b0: number): void {
 
     cpu.tick(4); // Branching takes 4 cycles
 
-    cpu.pc += 3;
+    return 3;
 };
 UNPREFIXED_EXECUTORS[0xCD] = CALL; // CALL N16
 UNPREFIXED_EXECUTORS[0xDC] = CALL; // CALL C, N16
@@ -107,47 +108,47 @@ UNPREFIXED_EXECUTORS[0xCC] = CALL; // CALL Z, N16
 UNPREFIXED_EXECUTORS[0xC4] = CALL; // CALL NZ, N16
 
 /** Interrupts */
-export function STOP(cpu: CPU, b0: number): void {
+export function STOP(cpu: CPU): number {
     if (cpu.gb.prepareSpeedSwitch) {
         cpu.gb.doubleSpeed = !cpu.gb.doubleSpeed;
     }
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0x10] = STOP; // STOP
 
 /** LD between A and High RAM */
-export function LD_A_iFF00plusN8(cpu: CPU, b0: number): void {
+export function LD_A_iFF00plusN8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     cpu.reg[R8.A] = cpu.fetchMem8((0xFF00 | b1) & 0xFFFF);
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xF0] = LD_A_iFF00plusN8;
 
-export function LD_iFF00plusN8_A(cpu: CPU, b0: number): void {
+export function LD_iFF00plusN8_A(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     cpu.writeMem8((0xFF00 | b1) & 0xFFFF, cpu.reg[R8.A]);
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xE0] = LD_iFF00plusN8_A;
 
-export function LD_iHL_N8(cpu: CPU, b0: number): void {
+export function LD_iHL_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     cpu.writeMem8(cpu.reg[R16.HL], b1);
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0x36] = LD_iHL_N8;
 
-export function LD_HL_SPplusE8(cpu: CPU, b0: number): void {
+export function LD_HL_SPplusE8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const signedVal = unTwo8b(b1);
 
-    cpu.reg._f.zero = false; 
+    cpu.reg._f.zero = false;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = (signedVal & 0xF) + (cpu.reg.sp & 0xF) > 0xF;
     cpu.reg._f.carry = (signedVal & 0xFF) + (cpu.reg.sp & 0xFF) > 0xFF;
@@ -157,11 +158,11 @@ export function LD_HL_SPplusE8(cpu: CPU, b0: number): void {
     // Register read timing
     cpu.tick(4);
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xF8] = LD_HL_SPplusE8;
 
-export function ADD_SP_E8(cpu: CPU, b0: number): void {
+export function ADD_SP_E8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = unTwo8b(b1);
@@ -176,11 +177,11 @@ export function ADD_SP_E8(cpu: CPU, b0: number): void {
     // Extra time
     cpu.tick(8);
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xE8] = ADD_SP_E8;
 
-export function AND_A_N8(cpu: CPU, b0: number): void {
+export function AND_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -193,11 +194,11 @@ export function AND_A_N8(cpu: CPU, b0: number): void {
     cpu.reg._f.half_carry = true;
     cpu.reg._f.carry = false;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xE6] = AND_A_N8;
 
-export function OR_A_N8(cpu: CPU, b0: number): void {
+export function OR_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -209,13 +210,12 @@ export function OR_A_N8(cpu: CPU, b0: number): void {
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = false;
-    cpu.pc += 2;
-    return;
+    return 2;
 };
 
 UNPREFIXED_EXECUTORS[0xF6] = OR_A_N8;  // OR A, N8
 
-export function XOR_A_N8(cpu: CPU, b0: number): void {
+export function XOR_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -228,11 +228,11 @@ export function XOR_A_N8(cpu: CPU, b0: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = false;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xEE] = XOR_A_N8;  // XOR A, N8
 
-export function CP_A_N8(cpu: CPU, b0: number): void {
+export function CP_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -245,18 +245,18 @@ export function CP_A_N8(cpu: CPU, b0: number): void {
     cpu.reg._f.negative = true;
     cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) - (b1 & 0xF) < 0;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xFE] = CP_A_N8;  // CP A, N8
 
 
-export function JR(cpu: CPU, b0: number): void {
+export function JR(cpu: CPU, b0: number): number {
     if (b0 !== 0x18) {
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 2; cpu.tick(4); return; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 2; cpu.tick(4); return; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 2; cpu.tick(4); return; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 2; cpu.tick(4); return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick(4); return 2; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick(4); return 2; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick(4); return 2; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(4); return 2; }
     }
 
     const b1 = cpu.fetchMem8(cpu.pc + 1);
@@ -264,7 +264,7 @@ export function JR(cpu: CPU, b0: number): void {
 
     cpu.tick(4); // Branching takes 4 cycles
 
-    cpu.pc += 2;
+    return 2;
 };
 
 /** JR */
@@ -276,7 +276,7 @@ UNPREFIXED_EXECUTORS[0x38] = JR;  // JR C, E8
 
 
 /** Arithmetic */
-export function ADD_A_N8(cpu: CPU, b0: number): void {
+export function ADD_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -293,11 +293,11 @@ export function ADD_A_N8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xC6] = ADD_A_N8;  // ADD A, N8
 
-export function ADC_A_N8(cpu: CPU, b0: number): void {
+export function ADC_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -314,11 +314,11 @@ export function ADC_A_N8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xCE] = ADC_A_N8;  // ADC A, N8
 
-export function SUB_A_N8(cpu: CPU, b0: number): void {
+export function SUB_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -334,11 +334,11 @@ export function SUB_A_N8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xD6] = SUB_A_N8;  // SUB A, N8
 
-export function SBC_A_N8(cpu: CPU, b0: number): void {
+export function SBC_A_N8(cpu: CPU): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const value = b1;
@@ -354,18 +354,18 @@ export function SBC_A_N8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 2;
+    return 2;
 };
 UNPREFIXED_EXECUTORS[0xDE] = SBC_A_N8;  // SBC A, N8
 
 /** LD R8, N8 */
-export function LD_R8_N8(cpu: CPU, b0: number): void {
+export function LD_R8_N8(cpu: CPU, b0: number): number {
     const b1 = cpu.fetchMem8(cpu.pc + 1);
 
     const target: R8 = (b0 & 0b111000) >> 3;
     cpu.reg[target] = b1;
 
-    cpu.pc += 2;
+    return 2;
 
 };
 UNPREFIXED_EXECUTORS[0x06] = LD_R8_N8; // LD B, N8
@@ -377,22 +377,22 @@ UNPREFIXED_EXECUTORS[0x2E] = LD_R8_N8; // LD L, N8
 UNPREFIXED_EXECUTORS[0x36] = LD_R8_N8; // LD (HL), N8
 UNPREFIXED_EXECUTORS[0x3E] = LD_R8_N8; // LD A, N8
 
-export function LD_SP_HL(cpu: CPU, b0: number): void {
+export function LD_SP_HL(cpu: CPU): number {
     cpu.reg.sp = cpu.reg[R16.HL];
     // Register read timing
     cpu.tick(4);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xF9] = LD_SP_HL;  // LD SP, HL
 
 
-export function LD_R8_R8(cpu: CPU, b0: number): void {
+export function LD_R8_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
     const dest: R8 = (b0 & 0b111000) >> 3;
     cpu.reg[dest] = cpu.reg[source];
 
-    cpu.pc += 1;
+    return 1;
 };
 // LD R8, R8
 UNPREFIXED_EXECUTORS[0x40] = LD_R8_R8;
@@ -461,7 +461,7 @@ UNPREFIXED_EXECUTORS[0x7E] = LD_R8_R8;
 UNPREFIXED_EXECUTORS[0x7F] = LD_R8_R8;
 
 /** PUSH R16 */
-export function PUSH_R16(cpu: CPU, b0: number): void {
+export function PUSH_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
 
     const value = cpu.reg[target];
@@ -476,7 +476,7 @@ export function PUSH_R16(cpu: CPU, b0: number): void {
     // 4 cycle penalty
     cpu.tick(4);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xF5] = PUSH_R16;  // PUSH AF 
 UNPREFIXED_EXECUTORS[0xC5] = PUSH_R16;  // PUSH BC
@@ -484,7 +484,7 @@ UNPREFIXED_EXECUTORS[0xD5] = PUSH_R16;  // PUSH DE
 UNPREFIXED_EXECUTORS[0xE5] = PUSH_R16;  // PUSH HL
 
 /** POP R16 */
-export function POP_R16(cpu: CPU, b0: number): void {
+export function POP_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
 
     const lowerByte = cpu.fetchMem8(cpu.reg.sp);
@@ -494,7 +494,7 @@ export function POP_R16(cpu: CPU, b0: number): void {
 
     cpu.reg[target] = (upperByte << 8) | lowerByte;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xC1] = POP_R16;  // POP BC
 UNPREFIXED_EXECUTORS[0xD1] = POP_R16;  // POP DE
@@ -502,7 +502,7 @@ UNPREFIXED_EXECUTORS[0xE1] = POP_R16;  // POP HL
 UNPREFIXED_EXECUTORS[0xF1] = POP_R16;  // POP AF 
 
 /** INC R8 */
-export function INC_R8(cpu: CPU, b0: number): void {
+export function INC_R8(cpu: CPU, b0: number): number {
     const dest: R8 = (b0 & 0b111000) >> 3;
 
     const oldValue = cpu.reg[dest];
@@ -512,7 +512,7 @@ export function INC_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = (oldValue & 0xF) + (1 & 0xF) > 0xF;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x04] = INC_R8;  // INC B
 UNPREFIXED_EXECUTORS[0x0C] = INC_R8;  // INC C
@@ -524,7 +524,7 @@ UNPREFIXED_EXECUTORS[0x34] = INC_R8;  // INC [HL]
 UNPREFIXED_EXECUTORS[0x3C] = INC_R8;  // INC A
 
 /** DEC R8 */
-export function DEC_R8(cpu: CPU, b0: number): void {
+export function DEC_R8(cpu: CPU, b0: number): number {
     const dest: R8 = (b0 & 0b111000) >> 3;
 
     const oldValue = cpu.reg[dest];
@@ -535,7 +535,7 @@ export function DEC_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.negative = true;
     cpu.reg._f.half_carry = (1 & 0xF) > (oldValue & 0xF);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x05] = DEC_R8;  // DEC B
 UNPREFIXED_EXECUTORS[0x0D] = DEC_R8;  // DEC C
@@ -547,12 +547,12 @@ UNPREFIXED_EXECUTORS[0x35] = DEC_R8;  // DEC [HL]
 UNPREFIXED_EXECUTORS[0x3D] = DEC_R8;  // DEC A
 
 /** INC R16 */
-export function INC_R16(cpu: CPU, b0: number): void {
+export function INC_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     cpu.reg[target] = (cpu.reg[target] + 1) & 0xFFFF;
     cpu.tick(4);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x03] = INC_R16; // INC BC
 UNPREFIXED_EXECUTORS[0x13] = INC_R16;  // INC DE 
@@ -560,12 +560,12 @@ UNPREFIXED_EXECUTORS[0x23] = INC_R16;  // INC HL
 UNPREFIXED_EXECUTORS[0x33] = INC_R16;  // INC SP
 
 
-export function DEC_R16(cpu: CPU, b0: number): void {
+export function DEC_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     cpu.reg[target] = (cpu.reg[target] - 1) & 0xFFFF;
     cpu.tick(4);
 
-    cpu.pc += 1;
+    return 1;
 };
 /** DEC R16 */
 UNPREFIXED_EXECUTORS[0x0B] = DEC_R16;  // DEC BC
@@ -573,7 +573,7 @@ UNPREFIXED_EXECUTORS[0x1B] = DEC_R16;  // DEC DE
 UNPREFIXED_EXECUTORS[0x2B] = DEC_R16;  // DEC HL
 UNPREFIXED_EXECUTORS[0x3B] = DEC_R16;  // DEC SP
 
-export function ADD_A_R8(cpu: CPU, b0: number): void {
+export function ADD_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     let value = cpu.reg[source];
@@ -590,7 +590,7 @@ export function ADD_A_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
 
-    cpu.pc += 1;
+    return 1;
 };
 // #region Accumulator Arithmetic
 UNPREFIXED_EXECUTORS[0x80] = ADD_A_R8; // ADD A, B
@@ -602,7 +602,7 @@ UNPREFIXED_EXECUTORS[0x85] = ADD_A_R8; // ADD A, L
 UNPREFIXED_EXECUTORS[0x86] = ADD_A_R8; // ADD A, (HL)
 UNPREFIXED_EXECUTORS[0x87] = ADD_A_R8;  // ADD A, A
 
-export function ADC_A_R8(cpu: CPU, b0: number): void {
+export function ADC_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     let value = cpu.reg[source];
@@ -619,7 +619,7 @@ export function ADC_A_R8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x88] = ADC_A_R8;  // ADC A, B
 UNPREFIXED_EXECUTORS[0x89] = ADC_A_R8;  // ADC A, C
@@ -630,7 +630,7 @@ UNPREFIXED_EXECUTORS[0x8D] = ADC_A_R8;  // ADC A, L
 UNPREFIXED_EXECUTORS[0x8E] = ADC_A_R8;  // ADC A, (HL)
 UNPREFIXED_EXECUTORS[0x8F] = ADC_A_R8;  // ADC A, A
 
-export function SUB_A_R8(cpu: CPU, b0: number): void {
+export function SUB_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     const value = cpu.reg[source];
@@ -646,7 +646,7 @@ export function SUB_A_R8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x90] = SUB_A_R8; // SUB A, B
 UNPREFIXED_EXECUTORS[0x91] = SUB_A_R8;  // SUB A, C
@@ -657,7 +657,7 @@ UNPREFIXED_EXECUTORS[0x95] = SUB_A_R8;  // SUB A, L
 UNPREFIXED_EXECUTORS[0x96] = SUB_A_R8;  // SUB A, (HL)
 UNPREFIXED_EXECUTORS[0x97] = SUB_A_R8;  // SUB A, A
 
-export function SBC_A_R8(cpu: CPU, b0: number): void {
+export function SBC_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     const value = cpu.reg[source];
@@ -673,7 +673,7 @@ export function SBC_A_R8(cpu: CPU, b0: number): void {
     // Set register values
     cpu.reg[R8.A] = newValue;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x98] = SBC_A_R8;  // SBC A, B
 UNPREFIXED_EXECUTORS[0x99] = SBC_A_R8;  // SBC A, C
@@ -684,7 +684,7 @@ UNPREFIXED_EXECUTORS[0x9D] = SBC_A_R8;  // SBC A, L
 UNPREFIXED_EXECUTORS[0x9E] = SBC_A_R8;  // SBC A, (HL)
 UNPREFIXED_EXECUTORS[0x9F] = SBC_A_R8;  // SBC A, A
 
-export function AND_A_R8(cpu: CPU, b0: number): void {
+export function AND_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     const value = cpu.reg[source];
@@ -698,7 +698,7 @@ export function AND_A_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.half_carry = true;
     cpu.reg._f.carry = false;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xA0] = AND_A_R8;  // AND A, B
 UNPREFIXED_EXECUTORS[0xA1] = AND_A_R8;  // AND A, C
@@ -709,7 +709,7 @@ UNPREFIXED_EXECUTORS[0xA5] = AND_A_R8;  // AND A, L
 UNPREFIXED_EXECUTORS[0xA6] = AND_A_R8;  // AND A, (HL)
 UNPREFIXED_EXECUTORS[0xA7] = AND_A_R8;  // AND A, A
 
-export function XOR_A_R8(cpu: CPU, b0: number): void {
+export function XOR_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     const value = cpu.reg[source];
@@ -722,7 +722,7 @@ export function XOR_A_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = false;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xA8] = XOR_A_R8; // XOR A, B
 UNPREFIXED_EXECUTORS[0xA9] = XOR_A_R8; // XOR A, C
@@ -733,7 +733,7 @@ UNPREFIXED_EXECUTORS[0xAD] = XOR_A_R8; // XOR A, L
 UNPREFIXED_EXECUTORS[0xAE] = XOR_A_R8; // XOR A, (HL)
 UNPREFIXED_EXECUTORS[0xAF] = XOR_A_R8;  // XOR A, A
 
-export function OR_A_R8(cpu: CPU, b0: number): void {
+export function OR_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     const value = cpu.reg[source];
@@ -746,7 +746,7 @@ export function OR_A_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = false;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xB0] = OR_A_R8;  // OR A, B
 UNPREFIXED_EXECUTORS[0xB1] = OR_A_R8;  // OR A, C
@@ -757,7 +757,7 @@ UNPREFIXED_EXECUTORS[0xB5] = OR_A_R8;  // OR A, L
 UNPREFIXED_EXECUTORS[0xB6] = OR_A_R8;  // OR A, (HL)
 UNPREFIXED_EXECUTORS[0xB7] = OR_A_R8;  // OR A, A
 
-export function CP_A_R8(cpu: CPU, b0: number): void {
+export function CP_A_R8(cpu: CPU, b0: number): number {
     const source: R8 = b0 & 0b111;
 
     const r8 = cpu.reg[source];
@@ -772,7 +772,7 @@ export function CP_A_R8(cpu: CPU, b0: number): void {
     cpu.reg._f.negative = true;
     cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) - (r8 & 0xF) < 0;
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xB8] = CP_A_R8;  // CP A, B
 UNPREFIXED_EXECUTORS[0xB9] = CP_A_R8;  // CP A, C
@@ -783,17 +783,17 @@ UNPREFIXED_EXECUTORS[0xBD] = CP_A_R8;  // CP A, L
 UNPREFIXED_EXECUTORS[0xBE] = CP_A_R8;  // CP A, (HL)
 UNPREFIXED_EXECUTORS[0xBF] = CP_A_R8;  // CP A, A
 
-export function CPL(cpu: CPU, b0: number): void {
+export function CPL(cpu: CPU): number {
     cpu.reg[R8.A] = cpu.reg[R8.A] ^ 0b11111111;
 
     cpu.reg._f.negative = true;
     cpu.reg._f.half_carry = true;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x2F] = CPL;  // CPL
 
 
-export function RETI(cpu: CPU, b0: number): void {
+export function RETI(cpu: CPU): number {
     const stackLowerByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
     const stackUpperByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
 
@@ -804,11 +804,11 @@ export function RETI(cpu: CPU, b0: number): void {
 
     cpu.tick(4); // Branching takes 4 cycles
     cpu.scheduleEnableInterruptsForNextTick = true;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xD9] = RETI;  // RETI
 
-export function DAA(cpu: CPU, b0: number): void {
+export function DAA(cpu: CPU): number {
     if (!cpu.reg._f.negative) {
         if (cpu.reg._f.carry || cpu.reg[R8.A] > 0x99) {
             cpu.reg[R8.A] = (cpu.reg[R8.A] + 0x60) & 0xFF;
@@ -830,102 +830,95 @@ export function DAA(cpu: CPU, b0: number): void {
 
     cpu.reg._f.zero = cpu.reg[R8.A] === 0;
     cpu.reg._f.half_carry = false;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x27] = DAA;  // DAA
 
-export function NOP(cpu: CPU, b0: number): void {
-    cpu.pc += 1;
+export function NOP(): number {
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x00] = NOP;  // NOP
 
 /** LD between A and R16 */
 UNPREFIXED_EXECUTORS[0x02] = LD_iBC_A;
-export function LD_iBC_A(cpu: CPU, b0: number): void { // LD [BC], A
+export function LD_iBC_A(cpu: CPU): number { // LD [BC], A
     cpu.writeMem8(cpu.reg[R16.BC], cpu.reg[R8.A]);
-    cpu.pc += 1;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0x12] = LD_iDE_A;
-export function LD_iDE_A(cpu: CPU, b0: number): void {// LD [DE], A
+export function LD_iDE_A(cpu: CPU): number {// LD [DE], A
     cpu.writeMem8(cpu.reg[R16.DE], cpu.reg[R8.A]);
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x22] = LD_iHLinc_A;
-export function LD_iHLinc_A(cpu: CPU, b0: number): void {// LD [HL+], A
+export function LD_iHLinc_A(cpu: CPU): number {// LD [HL+], A
     cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[R8.A]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] + 1) & 0xFFFF;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x32] = LD_iHLdec_A;
-export function LD_iHLdec_A(cpu: CPU, b0: number): void {  // LD [HL-], A
+export function LD_iHLdec_A(cpu: CPU): number {  // LD [HL-], A
     cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[R8.A]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] - 1) & 0xFFFF;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x0A] = LD_A_iBC;
-export function LD_A_iBC(cpu: CPU, b0: number): void { // LD A, [BC]
+export function LD_A_iBC(cpu: CPU): number { // LD A, [BC]
     cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.BC]);
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x1A] = LD_A_iDE;
-export function LD_A_iDE(cpu: CPU, b0: number): void { // LD A, [DE]
+export function LD_A_iDE(cpu: CPU): number { // LD A, [DE]
     cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.DE]);
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x2A] = LD_A_iHLinc;
-export function LD_A_iHLinc(cpu: CPU, b0: number): void { // LD A, [HL+]
+export function LD_A_iHLinc(cpu: CPU): number { // LD A, [HL+]
     cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.HL]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] + 1) & 0xFFFF;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x3A] = LD_A_iHLdec;
-export function LD_A_iHLdec(cpu: CPU, b0: number): void { // LD A, [HL-]
+export function LD_A_iHLdec(cpu: CPU): number { // LD A, [HL-]
     cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.HL]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] - 1) & 0xFFFF;
-    cpu.pc += 1;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0xF2] = LD_A_iFF00plusC;
-export function LD_A_iFF00plusC(cpu: CPU, b0: number): void { // LD A, [$FF00+C]
+export function LD_A_iFF00plusC(cpu: CPU): number { // LD A, [$FF00+C]
     cpu.reg[R8.A] = cpu.fetchMem8((0xFF00 | cpu.reg[R8.C]) & 0xFFFF);
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xE2] = LD_iFF00plusC_A;
-export function LD_iFF00plusC_A(cpu: CPU, b0: number): void {  // LD [$FF00+C], A
+export function LD_iFF00plusC_A(cpu: CPU): number {  // LD [$FF00+C], A
     cpu.writeMem8((0xFF00 | cpu.reg[R8.C]) & 0xFFFF, cpu.reg[R8.A]);
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0xF3] = DI;
-export function DI(cpu: CPU, b0: number): void {  // DI - Disable interrupts master flag
+export function DI(cpu: CPU): number {  // DI - Disable interrupts master flag
     cpu.gb.interrupts.masterEnabled = false;
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xFB] = EI;
-export function EI(cpu: CPU, b0: number): void {  // EI - Enable interrupts master flag
+export function EI(cpu: CPU): number {  // EI - Enable interrupts master flag
     cpu.scheduleEnableInterruptsForNextTick = true;
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 
 /** JP */
 UNPREFIXED_EXECUTORS[0xE9] = JP_HL;
-export function JP_HL(cpu: CPU, b0: number): void {  // JP HL
+export function JP_HL(cpu: CPU): number {  // JP HL
     cpu.pc = cpu.reg[R16.HL] - 1;
-    cpu.pc += 1;
-    return;
+    return 1;
 };
 
 
 /** A rotate */
 UNPREFIXED_EXECUTORS[0x07] = RLCA;
-export function RLCA(cpu: CPU, b0: number): void {    // RLC A
+export function RLCA(cpu: CPU): number {    // RLC A
     const value = cpu.reg[R8.A];
 
     const leftmostBit = (value & 0b10000000) >> 7;
@@ -939,11 +932,11 @@ export function RLCA(cpu: CPU, b0: number): void {    // RLC A
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = (value >> 7) === 1;
 
-    cpu.pc += 1;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0x0F] = RRCA;
-export function RRCA(cpu: CPU, b0: number): void {  // RRC A
+export function RRCA(cpu: CPU): number {  // RRC A
 
     const value = cpu.reg[R8.A];
 
@@ -957,11 +950,11 @@ export function RRCA(cpu: CPU, b0: number): void {  // RRC A
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = (value & 1) === 1;
 
-    cpu.pc += 1;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0x1F] = RRA;
-export function RRA(cpu: CPU, b0: number): void {  // RR A
+export function RRA(cpu: CPU): number {  // RR A
 
     const value = cpu.reg[R8.A];
 
@@ -976,10 +969,10 @@ export function RRA(cpu: CPU, b0: number): void {  // RR A
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = !!(value & 1);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x17] = RLA;
-export function RLA(cpu: CPU, b0: number): void {  // RL A
+export function RLA(cpu: CPU): number {  // RL A
 
     const value = cpu.reg[R8.A];
 
@@ -994,61 +987,64 @@ export function RLA(cpu: CPU, b0: number): void {  // RL A
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = (value >> 7) === 1;
 
-    cpu.pc += 1;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0x76] = HALT;
-export function HALT(cpu: CPU, b0: number): void {
+export function HALT(cpu: CPU): number {
     // HALT
-    if (
-        (
+    if (cpu.gb.interrupts.masterEnabled === true) {
+        cpu.halted = true;
+    } else {
+        if (
+            (
+                cpu.gb.interrupts.enabled.numerical &
+                cpu.gb.interrupts.requested.numerical &
+                0x1F
+            ) !== 0
+        ) {
+            // HALT bug
+            cpu.haltBugQueued = true;
+        } else (
             cpu.gb.interrupts.enabled.numerical &
             cpu.gb.interrupts.requested.numerical &
-            0x1F
-        ) !== 0
-    ) {
-        // HALT bug
-        cpu.haltBug = true;
-        cpu.pc++; cpu.pc &= 0xFFFF;
-    } else (
-        cpu.gb.interrupts.enabled.numerical &
-        cpu.gb.interrupts.requested.numerical &
-        0x1F) === 0;
-    {
-        cpu.halted = true;
+            0x1F) === 0;
+        {
+            cpu.halted = true;
+        }
     }
-    cpu.pc += 1;
+    return 1;
 };
 
 /** Carry flag */
 UNPREFIXED_EXECUTORS[0x37] = SCF;
-export function SCF(cpu: CPU, b0: number): void { // SCF
+export function SCF(cpu: CPU): number { // SCF
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = true;
-    cpu.pc += 1;
+    return 1;
 };
 
 UNPREFIXED_EXECUTORS[0x3F] = CCF;
-export function CCF(cpu: CPU, b0: number): void {  // CCF
+export function CCF(cpu: CPU): number {  // CCF
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = !cpu.reg._f.carry;
-    cpu.pc += 1;
+    return 1;
 };
 
 
 
 /** RET */
-export function RET(cpu: CPU, b0: number): void {
+export function RET(cpu: CPU, b0: number): number {
     if (b0 !== 0xC9) {
         cpu.tick(4); // Branch decision?
 
         const cc: CC = (b0 & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.pc += 1; return; }
-        if (cc === CC.Z && !cpu.reg._f.zero) { cpu.pc += 1; return; }
-        if (cc === CC.NC && cpu.reg._f.carry) { cpu.pc += 1; return; }
-        if (cc === CC.C && !cpu.reg._f.carry) { cpu.pc += 1; return; }
+        if (cc === CC.NZ && cpu.reg._f.zero) { return 1; }
+        if (cc === CC.Z && !cpu.reg._f.zero) { return 1; }
+        if (cc === CC.NC && cpu.reg._f.carry) { return 1; }
+        if (cc === CC.C && !cpu.reg._f.carry) { return 1; }
     }
 
 
@@ -1062,7 +1058,7 @@ export function RET(cpu: CPU, b0: number): void {
 
     cpu.tick(4); // Branching takes 4 cycles
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xC9] = RET;  // RET
 UNPREFIXED_EXECUTORS[0xD8] = RET;  // RET C
@@ -1074,7 +1070,7 @@ UNPREFIXED_EXECUTORS[0xC0] = RET;  // RET NZ
 
 
 /** ADD HL, R16 */
-export function ADD_HL_R16(cpu: CPU, b0: number): void {
+export function ADD_HL_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     const r16Value = cpu.reg[target];
 
@@ -1094,7 +1090,7 @@ export function ADD_HL_R16(cpu: CPU, b0: number): void {
     // Register read takes 4 more cycles
     cpu.tick(4);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0x09] = ADD_HL_R16;  // ADD HL, BC
 UNPREFIXED_EXECUTORS[0x19] = ADD_HL_R16;  // ADD HL, DE
@@ -1102,7 +1098,7 @@ UNPREFIXED_EXECUTORS[0x29] = ADD_HL_R16;  // ADD HL, HL
 UNPREFIXED_EXECUTORS[0x39] = ADD_HL_R16; // ADD HL, SP
 
 /** Reset Vectors */
-export function RST(cpu: CPU, b0: number): void {
+export function RST(cpu: CPU, b0: number): number {
     const target = b0 & 0b111000;
     const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
     const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
@@ -1116,7 +1112,7 @@ export function RST(cpu: CPU, b0: number): void {
 
     cpu.tick(4);
 
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xC7] = RST;  // RST 00h 
 UNPREFIXED_EXECUTORS[0xCF] = RST;  // RST 08h
@@ -1129,10 +1125,10 @@ UNPREFIXED_EXECUTORS[0xFF] = RST;  // RST 38h
 
 // Invalid
 
-export function INVALID(cpu: CPU, b0: number): void {
+export function INVALID(cpu: CPU): number {
     cpu.pc--;
     cpu.invalidOpcodeExecuted = true;
-    cpu.pc += 1;
+    return 1;
 };
 UNPREFIXED_EXECUTORS[0xD3] = INVALID;
 UNPREFIXED_EXECUTORS[0xDB] = INVALID;

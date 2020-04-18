@@ -5,7 +5,7 @@ import { R8 } from "./cpu";
 const CB_PREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default CB_PREFIXED_EXECUTORS;
 
-export function RLC_R8(cpu: CPU, b1: number): void {
+export function RLC_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -19,11 +19,11 @@ export function RLC_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = (value >> 7) === 1;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // RRC r8
-export function RRC_R8(cpu: CPU, b1: number): void {
+export function RRC_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -37,11 +37,11 @@ export function RRC_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = !!(value & 1);
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // RL r8
-export function RL_R8(cpu: CPU, b1: number): void {
+export function RL_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -56,11 +56,11 @@ export function RL_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = (value >> 7) === 1;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // RR r8
-export function RR_R8(cpu: CPU, b1: number): void {
+export function RR_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -75,11 +75,11 @@ export function RR_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = !!(value & 1);
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // SLA r8
-export function SLA_R8(cpu: CPU, b1: number): void {
+export function SLA_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -93,11 +93,11 @@ export function SLA_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = didOverflow;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // SRA r8
-export function SRA_R8(cpu: CPU, b1: number): void {
+export function SRA_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -111,11 +111,11 @@ export function SRA_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = !!(value & 1);
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // SWAP r8
-export function SWAP_R8(cpu: CPU, b1: number): void {
+export function SWAP_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -129,11 +129,11 @@ export function SWAP_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = false;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // SRL r8
-export function SRL_R8(cpu: CPU, b1: number): void {
+export function SRL_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const value = cpu.reg[t];
 
@@ -146,11 +146,11 @@ export function SRL_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.half_carry = false;
     cpu.reg._f.carry = !!(value & 1);
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // BIT r8
-export function BIT_R8(cpu: CPU, b1: number): void {
+export function BIT_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -160,11 +160,11 @@ export function BIT_R8(cpu: CPU, b1: number): void {
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = true;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // RES r8
-export function RES_R8(cpu: CPU, b1: number): void {
+export function RES_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -175,11 +175,11 @@ export function RES_R8(cpu: CPU, b1: number): void {
 
     cpu.reg[t] = final;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 // SET r8
-export function SET_R8(cpu: CPU, b1: number): void {
+export function SET_R8(cpu: CPU, b1: number): number {
     const t: R8 = b1 & 0b111;
     const bit = (b1 & 0b111000) >> 3;
 
@@ -190,7 +190,7 @@ export function SET_R8(cpu: CPU, b1: number): void {
 
     cpu.reg[t] = final;
 
-    cpu.pc += 2;
+    return 2;
 };
 
 const topOpsTable = [
