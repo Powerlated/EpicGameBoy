@@ -86,7 +86,7 @@ export default class GameBoy {
         this.pending += stepCycles;
 
         if (this.pending >= this.until || this.gpu.catchupNow === true) {
-            this.gpu.catchupNow === false;
+            this.gpu.catchupNow = false;
 
             this.until = this.getCyclesUntilNextSync();
 
@@ -138,12 +138,8 @@ export default class GameBoy {
 
             // VRAM Mode
             case 3:
-                // If we haven't drawn the BG, sync now
-                if (this.gpu.bgDrawn) {
-                    gpu = 172 - this.gpu.lineClock;
-                } else {
-                    gpu = 0;
-                }
+                // Mode 3 is very sensitive, don't touch this
+                gpu = 0;
                 break;
 
             // Hblank
@@ -160,7 +156,7 @@ export default class GameBoy {
             case 5:
                 break;
         }
-        return gpu;
+        return gpu >> 1;
     }
 
     reset() {
