@@ -91,8 +91,8 @@ class Registers {
     0x3 = 0;
     0x4 = 0;
     0x5 = 0;
-    get 0x6(): number { return this.cpu.fetchMem8(this.cpu.reg[R16.HL]); }
-    set 0x6(i: number) { this.cpu.writeMem8(this.cpu.reg[R16.HL], i); }
+    get 0x6(): number { return this.cpu.read_tick(this.cpu.reg[R16.HL]); }
+    set 0x6(i: number) { this.cpu.write_tick(this.cpu.reg[R16.HL], i); }
     0x7 = 0;
 
     /*
@@ -240,7 +240,7 @@ export default class CPU {
 
     // #endregion
 
-    fetchMem8(addr: number): number {
+    read_tick(addr: number): number {
         this.tick(4);
 
         // The CPU can only access high RAM during OAM DMA
@@ -256,11 +256,11 @@ export default class CPU {
     }
 
     // Timing already satisfied by fetchMem8
-    fetchMem16(addr: number): number {
-        return this.fetchMem8(addr) | this.fetchMem8(addr + 1) << 8;
+    read16_tick(addr: number): number {
+        return this.read_tick(addr) | this.read_tick(addr + 1) << 8;
     }
 
-    writeMem8(addr: number, value: number) {
+    write_tick(addr: number, value: number) {
         this.tick(4);
         if (this.gb.oamDmaCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
@@ -310,13 +310,13 @@ export default class CPU {
                 this.haltBug = true;
             }
 
-            const b0 = this.fetchMem8(this.pc + 0);
+            const b0 = this.read_tick(this.pc + 0);
 
             let length: number;
             if (b0 !== 0xCB) {
                 length = UNPREFIXED_EXECUTORS[b0](this, b0);
             } else {
-                const b1 = this.fetchMem8(this.pc + 1);
+                const b1 = this.read_tick(this.pc + 1);
                 length = CB_PREFIXED_EXECUTORS[b1](this, b1);
             }
 
@@ -413,9 +413,9 @@ export default class CPU {
                 const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
 
                 this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-                this.writeMem8(this.reg.sp, pcUpperByte);
+                this.write_tick(this.reg.sp, pcUpperByte);
                 this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-                this.writeMem8(this.reg.sp, pcLowerByte);
+                this.write_tick(this.reg.sp, pcLowerByte);
 
                 // Setting PC takes 1 M-cycle
                 this.tick(4);
@@ -508,6 +508,28 @@ export default class CPU {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints[point] = false;
         this.enableBreakpoints = true;
+    }
+
+    push_tick(n16: number): void {
+        const upperByte = n16 >> 8;
+        const lowerByte = n16 & 0b11111111;
+
+        // 4 cycle penalty
+        this.tick(4);
+
+        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+        this.write_tick(this.reg.sp, upperByte);
+        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+        this.write_tick(this.reg.sp, lowerByte);
+    }
+
+    pop_tick(): number {
+        const lowerByte = this.read_tick(this.reg.sp);
+        this.reg.sp = (this.reg.sp + 1) & 0xFFFF;
+        const upperByte = this.read_tick(this.reg.sp);
+        this.reg.sp = (this.reg.sp + 1) & 0xFFFF;
+
+        return (upperByte << 8) | lowerByte;
     }
 }
 

@@ -9,7 +9,7 @@ export default UNPREFIXED_EXECUTORS;
 
 /** LD R16, N16 */
 export function LD_R16_N16(cpu: CPU, b0: number): number {
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
+    const n16 = cpu.read16_tick(cpu.pc + 1);
 
     const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
     cpu.reg[target] = n16;
@@ -23,30 +23,30 @@ UNPREFIXED_EXECUTORS[0x31] = LD_R16_N16; // LD SP, N16
 
 // LD A, [N16]
 export function LD_A_iN16(cpu: CPU): number {
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
+    const n16 = cpu.read16_tick(cpu.pc + 1);
 
-    cpu.reg[R8.A] = cpu.fetchMem8(n16);
+    cpu.reg[R8.A] = cpu.read_tick(n16);
     return 3;
 };
 UNPREFIXED_EXECUTORS[0xFA] = LD_A_iN16;
 
 // LD [N16], A
 export function LD_iN16_A(cpu: CPU): number {
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
+    const n16 = cpu.read16_tick(cpu.pc + 1);
 
-    cpu.writeMem8(n16, cpu.reg[R8.A]);
+    cpu.write_tick(n16, cpu.reg[R8.A]);
     return 3;
 };
 UNPREFIXED_EXECUTORS[0xEA] = LD_iN16_A;
 
 export function LD_iN16_SP(cpu: CPU): number {
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
+    const n16 = cpu.read16_tick(cpu.pc + 1);
 
     const spUpperByte = cpu.reg.sp >> 8;
     const spLowerByte = cpu.reg.sp & 0b11111111;
 
-    cpu.writeMem8(n16 + 0, spLowerByte);
-    cpu.writeMem8(n16 + 1, (spUpperByte) & 0xFFFF);
+    cpu.write_tick(n16 + 0, spLowerByte);
+    cpu.write_tick(n16 + 1, (spUpperByte) & 0xFFFF);
 
     return 3;
 };
@@ -62,7 +62,7 @@ export function JP(cpu: CPU, b0: number): number {
         else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(8); return 3; }
     }
 
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
+    const n16 = cpu.read16_tick(cpu.pc + 1);
     cpu.pc = n16 - 3;
 
     cpu.tick(4); // Branching takes 4 cycles
@@ -84,7 +84,7 @@ export function CALL(cpu: CPU, b0: number): number {
         else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(8); return 3; }
     }
 
-    const n16 = cpu.fetchMem16(cpu.pc + 1);
+    const n16 = cpu.read16_tick(cpu.pc + 1);
 
     cpu.tick(4); // Branching takes 4 cycles
 
@@ -94,9 +94,9 @@ export function CALL(cpu: CPU, b0: number): number {
     // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
 
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
-    cpu.writeMem8(cpu.reg.sp, pcUpperByte);
+    cpu.write_tick(cpu.reg.sp, pcUpperByte);
     cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
-    cpu.writeMem8(cpu.reg.sp, pcLowerByte);
+    cpu.write_tick(cpu.reg.sp, pcLowerByte);
 
     cpu.pc = n16 - 3;
 
@@ -120,33 +120,33 @@ UNPREFIXED_EXECUTORS[0x10] = STOP; // STOP
 
 /** LD between A and High RAM */
 export function LD_A_iFF00plusN8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
-    cpu.reg[R8.A] = cpu.fetchMem8((0xFF00 | b1) & 0xFFFF);
+    cpu.reg[R8.A] = cpu.read_tick((0xFF00 | b1) & 0xFFFF);
 
     return 2;
 };
 UNPREFIXED_EXECUTORS[0xF0] = LD_A_iFF00plusN8;
 
 export function LD_iFF00plusN8_A(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
-    cpu.writeMem8((0xFF00 | b1) & 0xFFFF, cpu.reg[R8.A]);
+    cpu.write_tick((0xFF00 | b1) & 0xFFFF, cpu.reg[R8.A]);
 
     return 2;
 };
 UNPREFIXED_EXECUTORS[0xE0] = LD_iFF00plusN8_A;
 
 export function LD_iHL_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
-    cpu.writeMem8(cpu.reg[R16.HL], b1);
+    cpu.write_tick(cpu.reg[R16.HL], b1);
     return 2;
 };
 UNPREFIXED_EXECUTORS[0x36] = LD_iHL_N8;
 
 export function LD_HL_SPplusE8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const signedVal = unTwo8b(b1);
 
@@ -165,7 +165,7 @@ export function LD_HL_SPplusE8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xF8] = LD_HL_SPplusE8;
 
 export function ADD_SP_E8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = unTwo8b(b1);
 
@@ -184,7 +184,7 @@ export function ADD_SP_E8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xE8] = ADD_SP_E8;
 
 export function AND_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -201,7 +201,7 @@ export function AND_A_N8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xE6] = AND_A_N8;
 
 export function OR_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -218,7 +218,7 @@ export function OR_A_N8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xF6] = OR_A_N8;  // OR A, N8
 
 export function XOR_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -235,7 +235,7 @@ export function XOR_A_N8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xEE] = XOR_A_N8;  // XOR A, N8
 
 export function CP_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -261,7 +261,7 @@ export function JR(cpu: CPU, b0: number): number {
         else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick(4); return 2; }
     }
 
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
     cpu.pc += unTwo8b(b1);
 
     cpu.tick(4); // Branching takes 4 cycles
@@ -279,7 +279,7 @@ UNPREFIXED_EXECUTORS[0x38] = JR;  // JR C, E8
 
 /** Arithmetic */
 export function ADD_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -300,7 +300,7 @@ export function ADD_A_N8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xC6] = ADD_A_N8;  // ADD A, N8
 
 export function ADC_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -321,7 +321,7 @@ export function ADC_A_N8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xCE] = ADC_A_N8;  // ADC A, N8
 
 export function SUB_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -341,7 +341,7 @@ export function SUB_A_N8(cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0xD6] = SUB_A_N8;  // SUB A, N8
 
 export function SBC_A_N8(cpu: CPU): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const value = b1;
 
@@ -362,7 +362,7 @@ UNPREFIXED_EXECUTORS[0xDE] = SBC_A_N8;  // SBC A, N8
 
 /** LD R8, N8 */
 export function LD_R8_N8(cpu: CPU, b0: number): number {
-    const b1 = cpu.fetchMem8(cpu.pc + 1);
+    const b1 = cpu.read_tick(cpu.pc + 1);
 
     const target: R8 = (b0 & 0b111000) >> 3;
     cpu.reg[target] = b1;
@@ -465,19 +465,7 @@ UNPREFIXED_EXECUTORS[0x7F] = LD_R8_R8;
 /** PUSH R16 */
 export function PUSH_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
-
-    const value = cpu.reg[target];
-    const upperByte = value >> 8;
-    const lowerByte = value & 0b11111111;
-
-    // 4 cycle penalty
-    cpu.tick(4);
-
-    cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
-    cpu.writeMem8(cpu.reg.sp, upperByte);
-    cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
-    cpu.writeMem8(cpu.reg.sp, lowerByte);
-
+    cpu.push_tick(cpu.reg[target]);
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xF5] = PUSH_R16;  // PUSH AF 
@@ -488,14 +476,7 @@ UNPREFIXED_EXECUTORS[0xE5] = PUSH_R16;  // PUSH HL
 /** POP R16 */
 export function POP_R16(cpu: CPU, b0: number): number {
     const target = [R16.BC, R16.DE, R16.HL, R16.AF][(b0 & 0b110000) >> 4];
-
-    const lowerByte = cpu.fetchMem8(cpu.reg.sp);
-    cpu.reg.sp = (cpu.reg.sp + 1) & 0xFFFF;
-    const upperByte = cpu.fetchMem8(cpu.reg.sp);
-    cpu.reg.sp = (cpu.reg.sp + 1) & 0xFFFF;
-
-    cpu.reg[target] = (upperByte << 8) | lowerByte;
-
+    cpu.reg[target] = cpu.pop_tick();
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xC1] = POP_R16;  // POP BC
@@ -796,15 +777,10 @@ UNPREFIXED_EXECUTORS[0x2F] = CPL;  // CPL
 
 
 export function RETI(cpu: CPU): number {
-    const stackLowerByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
-    const stackUpperByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
-
-    const returnAddress = ((stackUpperByte << 8) | stackLowerByte) & 0xFFFF;
-    // console.info(`Returning to 0x${returnAddress.toString(16)}`);
-
-    cpu.pc = returnAddress - 1;
+    cpu.pc = cpu.pop_tick() - 1;
 
     cpu.tick(4); // Branching takes 4 cycles
+    
     cpu.scheduleEnableInterruptsForNextTick = true;
     return 1;
 };
@@ -844,58 +820,58 @@ UNPREFIXED_EXECUTORS[0x00] = NOP;  // NOP
 /** LD between A and R16 */
 UNPREFIXED_EXECUTORS[0x02] = LD_iBC_A;
 export function LD_iBC_A(cpu: CPU): number { // LD [BC], A
-    cpu.writeMem8(cpu.reg[R16.BC], cpu.reg[R8.A]);
+    cpu.write_tick(cpu.reg[R16.BC], cpu.reg[R8.A]);
     return 1;
 };
 
 UNPREFIXED_EXECUTORS[0x12] = LD_iDE_A;
 export function LD_iDE_A(cpu: CPU): number {// LD [DE], A
-    cpu.writeMem8(cpu.reg[R16.DE], cpu.reg[R8.A]);
+    cpu.write_tick(cpu.reg[R16.DE], cpu.reg[R8.A]);
     return 1;
 };
 UNPREFIXED_EXECUTORS[0x22] = LD_iHLinc_A;
 export function LD_iHLinc_A(cpu: CPU): number {// LD [HL+], A
-    cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[R8.A]);
+    cpu.write_tick(cpu.reg[R16.HL], cpu.reg[R8.A]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] + 1) & 0xFFFF;
     return 1;
 };
 UNPREFIXED_EXECUTORS[0x32] = LD_iHLdec_A;
 export function LD_iHLdec_A(cpu: CPU): number {  // LD [HL-], A
-    cpu.writeMem8(cpu.reg[R16.HL], cpu.reg[R8.A]);
+    cpu.write_tick(cpu.reg[R16.HL], cpu.reg[R8.A]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] - 1) & 0xFFFF;
     return 1;
 };
 UNPREFIXED_EXECUTORS[0x0A] = LD_A_iBC;
 export function LD_A_iBC(cpu: CPU): number { // LD A, [BC]
-    cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.BC]);
+    cpu.reg[R8.A] = cpu.read_tick(cpu.reg[R16.BC]);
     return 1;
 };
 UNPREFIXED_EXECUTORS[0x1A] = LD_A_iDE;
 export function LD_A_iDE(cpu: CPU): number { // LD A, [DE]
-    cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.DE]);
+    cpu.reg[R8.A] = cpu.read_tick(cpu.reg[R16.DE]);
     return 1;
 };
 UNPREFIXED_EXECUTORS[0x2A] = LD_A_iHLinc;
 export function LD_A_iHLinc(cpu: CPU): number { // LD A, [HL+]
-    cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.HL]);
+    cpu.reg[R8.A] = cpu.read_tick(cpu.reg[R16.HL]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] + 1) & 0xFFFF;
     return 1;
 };
 UNPREFIXED_EXECUTORS[0x3A] = LD_A_iHLdec;
 export function LD_A_iHLdec(cpu: CPU): number { // LD A, [HL-]
-    cpu.reg[R8.A] = cpu.fetchMem8(cpu.reg[R16.HL]);
+    cpu.reg[R8.A] = cpu.read_tick(cpu.reg[R16.HL]);
     cpu.reg[R16.HL] = (cpu.reg[R16.HL] - 1) & 0xFFFF;
     return 1;
 };
 
 UNPREFIXED_EXECUTORS[0xF2] = LD_A_iFF00plusC;
 export function LD_A_iFF00plusC(cpu: CPU): number { // LD A, [$FF00+C]
-    cpu.reg[R8.A] = cpu.fetchMem8((0xFF00 | cpu.reg[R8.C]) & 0xFFFF);
+    cpu.reg[R8.A] = cpu.read_tick((0xFF00 | cpu.reg[R8.C]) & 0xFFFF);
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xE2] = LD_iFF00plusC_A;
 export function LD_iFF00plusC_A(cpu: CPU): number {  // LD [$FF00+C], A
-    cpu.writeMem8((0xFF00 | cpu.reg[R8.C]) & 0xFFFF, cpu.reg[R8.A]);
+    cpu.write_tick((0xFF00 | cpu.reg[R8.C]) & 0xFFFF, cpu.reg[R8.A]);
     return 1;
 };
 
@@ -1049,13 +1025,7 @@ export function RET(cpu: CPU, b0: number): number {
         if (cc === CC.C && !cpu.reg._f.carry) { return 1; }
     }
 
-    const stackLowerByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
-    const stackUpperByte = cpu.fetchMem8((cpu.reg.sp++) & 0xFFFF);
-
-    const returnAddress = (((stackUpperByte << 8) | stackLowerByte)) & 0xFFFF;
-    // console.info(`Returning to 0x${returnAddress.toString(16)}`);
-
-    cpu.pc = returnAddress - 1;
+    cpu.pc = cpu.pop_tick() - 1;
 
     cpu.tick(4); // Branching takes 4 cycles
 
@@ -1099,15 +1069,10 @@ UNPREFIXED_EXECUTORS[0x39] = ADD_HL_R16; // ADD HL, SP
 /** Reset Vectors */
 export function RST(cpu: CPU, b0: number): number {
     const target = b0 & 0b111000;
-    const pcUpperByte = ((cpu.pc + 1) & 0xFFFF) >> 8;
-    const pcLowerByte = ((cpu.pc + 1) & 0xFFFF) & 0xFF;
 
     cpu.tick(4);
 
-    cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
-    cpu.writeMem8(cpu.reg.sp, pcUpperByte);
-    cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
-    cpu.writeMem8(cpu.reg.sp, pcLowerByte);
+    cpu.push_tick(cpu.pc);
 
     cpu.pc = target - 1;
 
