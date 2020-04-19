@@ -1040,21 +1040,18 @@ UNPREFIXED_EXECUTORS[0xC0] = RET;  // RET NZ
 
 /** ADD HL, R16 */
 export function ADD_HL_R16(cpu: CPU, b0: number): number {
-    const target = [R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4];
-    const r16Value = cpu.reg[target];
+    const r16Value = cpu.reg[[R16.BC, R16.DE, R16.HL, R16.SP][(b0 & 0b110000) >> 4]];
 
     const hl = cpu.reg[R16.HL];
-
-    const newValue = (r16Value + hl) & 0xFFFF;
-    const didOverflow = (r16Value + hl) > 0xFFFF;
+    const newValue = r16Value + hl
 
     // Set flag
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = (hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
-    cpu.reg._f.carry = didOverflow;
+    cpu.reg._f.carry = newValue > 0xFFFF;
 
     // Set register values
-    cpu.reg[R16.HL] = newValue;
+    cpu.reg[R16.HL] = newValue & 0xFFFF;
 
     // Register read takes 4 more cycles
     cpu.tick(4);

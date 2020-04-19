@@ -257,10 +257,13 @@ export default class CPU {
 
     // Timing already satisfied by fetchMem8
     read16_tick(addr: number): number {
-        return this.read_tick(addr) | this.read_tick(addr + 1) << 8;
+        const b0 = this.read_tick(addr);
+        const b1 = this.read_tick(addr + 1);
+
+        return b1 << 8 | b0;
     }
 
-    write_tick(addr: number, value: number) {
+    write_tick(addr: number, value: number): void {
         this.tick(4);
         if (this.gb.oamDmaCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
@@ -271,9 +274,16 @@ export default class CPU {
         }
     }
 
+    // Timing already satisfied by fetchMem8
+    write16_tick(addr: number, value: number): void {
+        this.write_tick(addr, value & 0xFF);
+        this.write_tick(addr + 1, value >> 8);
+    }
+
     execute(): number {
-        if (this.invalidOpcodeExecuted) {
+        if (this.invalidOpcodeExecuted === true) {
             this.tick(4);
+            return 4;
         }
 
         const c = this.cycles;
@@ -406,11 +416,11 @@ export default class CPU {
                     vector = JOYPAD_PRESS_VECTOR;
                 }
 
-                // 2 M-cycles doing nothing
-                this.tick(8);
+                // 1 M-cycles doing nothing
+                this.tick(4);
 
                 this.push_tick(this.pc);
-                
+
                 // Setting PC takes 1 M-cycle
                 this.tick(4);
 
@@ -505,25 +515,17 @@ export default class CPU {
     }
 
     push_tick(n16: number): void {
-        const upperByte = n16 >> 8;
-        const lowerByte = n16 & 0b11111111;
-
         // 4 cycle penalty
         this.tick(4);
 
-        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-        this.write_tick(this.reg.sp, upperByte);
-        this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-        this.write_tick(this.reg.sp, lowerByte);
+        this.reg.sp = (this.reg.sp - 2) & 0xFFFF;
+        this.write16_tick(this.reg.sp, n16);
     }
 
     pop_tick(): number {
-        const lowerByte = this.read_tick(this.reg.sp);
-        this.reg.sp = (this.reg.sp + 1) & 0xFFFF;
-        const upperByte = this.read_tick(this.reg.sp);
-        this.reg.sp = (this.reg.sp + 1) & 0xFFFF;
-
-        return (upperByte << 8) | lowerByte;
+        const value = this.read16_tick(this.reg.sp);
+        this.reg.sp = (this.reg.sp + 2) & 0xFFFF;
+        return value;
     }
 }
 

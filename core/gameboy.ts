@@ -83,11 +83,11 @@ export default class GameBoy {
         this.timer.tick(cyclesRan);
         this.soundChip.tick(stepCycles);
 
-        this.until = this.getCyclesUntilNextSync();
-
         this.pending += stepCycles;
 
-        if (this.pending > this.until) {
+        if (this.pending >= this.until) {
+            this.until = this.getCyclesUntilNextSync();
+
             this.gpu.tick(this.pending);
             this.pending = 0;
         }
@@ -159,7 +159,7 @@ export default class GameBoy {
                 break;
         }
 
-        return gpu;
+        return gpu >> 1;
     }
 
     reset() {
