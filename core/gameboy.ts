@@ -85,7 +85,10 @@ export default class GameBoy {
 
         this.pending += stepCycles;
 
-        if (this.pending >= this.until || this.gpu.catchupNow === true) {
+        if (
+            this.pending >= this.until || this.gpu.catchupNow === true &&
+            (this.dma.hDmaRemaining > 0 && this.dma.hDmaPaused === false)
+        ) {
             this.gpu.catchupNow = false;
 
             this.until = this.getCyclesUntilNextSync();
@@ -158,6 +161,7 @@ export default class GameBoy {
             case 5:
                 break;
         }
+
         return gpu >> 1;
     }
 

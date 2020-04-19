@@ -50,7 +50,7 @@ export class DMAController implements HWIO {
 
 
     continueHdma() {
-        if (this.hDmaRemaining > 0 && !this.hDmaPaused) {
+        if (this.hDmaRemaining > 0 && this.hDmaPaused === false) {
             this.newDma(this.hDmaSourceAt, this.hDmaDestAt, 16);
             this.hDmaSourceAt += 16;
             this.hDmaDestAt += 16;
