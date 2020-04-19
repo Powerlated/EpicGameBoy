@@ -68,6 +68,9 @@ export default class GameBoy {
         return stepCycles;
     }
 
+    until = 0;
+    pending = 0;
+
     tick(cyclesRan: number) {
         let stepCycles = cyclesRan;
 
@@ -79,7 +82,15 @@ export default class GameBoy {
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.tick(cyclesRan);
         this.soundChip.tick(stepCycles);
-        this.gpu.tick(stepCycles);
+
+        this.until = this.getCyclesUntilNextSync();
+
+        this.pending += stepCycles;
+
+        if (this.pending > this.until) {
+            this.gpu.tick(this.pending);
+            this.pending = 0;
+        }
     }
 
     speedStop() {
@@ -105,7 +116,7 @@ export default class GameBoy {
         const max = 4213.440 * deltaMs * this.speedMul;
 
 
-        let i= 0;
+        let i = 0;
         while (i < max) {
             i += this.step();
         }
@@ -116,7 +127,6 @@ export default class GameBoy {
     }
 
     getCyclesUntilNextSync(): number {
-        let timer = Timer.TimerSpeeds[this.timer.control.speed];
         let gpu = 0;
         switch (this.gpu.lcdStatus.mode) {
             // OAM Mode
@@ -149,15 +159,7 @@ export default class GameBoy {
                 break;
         }
 
-        // If there's no hardware waiting for sync, just sync in 256 cycles
-        let final = 256;
-        if (this.timer.control.running && this.gpu.lcdControl.lcdDisplayEnable7) {
-            final = Math.min(timer, gpu);
-        } else if (this.gpu.lcdControl.lcdDisplayEnable7) {
-            final = gpu;
-        }
-
-        return final;
+        return gpu;
     }
 
     reset() {

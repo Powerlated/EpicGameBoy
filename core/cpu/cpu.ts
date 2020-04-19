@@ -278,7 +278,7 @@ export default class CPU {
 
         const c = this.cycles;
 
-        if (this.scheduleEnableInterruptsForNextTick) {
+        if (this.scheduleEnableInterruptsForNextTick === true) {
             this.scheduleEnableInterruptsForNextTick = false;
             this.gb.interrupts.masterEnabled = true;
 
@@ -409,14 +409,8 @@ export default class CPU {
                 // 2 M-cycles doing nothing
                 this.tick(8);
 
-                const pcUpperByte = ((this.pc) & 0xFFFF) >> 8;
-                const pcLowerByte = ((this.pc) & 0xFFFF) & 0xFF;
-
-                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-                this.write_tick(this.reg.sp, pcUpperByte);
-                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-                this.write_tick(this.reg.sp, pcLowerByte);
-
+                this.push_tick(this.pc);
+                
                 // Setting PC takes 1 M-cycle
                 this.tick(4);
 
