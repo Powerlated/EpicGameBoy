@@ -320,15 +320,7 @@ export default class CPU {
                 this.haltBug = true;
             }
 
-            const b0 = this.read_tick(this.pc + 0);
-
-            let length: number;
-            if (b0 !== 0xCB) {
-                length = UNPREFIXED_EXECUTORS[b0](this);
-            } else {
-                const b1 = this.read_tick(this.pc + 1);
-                length = CB_PREFIXED_EXECUTORS[b1](this);
-            }
+            let length = UNPREFIXED_EXECUTORS[this.read_tick(this.pc)](this);
 
             if (this.haltBug === false) {
                 this.pc += length;

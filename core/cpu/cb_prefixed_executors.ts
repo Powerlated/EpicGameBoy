@@ -6,7 +6,7 @@ const CB_PREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default CB_PREFIXED_EXECUTORS;
 
 export function RLC_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const leftmostBit = (value & 0b10000000) >> 7;
@@ -24,7 +24,7 @@ export function RLC_R8(this: number, cpu: CPU): number {
 
 // RRC r8
 export function RRC_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const rightmostBit = (value & 1) << 7;
@@ -42,7 +42,7 @@ export function RRC_R8(this: number, cpu: CPU): number {
 
 // RL r8
 export function RL_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const carryMask = (cpu.reg.f & 0b00010000) >> 4;
@@ -61,7 +61,7 @@ export function RL_R8(this: number, cpu: CPU): number {
 
 // RR r8
 export function RR_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const carryMask = (cpu.reg.f & 0b00010000) << 3;
@@ -80,7 +80,7 @@ export function RR_R8(this: number, cpu: CPU): number {
 
 // SLA r8
 export function SLA_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const newValue = (value << 1) & 0xFF;
@@ -98,7 +98,7 @@ export function SLA_R8(this: number, cpu: CPU): number {
 
 // SRA r8
 export function SRA_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const leftmostBit = value & 0b10000000;
@@ -116,7 +116,7 @@ export function SRA_R8(this: number, cpu: CPU): number {
 
 // SWAP r8
 export function SWAP_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const lowerNybble = value & 0b00001111;
@@ -134,7 +134,7 @@ export function SWAP_R8(this: number, cpu: CPU): number {
 
 // SRL r8
 export function SRL_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
+    const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
     const newValue = value >> 1;
@@ -151,8 +151,8 @@ export function SRL_R8(this: number, cpu: CPU): number {
 
 // BIT r8
 export function BIT_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
-    const bit = ((this as number) & 0b111000) >> 3;
+    const t: R8 = this & 0b111;
+    const bit = (this & 0b111000) >> 3;
 
     const value = cpu.reg[t];
 
@@ -165,8 +165,8 @@ export function BIT_R8(this: number, cpu: CPU): number {
 
 // RES r8
 export function RES_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
-    const bit = ((this as number) & 0b111000) >> 3;
+    const t: R8 = this & 0b111;
+    const bit = (this & 0b111000) >> 3;
 
     const value = cpu.reg[t];
     const mask = 0b1 << bit;
@@ -180,8 +180,8 @@ export function RES_R8(this: number, cpu: CPU): number {
 
 // SET r8
 export function SET_R8(this: number, cpu: CPU): number {
-    const t: R8 = (this as number) & 0b111;
-    const bit = ((this as number) & 0b111000) >> 3;
+    const t: R8 = this & 0b111;
+    const bit = (this & 0b111000) >> 3;
 
     const value = cpu.reg[t];
     const mask = 0b1 << bit;

@@ -149,7 +149,9 @@ export default class GameBoy {
 
             // Vblank
             case 1:
-                gpu = 456 - this.gpu.lineClock;
+                // For the last line, no skip
+                if (this.gpu.lY < 152)
+                    gpu = 456 - this.gpu.lineClock;
                 break;
 
             // Line 153

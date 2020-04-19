@@ -1,8 +1,10 @@
 import CPU, { R16, R8, CC } from "./cpu";
 import { unTwo8b } from "../../src/gameboy/tools/util";
 import GameBoy from "../gameboy";
+import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
 
-export type Executor = (cpu: CPU) => number;
+export type IncrementPCBy = number;
+export type Executor = (cpu: CPU) => IncrementPCBy;
 
 const UNPREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default UNPREFIXED_EXECUTORS;
@@ -1102,8 +1104,10 @@ UNPREFIXED_EXECUTORS[0xF4] = INVALID;
 UNPREFIXED_EXECUTORS[0xFC] = INVALID;
 UNPREFIXED_EXECUTORS[0xFD] = INVALID;
 
-// This is the 0xCB prefix but it is never going to get executed so stub it with NOP
-UNPREFIXED_EXECUTORS[0xCB] = NOP;
+// Fetch a byte and forward it to 0xCB executors
+UNPREFIXED_EXECUTORS[0xCB] = function (this: number, cpu: CPU): number {
+    return CB_PREFIXED_EXECUTORS[cpu.read_tick(cpu.pc + 1)](cpu);
+};
 
 for (let i = 0; i < 256; i++) {
     UNPREFIXED_EXECUTORS[i] = UNPREFIXED_EXECUTORS[i].bind(i);
