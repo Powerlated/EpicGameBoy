@@ -3,11 +3,16 @@ import { VideoPlugin } from "../../core/video/videoplugin";
 
 export default class GPUCanvas implements VideoPlugin {
     ctxGameboy: CanvasRenderingContext2D;
-    ctxTileset: CanvasRenderingContext2D;
+    ctxTileset: CanvasRenderingContext2D | null;
 
-    constructor(cGameboy: HTMLCanvasElement, cTileset: HTMLCanvasElement) {
+    constructor(cGameboy: HTMLCanvasElement, cTileset?: HTMLCanvasElement) {
         this.ctxGameboy = cGameboy.getContext("2d")!;
-        this.ctxTileset = cTileset.getContext("2d")!;
+
+        if (cTileset) {
+            this.ctxTileset = cTileset.getContext("2d")!;
+        } else {
+            this.ctxTileset = null;
+        }
     }
 
     clearScreen() {
@@ -22,7 +27,9 @@ export default class GPUCanvas implements VideoPlugin {
     }
 
     drawTileset(data: ImageData) {
-        this.ctxTileset.putImageData(data, 0, 0);
+        if (this.ctxTileset !== null) {
+            this.ctxTileset.putImageData(data, 0, 0);
+        }
 
         // this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
         // // 0: Bottom half used, 1: Top half used
