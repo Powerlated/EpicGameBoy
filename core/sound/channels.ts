@@ -15,9 +15,7 @@ export class PulseChannel implements BasicChannel {
 
     frequencyUpper = 0; // Frequency = 131072/(2048-x) Hz
     frequencyLower = 0;
-    oldFrequencyLower = 0;
-    oldFrequencyHz = 0;
-
+    
     volume = 0; // 4-bit value 0-15
     volumeEnvelopeUp = false;
     volumeEnvelopeSweep = 4;

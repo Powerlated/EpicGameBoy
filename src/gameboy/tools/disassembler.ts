@@ -112,18 +112,6 @@ export default class Disassembler {
 
                 case LD_iN16_SP: return ["LD", `($${hexN(doublet, 4)}),SP`];
 
-                case CALL: return ["CALL", `$${hexN(doublet, 4)}`];
-                case RET: return ["RET", `$${hexN(doublet, 4)}`];
-
-                case JP: return ["JP", `$${hexN(doublet, 4)}`];
-
-                case HALT: return ["HALT"];
-
-                case RLCA: return ["RLCA"];
-                case RRCA: return ["RRCA"];
-                case RRA: return ["RRA"];
-                case RLA: return ["RLA"];
-
                 case LD_A_iHLinc: return ["LD", "A,(HL+)"];
                 case LD_iN16_A: return ["LD", `($${hexN(doublet, 4)}),A`];
                 case LD_A_iN16: return ["LD", `A,($${hexN(doublet, 4)})`];
