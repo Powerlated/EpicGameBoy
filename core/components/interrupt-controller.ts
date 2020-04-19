@@ -53,6 +53,10 @@ class InterruptFlag {
 
     numerical = 0;
 
+    getNumerical(): number {
+        return this.numerical;
+    }
+
     setNumerical(i: number) {
         this.vblank = (i & (1 << 0)) !== 0;
         this.lcdStat = (i & (1 << 1)) !== 0;

@@ -640,7 +640,9 @@ class GPU implements HWIO {
     }
 
     writeOam(index: number, value: number) {
-        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
+        index -= 0xFE00;
+
+        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {    
             if (this.oam[index] !== value) {
                 this.oam[index] = value;
 
@@ -650,6 +652,8 @@ class GPU implements HWIO {
     }
 
     readOam(index: number): number {
+        index -= 0xFE00;
+
         if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
             return this.oam[index];
         } else {

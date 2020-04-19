@@ -71,21 +71,15 @@ class MemoryBus {
         }
     }
 
-    read(addr: number): number {
-        const cheat = this.cheats[addr];
-        if (cheat !== null) {
-            return cheat;
-        }
-
-        else if (this.bootromEnabled && addr < 0x100) {
+    readBootrom(addr: number): number {
+        if (addr >= 0x0000 && addr < 0x100) {
             return this.bootrom[addr];
+        } else {
+            return 0xFF;
         }
+    }
 
-        // Read from ROM through External Bus
-        else if (addr < 0x8000) {
-            return this.ext.mbc.read(addr);
-        }
-
+    readWorkRam(addr: number): number {
         // Echo RAM
         if (addr >= 0xE000 && addr <= 0xFDFF) {
             addr -= 8192;
@@ -98,14 +92,44 @@ class MemoryBus {
             return this.workRamBank[addr - 0xD000];
         }
 
-        // Read from External RAM through External Bus
-        else if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.ext.mbc.read(addr);
+        return 0xFF;
+    }
+
+    writeWorkRam(addr: number, value: number) {
+        // Echo RAM
+        if (addr >= 0xE000 && addr <= 0xFDFF) {
+            addr -= 8192;
         }
 
-        // Read from High RAM
-        else if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            return this.highRam[addr - 0xFF80];
+        // Write to Internal RAM 
+        if (addr >= 0xC000 && addr <= 0xCFFF) {
+            this.workRamBanks[0][addr - 0xC000] = value;
+        } else if (addr >= 0xD000 && addr <= 0xDFFF) {
+            this.workRamBank[addr - 0xD000] = value;
+        }
+    }
+
+    readHighRam(addr: number) {
+        return this.highRam[addr - 0xFF80];
+    }
+
+    writeHighRam(addr: number, value: number) {
+        this.highRam[addr - 0xFF80] = value;
+    }
+
+    read(addr: number): number {
+        // const cheat = this.cheats[addr];
+        // if (cheat !== null) {
+        //     return cheat;
+        // }
+
+        if (this.bootromEnabled && addr < 0x100) {
+            return this.readBootrom(addr);
+        }
+
+        // Read from ROM through External Bus
+        else if (addr < 0x8000) {
+            return this.ext.mbc.read(addr);
         }
 
         // Return from VRAM
@@ -113,14 +137,28 @@ class MemoryBus {
             return this.gb.gpu.read(addr);
         }
 
+        // Read from External RAM through External Bus
+        else if (addr >= 0xA000 && addr <= 0xBFFF) {
+            return this.ext.mbc.read(addr);
+        }
+
+        else if (addr >= 0xC000 && addr <= 0xFDFF) {
+            return this.readWorkRam(addr);
+        }
+
         // Read from OAM
         else if (addr >= 0xFE00 && addr <= 0xFE9F) {
-            return this.gb.gpu.readOam(addr - 0xFE00);
+            return this.gb.gpu.readOam(addr);
+        }
+
+        // Read from High RAM
+        else if (addr >= 0xFF80 && addr <= 0xFFFE) {
+            return this.readHighRam(addr);
         }
 
         // GET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.gb.interrupts.enabled.numerical;
+            return this.gb.interrupts.enabled.getNumerical();
         }
 
         // Hardware I/O registers
@@ -129,6 +167,57 @@ class MemoryBus {
         }
         return 0xFF;
     }
+
+
+    write(addr: number, value: number): void {
+        // ROM Write (MBC Control)
+        if (addr < 0x8000) {
+            this.ext.mbc.write(addr, value);
+            return;
+        }
+
+        // Write to VRAM
+        else if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
+            // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
+            this.gb.gpu.write(addr, value);
+        }
+
+        // Write from External RAM through External Bus
+        else if (addr >= 0xA000 && addr <= 0xBFFF) {
+            this.ext.mbc.write(addr, value);
+        }
+
+        else if (addr >= 0xC000 && addr <= 0xFDFF) {
+            this.writeWorkRam(addr, value);
+        }
+
+        // Write to High RAM
+        else if (addr >= 0xFF80 && addr <= 0xFFFE) {
+            this.writeHighRam(addr, value);
+        }
+
+        // SET Interrupt request flags
+        else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+            this.gb.interrupts.requested.setNumerical(value);
+        }
+
+        // SET Interrupt enable flags
+        else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
+            this.gb.interrupts.enabled.setNumerical(value);
+        }
+
+        // Write to OAM
+        else if (addr >= 0xFE00 && addr <= 0xFE9F) {
+            this.gb.gpu.writeOam(addr, value);
+            // writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
+        }
+
+        // Hardware I/O registers
+        else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
+            this.writeHwio(addr, value);
+        }
+    }
+
 
     readHwio(addr: number) {
         switch (addr) {
@@ -167,63 +256,6 @@ class MemoryBus {
         }
 
         return 0xFF;
-    }
-
-    write(addr: number, value: number): void {
-        // ROM Write (MBC Control)
-        if (addr < 0x8000) {
-            this.ext.mbc.write(addr, value);
-            return;
-        }
-
-        // Echo RAM
-        if (addr >= 0xE000 && addr <= 0xFDFF) {
-            addr -= 8192;
-        }
-
-        // Write to Internal RAM 
-        if (addr >= 0xC000 && addr <= 0xCFFF) {
-            this.workRamBanks[0][addr - 0xC000] = value;
-        } else if (addr >= 0xD000 && addr <= 0xDFFF) {
-            this.workRamBank[addr - 0xD000] = value;
-        }
-
-        // Write from External RAM through External Bus
-        else if (addr >= 0xA000 && addr <= 0xBFFF) {
-            this.ext.mbc.write(addr, value);
-        }
-
-        // Write to High RAM
-        else if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            this.highRam[addr - 0xFF80] = value;
-        }
-
-        // SET Interrupt request flags
-        else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            this.gb.interrupts.requested.setNumerical(value);
-        }
-
-        // SET Interrupt enable flags
-        else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            this.gb.interrupts.enabled.setNumerical(value);
-        }
-
-        // Write to VRAM
-        else if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
-            // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
-            this.gb.gpu.write(addr, value);
-        }
-
-        // Write to OAM
-        else if (addr >= 0xFE00 && addr <= 0xFE9F) {
-            this.gb.gpu.writeOam(addr - 0xFE00, value);
-            // writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
-        }
-
-        // Hardware I/O registers
-        else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            this.writeHwio(addr, value);
-        }
     }
 
     writeHwio(addr: number, value: number) {
