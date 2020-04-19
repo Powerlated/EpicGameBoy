@@ -54,7 +54,7 @@ export default class GameBoy {
             this.cpuPausedTCyclesRemaining = 0;
             this.tick(this.cpuPausedTCyclesRemaining);
         } else {
-            lastInstructionCycles = this.cpu.step();
+            lastInstructionCycles = this.cpu.execute();
         }
 
         cyclesRan += lastInstructionCycles;
@@ -77,9 +77,9 @@ export default class GameBoy {
 
         if (this.doubleSpeed === true) stepCycles >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
-        this.timer.step(cyclesRan);
-        this.soundChip.step(stepCycles);
-        this.gpu.step(stepCycles);
+        this.timer.tick(cyclesRan);
+        this.soundChip.tick(stepCycles);
+        this.gpu.tick(stepCycles);
     }
 
     speedStop() {

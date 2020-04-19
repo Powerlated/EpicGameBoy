@@ -70,7 +70,7 @@ export default class Timer implements HWIO {
      * When counter (TIMA) overflows, it stays 0x00 for a full M-cycle before
      * firing the interrupt and reloading with modulo. 
      */
-    step(cycles: number) {
+    tick(cycles: number) {
         while (cycles > 0) {
             // if (cycles >= 8) {
             //     cycles -= 8;

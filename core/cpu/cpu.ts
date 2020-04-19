@@ -271,7 +271,7 @@ export default class CPU {
         }
     }
 
-    step(): number {
+    execute(): number {
         if (this.invalidOpcodeExecuted) {
             this.tick(4);
         }

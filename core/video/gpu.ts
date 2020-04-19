@@ -294,7 +294,7 @@ class GPU implements HWIO {
     currentScanlineDirty = false;
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
-    step(cycles: number) {
+    tick(cycles: number) {
         // THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
         // You don't have to be cycle-accurate for everything
 

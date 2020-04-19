@@ -30,7 +30,7 @@ export default class SoundChip implements HWIO {
 
     soundRegisters = new Uint8Array(65536).fill(0);
 
-    step(cycles: number) {
+    tick(cycles: number) {
         // #region CLOCK
         if (this.enabled) {
             this.clockFrameSequencer += cycles;
