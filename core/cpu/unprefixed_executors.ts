@@ -1072,7 +1072,7 @@ export function RST(cpu: CPU, b0: number): number {
 
     cpu.tick(4);
 
-    cpu.push_tick(cpu.pc);
+    cpu.push_tick(cpu.pc + 1);
 
     cpu.pc = target - 1;
 
