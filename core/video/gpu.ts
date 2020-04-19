@@ -594,7 +594,7 @@ class GPU implements HWIO {
         this.lineClock = 0;
         this.lcdStatus.mode = 0;
         this.lY = 0;
-        
+
         this.windowYpos = 0;
         this.windowXpos = 0;
 
@@ -640,15 +640,21 @@ class GPU implements HWIO {
     }
 
     writeOam(index: number, value: number) {
-        if (this.oam[index] !== value) {
-            this.oam[index] = value;
+        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
+            if (this.oam[index] !== value) {
+                this.oam[index] = value;
 
-            this.dirtySprites[index >> 2] = true;
+                this.dirtySprites[index >> 2] = true;
+            }
         }
     }
 
     readOam(index: number): number {
-        return this.oam[index];
+        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
+            return this.oam[index];
+        } else {
+            return 0xFF;
+        }
     }
 
     read(index: number): number {
