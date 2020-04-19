@@ -5,8 +5,8 @@ import { R8 } from "./cpu";
 const CB_PREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default CB_PREFIXED_EXECUTORS;
 
-export function RLC_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function RLC_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const leftmostBit = (value & 0b10000000) >> 7;
@@ -23,8 +23,8 @@ export function RLC_R8(cpu: CPU, b1: number): number {
 };
 
 // RRC r8
-export function RRC_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function RRC_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const rightmostBit = (value & 1) << 7;
@@ -41,8 +41,8 @@ export function RRC_R8(cpu: CPU, b1: number): number {
 };
 
 // RL r8
-export function RL_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function RL_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const carryMask = (cpu.reg.f & 0b00010000) >> 4;
@@ -60,8 +60,8 @@ export function RL_R8(cpu: CPU, b1: number): number {
 };
 
 // RR r8
-export function RR_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function RR_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const carryMask = (cpu.reg.f & 0b00010000) << 3;
@@ -79,8 +79,8 @@ export function RR_R8(cpu: CPU, b1: number): number {
 };
 
 // SLA r8
-export function SLA_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function SLA_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const newValue = (value << 1) & 0xFF;
@@ -97,8 +97,8 @@ export function SLA_R8(cpu: CPU, b1: number): number {
 };
 
 // SRA r8
-export function SRA_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function SRA_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const leftmostBit = value & 0b10000000;
@@ -115,8 +115,8 @@ export function SRA_R8(cpu: CPU, b1: number): number {
 };
 
 // SWAP r8
-export function SWAP_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function SWAP_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const lowerNybble = value & 0b00001111;
@@ -133,8 +133,8 @@ export function SWAP_R8(cpu: CPU, b1: number): number {
 };
 
 // SRL r8
-export function SRL_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
+export function SRL_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
     const value = cpu.reg[t];
 
     const newValue = value >> 1;
@@ -150,9 +150,9 @@ export function SRL_R8(cpu: CPU, b1: number): number {
 };
 
 // BIT r8
-export function BIT_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
-    const bit = (b1 & 0b111000) >> 3;
+export function BIT_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
+    const bit = ((this as number) & 0b111000) >> 3;
 
     const value = cpu.reg[t];
 
@@ -164,9 +164,9 @@ export function BIT_R8(cpu: CPU, b1: number): number {
 };
 
 // RES r8
-export function RES_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
-    const bit = (b1 & 0b111000) >> 3;
+export function RES_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
+    const bit = ((this as number) & 0b111000) >> 3;
 
     const value = cpu.reg[t];
     const mask = 0b1 << bit;
@@ -179,9 +179,9 @@ export function RES_R8(cpu: CPU, b1: number): number {
 };
 
 // SET r8
-export function SET_R8(cpu: CPU, b1: number): number {
-    const t: R8 = b1 & 0b111;
-    const bit = (b1 & 0b111000) >> 3;
+export function SET_R8(this: number, cpu: CPU): number {
+    const t: R8 = (this as number) & 0b111;
+    const bit = ((this as number) & 0b111000) >> 3;
 
     const value = cpu.reg[t];
     const mask = 0b1 << bit;
@@ -213,3 +213,8 @@ for (let i = 0; i < 256; i++) {
         CB_PREFIXED_EXECUTORS[i] = SET_R8;
     }
 }
+
+for (let i = 0; i < 256; i++) {
+    CB_PREFIXED_EXECUTORS[i] = CB_PREFIXED_EXECUTORS[i].bind(i);
+}
+

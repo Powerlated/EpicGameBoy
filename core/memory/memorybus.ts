@@ -123,7 +123,7 @@ class MemoryBus {
         //     return cheat;
         // }
 
-        if (this.bootromEnabled && addr < 0x100) {
+        if (this.bootromEnabled === true && addr < 0x100) {
             return this.readBootrom(addr);
         }
 

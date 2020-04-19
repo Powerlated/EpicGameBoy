@@ -301,9 +301,72 @@ class GPU implements HWIO {
         // You don't have to be cycle-accurate for everything
 
 
-        if (this.lcdControl.lcdDisplayEnable7) {
+        if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
+                // Hblank
+                case 0:
+                    if (this.lineClock >= 204) {
+                        this.lineClock -= 204;
+
+                        // Reset scanline specific flags
+                        this.bgDrawn = false;
+                        this.windowDrawn = false;
+                        this.oamScanned = false;
+                        // this.mode3CyclesOffset = 0;
+                        this.setDirty = false;
+
+                        this.lY++;
+                        this.updateSTAT();
+
+                        // If we're at LCDCy = 144, enter Vblank
+                        // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
+                        if (this.lY >= 144) {
+                            // Fire the Vblank interrupt
+                            this.gb.interrupts.requested.vblank = true;
+                            // Draw to the canvas
+                            if (this.renderingThisFrame === true) {
+                                if (this.vp !== null) {
+                                    this.vp.drawGameboy(this.imageGameboy);
+                                }
+
+                                for (let i = 0; i < 384; i++) {
+                                    this.tilesetUpdated0[i] = false;
+                                    this.tilesetUpdated1[i] = false;
+                                }
+                            }
+
+                            this.lcdStatus.mode = 1;
+                            this.updateSTAT();
+
+                            this.totalFrameCount++;
+                        }
+                        else {
+                            // Enter back into OAM mode if not Vblank
+                            this.lcdStatus.mode = 2;
+                            this.updateSTAT();
+                        }
+                    }
+                    break;
+
+                // Vblank
+                case 1:
+                    if (this.lineClock >= 456) {
+                        this.lineClock -= 456;
+
+                        this.lY++;
+                        this.updateSTAT();
+
+                        this.currentWindowLine = 0;
+                        this.windowOnscreenYetThisFrame = false;
+
+                        if (this.lY === 153) {
+                            this.lcdStatus.mode = 5;
+                            this.updateSTAT();
+                        }
+                    }
+                    break;
+
                 // Read from OAM
                 case 2:
                     if (this.oamScanned === false) {
@@ -426,68 +489,6 @@ class GPU implements HWIO {
                     }
                     break;
 
-                // Hblank
-                case 0:
-                    if (this.lineClock >= 204) {
-                        this.lineClock -= 204;
-
-                        // Reset scanline specific flags
-                        this.bgDrawn = false;
-                        this.windowDrawn = false;
-                        this.oamScanned = false;
-                        // this.mode3CyclesOffset = 0;
-                        this.setDirty = false;
-
-                        this.lY++;
-                        this.updateSTAT();
-
-                        // If we're at LCDCy = 144, enter Vblank
-                        // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
-                        if (this.lY >= 144) {
-                            // Fire the Vblank interrupt
-                            this.gb.interrupts.requested.vblank = true;
-                            // Draw to the canvas
-                            if (this.renderingThisFrame === true) {
-                                if (this.vp !== null) {
-                                    this.vp.drawGameboy(this.imageGameboy);
-                                }
-
-                                for (let i = 0; i < 384; i++) {
-                                    this.tilesetUpdated0[i] = false;
-                                    this.tilesetUpdated1[i] = false;
-                                }
-                            }
-
-                            this.lcdStatus.mode = 1;
-                            this.updateSTAT();
-
-                            this.totalFrameCount++;
-                        }
-                        else {
-                            // Enter back into OAM mode if not Vblank
-                            this.lcdStatus.mode = 2;
-                            this.updateSTAT();
-                        }
-                    }
-                    break;
-
-                // Vblank
-                case 1:
-                    if (this.lineClock >= 456) {
-                        this.lineClock -= 456;
-
-                        this.lY++;
-                        this.updateSTAT();
-
-                        this.currentWindowLine = 0;
-                        this.windowOnscreenYetThisFrame = false;
-
-                        if (this.lY === 153) {
-                            this.lcdStatus.mode = 5;
-                            this.updateSTAT();
-                        }
-                    }
-                    break;
 
                 // Between Line 153 and Line 0, reads as mode 1 (Vblank) in LCDstatus because 5 & 3 = 1
                 case 5:
@@ -646,7 +647,7 @@ class GPU implements HWIO {
     writeOam(index: number, value: number) {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {    
+        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
             if (this.oam[index] !== value) {
                 this.oam[index] = value;
 

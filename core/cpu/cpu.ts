@@ -4,7 +4,7 @@ import Disassembler from "../../src/gameboy/tools/disassembler";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { hex, pad, hexN_LC, hexN, r_pad, assert, unTwo8b } from "../../src/gameboy/tools/util";
 import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VECTOR, JOYPAD_PRESS_VECTOR } from "../components/interrupt-controller";
-import UNPREFIXED_EXECUTORS from "./unprefixed_executors";
+import UNPREFIXED_EXECUTORS, { Executor } from "./unprefixed_executors";
 import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
 import Decoder from "./legacy_decoder";
 
@@ -324,10 +324,10 @@ export default class CPU {
 
             let length: number;
             if (b0 !== 0xCB) {
-                length = UNPREFIXED_EXECUTORS[b0](this, b0);
+                length = UNPREFIXED_EXECUTORS[b0](this);
             } else {
                 const b1 = this.read_tick(this.pc + 1);
-                length = CB_PREFIXED_EXECUTORS[b1](this, b1);
+                length = CB_PREFIXED_EXECUTORS[b1](this);
             }
 
             if (this.haltBug === false) {
