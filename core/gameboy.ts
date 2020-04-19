@@ -83,19 +83,19 @@ export default class GameBoy {
         this.timer.tick(cyclesRan);
         this.soundChip.tick(stepCycles);
 
-        this.pending += stepCycles;
+        // this.pending += stepCycles;
 
-        if (
-            this.pending >= this.until || this.gpu.catchupNow === true &&
-            (this.dma.hDmaRemaining > 0 && this.dma.hDmaPaused === false)
-        ) {
-            this.gpu.catchupNow = false;
+        // if (
+        //     this.pending >= this.until || this.gpu.catchupNow === true &&
+        //     (this.dma.hDmaRemaining > 0 && this.dma.hDmaPaused === false)
+        // ) {
+        //     this.gpu.catchupNow = false;
 
-            this.until = this.getCyclesUntilNextSync();
+        //     this.until = this.getCyclesUntilNextSync();
 
             this.gpu.tick(this.pending);
-            this.pending = 0;
-        }
+        //     this.pending = 0;
+        // }
     }
 
     speedStop() {
