@@ -93,7 +93,7 @@ export default class GameBoy {
 
         //     this.until = this.getCyclesUntilNextSync();
 
-            this.gpu.tick(this.pending);
+        this.gpu.tick(stepCycles);
         //     this.pending = 0;
         // }
     }
