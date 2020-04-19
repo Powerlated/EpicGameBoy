@@ -55,8 +55,8 @@ export default class Disassembler {
                 return cpu.reg[R16.HL];
             case RET:
             case RETI:
-                const stackLowerByte = cpu.gb.bus.readMem8((cpu.reg.sp) & 0xFFFF);
-                const stackUpperByte = cpu.gb.bus.readMem8((cpu.reg.sp + 1) & 0xFFFF);
+                const stackLowerByte = cpu.gb.bus.read((cpu.reg.sp) & 0xFFFF);
+                const stackUpperByte = cpu.gb.bus.read((cpu.reg.sp + 1) & 0xFFFF);
                 return (((stackUpperByte << 8) | stackLowerByte) - 1) & 0xFFFF;
             case JR:
                 // Offset 2 for the length of JR instruction
@@ -149,10 +149,10 @@ export default class Disassembler {
             if (ins.length === 2) {
                 if (ins.op !== JR) {
                     // Regular operation
-                    operandAndType += "$" + hexN(cpu.gb.bus.readMem8(disasmPc + 1), 2);
+                    operandAndType += "$" + hexN(cpu.gb.bus.read(disasmPc + 1), 2);
                 } else {
                     // For JR operation, calculate jump destination
-                    operandAndType += "$" + hexN(2 + disasmPc + unTwo8b(cpu.gb.bus.readMem8(disasmPc + 1)), 4);
+                    operandAndType += "$" + hexN(2 + disasmPc + unTwo8b(cpu.gb.bus.read(disasmPc + 1)), 4);
                 }
             } else if (ins.length === 3) {
                 // 16 bit
@@ -205,12 +205,12 @@ export default class Disassembler {
         let disasmPc = cpu.pc;
 
         for (let i = 0; i < READAHEAD_INSTRUCTIONS; i++) {
-            const isCB = cpu.gb.bus.readMem8(disasmPc) === 0xCB;
-            const pcTriplet = new Uint8Array([cpu.gb.bus.readMem8(disasmPc), cpu.gb.bus.readMem8(disasmPc + 1), cpu.gb.bus.readMem8(disasmPc + 2)]);
+            const isCB = cpu.gb.bus.read(disasmPc) === 0xCB;
+            const pcTriplet = new Uint8Array([cpu.gb.bus.read(disasmPc), cpu.gb.bus.read(disasmPc + 1), cpu.gb.bus.read(disasmPc + 2)]);
 
 
             // Pre-increment PC for 0xCB prefix
-            const ins = isCB ? Decoder.cbOpcode(cpu.gb.bus.readMem8(disasmPc + 1)) : Decoder.rgOpcode(cpu.gb.bus.readMem8(disasmPc));
+            const ins = isCB ? Decoder.cbOpcode(cpu.gb.bus.read(disasmPc + 1)) : Decoder.rgOpcode(cpu.gb.bus.read(disasmPc));
             const controlFlow = Disassembler.isControlFlow(ins);
 
             // Decode hexadecimal tripconst 

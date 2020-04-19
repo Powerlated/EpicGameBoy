@@ -196,47 +196,47 @@ export default class GameBoy {
 
 
 
-            this.bus.writeMem8(0xFF05, 0x00); // TIMA
-            this.bus.writeMem8(0xFF06, 0x00); // TMA
-            this.bus.writeMem8(0xFF07, 0x00); // TAC
+            this.bus.write(0xFF05, 0x00); // TIMA
+            this.bus.write(0xFF06, 0x00); // TMA
+            this.bus.write(0xFF07, 0x00); // TAC
 
-            this.bus.writeMem8(0xFF10, 0x80); // NR10 
-            this.bus.writeMem8(0xFF11, 0xBF); // NR11
-            this.bus.writeMem8(0xFF12, 0xF3); // NR12
-            this.bus.writeMem8(0xFF14, 0xBF); // NR14
+            this.bus.write(0xFF10, 0x80); // NR10 
+            this.bus.write(0xFF11, 0xBF); // NR11
+            this.bus.write(0xFF12, 0xF3); // NR12
+            this.bus.write(0xFF14, 0xBF); // NR14
 
-            this.bus.writeMem8(0xFF16, 0x3F); // NR21
-            this.bus.writeMem8(0xFF17, 0x00); // NR22
-            this.bus.writeMem8(0xFF19, 0x00); // NR24
+            this.bus.write(0xFF16, 0x3F); // NR21
+            this.bus.write(0xFF17, 0x00); // NR22
+            this.bus.write(0xFF19, 0x00); // NR24
 
-            this.bus.writeMem8(0xFF1A, 0x7F); // NR30
-            this.bus.writeMem8(0xFF1B, 0xFF); // NR31
-            this.bus.writeMem8(0xFF1C, 0x9F); // NR32
-            this.bus.writeMem8(0xFF1E, 0xBF); // NR33
+            this.bus.write(0xFF1A, 0x7F); // NR30
+            this.bus.write(0xFF1B, 0xFF); // NR31
+            this.bus.write(0xFF1C, 0x9F); // NR32
+            this.bus.write(0xFF1E, 0xBF); // NR33
 
-            this.bus.writeMem8(0xFF20, 0xFF); // NR41
-            this.bus.writeMem8(0xFF21, 0x00); // NR42
-            this.bus.writeMem8(0xFF22, 0x00); // NR43
-            this.bus.writeMem8(0xFF23, 0xBF); // NR44
+            this.bus.write(0xFF20, 0xFF); // NR41
+            this.bus.write(0xFF21, 0x00); // NR42
+            this.bus.write(0xFF22, 0x00); // NR43
+            this.bus.write(0xFF23, 0xBF); // NR44
 
-            this.bus.writeMem8(0xFF24, 0x77); // NR50
-            this.bus.writeMem8(0xFF25, 0xF3); // NR51
+            this.bus.write(0xFF24, 0x77); // NR50
+            this.bus.write(0xFF25, 0xF3); // NR51
 
 
-            this.bus.writeMem8(0xFF26, 0xF1); // - GB, $F0 - SGB; NR52
-            this.bus.writeMem8(0xFF40, 0x91); // LCDC
-            this.bus.writeMem8(0xFF42, 0x00); // SCY
-            this.bus.writeMem8(0xFF43, 0x00); // SCX
-            this.bus.writeMem8(0xFF45, 0x00); // LYC
-            this.bus.writeMem8(0xFF47, 0xFC); // BGP
-            this.bus.writeMem8(0xFF48, 0xFF); // OBP0
-            this.bus.writeMem8(0xFF49, 0xFF); // OBP1
-            this.bus.writeMem8(0xFF4A, 0x00); // WY
-            this.bus.writeMem8(0xFF4B, 0x00); // WX
-            this.bus.writeMem8(0xFFFF, 0x00); // IE;
+            this.bus.write(0xFF26, 0xF1); // - GB, $F0 - SGB; NR52
+            this.bus.write(0xFF40, 0x91); // LCDC
+            this.bus.write(0xFF42, 0x00); // SCY
+            this.bus.write(0xFF43, 0x00); // SCX
+            this.bus.write(0xFF45, 0x00); // LYC
+            this.bus.write(0xFF47, 0xFC); // BGP
+            this.bus.write(0xFF48, 0xFF); // OBP0
+            this.bus.write(0xFF49, 0xFF); // OBP1
+            this.bus.write(0xFF4A, 0x00); // WY
+            this.bus.write(0xFF4B, 0x00); // WX
+            this.bus.write(0xFFFF, 0x00); // IE;
 
             // Make a write to disable the bootrom
-            this.bus.writeMem8(0xFF50, 1);
+            this.bus.write(0xFF50, 1);
         }
     }
 }

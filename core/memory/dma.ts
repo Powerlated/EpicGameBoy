@@ -43,7 +43,7 @@ export class DMAController implements HWIO {
             if (startAddr === 0xFE00) {
                 this.gb.gpu.writeOam(i, this.gb.bus.ext.mbc.read(startAddr + i));
             } else { // General bus read
-                this.gb.gpu.writeOam(i, this.gb.bus.readMem8(startAddr + i));
+                this.gb.gpu.writeOam(i, this.gb.bus.read(startAddr + i));
             }
         }
     }
@@ -79,7 +79,7 @@ export class DMAController implements HWIO {
     newDma(startAddr: number, destination: number, length: number) {
         this.gb.cpuPausedTCyclesRemaining += 8 * (this.newDmaLength >> 4);
         for (let i = 0; i < length; i++) {
-            this.gb.gpu.write(destination, this.gb.bus.readMem8(startAddr));
+            this.gb.gpu.write(destination, this.gb.bus.read(startAddr));
             startAddr++;
             destination++;
         }

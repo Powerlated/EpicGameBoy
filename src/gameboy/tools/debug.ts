@@ -90,7 +90,7 @@ function updateDebug() {
                 BC: ${hex(cpu.reg[R16.BC], 4)} ${pad(cpu.reg[R8.B].toString(2), 8, '0')} ${pad(cpu.reg[R8.C].toString(2), 8, '0')}
                 DE: ${hex(cpu.reg[R16.DE], 4)} ${pad(cpu.reg[R8.D].toString(2), 8, '0')} ${pad(cpu.reg[R8.E].toString(2), 8, '0')}
                 HL: ${hex(cpu.reg[R16.HL], 4)} ${pad(cpu.reg[R8.H].toString(2), 8, '0')} ${pad(cpu.reg[R8.L].toString(2), 8, '0')}
-                [HL]: ${hex(gb.bus.readMem8(cpu.reg[R16.HL]), 2)}
+                [HL]: ${hex(gb.bus.read(cpu.reg[R16.HL]), 2)}
                 </span>------------------------------
                 Scroll X/Y: ${gpu.scrX}/${gpu.scrY}
                 Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}

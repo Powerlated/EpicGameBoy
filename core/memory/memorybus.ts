@@ -71,7 +71,7 @@ class MemoryBus {
         }
     }
 
-    readMem8(addr: number): number {
+    read(addr: number): number {
         const cheat = this.cheats[addr];
         if (cheat !== null) {
             return cheat;
@@ -169,7 +169,7 @@ class MemoryBus {
         return 0xFF;
     }
 
-    writeMem8(addr: number, value: number): void {
+    write(addr: number, value: number): void {
         // ROM Write (MBC Control)
         if (addr < 0x8000) {
             this.ext.mbc.write(addr, value);
@@ -268,7 +268,7 @@ class MemoryBus {
     }
 
     readMem16(addr: number) {
-        return this.readMem8(addr) | this.readMem8(addr + 1) << 8;
+        return this.read(addr) | this.read(addr + 1) << 8;
     }
 
     reset() {

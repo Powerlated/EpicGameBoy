@@ -14,8 +14,8 @@ function undefErr(cpu: CPU, name: string) {
     
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
-    Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.readMem8(cpu.pc)].name}
+    Opcode: 0x${cpu.gb.bus.read(cpu.pc).toString(16)}
+    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.read(cpu.pc)].name}
     `);
 }
 
@@ -25,8 +25,8 @@ function overflow8bErr(cpu: CPU, name: string, overflow: any) {
     
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
-    Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.readMem8(cpu.pc)].name}
+    Opcode: 0x${cpu.gb.bus.read(cpu.pc).toString(16)}
+    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.read(cpu.pc)].name}
     `);
 }
 
@@ -36,8 +36,8 @@ function overflow16bErr(cpu: CPU, name: string, overflow: any) {
     
     Total Instructions: #${cpu.totalI}
     PC: 0x${cpu.pc.toString(16)}
-    Opcode: 0x${cpu.gb.bus.readMem8(cpu.pc).toString(16)}
-    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.readMem8(cpu.pc)].name}
+    Opcode: 0x${cpu.gb.bus.read(cpu.pc).toString(16)}
+    Op: ${UNPREFIXED_EXECUTORS[cpu.gb.bus.read(cpu.pc)].name}
     `);
 }
 
@@ -246,12 +246,12 @@ export default class CPU {
         // The CPU can only access high RAM during OAM DMA
         if (this.gb.oamDmaCyclesRemaining > 0 && this.gb.oamDmaCyclesRemaining <= 640) {
             if (addr >= 0xFF80 && addr <= 0xFFFE) {
-                return this.gb.bus.readMem8(addr);
+                return this.gb.bus.read(addr);
             } else {
                 return 0xFF;
             }
         } else {
-            return this.gb.bus.readMem8(addr);
+            return this.gb.bus.read(addr);
         }
     }
 
@@ -264,10 +264,10 @@ export default class CPU {
         this.tick(4);
         if (this.gb.oamDmaCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
-                this.gb.bus.writeMem8(addr, value);
+                this.gb.bus.write(addr, value);
             }
         } else {
-            this.gb.bus.writeMem8(addr, value);
+            this.gb.bus.write(addr, value);
         }
     }
 
@@ -434,15 +434,15 @@ export default class CPU {
     }
 
     stepDebug() {
-        const isCB = this.gb.bus.readMem8(this.pc) === 0xCB;
+        const isCB = this.gb.bus.read(this.pc) === 0xCB;
 
-        const ins = isCB ? Decoder.cbOpcode(this.gb.bus.readMem8(this.pc + 1)) : Decoder.rgOpcode(this.gb.bus.readMem8(this.pc));
+        const ins = isCB ? Decoder.cbOpcode(this.gb.bus.read(this.pc + 1)) : Decoder.rgOpcode(this.gb.bus.read(this.pc));
 
         if (!ins) {
-            alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.readMem8(this.pc + 1)), 4) : hex(this.gb.bus.readMem8(this.pc), 2)} is a null op`);
+            alert(`[DEBUGGER] Implementation error: ${isCB ? hex((0xCB << 8 | this.gb.bus.read(this.pc + 1)), 4) : hex(this.gb.bus.read(this.pc), 2)} is a null op`);
         }
 
-        const opcode = isCB ? this.gb.bus.readMem8(this.pc + 1) : this.gb.bus.readMem8(this.pc);
+        const opcode = isCB ? this.gb.bus.read(this.pc + 1) : this.gb.bus.read(this.pc);
 
         if (opcode === this.lastOpcode) {
             this.lastOpcodeReps++;
@@ -468,11 +468,11 @@ export default class CPU {
 
         if (this.debugging) {
             console.debug(`PC: ${this.pc}`);
-            writeDebug(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.readMem8(this.pc).toString(16), 2, '0'));
+            writeDebug(`[OPcode: ${hex(this.gb.bus.readMem16(this.pc), 2)}, OP: ${ins.op.name}] ${isCB ? "[0xCB Prefix] " : ""}Executing op: 0x` + pad(this.gb.bus.read(this.pc).toString(16), 2, '0'));
             writeDebug("Instruction length: " + ins.length);
         }
 
-        const pcTriplet = Uint8Array.of(this.gb.bus.readMem8(this.pc + 0), this.gb.bus.readMem8(this.pc + 1), this.gb.bus.readMem8(this.pc + 2));
+        const pcTriplet = Uint8Array.of(this.gb.bus.read(this.pc + 0), this.gb.bus.read(this.pc + 1), this.gb.bus.read(this.pc + 2));
 
         if (this.logging) {
 
