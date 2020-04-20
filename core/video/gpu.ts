@@ -255,7 +255,7 @@ class GPU implements HWIO {
     dmgObj1Palette = 0;
 
     imageGameboyPre = new Uint8Array(160);
-    imageGameboyNoSprites = new Uint8Array(160);
+    imageGameboyNoSprites: boolean[] = new Array(160).fill(false);
     imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
     imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
@@ -619,7 +619,7 @@ class GPU implements HWIO {
         this.dmgObj1Palette = 0;
 
         this.imageGameboyPre = new Uint8Array(160);
-        this.imageGameboyNoSprites = new Uint8Array(160);
+        this.imageGameboyNoSprites = new Array(160).fill(false);
         this.imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
         this.imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
@@ -958,7 +958,7 @@ class GPU implements HWIO {
         let imgIndex = 160 * 4 * (this.lY);
 
         const xPos = this.windowXpos - 7; // Get the real X position of the window
-        const endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos ? xPos : 160;
+        let endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos && xPos <= 160 ? xPos : 160;
 
         let adjY: number;
         let tileRow: Uint8Array;
@@ -998,12 +998,14 @@ class GPU implements HWIO {
                     if (pixel >= endAt) return;
                     if (pixel >= 0) {
                         prePalette = tileRow[attr.xFlip ? 7 - i : i];
+
+                        imageGameboyPre[pixel] = prePalette;
+                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+
                         color = palette[prePalette];
                         img[imgIndex + 0] = color[0];
                         img[imgIndex + 1] = color[1];
                         img[imgIndex + 2] = color[2];
-                        imageGameboyPre[pixel] = prePalette;
-                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
 
                         imgIndex += 4;
                     }
@@ -1067,13 +1069,14 @@ class GPU implements HWIO {
                     for (let i = 0; i < 8; i++) {
                         if (pixel >= 160) return;
                         prePalette = tileRow[attr.xFlip ? 7 - i : i];
+
+                        imageGameboyPre[pixel] = prePalette;
+                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+
                         color = palette[prePalette];
                         img[imgIndex + 0] = color[0];
                         img[imgIndex + 1] = color[1];
                         img[imgIndex + 2] = color[2];
-                        imageGameboyPre[pixel] = prePalette;
-                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
-
                         imgIndex += 4;
                         pixel++;
                     }
@@ -1212,7 +1215,7 @@ class GPU implements HWIO {
                 let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
                 if (noTransparency === false) {
                     if (flags.behindBG && this.imageGameboyPre[screenXPos] !== 0) { imgIndex += 4; continue; }
-                    if (this.imageGameboyNoSprites[screenXPos] === 1) { imgIndex += 4; continue; }
+                    if (this.imageGameboyNoSprites[screenXPos] === true) { imgIndex += 4; continue; }
                 }
 
                 this.imageGameboy.data[imgIndex + 0] = pixel[0];
