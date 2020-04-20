@@ -255,8 +255,8 @@ class GPU implements HWIO {
     dmgObj0Palette = 0;
     dmgObj1Palette = 0;
 
-    imageGameboyPre = new Uint8Array(160 * 144);
-    imageGameboyNoSprites = new Uint8Array(160 * 144);
+    imageGameboyPre = new Uint8Array(160);
+    imageGameboyNoSprites = new Uint8Array(160);
     imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
     imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
@@ -621,8 +621,8 @@ class GPU implements HWIO {
         this.dmgObj0Palette = 0;
         this.dmgObj1Palette = 0;
 
-        this.imageGameboyPre = new Uint8Array(160 * 144);
-        this.imageGameboyNoSprites = new Uint8Array(160 * 144);
+        this.imageGameboyPre = new Uint8Array(160);
+        this.imageGameboyNoSprites = new Uint8Array(160);
         this.imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
         this.imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
@@ -1010,8 +1010,8 @@ class GPU implements HWIO {
                         img[imgIndex + 0] = color[0];
                         img[imgIndex + 1] = color[1];
                         img[imgIndex + 2] = color[2];
-                        imageGameboyPre[imgIndex >> 2] = prePalette;
-                        imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                        imageGameboyPre[pixel] = prePalette;
+                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
 
                         imgIndex += 4;
                     }
@@ -1079,8 +1079,8 @@ class GPU implements HWIO {
                         img[imgIndex + 0] = color[0];
                         img[imgIndex + 1] = color[1];
                         img[imgIndex + 2] = color[2];
-                        imageGameboyPre[imgIndex >> 2] = prePalette;
-                        imageGameboyNoSprites[imgIndex >> 2] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
+                        imageGameboyPre[pixel] = prePalette;
+                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0 ? 1 : 0;
 
                         imgIndex += 4;
                         pixel++;
@@ -1219,8 +1219,8 @@ class GPU implements HWIO {
 
                 let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
                 if (noTransparency === false) {
-                    if (flags.behindBG && this.imageGameboyPre[imgIndex >> 2] !== 0) { imgIndex += 4; continue; }
-                    if (this.imageGameboyNoSprites[imgIndex >> 2] === 1) { imgIndex += 4; continue; }
+                    if (flags.behindBG && this.imageGameboyPre[screenXPos] !== 0) { imgIndex += 4; continue; }
+                    if (this.imageGameboyNoSprites[screenXPos] === 1) { imgIndex += 4; continue; }
                 }
 
                 this.imageGameboy.data[imgIndex + 0] = pixel[0];
