@@ -293,8 +293,6 @@ class GPU implements HWIO {
     screenDirtyUntil = 0;
     currentScanlineDirty = false;
 
-    catchupNow = false;
-
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     tick(cycles: number) {
         // THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
@@ -644,7 +642,6 @@ class GPU implements HWIO {
         this.lcdStatusFired = false;
 
         this.hdmaProcessed = false;
-        this.catchupNow = false;
     }
 
     writeOam(index: number, value: number) {
@@ -670,7 +667,7 @@ class GPU implements HWIO {
     }
 
     read(index: number): number {
-        this.catchupNow = true;
+        this.gb.catchupGPU();
 
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3) return 0xFF;
@@ -681,7 +678,7 @@ class GPU implements HWIO {
     }
 
     write(index: number, value: number) {
-        this.catchupNow = true;
+        this.gb.catchupGPU();
 
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3) return;
@@ -737,7 +734,7 @@ class GPU implements HWIO {
     }
 
     readHwio(addr: number) {
-        this.catchupNow = true;
+        this.gb.catchupGPU();
 
         switch (addr) {
             case 0xFF40:
@@ -784,7 +781,7 @@ class GPU implements HWIO {
     }
 
     writeHwio(addr: number, value: number) {
-        this.catchupNow = true;
+        this.gb.catchupGPU();
 
         switch (addr) {
             case 0xFF40: // LCD Control

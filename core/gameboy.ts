@@ -85,17 +85,15 @@ export default class GameBoy {
 
         this.pending += stepCycles;
 
-        if (
-            this.pending >= this.until || this.gpu.catchupNow === true &&
-            (this.dma.hDmaRemaining > 0 && this.dma.hDmaPaused === false)
-        ) {
-            this.gpu.catchupNow = false;
-
-            this.until = this.getCyclesUntilNextSync();
-
-            this.gpu.tick(this.pending);
-            this.pending = 0;
+        if (this.pending >= this.until) {
+            this.catchupGPU();
         }
+    }
+
+    catchupGPU() {
+        this.gpu.tick(this.pending);
+        this.pending = 0;
+        this.until = this.getCyclesUntilNextSync();
     }
 
     speedStop() {
@@ -141,15 +139,7 @@ export default class GameBoy {
 
             // VRAM Mode
             case 3:
-                // Mode 3 is very sensitive, don't touch this
-                if (
-                    this.gpu.bgDrawn === false ||
-                    (this.gpu.windowDrawn === false && this.gpu.lcdControl.enableWindow____5)
-                ) {
-                    gpu = 252 - this.gpu.lineClock;
-                } else {
-                    gpu = 0;
-                }
+                gpu = 252 - this.gpu.lineClock;
                 break;
 
             // Hblank
@@ -159,9 +149,7 @@ export default class GameBoy {
 
             // Vblank
             case 1:
-                // For the last line, no skip
-                if (this.gpu.lY < 152)
-                    gpu = 456 - this.gpu.lineClock;
+                gpu = 456 - this.gpu.lineClock;
                 break;
 
             // Line 153
@@ -169,7 +157,7 @@ export default class GameBoy {
                 break;
         }
 
-        return gpu >> 1;
+        return gpu;
     }
 
     reset() {
