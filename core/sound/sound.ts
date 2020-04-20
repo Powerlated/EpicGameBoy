@@ -32,7 +32,7 @@ export default class SoundChip implements HWIO {
 
     tick(cycles: number) {
         // #region CLOCK
-        if (this.enabled) {
+        if (this.enabled === true) {
             this.clockFrameSequencer += cycles;
 
             // 512Hz Frame Sequencer

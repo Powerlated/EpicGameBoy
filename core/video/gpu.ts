@@ -307,13 +307,13 @@ class GPU implements HWIO {
             switch (this.lcdStatus.mode) {
                 // Hblank
                 case 0:
-                    if (this.hdmaProcessed == false && this.lineClock >= 16) {
+                    if (this.hdmaProcessed == false && this.lineClock >= 220) {
                         this.hdmaProcessed = true;
 
                         this.gb.dma.continueHdma();
                     }
-                    if (this.lineClock >= 204) {
-                        this.lineClock -= 204;
+                    if (this.lineClock >= 456) {
+                        this.lineClock -= 456;
 
                         // Reset scanline specific flags
                         this.bgDrawn = false;
@@ -386,7 +386,6 @@ class GPU implements HWIO {
                         // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
                     }
                     if (this.lineClock >= 80) {
-                        this.lineClock -= 80;
 
                         if (
                             this.dirtyScanlines[this.lY] > 0 ||
@@ -423,7 +422,7 @@ class GPU implements HWIO {
                         const bgWindowEnable = (!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb;
                         if (bgWindowEnable === true) {
                             // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                            if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 12) {
+                            if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
                                     if (this.vp !== null) {
@@ -445,8 +444,7 @@ class GPU implements HWIO {
                             }
                         }
                     }
-                    if (this.lineClock >= 172) {
-                        this.lineClock -= 172;
+                    if (this.lineClock >= 252) {
 
                         // VRAM -> HBLANK
                         this.lcdStatus.mode = 0;

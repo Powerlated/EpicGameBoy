@@ -142,12 +142,19 @@ export default class GameBoy {
             // VRAM Mode
             case 3:
                 // Mode 3 is very sensitive, don't touch this
-                gpu = 0;
+                if (
+                    this.gpu.bgDrawn === false ||
+                    (this.gpu.windowDrawn === false && this.gpu.lcdControl.enableWindow____5)
+                ) {
+                    gpu = 252 - this.gpu.lineClock;
+                } else {
+                    gpu = 0;
+                }
                 break;
 
             // Hblank
             case 0:
-                gpu = 204 - this.gpu.lineClock;
+                gpu = 456 - this.gpu.lineClock;
                 break;
 
             // Vblank
