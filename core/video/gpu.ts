@@ -144,21 +144,20 @@ class CGBPaletteData {
         }
     }
 
-    update(pal: number) {
-        for (let col = 0; col < 4; col++) {
-            let b0 = this.data[(pal * 8) + (col * 2) + 0];
-            let b1 = this.data[(pal * 8) + (col * 2) + 1];
 
-            let rgb555 = (b1 << 8) | b0;
+    update(pal: number, col: number) {
+        let b0 = this.data[(pal * 8) + (col * 2) + 0];
+        let b1 = this.data[(pal * 8) + (col * 2) + 1];
 
-            let r = ((rgb555 >> 0) & 31);
-            let g = ((rgb555 >> 5) & 31);
-            let b = ((rgb555 >> 10) & 31);
+        let rgb555 = (b1 << 8) | b0;
 
-            this.shades[pal][col][0] = this.rgb5to8Table[r];
-            this.shades[pal][col][1] = this.rgb5to8Table[g];
-            this.shades[pal][col][2] = this.rgb5to8Table[b];
-        }
+        let r = ((rgb555 >> 0) & 31);
+        let g = ((rgb555 >> 5) & 31);
+        let b = ((rgb555 >> 10) & 31);
+
+        this.shades[pal][col][0] = this.rgb5to8Table[r];
+        this.shades[pal][col][1] = this.rgb5to8Table[g];
+        this.shades[pal][col][2] = this.rgb5to8Table[b];
     }
 }
 
@@ -887,10 +886,12 @@ class GPU implements HWIO {
                     if (this.cgbBgPalette.data[this.cgbBgPaletteIndex] !== value) {
                         this.setScreenDirty();
                     }
-                    this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
-                    this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3);
 
-                    if (this.cgbBgPaletteIndexAutoInc) {
+
+                    this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
+                    this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3, (this.cgbBgPaletteIndex >> 1) & 3);
+
+                    if (this.cgbBgPaletteIndexAutoInc === true) {
                         this.cgbBgPaletteIndex++;
                         this.cgbBgPaletteIndex &= 0x3F;
                     }
@@ -907,10 +908,12 @@ class GPU implements HWIO {
                     if (this.cgbObjPalette.data[this.cgbObjPaletteIndex] !== value) {
                         this.setScreenDirty();
                     }
-                    this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
-                    this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3);
 
-                    if (this.cgbObjPaletteIndexAutoInc) {
+
+                    this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
+                    this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3, (this.cgbObjPaletteIndex >> 1) & 3);
+
+                    if (this.cgbObjPaletteIndexAutoInc === true) {
                         this.cgbObjPaletteIndex++;
                         this.cgbObjPaletteIndex &= 0x3F;
                     }
@@ -919,9 +922,9 @@ class GPU implements HWIO {
         }
     }
 
-    setDmgBgPalette(p: number, l: number) {
-        let i = p * 2;
-        let c = colors555[l];
+    setDmgBgPalette(palette: number, color: number) {
+        let i = palette * 2;
+        let c = colors555[color];
         let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
         let upper = (cv >> 8) & 0xFF;
@@ -930,12 +933,12 @@ class GPU implements HWIO {
         this.cgbBgPalette.data[i + 1] = upper;
         this.cgbBgPalette.data[i + 0] = lower;
 
-        this.cgbBgPalette.update(p >> 2);
+        this.cgbBgPalette.update(0, palette);
     }
 
-    setDmgObjPalette(p: number, l: number) {
-        let i = p * 2;
-        let c = colors555[l];
+    setDmgObjPalette(palette: number, color: number) {
+        let i = palette * 2;
+        let c = colors555[color];
         let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
         let upper = (cv >> 8) & 0xFF;
@@ -944,7 +947,7 @@ class GPU implements HWIO {
         this.cgbObjPalette.data[i + 0] = lower;
         this.cgbObjPalette.data[i + 1] = upper;
 
-        this.cgbObjPalette.update(p >> 2);
+        this.cgbObjPalette.update(palette >> 2, palette & 3);
     }
 
     renderBg() {
