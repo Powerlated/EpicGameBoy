@@ -82,18 +82,7 @@ export default class GameBoy {
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.tick(cyclesRan);
         this.soundChip.tick(stepCycles);
-
-        this.pending += stepCycles;
-
-        if (this.pending >= this.until) {
-            this.catchupGPU();
-        }
-    }
-
-    catchupGPU() {
-        this.gpu.tick(this.pending);
-        this.pending = 0;
-        this.until = this.getCyclesUntilNextSync();
+        this.gpu.tick(stepCycles);
     }
 
     speedStop() {
@@ -127,37 +116,6 @@ export default class GameBoy {
         if (this.stopNow == true) {
             this.stopNow = false;
         }
-    }
-
-    getCyclesUntilNextSync(): number {
-        let gpu = 0;
-        switch (this.gpu.lcdStatus.mode) {
-            // OAM Mode
-            case 2:
-                gpu = 80 - this.gpu.lineClock;
-                break;
-
-            // VRAM Mode
-            case 3:
-                gpu = 252 - this.gpu.lineClock;
-                break;
-
-            // Hblank
-            case 0:
-                gpu = 456 - this.gpu.lineClock;
-                break;
-
-            // Vblank
-            case 1:
-                gpu = 456 - this.gpu.lineClock;
-                break;
-
-            // Line 153
-            case 5:
-                break;
-        }
-
-        return gpu;
     }
 
     reset() {

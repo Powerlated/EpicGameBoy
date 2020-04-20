@@ -667,8 +667,6 @@ class GPU implements HWIO {
     }
 
     read(index: number): number {
-        this.gb.catchupGPU();
-
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3) return 0xFF;
 
@@ -678,8 +676,6 @@ class GPU implements HWIO {
     }
 
     write(index: number, value: number) {
-        this.gb.catchupGPU();
-
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === 3) return;
         let adjIndex = index - 0x8000;
@@ -734,8 +730,6 @@ class GPU implements HWIO {
     }
 
     readHwio(addr: number) {
-        this.gb.catchupGPU();
-
         switch (addr) {
             case 0xFF40:
                 // console.info(`LCD CONTROL READ`);
@@ -781,8 +775,6 @@ class GPU implements HWIO {
     }
 
     writeHwio(addr: number, value: number) {
-        this.gb.catchupGPU();
-
         switch (addr) {
             case 0xFF40: // LCD Control
                 this.lcdControl.setNumerical(value);
