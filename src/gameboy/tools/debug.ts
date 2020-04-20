@@ -22,14 +22,18 @@ export function startDebugging() {
         t0 = t1;
         t1 = performance.now();
 
-        const cpu = ((window as any).gb.cpu as CPU);
+        const gb = ((window as any).gb as GameBoy);
 
-        const gpu = ((window as any).gb.gpu as GPU);
-        const fps = Math.round((cpu.cycles - lastCyclesCount) / 4213520.36499 * 100);
-        (window as any).fps = fps;
+        const cpu = gb.cpu;
+        const gpu = gb.gpu;
+
+        let pct = (cpu.cycles - lastCyclesCount) / 4213520.36499 * 100;
+        if (gb.doubleSpeed) pct /= 2;
+
+        const speed = Math.round(pct);
         lastFrameCount = gpu.totalFrameCount;
 
-        document.title = `Optime GB (${fps}%)`;
+        document.title = `Optime GB (${speed}%)`;
 
         (window as any).cyclesPerSecond = Math.round((cpu.cycles - lastCyclesCount) / (diff / 1000));
         lastCyclesCount = cpu.cycles;
