@@ -35,6 +35,7 @@ export function startDebugging() {
 
         document.title = `Optime GB (${speed}%)`;
 
+        (window as any).fps = Math.round(((cpu.cycles - lastCyclesCount) / 4213520.36499) * 60);
         (window as any).cyclesPerSecond = Math.round((cpu.cycles - lastCyclesCount) / (diff / 1000));
         lastCyclesCount = cpu.cycles;
     }, 1000);
