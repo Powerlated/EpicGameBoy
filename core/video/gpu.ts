@@ -272,6 +272,7 @@ class GPU implements HWIO {
     windowDrawn = false;
     oamScanned = false;
     mode5lYReset = false;
+    hdmaProcessed = false;
 
     // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
@@ -306,6 +307,11 @@ class GPU implements HWIO {
             switch (this.lcdStatus.mode) {
                 // Hblank
                 case 0:
+                    if (this.hdmaProcessed == false && this.lineClock >= 16) {
+                        this.hdmaProcessed = true;
+
+                        this.gb.dma.continueHdma();
+                    }
                     if (this.lineClock >= 204) {
                         this.lineClock -= 204;
 
@@ -315,6 +321,7 @@ class GPU implements HWIO {
                         this.oamScanned = false;
                         // this.mode3CyclesOffset = 0;
                         this.setDirty = false;
+                        this.hdmaProcessed = false;
 
                         this.lY++;
                         this.updateSTAT();
@@ -459,7 +466,7 @@ class GPU implements HWIO {
                             /*
                             let index = 160 * 4 * (this.lY);
                             const img = this.imageGameboy.data;
-
+        
                             if (this.currentScanlineDirty === true) {
                                 img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
                                 img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
@@ -484,8 +491,6 @@ class GPU implements HWIO {
                                 }
                             }
                         }
-
-                        this.gb.dma.continueHdma();
                     }
                     break;
 
@@ -641,6 +646,7 @@ class GPU implements HWIO {
         this.lcdStatusConditionMet = false;
         this.lcdStatusFired = false;
 
+        this.hdmaProcessed = false;
         this.catchupNow = false;
     }
 

@@ -83,19 +83,19 @@ export default class GameBoy {
         this.timer.tick(cyclesRan);
         this.soundChip.tick(stepCycles);
 
-        // this.pending += stepCycles;
+        this.pending += stepCycles;
 
-        // if (
-        //     this.pending >= this.until || this.gpu.catchupNow === true &&
-        //     (this.dma.hDmaRemaining > 0 && this.dma.hDmaPaused === false)
-        // ) {
-        //     this.gpu.catchupNow = false;
+        if (
+            this.pending >= this.until || this.gpu.catchupNow === true &&
+            (this.dma.hDmaRemaining > 0 && this.dma.hDmaPaused === false)
+        ) {
+            this.gpu.catchupNow = false;
 
-        //     this.until = this.getCyclesUntilNextSync();
+            this.until = this.getCyclesUntilNextSync();
 
-        this.gpu.tick(stepCycles);
-        //     this.pending = 0;
-        // }
+            this.gpu.tick(this.pending);
+            this.pending = 0;
+        }
     }
 
     speedStop() {
@@ -179,6 +179,9 @@ export default class GameBoy {
 
         this.cpuPausedTCyclesRemaining = 0;
         this.oamDmaCyclesRemaining = 0;
+
+        this.until = 0;
+        this.pending = 0;
 
         if (this.bus.bootromEnabled && (!this.bus.bootromLoaded || this.cgb)) {
             console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
