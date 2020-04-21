@@ -112,7 +112,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.noise15Src.start();
 
         this.masterVolume = new Tone.Volume(-12);
-        Tone.Master.chain(this.masterVolume);
+        Tone.Master.chain(new Tone.Filter(22050, 'lowpass', -96), this.masterVolume);
 
         Tone.context.lookAhead = 0;
     }
@@ -193,6 +193,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
     }
 
     updateWaveTable(s: SoundChip) {
+        // return;
         this.waveSrc.stop();
         this.wavePan.disconnect(Tone.Master);
         this.waveVolume.disconnect(this.waveVolumeShaper);
@@ -224,7 +225,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.noise.enabled && this.ch4 && s.noise.dacEnabled && (s.noise.outputLeft || s.noise.outputRight)) {
             if (s.noise.updated) {
                 this.noiseVolumeShaper.setMap((i: number) => {
-                    const mul = 1
+                    const mul = 1;
 
                     return i * (s.noise.volume / 15) * mul;
                 });
