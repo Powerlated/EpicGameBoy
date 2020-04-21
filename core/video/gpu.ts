@@ -436,7 +436,7 @@ class GPU implements HWIO {
                 // Delay window rendering based on its X position, and don't be too picky, it's only X position
                 if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
                     // Only IF the window is onscreen
-                    if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
+                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
                         if (this.vp !== null) {
                             this.renderWindow();
                         }

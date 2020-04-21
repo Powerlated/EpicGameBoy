@@ -53,7 +53,7 @@ export default class Timer implements HWIO {
             case 0xFF05: // Timer counter - TIMA
                 this.counter = value;
                 this.queueReload = false;
-                break; 
+                break;
             case 0xFF06: // Timer modulo - TMA
                 this.modulo = value;
                 break;
@@ -72,13 +72,13 @@ export default class Timer implements HWIO {
      */
     tick(cycles: number) {
         while (cycles > 0) {
-            // if (cycles >= 8) {
-            //     cycles -= 8;
-            //     this.internal += 8;
-            // } else {
-            cycles -= 4;
-            this.internal += 4;
-            // }
+            if (cycles >= 8) {
+                cycles -= 8;
+                this.internal += 8;
+            } else {
+                cycles -= 4;
+                this.internal += 4;
+            }
             this.internal &= 0xFFFF;
 
             if (this.queueReload === true) {
