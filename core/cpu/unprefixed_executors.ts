@@ -187,9 +187,7 @@ UNPREFIXED_EXECUTORS[0xE8] = ADD_SP_E8;
 export function AND_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const final = value & cpu.reg[R8.A];
+    const final = b1 & cpu.reg[R8.A];
     cpu.reg[R8.A] = final;
 
     cpu.reg._f.zero = cpu.reg[R8.A] === 0;
@@ -204,9 +202,7 @@ UNPREFIXED_EXECUTORS[0xE6] = AND_A_N8;
 export function OR_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const final = value | cpu.reg[R8.A];
+    const final = b1 | cpu.reg[R8.A];
     cpu.reg[R8.A] = final;
 
     cpu.reg._f.zero = final === 0;
@@ -221,9 +217,7 @@ UNPREFIXED_EXECUTORS[0xF6] = OR_A_N8;  // OR A, N8
 export function XOR_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const final = value ^ cpu.reg[R8.A];
+    const final = b1 ^ cpu.reg[R8.A];
     cpu.reg[R8.A] = final;
 
     cpu.reg._f.zero = final === 0;
@@ -238,12 +232,10 @@ UNPREFIXED_EXECUTORS[0xEE] = XOR_A_N8;  // XOR A, N8
 export function CP_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const newValue = (cpu.reg[R8.A] - value) & 0xFF;
+    const newValue = (cpu.reg[R8.A] - b1) & 0xFF;
 
     // Set flags
-    cpu.reg._f.carry = value > cpu.reg[R8.A];
+    cpu.reg._f.carry = b1 > cpu.reg[R8.A];
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = true;
     cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) - (b1 & 0xF) < 0;
@@ -282,15 +274,13 @@ UNPREFIXED_EXECUTORS[0x38] = JR;  // JR C, E8
 export function ADD_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const newValue = (value + cpu.reg[R8.A]) & 0xFF;
-    const didOverflow = ((value + cpu.reg[R8.A]) >> 8) !== 0;
+    const newValue = (b1 + cpu.reg[R8.A]) & 0xFF;
+    const didOverflow = ((b1 + cpu.reg[R8.A]) >> 8) !== 0;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
+    cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (b1 & 0xF) > 0xF;
     cpu.reg._f.carry = didOverflow;
 
     // Set register values
@@ -303,15 +293,13 @@ UNPREFIXED_EXECUTORS[0xC6] = ADD_A_N8;  // ADD A, N8
 export function ADC_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const newValue = (value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
-    const didOverflow = ((value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) >> 8) !== 0;
+    const newValue = (b1 + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
+    const didOverflow = ((b1 + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) >> 8) !== 0;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (value & 0xF) + (cpu.reg._f.carry ? 1 : 0) > 0xF;
+    cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (b1 & 0xF) + (cpu.reg._f.carry ? 1 : 0) > 0xF;
     cpu.reg._f.carry = didOverflow;
 
     // Set register values
@@ -324,15 +312,13 @@ UNPREFIXED_EXECUTORS[0xCE] = ADC_A_N8;  // ADC A, N8
 export function SUB_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const newValue = (cpu.reg[R8.A] - value) & 0xFF;
+    const newValue = (cpu.reg[R8.A] - b1) & 0xFF;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = true;
-    cpu.reg._f.half_carry = (value & 0xF) > (cpu.reg[R8.A] & 0xF);
-    cpu.reg._f.carry = value > cpu.reg[R8.A];
+    cpu.reg._f.half_carry = (b1 & 0xF) > (cpu.reg[R8.A] & 0xF);
+    cpu.reg._f.carry = b1 > cpu.reg[R8.A];
 
     // Set register values
     cpu.reg[R8.A] = newValue;
@@ -344,15 +330,13 @@ UNPREFIXED_EXECUTORS[0xD6] = SUB_A_N8;  // SUB A, N8
 export function SBC_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
-    const value = b1;
-
-    const newValue = (cpu.reg[R8.A] - value - (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
+    const newValue = (cpu.reg[R8.A] - b1 - (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = true;
-    cpu.reg._f.half_carry = (value & 0xF) > (cpu.reg[R8.A] & 0xF) - (cpu.reg._f.carry ? 1 : 0);
-    cpu.reg._f.carry = value > cpu.reg[R8.A] - (cpu.reg._f.carry ? 1 : 0);
+    cpu.reg._f.half_carry = (b1 & 0xF) > (cpu.reg[R8.A] & 0xF) - (cpu.reg._f.carry ? 1 : 0);
+    cpu.reg._f.carry = b1 > cpu.reg[R8.A] - (cpu.reg._f.carry ? 1 : 0);
 
     // Set register values
     cpu.reg[R8.A] = newValue;
