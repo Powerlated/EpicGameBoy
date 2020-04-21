@@ -310,7 +310,7 @@ class GPU implements HWIO {
         if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
-                case LCDMode.HBLANK:
+                case LCDMode.HBLANK: // Mode 0
                     {
                         if (this.hdmaProcessed === false && this.lineClock >= 220) {
                             this.hdmaProcessed = true;
@@ -361,7 +361,7 @@ class GPU implements HWIO {
                         }
                     }
                     break;
-                case LCDMode.VBLANK:
+                case LCDMode.VBLANK: // Mode 1
                     {
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
@@ -379,7 +379,7 @@ class GPU implements HWIO {
                         }
                     }
                     break;
-                case LCDMode.OAM:
+                case LCDMode.OAM: // Mode 2
                     {
                         if (this.oamScanned === false) {
                             if (this.renderingThisFrame === true) {
@@ -404,7 +404,7 @@ class GPU implements HWIO {
                         }
                     }
                     break;
-                case LCDMode.VRAM:
+                case LCDMode.VRAM: // Mode 3
                     {
                         if (this.renderingThisFrame === true) {
                             /* 
@@ -513,7 +513,7 @@ class GPU implements HWIO {
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
-                            this.lcdStatus.mode = 2;
+                            this.lcdStatus.mode = LCDMode.OAM;
                             this.updateSTAT();
 
                             this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
@@ -535,9 +535,9 @@ class GPU implements HWIO {
 
         // Determine LCD status interrupt conditions
         this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
-        this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && (this.lcdStatus.mode & 3) === 0;
-        this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && (this.lcdStatus.mode & 3) === 1;
-        this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && (this.lcdStatus.mode & 3) === 2;
+        this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && this.lcdStatus.mode === LCDMode.HBLANK;
+        this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && this.lcdStatus.mode === LCDMode.VBLANK;
+        this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && this.lcdStatus.mode === LCDMode.OAM;
 
         // If any of the conditions are met, set the condition met flag
         if (
@@ -660,7 +660,7 @@ class GPU implements HWIO {
     writeOam(index: number, value: number) {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode === 0 || this.gb.gpu.lcdStatus.mode === 1) {
+        if (this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK || this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK) {
             if (this.oam[index] !== value) {
                 this.oam[index] = value;
 
@@ -672,7 +672,7 @@ class GPU implements HWIO {
     readOam(index: number): number {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode === 0 || this.gb.gpu.lcdStatus.mode === 1) {
+        if (this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK || this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK) {
             return this.oam[index];
         } else {
             return 0xFF;
@@ -681,16 +681,13 @@ class GPU implements HWIO {
 
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode === 3) return 0xFF;
-
-        let adjIndex = index - 0x8000;
-
-        return this.vram[adjIndex];
+        if (this.lcdStatus.mode === LCDMode.VRAM) return 0xFF;
+        return this.vram[index - 0x8000];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
-        if (this.lcdStatus.mode === 3) return;
+        if (this.lcdStatus.mode === LCDMode.VRAM) return;
         let adjIndex = index - 0x8000;
 
         if (this.vram[adjIndex] !== value) {
@@ -705,7 +702,7 @@ class GPU implements HWIO {
                 // Work out which tile and row was updated
                 const y = (index & 0xF) >> 1;
 
-                for (var x = 0; x < 8; x++) {
+                for (let x = 0; x < 8; x++) {
                     // Find bit index for this pixel
                     const bytes = [this.vram[adjIndex], this.vram[adjIndex + 1]];
 

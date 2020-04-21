@@ -377,31 +377,31 @@ export default class CPU {
                 this.gb.interrupts.masterEnabled = false;
 
                 let vector = 0;
-                if (requested.vblank && enabled.vblank === true) {
+                if (requested.vblank === true && enabled.vblank === true) {
                     requested.vblank = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
                     vector = VBLANK_VECTOR;
-                } else if (requested.lcdStat && enabled.lcdStat === true) {
+                } else if (requested.lcdStat === true && enabled.lcdStat === true) {
                     requested.lcdStat = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
                     vector = LCD_STATUS_VECTOR;
-                } else if (requested.timer && enabled.timer === true) {
+                } else if (requested.timer === true && enabled.timer === true) {
                     requested.timer = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
                     vector = TIMER_OVERFLOW_VECTOR;
-                } else if (requested.serial && enabled.serial === true) {
+                } else if (requested.serial === true && enabled.serial === true) {
                     requested.serial = false;
                     vector = SERIAL_LINK_VECTOR;
-                } else if (requested.joypad && enabled.joypad === true) {
+                } else if (requested.joypad === true && enabled.joypad === true) {
                     requested.joypad = false;
                     vector = JOYPAD_PRESS_VECTOR;
                 }
