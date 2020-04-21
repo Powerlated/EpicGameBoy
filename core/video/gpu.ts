@@ -311,233 +311,222 @@ class GPU implements HWIO {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
                 case LCDMode.HBLANK:
-                    this.modeHblank();
+                    {
+                        if (this.hdmaProcessed === false && this.lineClock >= 220) {
+                            this.hdmaProcessed = true;
+
+                            this.gb.dma.continueHdma();
+                        }
+                        if (this.lineClock >= 456) {
+                            this.lineClock -= 456;
+
+                            // Reset scanline specific flags
+                            this.bgDrawn = false;
+                            this.windowDrawn = false;
+                            this.oamScanned = false;
+                            // this.mode3CyclesOffset = 0;
+                            this.setDirty = false;
+                            this.hdmaProcessed = false;
+
+                            this.lY++;
+                            this.updateSTAT();
+
+                            // If we're at LCDCy = 144, enter Vblank
+                            // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
+                            if (this.lY >= 144) {
+                                // Fire the Vblank interrupt
+                                this.gb.interrupts.requested.vblank = true;
+                                // Draw to the canvas
+                                if (this.renderingThisFrame === true) {
+                                    if (this.vp !== null) {
+                                        this.vp.drawGameboy(this.imageGameboy);
+                                    }
+
+                                    for (let i = 0; i < 384; i++) {
+                                        this.tilesetUpdated0[i] = false;
+                                        this.tilesetUpdated1[i] = false;
+                                    }
+                                }
+
+                                this.lcdStatus.mode = LCDMode.VBLANK;
+                                this.updateSTAT();
+
+                                this.totalFrameCount++;
+                            }
+                            else {
+                                // Enter back into OAM mode if not Vblank
+                                this.lcdStatus.mode = LCDMode.OAM;
+                                this.updateSTAT();
+                            }
+                        }
+                    }
                     break;
                 case LCDMode.VBLANK:
-                    this.modeVblank();
+                    {
+                        if (this.lineClock >= 456) {
+                            this.lineClock -= 456;
+
+                            this.lY++;
+                            this.updateSTAT();
+
+                            this.currentWindowLine = 0;
+                            this.windowOnscreenYetThisFrame = false;
+
+                            if (this.lY === 153) {
+                                this.lcdStatus.mode = LCDMode.LINE153;
+                                this.updateSTAT();
+                            }
+                        }
+                    }
                     break;
                 case LCDMode.OAM:
-                    this.modeOam();
+                    {
+                        if (this.oamScanned === false) {
+                            if (this.renderingThisFrame === true) {
+                                this.scanOAM();
+                            }
+                            this.oamScanned = true;
+
+                            this.updateSTAT();
+                            // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
+                        }
+                        if (this.lineClock >= 80) {
+
+                            if (
+                                this.dirtyScanlines[this.lY] > 0 ||
+                                this.screenDirty === true
+                            ) {
+                                this.currentScanlineDirty = true;
+                            }
+
+                            this.lcdStatus.mode = LCDMode.VRAM;
+                            this.updateSTAT();
+                        }
+                    }
                     break;
                 case LCDMode.VRAM:
-                    this.modeVram();
+                    {
+                        if (this.renderingThisFrame === true) {
+                            /* 
+                            * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
+                            * 
+                            *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
+                            *     B. Disabled entirely through bit 5 of LCD Control
+                            * 
+                            * only AFTER the window has already been enabled.
+                            */
+                            if (
+                                this.windowDrawn === false &&
+                                this.lcdControl.enableWindow____5 === true &&
+                                this.windowOnscreenYetThisFrame === false &&
+                                this.windowXpos < 160 && this.windowYpos < 144 &&
+                                this.lY === this.windowYpos
+                            ) {
+                                this.currentWindowLine = this.windowYpos - this.lY;
+                                this.windowOnscreenYetThisFrame = true;
+                            }
+                            const bgWindowEnable =
+                                (
+                                    this.gb.cgb === false &&
+                                    this.lcdControl.bgWindowEnable0 === true
+                                ) || this.gb.cgb === true;
+                            if (bgWindowEnable === true) {
+                                // Delay window rendering based on its X position, and don't be too picky, it's only X position
+                                if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
+                                    // Only IF the window is onscreen
+                                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
+                                        if (this.vp !== null) {
+                                            this.renderWindow();
+                                        }
+                                        // this.mode3CyclesOffset += 8;
+                                        this.currentWindowLine++;
+                                    }
+                                    this.windowDrawn = true;
+                                }
+
+                                if (this.bgDrawn === false) {
+                                    if (this.vp !== null) {
+                                        this.renderBg();
+                                    }
+                                    this.bgDrawn = true;
+
+                                    // this.mode3CyclesOffset += this.scrX & 7;
+                                }
+                            }
+                        }
+                        if (this.lineClock >= 252) {
+
+                            // VRAM -> HBLANK
+                            this.lcdStatus.mode = LCDMode.HBLANK;
+                            this.updateSTAT();
+
+
+                            // Render sprites at end of scanline
+                            if (this.lcdControl.spriteDisplay___1) {
+                                if (this.renderingThisFrame === true) {
+                                    if (this.currentScanlineDirty === true && this.vp !== null) {
+                                        this.renderSprites();
+                                    }
+                                }
+                            }
+
+                            if (this.renderingThisFrame === true) {
+                                /*
+                                let index = 160 * 4 * (this.lY);
+                                const img = this.imageGameboy.data;
+                
+                                if (this.currentScanlineDirty === true) {
+                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                                } else {
+                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                                }
+                                */
+
+                                if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
+                                this.currentScanlineDirty = false;
+
+                                if (this.lY === this.screenDirtyUntil) {
+                                    if (this.lY >= 143) {
+                                        this.screenDirty = false;
+                                    } else {
+                                        this.screenDirtyUntil = 143;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     break;
                 case LCDMode.LINE153:
-                    this.modeLine153();
+                    {
+                        if (this.mode5lYReset === false && this.lineClock >= 4) {
+                            this.lY = 0;
+                            this.updateSTAT();
+
+                            this.mode5lYReset = true;
+                        }
+                        if (this.lineClock >= 456) {
+                            this.lineClock -= 456;
+
+                            this.lcdStatus.mode = 2;
+                            this.updateSTAT();
+
+                            this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
+
+                            this.mode5lYReset = false;
+                        }
+                    }
                     break;
             }
         } else {
             this.lineClock = 0;
             this.lcdStatus.mode = 0;
             this.lY = 0;
-        }
-    }
-
-
-    private modeHblank() {
-        if (this.hdmaProcessed === false && this.lineClock >= 220) {
-            this.hdmaProcessed = true;
-
-            this.gb.dma.continueHdma();
-        }
-        if (this.lineClock >= 456) {
-            this.lineClock -= 456;
-
-            // Reset scanline specific flags
-            this.bgDrawn = false;
-            this.windowDrawn = false;
-            this.oamScanned = false;
-            // this.mode3CyclesOffset = 0;
-            this.setDirty = false;
-            this.hdmaProcessed = false;
-
-            this.lY++;
-            this.updateSTAT();
-
-            // If we're at LCDCy = 144, enter Vblank
-            // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
-            if (this.lY >= 144) {
-                // Fire the Vblank interrupt
-                this.gb.interrupts.requested.vblank = true;
-                // Draw to the canvas
-                if (this.renderingThisFrame === true) {
-                    if (this.vp !== null) {
-                        this.vp.drawGameboy(this.imageGameboy);
-                    }
-
-                    for (let i = 0; i < 384; i++) {
-                        this.tilesetUpdated0[i] = false;
-                        this.tilesetUpdated1[i] = false;
-                    }
-                }
-
-                this.lcdStatus.mode = LCDMode.VBLANK;
-                this.updateSTAT();
-
-                this.totalFrameCount++;
-            }
-            else {
-                // Enter back into OAM mode if not Vblank
-                this.lcdStatus.mode = LCDMode.OAM;
-                this.updateSTAT();
-            }
-        }
-    }
-
-    private modeVblank() {
-        if (this.lineClock >= 456) {
-            this.lineClock -= 456;
-
-            this.lY++;
-            this.updateSTAT();
-
-            this.currentWindowLine = 0;
-            this.windowOnscreenYetThisFrame = false;
-
-            if (this.lY === 153) {
-                this.lcdStatus.mode = LCDMode.LINE153;
-                this.updateSTAT();
-            }
-        }
-    }
-
-    private modeOam() {
-        if (this.oamScanned === false) {
-            if (this.renderingThisFrame === true) {
-                this.scanOAM();
-            }
-            this.oamScanned = true;
-
-            this.updateSTAT();
-            // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
-        }
-        if (this.lineClock >= 80) {
-
-            if (
-                this.dirtyScanlines[this.lY] > 0 ||
-                this.screenDirty === true
-            ) {
-                this.currentScanlineDirty = true;
-            }
-
-            this.lcdStatus.mode = LCDMode.VRAM;
-            this.updateSTAT();
-        }
-    }
-
-    private modeVram() {
-        if (this.renderingThisFrame === true) {
-            /* 
-            * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
-            * 
-            *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
-            *     B. Disabled entirely through bit 5 of LCD Control
-            * 
-            * only AFTER the window has already been enabled.
-            */
-            if (
-                this.windowDrawn === false &&
-                this.lcdControl.enableWindow____5 === true &&
-                this.windowOnscreenYetThisFrame === false &&
-                this.windowXpos < 160 && this.windowYpos < 144 &&
-                this.lY === this.windowYpos
-            ) {
-                this.currentWindowLine = this.windowYpos - this.lY;
-                this.windowOnscreenYetThisFrame = true;
-            }
-            const bgWindowEnable =
-                (
-                    this.gb.cgb === false &&
-                    this.lcdControl.bgWindowEnable0 === true
-                ) || this.gb.cgb === true;
-            if (bgWindowEnable === true) {
-                // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
-                    // Only IF the window is onscreen
-                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
-                        if (this.vp !== null) {
-                            this.renderWindow();
-                        }
-                        // this.mode3CyclesOffset += 8;
-                        this.currentWindowLine++;
-                    }
-                    this.windowDrawn = true;
-                }
-
-                if (this.bgDrawn === false) {
-                    if (this.vp !== null) {
-                        this.renderBg();
-                    }
-                    this.bgDrawn = true;
-
-                    // this.mode3CyclesOffset += this.scrX & 7;
-                }
-            }
-        }
-        if (this.lineClock >= 252) {
-
-            // VRAM -> HBLANK
-            this.lcdStatus.mode = LCDMode.HBLANK;
-            this.updateSTAT();
-
-
-            // Render sprites at end of scanline
-            if (this.lcdControl.spriteDisplay___1) {
-                if (this.renderingThisFrame === true) {
-                    if (this.currentScanlineDirty === true && this.vp !== null) {
-                        this.renderSprites();
-                    }
-                }
-            }
-
-            if (this.renderingThisFrame === true) {
-                /*
-                let index = 160 * 4 * (this.lY);
-                const img = this.imageGameboy.data;
-
-                if (this.currentScanlineDirty === true) {
-                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                } else {
-                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                }
-                */
-
-                if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
-                this.currentScanlineDirty = false;
-
-                if (this.lY === this.screenDirtyUntil) {
-                    if (this.lY >= 143) {
-                        this.screenDirty = false;
-                    } else {
-                        this.screenDirtyUntil = 143;
-                    }
-                }
-            }
-        }
-    }
-
-    private modeLine153() {
-        if (this.mode5lYReset === false && this.lineClock >= 4) {
-            this.lY = 0;
-            this.updateSTAT();
-
-            this.mode5lYReset = true;
-        }
-        if (this.lineClock >= 456) {
-            this.lineClock -= 456;
-
-            this.lcdStatus.mode = 2;
-            this.updateSTAT();
-
-            this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
-
-            this.mode5lYReset = false;
         }
     }
 
