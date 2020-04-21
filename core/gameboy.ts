@@ -49,7 +49,9 @@ export default class GameBoy {
         if (this.cpuPausedTCyclesRemaining !== 0) {
             const remaining = this.cpuPausedTCyclesRemaining;
             this.cpuPausedTCyclesRemaining = 0;
-            this.tick(remaining);
+
+            this.tick(remaining - 4);
+            this.tick(4);
             return remaining;
         } else {
             return this.cpu.execute();
