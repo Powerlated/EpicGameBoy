@@ -917,12 +917,9 @@ export function RRCA(this: number, cpu: CPU): number {  // RRC A
 
 UNPREFIXED_EXECUTORS[0x1F] = RRA;
 export function RRA(this: number, cpu: CPU): number {  // RR A
-
     const value = cpu.reg[R8.A];
 
-    const carryMask = (cpu.reg.f & 0b00010000) << 3;
-
-    const newValue = ((value >> 1) | carryMask) & 0xFF;
+    const newValue = ((value >> 1) | (cpu.reg._f.carry ? 128 : 0)) & 0xFF;
 
     cpu.reg[R8.A] = newValue;
 
@@ -935,12 +932,9 @@ export function RRA(this: number, cpu: CPU): number {  // RR A
 };
 UNPREFIXED_EXECUTORS[0x17] = RLA;
 export function RLA(this: number, cpu: CPU): number {  // RL A
-
     const value = cpu.reg[R8.A];
 
-    const carryMask = (cpu.reg.f & 0b00010000) >> 4;
-
-    const newValue = ((value << 1) | carryMask) & 0xFF;
+    const newValue = ((value << 1) | (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
 
     cpu.reg[R8.A] = newValue;
 
