@@ -302,213 +302,11 @@ class GPU implements HWIO {
         if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
-                // Hblank
-                case 0:
-                    if (this.hdmaProcessed == false && this.lineClock >= 220) {
-                        this.hdmaProcessed = true;
-
-                        this.gb.dma.continueHdma();
-                    }
-                    if (this.lineClock >= 456) {
-                        this.lineClock -= 456;
-
-                        // Reset scanline specific flags
-                        this.bgDrawn = false;
-                        this.windowDrawn = false;
-                        this.oamScanned = false;
-                        // this.mode3CyclesOffset = 0;
-                        this.setDirty = false;
-                        this.hdmaProcessed = false;
-
-                        this.lY++;
-                        this.updateSTAT();
-
-                        // If we're at LCDCy = 144, enter Vblank
-                        // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
-                        if (this.lY >= 144) {
-                            // Fire the Vblank interrupt
-                            this.gb.interrupts.requested.vblank = true;
-                            // Draw to the canvas
-                            if (this.renderingThisFrame === true) {
-                                if (this.vp !== null) {
-                                    this.vp.drawGameboy(this.imageGameboy);
-                                }
-
-                                for (let i = 0; i < 384; i++) {
-                                    this.tilesetUpdated0[i] = false;
-                                    this.tilesetUpdated1[i] = false;
-                                }
-                            }
-
-                            this.lcdStatus.mode = 1;
-                            this.updateSTAT();
-
-                            this.totalFrameCount++;
-                        }
-                        else {
-                            // Enter back into OAM mode if not Vblank
-                            this.lcdStatus.mode = 2;
-                            this.updateSTAT();
-                        }
-                    }
-                    break;
-
-                // Vblank
-                case 1:
-                    if (this.lineClock >= 456) {
-                        this.lineClock -= 456;
-
-                        this.lY++;
-                        this.updateSTAT();
-
-                        this.currentWindowLine = 0;
-                        this.windowOnscreenYetThisFrame = false;
-
-                        if (this.lY === 153) {
-                            this.lcdStatus.mode = 5;
-                            this.updateSTAT();
-                        }
-                    }
-                    break;
-
-                // Read from OAM
-                case 2:
-                    if (this.oamScanned === false) {
-                        if (this.renderingThisFrame === true) {
-                            this.scanOAM();
-                        }
-                        this.oamScanned = true;
-
-                        this.updateSTAT();
-                        // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
-                    }
-                    if (this.lineClock >= 80) {
-
-                        if (
-                            this.dirtyScanlines[this.lY] > 0 ||
-                            this.screenDirty === true
-                        ) {
-                            this.currentScanlineDirty = true;
-                        }
-
-                        this.lcdStatus.mode = 3;
-                        this.updateSTAT();
-                    }
-                    break;
-
-                // Read from VRAM - Pixel Transfer
-                case 3:
-                    if (this.renderingThisFrame === true) {
-                        /* 
-                        * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
-                        * 
-                        *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
-                        *     B. Disabled entirely through bit 5 of LCD Control
-                        * 
-                        * only AFTER the window has already been enabled.
-                        */
-                        if (
-                            this.lcdControl.enableWindow____5 &&
-                            this.windowOnscreenYetThisFrame === false &&
-                            this.windowXpos < 160 && this.windowYpos < 144 &&
-                            this.lY == this.windowYpos
-                        ) {
-                            this.currentWindowLine = this.windowYpos - this.lY;
-                            this.windowOnscreenYetThisFrame = true;
-                        }
-                        const bgWindowEnable = (!this.gb.cgb && this.lcdControl.bgWindowEnable0) || this.gb.cgb;
-                        if (bgWindowEnable === true) {
-                            // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                            if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
-                                // Only IF the window is onscreen
-                                if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
-                                    if (this.vp !== null) {
-                                        this.renderWindow();
-                                    }
-                                    // this.mode3CyclesOffset += 8;
-                                    this.currentWindowLine++;
-                                }
-                                this.windowDrawn = true;
-                            }
-
-                            if (this.bgDrawn === false) {
-                                if (this.vp !== null) {
-                                    this.renderBg();
-                                }
-                                this.bgDrawn = true;
-
-                                // this.mode3CyclesOffset += this.scrX & 7;
-                            }
-                        }
-                    }
-                    if (this.lineClock >= 252) {
-
-                        // VRAM -> HBLANK
-                        this.lcdStatus.mode = 0;
-                        this.updateSTAT();
-
-
-                        // Render sprites at end of scanline
-                        if (this.lcdControl.spriteDisplay___1) {
-                            if (this.renderingThisFrame === true) {
-                                if (this.currentScanlineDirty === true && this.vp !== null) {
-                                    this.renderSprites();
-                                }
-                            }
-                        }
-
-                        if (this.renderingThisFrame === true) {
-                            /*
-                            let index = 160 * 4 * (this.lY);
-                            const img = this.imageGameboy.data;
-        
-                            if (this.currentScanlineDirty === true) {
-                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                            } else {
-                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                            }
-                            */
-
-                            if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
-                            this.currentScanlineDirty = false;
-
-                            if (this.lY === this.screenDirtyUntil) {
-                                if (this.lY >= 143) {
-                                    this.screenDirty = false;
-                                } else {
-                                    this.screenDirtyUntil = 143;
-                                }
-                            }
-                        }
-                    }
-                    break;
-
-
-                // Between Line 153 and Line 0, reads as mode 1 (Vblank) in LCDstatus because 5 & 3 = 1
-                case 5:
-                    if (this.mode5lYReset === false && this.lineClock >= 4) {
-                        this.lY = 0;
-                        this.updateSTAT();
-
-                        this.mode5lYReset = true;
-                    }
-                    if (this.lineClock >= 456) {
-                        this.lineClock -= 456;
-
-                        this.lcdStatus.mode = 2;
-                        this.updateSTAT();
-
-                        this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
-
-                        this.mode5lYReset = false;
-                    }
-                    break;
+                case 0: this.modeHblank(); break;
+                case 1: this.modeVblank(); break;
+                case 2: this.modeOam(); break;
+                case 3: this.modeVram(); break;
+                case 5: this.modeLine153(); break;
             }
         } else {
             this.lineClock = 0;
@@ -517,8 +315,216 @@ class GPU implements HWIO {
         }
     }
 
+
+    private modeHblank() {
+        if (this.hdmaProcessed === false && this.lineClock >= 220) {
+            this.hdmaProcessed = true;
+
+            this.gb.dma.continueHdma();
+        }
+        if (this.lineClock >= 456) {
+            this.lineClock -= 456;
+
+            // Reset scanline specific flags
+            this.bgDrawn = false;
+            this.windowDrawn = false;
+            this.oamScanned = false;
+            // this.mode3CyclesOffset = 0;
+            this.setDirty = false;
+            this.hdmaProcessed = false;
+
+            this.lY++;
+            this.updateSTAT();
+
+            // If we're at LCDCy = 144, enter Vblank
+            // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
+            if (this.lY >= 144) {
+                // Fire the Vblank interrupt
+                this.gb.interrupts.requested.vblank = true;
+                // Draw to the canvas
+                if (this.renderingThisFrame === true) {
+                    if (this.vp !== null) {
+                        this.vp.drawGameboy(this.imageGameboy);
+                    }
+
+                    for (let i = 0; i < 384; i++) {
+                        this.tilesetUpdated0[i] = false;
+                        this.tilesetUpdated1[i] = false;
+                    }
+                }
+
+                this.lcdStatus.mode = 1;
+                this.updateSTAT();
+
+                this.totalFrameCount++;
+            }
+            else {
+                // Enter back into OAM mode if not Vblank
+                this.lcdStatus.mode = 2;
+                this.updateSTAT();
+            }
+        }
+    }
+
+    private modeVblank() {
+        if (this.lineClock >= 456) {
+            this.lineClock -= 456;
+
+            this.lY++;
+            this.updateSTAT();
+
+            this.currentWindowLine = 0;
+            this.windowOnscreenYetThisFrame = false;
+
+            if (this.lY === 153) {
+                this.lcdStatus.mode = 5;
+                this.updateSTAT();
+            }
+        }
+    }
+
+    private modeOam() {
+        if (this.oamScanned === false) {
+            if (this.renderingThisFrame === true) {
+                this.scanOAM();
+            }
+            this.oamScanned = true;
+
+            this.updateSTAT();
+            // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
+        }
+        if (this.lineClock >= 80) {
+
+            if (
+                this.dirtyScanlines[this.lY] > 0 ||
+                this.screenDirty === true
+            ) {
+                this.currentScanlineDirty = true;
+            }
+
+            this.lcdStatus.mode = 3;
+            this.updateSTAT();
+        }
+    }
+
+    private modeVram() {
+        if (this.renderingThisFrame === true) {
+            /* 
+            * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
+            * 
+            *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
+            *     B. Disabled entirely through bit 5 of LCD Control
+            * 
+            * only AFTER the window has already been enabled.
+            */
+            if (
+                this.windowDrawn === false &&
+                this.lcdControl.enableWindow____5 === true &&
+                this.windowOnscreenYetThisFrame === false &&
+                this.windowXpos < 160 && this.windowYpos < 144 &&
+                this.lY === this.windowYpos
+            ) {
+                this.currentWindowLine = this.windowYpos - this.lY;
+                this.windowOnscreenYetThisFrame = true;
+            }
+            const bgWindowEnable =
+                (
+                    this.gb.cgb === false &&
+                    this.lcdControl.bgWindowEnable0 === true
+                ) || this.gb.cgb === true;
+            if (bgWindowEnable === true) {
+                // Delay window rendering based on its X position, and don't be too picky, it's only X position
+                if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
+                    // Only IF the window is onscreen
+                    if (this.lcdControl.enableWindow____5 && this.windowXpos < 160) {
+                        if (this.vp !== null) {
+                            this.renderWindow();
+                        }
+                        // this.mode3CyclesOffset += 8;
+                        this.currentWindowLine++;
+                    }
+                    this.windowDrawn = true;
+                }
+
+                if (this.bgDrawn === false) {
+                    if (this.vp !== null) {
+                        this.renderBg();
+                    }
+                    this.bgDrawn = true;
+
+                    // this.mode3CyclesOffset += this.scrX & 7;
+                }
+            }
+        }
+        if (this.lineClock >= 252) {
+
+            // VRAM -> HBLANK
+            this.lcdStatus.mode = 0;
+            this.updateSTAT();
+
+
+            // Render sprites at end of scanline
+            if (this.lcdControl.spriteDisplay___1) {
+                if (this.renderingThisFrame === true) {
+                    if (this.currentScanlineDirty === true && this.vp !== null) {
+                        this.renderSprites();
+                    }
+                }
+            }
+
+            if (this.renderingThisFrame === true) {
+                /*
+                let index = 160 * 4 * (this.lY);
+                const img = this.imageGameboy.data;
+
+                if (this.currentScanlineDirty === true) {
+                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
+                } else {
+                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
+                }
+                */
+
+                if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
+                this.currentScanlineDirty = false;
+
+                if (this.lY === this.screenDirtyUntil) {
+                    if (this.lY >= 143) {
+                        this.screenDirty = false;
+                    } else {
+                        this.screenDirtyUntil = 143;
+                    }
+                }
+            }
+        }
+    }
+
+    private modeLine153() {
+        if (this.mode5lYReset === false && this.lineClock >= 4) {
+            this.lY = 0;
+            this.updateSTAT();
+
+            this.mode5lYReset = true;
+        }
+        if (this.lineClock >= 456) {
+            this.lineClock -= 456;
+
+            this.lcdStatus.mode = 2;
+            this.updateSTAT();
+
+            this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
+
+            this.mode5lYReset = false;
+        }
+    }
+
     updateSTAT() {
-        this.lcdStatus.coincidenceFlag_______2 = this.lY == this.lYCompare;
+        this.lcdStatus.coincidenceFlag_______2 = this.lY === this.lYCompare;
 
         // Determine LCD status interrupt conditions
         this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
@@ -544,7 +550,7 @@ class GPU implements HWIO {
             this.gb.interrupts.requested.lcdStat = true;
             this.lcdStatusFired = true;
 
-            // console.log(`${this.lYCompare} == ${this.lY} STAT IRQ LINECLOCK: ${this.lineClock}`);
+            // console.log(`${this.lYCompare} === ${this.lY} STAT IRQ LINECLOCK: ${this.lineClock}`);
         }
     }
 
@@ -647,7 +653,7 @@ class GPU implements HWIO {
     writeOam(index: number, value: number) {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
+        if (this.gb.gpu.lcdStatus.mode === 0 || this.gb.gpu.lcdStatus.mode === 1) {
             if (this.oam[index] !== value) {
                 this.oam[index] = value;
 
@@ -659,7 +665,7 @@ class GPU implements HWIO {
     readOam(index: number): number {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode == 0 || this.gb.gpu.lcdStatus.mode == 1) {
+        if (this.gb.gpu.lcdStatus.mode === 0 || this.gb.gpu.lcdStatus.mode === 1) {
             return this.oam[index];
         } else {
             return 0xFF;
@@ -1169,7 +1175,7 @@ class GPU implements HWIO {
 
             // Offset tile by +1 if rendering the top half of an 8x16 sprite
             if (flags.yFlip && this.lcdControl.spriteSize______2) {
-                if (h == 0) {
+                if (h === 0) {
                     tile += 1;
                 }
             } else {
