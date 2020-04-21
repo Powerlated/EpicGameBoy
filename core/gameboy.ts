@@ -46,26 +46,14 @@ export default class GameBoy {
     speedIntervals: Array<number> = [];
 
     step(): number {
-        let cyclesRan = 0;
-
-        // Use a do-while loop because we want the CPU to run at least once
-        let lastInstructionCycles = 4;
-        if (this.cpuPausedTCyclesRemaining > 0) {
+        if (this.cpuPausedTCyclesRemaining !== 0) {
+            const remaining = this.cpuPausedTCyclesRemaining;
             this.cpuPausedTCyclesRemaining = 0;
-            this.tick(this.cpuPausedTCyclesRemaining);
+            this.tick(remaining);
+            return remaining;
         } else {
-            lastInstructionCycles = this.cpu.execute();
+            return this.cpu.execute();
         }
-
-        cyclesRan += lastInstructionCycles;
-
-
-        // This is the value we are going to pass to the other components 
-        let stepCycles = cyclesRan;
-        // In double speed mode make the CPU run 2x relatively faster than Sound and GPU
-        if (this.doubleSpeed) stepCycles >>= 1;
-
-        return stepCycles;
     }
 
     until = 0;
@@ -105,8 +93,9 @@ export default class GameBoy {
         this.lastTime = now;
 
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
-        const max = 4213.440 * deltaMs * this.speedMul;
+        let max = 4213.440 * deltaMs * this.speedMul;
 
+        if (this.doubleSpeed) max <<= 1;
 
         let i = 0;
         while (i < max) {
