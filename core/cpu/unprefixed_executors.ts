@@ -275,7 +275,7 @@ export function ADD_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
     const newValue = (b1 + cpu.reg[R8.A]) & 0xFF;
-    const didOverflow = ((b1 + cpu.reg[R8.A]) >> 8) !== 0;
+    const didOverflow = (b1 + cpu.reg[R8.A]) > 0xFF;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
@@ -294,7 +294,7 @@ export function ADC_A_N8(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
 
     const newValue = (b1 + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
-    const didOverflow = ((b1 + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) >> 8) !== 0;
+    const didOverflow = (b1 + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) > 0xFF;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
@@ -545,15 +545,15 @@ export function ADD_A_R8(this: number, cpu: CPU): number {
     const source: R8 = this & 0b111;
 
     const value = cpu.reg[source];
-    cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
 
     const newValue = (value + cpu.reg[R8.A]) & 0xFF;
-    const didOverflow = ((value + cpu.reg[R8.A]) >> 8) !== 0;
+    const didOverflow = (value + cpu.reg[R8.A]) > 0xFF;
 
     // Set register values
     cpu.reg[R8.A] = newValue;
 
     // Set flags
+    cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
     cpu.reg._f.carry = didOverflow;
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
@@ -576,7 +576,7 @@ export function ADC_A_R8(this: number, cpu: CPU): number {
     const value = cpu.reg[source];
 
     const newValue = (value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
-    const didOverflow = ((value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) >> 8) !== 0;
+    const didOverflow = (value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) > 0xFF;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;
