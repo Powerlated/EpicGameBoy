@@ -281,20 +281,7 @@ export default class CPU {
     }
 
     execute(): number {
-        if (this.invalidOpcodeExecuted === true) {
-            this.tick(4);
-            return 4;
-        }
-
         const c = this.cycles;
-
-        if (this.scheduleEnableInterruptsForNextTick === true) {
-            this.scheduleEnableInterruptsForNextTick = false;
-            this.gb.interrupts.masterEnabled = true;
-
-            // if (this.minDebug)
-            //     this.addToLog(`--- INTERRUPTS ENABLED ---`);
-        }
 
 
         // // Run the debug information collector
@@ -302,6 +289,17 @@ export default class CPU {
         //     this.stepDebug();
 
         if (this.halted === false) {
+            if (this.invalidOpcodeExecuted === true) {
+                this.tick(4);
+                return 4;
+            }
+            if (this.scheduleEnableInterruptsForNextTick === true) {
+                this.scheduleEnableInterruptsForNextTick = false;
+                this.gb.interrupts.masterEnabled = true;
+
+                // if (this.minDebug)
+                //     this.addToLog(`--- INTERRUPTS ENABLED ---`);
+            }
 
             // if (this.minDebug) {
             //     if (Disassembler.isControlFlow(ins)) {
@@ -372,38 +370,38 @@ export default class CPU {
         const enabled = this.gb.interrupts.enabled;
         // If the CPU is HALTed and there are requested interrupts, unHALT
         if ((requested.numerical & enabled.numerical & 0x1F) !== 0) {
-            if (this.halted === true) this.halted = false;
+            this.halted = false;
 
-            if (this.gb.interrupts.masterEnabled) {
+            if (this.gb.interrupts.masterEnabled === true) {
                 // If servicing any interrupt, disable the master flag
                 this.gb.interrupts.masterEnabled = false;
 
                 let vector = 0;
-                if (requested.vblank && enabled.vblank) {
+                if (requested.vblank && enabled.vblank === true) {
                     requested.vblank = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
                     vector = VBLANK_VECTOR;
-                } else if (requested.lcdStat && enabled.lcdStat) {
+                } else if (requested.lcdStat && enabled.lcdStat === true) {
                     requested.lcdStat = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
                     vector = LCD_STATUS_VECTOR;
-                } else if (requested.timer && enabled.timer) {
+                } else if (requested.timer && enabled.timer === true) {
                     requested.timer = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
                     vector = TIMER_OVERFLOW_VECTOR;
-                } else if (requested.serial && enabled.serial) {
+                } else if (requested.serial && enabled.serial === true) {
                     requested.serial = false;
                     vector = SERIAL_LINK_VECTOR;
-                } else if (requested.joypad && enabled.joypad) {
+                } else if (requested.joypad && enabled.joypad === true) {
                     requested.joypad = false;
                     vector = JOYPAD_PRESS_VECTOR;
                 }
