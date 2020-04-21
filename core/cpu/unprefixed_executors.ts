@@ -547,16 +547,15 @@ export function ADD_A_R8(this: number, cpu: CPU): number {
     const value = cpu.reg[source];
 
     const newValue = (value + cpu.reg[R8.A]) & 0xFF;
-    const didOverflow = (value + cpu.reg[R8.A]) > 0xFF;
-
-    // Set register values
-    cpu.reg[R8.A] = newValue;
 
     // Set flags
     cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
-    cpu.reg._f.carry = didOverflow;
+    cpu.reg._f.carry = (value + cpu.reg[R8.A]) > 0xFF;
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
+
+    // Set register values
+    cpu.reg[R8.A] = newValue;
 
     return 1;
 };
