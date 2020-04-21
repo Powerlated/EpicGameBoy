@@ -130,7 +130,7 @@ export class DMAController implements HWIO {
             case 0xFF55:
                 if (this.gb.cgb) {
                     this.newDmaLength = ((value & 127) + 1) << 4;
-                    let newDmaHblank = ((value >> 7) & 1) !== 0;
+                    const newDmaHblank = ((value >> 7) & 1) !== 0;
                     if (newDmaHblank) {
                         // console.log(`Init HDMA ${this.newDmaLength} bytes: ${hex(this.newDmaSource, 4)} => ${hex(this.newDmaDest, 4)}`);
                         this.hDmaRemaining = this.newDmaLength;

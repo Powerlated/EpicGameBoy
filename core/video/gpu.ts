@@ -146,14 +146,14 @@ class CGBPaletteData {
 
 
     update(pal: number, col: number) {
-        let b0 = this.data[(pal * 8) + (col * 2) + 0];
-        let b1 = this.data[(pal * 8) + (col * 2) + 1];
+        const b0 = this.data[(pal * 8) + (col * 2) + 0];
+        const b1 = this.data[(pal * 8) + (col * 2) + 1];
 
-        let rgb555 = (b1 << 8) | b0;
+        const rgb555 = (b1 << 8) | b0;
 
-        let r = ((rgb555 >> 0) & 31);
-        let g = ((rgb555 >> 5) & 31);
-        let b = ((rgb555 >> 10) & 31);
+        const r = ((rgb555 >> 0) & 31);
+        const g = ((rgb555 >> 5) & 31);
+        const b = ((rgb555 >> 10) & 31);
 
         this.shades[pal][col][0] = this.rgb5to8Table[r];
         this.shades[pal][col][1] = this.rgb5to8Table[g];
@@ -472,7 +472,7 @@ class GPU implements HWIO {
 
                             if (this.renderingThisFrame === true) {
                                 /*
-                                let index = 160 * 4 * (this.lY);
+                                const index = 160 * 4 * (this.lY);
                                 const img = this.imageGameboy.data;
                 
                                 if (this.currentScanlineDirty === true) {
@@ -711,8 +711,8 @@ class GPU implements HWIO {
                     const msb = bytes[1] & mask;
 
                     // Update tile set
-                    let tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
-                    let tilesetUpdated = this.vramBank === 1 ? this.tilesetUpdated1 : this.tilesetUpdated0;
+                    const tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
+                    const tilesetUpdated = this.vramBank === 1 ? this.tilesetUpdated1 : this.tilesetUpdated0;
 
                     tileset[tile][y][x] =
                         (lsb !== 0 ? 1 : 0) +
@@ -922,12 +922,12 @@ class GPU implements HWIO {
     }
 
     setDmgBgPalette(palette: number, color: number) {
-        let i = palette * 2;
-        let c = colors555[color];
-        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
+        const i = palette * 2;
+        const c = colors555[color];
+        const cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
-        let upper = (cv >> 8) & 0xFF;
-        let lower = cv & 0xFF;
+        const upper = (cv >> 8) & 0xFF;
+        const lower = cv & 0xFF;
 
         this.cgbBgPalette.data[i + 1] = upper;
         this.cgbBgPalette.data[i + 0] = lower;
@@ -936,12 +936,12 @@ class GPU implements HWIO {
     }
 
     setDmgObjPalette(palette: number, color: number) {
-        let i = palette * 2;
-        let c = colors555[color];
-        let cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
+        const i = palette * 2;
+        const c = colors555[color];
+        const cv = (c[0] & 31) | ((c[1] & 31) << 5) | ((c[2] & 31) << 10);
 
-        let upper = (cv >> 8) & 0xFF;
-        let lower = cv & 0xFF;
+        const upper = (cv >> 8) & 0xFF;
+        const lower = cv & 0xFF;
 
         this.cgbObjPalette.data[i + 0] = lower;
         this.cgbObjPalette.data[i + 1] = upper;
@@ -963,12 +963,12 @@ class GPU implements HWIO {
         let lineOffset = this.scrX >> 3;
 
         // How many pixels in we should start drawing at in the first tile
-        let x = this.scrX & 0b111;                // CORRECT
+        const x = this.scrX & 0b111;                // CORRECT
 
         let imgIndex = 160 * 4 * (this.lY);
 
         const xPos = this.windowXpos - 7; // Get the real X position of the window
-        let endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos && xPos <= 160 ? xPos : 160;
+        const endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos && xPos <= 160 ? xPos : 160;
 
         let adjY: number;
         let tileRow: Uint8Array;
@@ -1111,17 +1111,17 @@ class GPU implements HWIO {
         for (let sprite = 0; sprite < 40 && this.scannedEntriesCount < 10; sprite++) {
             const base = sprite * 4;
 
-            let yPos = this.oam[base + 0];
+            const yPos = this.oam[base + 0];
             const xPos = this.oam[base + 1];
             const tile = this.oam[base + 2];
 
             // Continue to next sprite if it is offscreen
             if (xPos < 0 || xPos >= 168 || yPos < 0 || yPos >= 160) continue;
-            let screenYPos = yPos - 16;
+            const screenYPos = yPos - 16;
 
             // Push sprite to scanned if it is on the current scanline
             if (this.lY >= screenYPos && this.lY < screenYPos + HEIGHT) {
-                let entry = this.scannedEntries[this.scannedEntriesCount];
+                const entry = this.scannedEntries[this.scannedEntriesCount];
                 entry.xPos = xPos;
                 entry.yPos = yPos;
                 entry.tile = tile;
@@ -1157,7 +1157,7 @@ class GPU implements HWIO {
     renderSprites() {
         for (let sprite = 0; sprite < this.scannedEntriesCount; sprite++) {
             // Render sprites in OAM order (reverse of scan order)
-            let scannedSprite = this.scannedEntries[this.scannedEntriesCount - sprite - 1];
+            const scannedSprite = this.scannedEntries[this.scannedEntriesCount - sprite - 1];
 
             const yPos = scannedSprite.yPos;
             const xPos = scannedSprite.xPos;
@@ -1175,7 +1175,7 @@ class GPU implements HWIO {
             const pal = this.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
             const tileset = flags.vramBank ? this.tileset1 : this.tileset0;
 
-            let h = this.lY > screenYPos + 7 ? 1 : 0;
+            const h = this.lY > screenYPos + 7 ? 1 : 0;
 
             // Offset tile by +1 if rendering the top half of an 8x16 sprite
             if (flags.yFlip && this.lcdControl.spriteSize______2) {
@@ -1222,7 +1222,7 @@ class GPU implements HWIO {
 
                 const pixel = this.cgbObjPalette.shades[pal][prePalette];
 
-                let noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
+                const noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
                 if (noTransparency === false) {
                     if (flags.behindBG && this.imageGameboyPre[screenXPos] !== 0) { imgIndex += 4; continue; }
                     if (this.imageGameboyNoSprites[screenXPos] === true) { imgIndex += 4; continue; }
@@ -1246,11 +1246,11 @@ class GPU implements HWIO {
             for (let tileX = 0; tileX < 8; tileX++) {
                 for (let tileY = 0; tileY < 8; tileY++) {
                     const x = ((tileIndex << 3) + (tileX & 7)) % WIDTH;
-                    let y = tileY + (8 * (tileIndex >> 5));
+                    const y = tileY + (8 * (tileIndex >> 5));
 
                     const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                    let index = 4 * ((y * WIDTH) + x);
+                    const index = 4 * ((y * WIDTH) + x);
                     this.imageTileset.data[index + 0] = c[0];
                     this.imageTileset.data[index + 1] = c[1];
                     this.imageTileset.data[index + 2] = c[2];
@@ -1261,12 +1261,12 @@ class GPU implements HWIO {
             for (let tileX = 0; tileX < 8; tileX++) {
                 for (let tileY = 0; tileY < 8; tileY++) {
                     const x = ((tileIndex << 3) + (tileX & 7)) % WIDTH;
-                    let y = tileY + (8 * (tileIndex >> 5));
+                    const y = tileY + (8 * (tileIndex >> 5));
 
                     const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                    let offset = (256 * 96);
-                    let index = 4 * (((y * WIDTH) + x) + offset);
+                    const offset = (256 * 96);
+                    const index = 4 * (((y * WIDTH) + x) + offset);
                     this.imageTileset.data[index + 0] = c[0];
                     this.imageTileset.data[index + 1] = c[1];
                     this.imageTileset.data[index + 2] = c[2];

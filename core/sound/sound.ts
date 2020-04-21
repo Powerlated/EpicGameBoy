@@ -77,7 +77,7 @@ export default class SoundChip implements HWIO {
 
                 let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
                 const diff = freq >> this.pulse1.freqSweepShift;
-                let newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
+                const newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
                 freq = newFreq;
                 if (newFreq > 2047) {
                     this.pulse1.enabled = false;

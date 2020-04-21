@@ -560,11 +560,11 @@ UNPREFIXED_EXECUTORS[0x3B] = DEC_R16;  // DEC SP
 export function ADD_A_R8(this: number, cpu: CPU): number {
     const source: R8 = this & 0b111;
 
-    let value = cpu.reg[source];
+    const value = cpu.reg[source];
     cpu.reg._f.half_carry = (cpu.reg[R8.A] & 0xF) + (value & 0xF) > 0xF;
 
-    let newValue = (value + cpu.reg[R8.A]) & 0xFF;
-    let didOverflow = ((value + cpu.reg[R8.A]) >> 8) !== 0;
+    const newValue = (value + cpu.reg[R8.A]) & 0xFF;
+    const didOverflow = ((value + cpu.reg[R8.A]) >> 8) !== 0;
 
     // Set register values
     cpu.reg[R8.A] = newValue;
@@ -589,10 +589,10 @@ UNPREFIXED_EXECUTORS[0x87] = ADD_A_R8;  // ADD A, A
 export function ADC_A_R8(this: number, cpu: CPU): number {
     const source: R8 = this & 0b111;
 
-    let value = cpu.reg[source];
+    const value = cpu.reg[source];
 
-    let newValue = (value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
-    let didOverflow = ((value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) >> 8) !== 0;
+    const newValue = (value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) & 0xFF;
+    const didOverflow = ((value + cpu.reg[R8.A] + (cpu.reg._f.carry ? 1 : 0)) >> 8) !== 0;
 
     // Set flags
     cpu.reg._f.zero = newValue === 0;

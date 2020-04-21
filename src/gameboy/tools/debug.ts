@@ -18,7 +18,7 @@ export function startDebugging() {
     let t1 = 0;
 
     setInterval(() => {
-        let diff = t1 - t0;
+        const diff = t1 - t0;
         t0 = t1;
         t1 = performance.now();
 

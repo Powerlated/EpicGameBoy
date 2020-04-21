@@ -318,7 +318,7 @@ export default class CPU {
                 this.haltBug = true;
             }
 
-            let length = UNPREFIXED_EXECUTORS[this.read_tick(this.pc)](this);
+            const length = UNPREFIXED_EXECUTORS[this.read_tick(this.pc)](this);
 
             if (this.haltBug === false) {
                 this.pc += length;
@@ -338,7 +338,7 @@ export default class CPU {
 
             //     if (!dontcare.includes(b0)) {
 
-            //         let success = assert(this.cycles - c, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
+            //         const success = assert(this.cycles - c, Timings.NORMAL_TIMINGS[b0] * 4, "CPU timing");
 
             //         if (success == false) {
             //             console.log(hex(b0, 2));
@@ -351,7 +351,7 @@ export default class CPU {
 
             //     if (dontcare.includes(b1)) {
 
-            //         let success = assert(this.cycles - c, Timings.CB_TIMINGS[b1] * 4, "[CB] CPU timing");
+            //         const success = assert(this.cycles - c, Timings.CB_TIMINGS[b1] * 4, "[CB] CPU timing");
 
             //         if (success == false) {
             //             console.log(`${hex(b0, 2)},${hex(b1, 2)}`);
@@ -418,7 +418,7 @@ export default class CPU {
             }
         }
 
-        let lastInstructionCycles = this.cycles - c;
+        const lastInstructionCycles = this.cycles - c;
         return lastInstructionCycles;
     }
 

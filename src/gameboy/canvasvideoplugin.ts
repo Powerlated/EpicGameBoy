@@ -16,8 +16,8 @@ export default class GPUCanvas implements VideoPlugin {
     }
 
     clearScreen() {
-        var c = document.getElementById("gameboy");
-        var ctx = (c as any).getContext("2d");
+        const c = document.getElementById("gameboy");
+        const ctx = (c as any).getContext("2d");
 
         ctx.clearRect(0, 0, (c as any).width, (c as any).height);
     }

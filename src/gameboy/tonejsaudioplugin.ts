@@ -126,7 +126,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.pulseVolumeShaper1.setMap((i: number) => {
                     const mul = 0.6;
 
-                    let vol = s.pulse1.volume / 15;
+                    const vol = s.pulse1.volume / 15;
                     if (i > thresholds[s.pulse1.width]) {
                         return 1 * vol * mul;
                     } else {
@@ -150,7 +150,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.pulseVolumeShaper2.setMap((i: number) => {
                     const mul = 0.6;
 
-                    let vol = s.pulse2.volume / 15;
+                    const vol = s.pulse2.volume / 15;
                     if (i > thresholds[s.pulse2.width]) {
                         return 1 * vol * mul;
                     } else {
@@ -206,8 +206,8 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
     }
 
     generateWaveBuffer(s: SoundChip): AudioBuffer {
-        let sampleRate = 112640; // A440 without any division
-        let waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
+        const sampleRate = 112640; // A440 without any division
+        const waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
 
         const ac = (Tone.context as any as AudioContext);
         const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
@@ -231,8 +231,8 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
                 this.noisePan.pan.value = s.noise.pan;
 
-                let div = [8, 16, 32, 48, 64, 80, 96, 112][s.noise.divisorCode];
-                let rate = 4194304 / (div << s.noise.shiftClockFrequency);
+                const div = [8, 16, 32, 48, 64, 80, 96, 112][s.noise.divisorCode];
+                const rate = 4194304 / (div << s.noise.shiftClockFrequency);
 
                 if (s.noise.counterStep) {
                     // 7 bit noise
@@ -259,7 +259,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
 
     generateNoiseBuffer(sevenBit: boolean): AudioBuffer {
-        let capacitor = 0.0;
+        const capacitor = 0.0;
 
         let seed = 0xFF;
         let period = 0;
@@ -282,12 +282,12 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             return seed & 1;
         }
 
-        let LFSR_MUL = 16;
+        const LFSR_MUL = 16;
 
         let waveTable = new Array(32768 * LFSR_MUL).fill(0);
 
         waveTable = waveTable.map((v, i) => {
-            let bit = lfsr(LFSR_MUL);
+            const bit = lfsr(LFSR_MUL);
             let out;
             if (bit == 1) {
                 out = 1;

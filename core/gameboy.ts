@@ -87,7 +87,7 @@ export default class GameBoy {
 
     lastTime = 0;
     frame() {
-        let now = performance.now();
+        const now = performance.now();
         let deltaMs = now - this.lastTime;
         if (deltaMs > (1000 / 60)) deltaMs = (1000 / 60); // limit this for performance reasons
         this.lastTime = now;

@@ -27,8 +27,8 @@ export default class ExternalBus {
         this.romData = [];
         // Write new ROM in
         rom.forEach((v, i) => {
-            let bank = i >> 14;
-            let bankAddr = i & 16383;
+            const bank = i >> 14;
+            const bankAddr = i & 16383;
             if (this.romData[bank] == undefined) {
                 this.romData[bank] = new Uint8Array(16384);
             }
