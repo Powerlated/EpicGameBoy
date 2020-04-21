@@ -201,6 +201,14 @@ export const colors555: Uint8Array[] = [
     new Uint8Array([0x00 >> 3, 0x00 >> 3, 0x00 >> 3]),
 ];
 
+export enum LCDMode {
+    HBLANK = 0,
+    VBLANK = 1,
+    OAM = 2,
+    VRAM = 3,
+    LINE153 = 5
+}
+
 class GPU implements HWIO {
     gb: GameBoy;
 
@@ -302,11 +310,21 @@ class GPU implements HWIO {
         if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
-                case 0: this.modeHblank(); break;
-                case 1: this.modeVblank(); break;
-                case 2: this.modeOam(); break;
-                case 3: this.modeVram(); break;
-                case 5: this.modeLine153(); break;
+                case LCDMode.HBLANK:
+                    this.modeHblank();
+                    break;
+                case LCDMode.VBLANK:
+                    this.modeVblank();
+                    break;
+                case LCDMode.OAM:
+                    this.modeOam();
+                    break;
+                case LCDMode.VRAM:
+                    this.modeVram();
+                    break;
+                case LCDMode.LINE153:
+                    this.modeLine153();
+                    break;
             }
         } else {
             this.lineClock = 0;
@@ -353,14 +371,14 @@ class GPU implements HWIO {
                     }
                 }
 
-                this.lcdStatus.mode = 1;
+                this.lcdStatus.mode = LCDMode.VBLANK;
                 this.updateSTAT();
 
                 this.totalFrameCount++;
             }
             else {
                 // Enter back into OAM mode if not Vblank
-                this.lcdStatus.mode = 2;
+                this.lcdStatus.mode = LCDMode.OAM;
                 this.updateSTAT();
             }
         }
@@ -377,7 +395,7 @@ class GPU implements HWIO {
             this.windowOnscreenYetThisFrame = false;
 
             if (this.lY === 153) {
-                this.lcdStatus.mode = 5;
+                this.lcdStatus.mode = LCDMode.LINE153;
                 this.updateSTAT();
             }
         }
@@ -402,7 +420,7 @@ class GPU implements HWIO {
                 this.currentScanlineDirty = true;
             }
 
-            this.lcdStatus.mode = 3;
+            this.lcdStatus.mode = LCDMode.VRAM;
             this.updateSTAT();
         }
     }
@@ -459,7 +477,7 @@ class GPU implements HWIO {
         if (this.lineClock >= 252) {
 
             // VRAM -> HBLANK
-            this.lcdStatus.mode = 0;
+            this.lcdStatus.mode = LCDMode.HBLANK;
             this.updateSTAT();
 
 
