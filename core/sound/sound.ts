@@ -17,6 +17,7 @@ export default class SoundChip implements HWIO {
     ticksEnvelopeNoise = 0;
 
     clockPulse1FreqSweep = 0;
+    freqSweepEnabled = false;
 
     clockFrameSequencer = 0;
     frameSequencerStep = 0;
@@ -68,28 +69,39 @@ export default class SoundChip implements HWIO {
 
     frequencySweep() {
         // writeDebug("Frequency sweep")
-        let actualTime = this.pulse1.freqSweepTime;
-        if (actualTime == 0) actualTime = 8;
-        if (this.clockPulse1FreqSweep > actualTime) {
+        let actualPeriod = this.pulse1.freqSweepPeriod;
+        if (actualPeriod == 0) actualPeriod = 8;
+        if (this.clockPulse1FreqSweep > actualPeriod) {
             this.clockPulse1FreqSweep = 0;
-
-            if (this.pulse1.freqSweepShift !== 0) {
-
-                let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
-                const diff = freq >> this.pulse1.freqSweepShift;
-                const newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
-                freq = newFreq;
-                if (newFreq > 2047) {
-                    this.pulse1.enabled = false;
-                }
-                this.pulse1.frequencyLower = freq & 0xFF;
-                this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
-                this.pulse1.updated = true;
-                // writeDebug("abs(Range): " + diff);
-                // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
+            if (this.freqSweepEnabled === true) {
+                this.applyFrequencySweep();
             }
+
+            // writeDebug("abs(Range): " + diff);
+            // writeDebug("Resulting frequency: " + this.pulse1.frequencyHz);
+
         }
+
         this.clockPulse1FreqSweep++;
+
+    }
+
+    private applyFrequencySweep() {
+        let freq = (this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower;
+        const diff = freq >> this.pulse1.freqSweepShift;
+        const newFreq = this.pulse1.freqSweepUp ? freq + diff : freq - diff;
+        freq = newFreq;
+        if (newFreq > 2047) {
+            this.pulse1.enabled = false;
+        }
+        if (this.pulse1.freqSweepPeriod !== 0 && this.pulse1.freqSweepShift !== 0) {
+
+            this.pulse1.frequencyLower = freq & 0xFF;
+            this.pulse1.frequencyUpper = (freq >> 8) & 0xFF;
+        }
+        this.pulse1.updated = true;
+
+        this.tjsCheck();
     }
 
     volumeEnvelope() {
@@ -216,7 +228,7 @@ export default class SoundChip implements HWIO {
             switch (addr) {
                 // Pulse 1
                 case 0xFF10: // NR10
-                    this.pulse1.freqSweepTime = (value & 0b01110000) >> 4; // in 128ths of a second (0-7)
+                    this.pulse1.freqSweepPeriod = (value & 0b01110000) >> 4; // in 128ths of a second (0-7)
                     this.pulse1.freqSweepUp = ((value >> 3) & 1) === 0; // 0 === Add, 1 = Sub
                     this.pulse1.freqSweepShift = (value & 0b111); // 0-7; 
                     this.pulse1.updated = true;
@@ -242,7 +254,15 @@ export default class SoundChip implements HWIO {
                 case 0xFF14: // NR14
                     this.pulse1.frequencyUpper = value & 0b111;
                     this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
-                    if (((value >> 7) & 1) !== 0) this.pulse1.trigger();
+                    if (((value >> 7) & 1) !== 0) {
+                        this.pulse1.trigger();
+
+                        this.freqSweepEnabled = this.pulse1.freqSweepShift !== 0 || this.pulse1.freqSweepPeriod !== 0;
+
+                        // if (this.pulse1.freqSweepShift > 0) {
+                        //     this.applyFrequencySweep();
+                        // }
+                    }
                     this.pulse1.updated = true;
                     break;
 

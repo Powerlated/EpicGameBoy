@@ -26,10 +26,10 @@ export class PulseChannel implements BasicChannel {
     outputLeft = false;
     outputRight = false;
 
-    freqSweepTime = 0;
+    freqSweepPeriod = 0;
     freqSweepUp = false;
+    
     freqSweepShift = 0;
-
     updated = false;
 
     get outputting(): boolean {
