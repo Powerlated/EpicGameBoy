@@ -17,7 +17,7 @@ export function RLC_R8(this: number, cpu: CPU): number {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value >> 7) === 1;
+    cpu.reg._f.carry = (value & 128) !== 0;
 
     return 2;
 };
@@ -35,7 +35,7 @@ export function RRC_R8(this: number, cpu: CPU): number {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = !!(value & 1);
+    cpu.reg._f.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -54,7 +54,7 @@ export function RL_R8(this: number, cpu: CPU): number {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value >> 7) === 1;
+    cpu.reg._f.carry = (value & 128) !== 0;
 
     return 2;
 };
@@ -73,7 +73,7 @@ export function RR_R8(this: number, cpu: CPU): number {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = !!(value & 1);
+    cpu.reg._f.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -84,7 +84,7 @@ export function SLA_R8(this: number, cpu: CPU): number {
     const value = cpu.reg[t];
 
     const newValue = (value << 1) & 0xFF;
-    const didOverflow = ((value << 1) >> 8) !== 0;
+    const didOverflow = (value >> 7) !== 0;
 
     cpu.reg[t] = newValue;
 
@@ -109,7 +109,7 @@ export function SRA_R8(this: number, cpu: CPU): number {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = !!(value & 1);
+    cpu.reg._f.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -144,7 +144,7 @@ export function SRL_R8(this: number, cpu: CPU): number {
     cpu.reg._f.zero = newValue === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = !!(value & 1);
+    cpu.reg._f.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -154,9 +154,7 @@ export function BIT_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
     const bit = (this & 0b111000) >> 3;
 
-    const value = cpu.reg[t];
-
-    cpu.reg._f.zero = (value & (1 << bit)) === 0;
+    cpu.reg._f.zero = (cpu.reg[t] & (1 << bit)) === 0;
     cpu.reg._f.negative = false;
     cpu.reg._f.half_carry = true;
 
@@ -171,9 +169,7 @@ export function RES_R8(this: number, cpu: CPU): number {
     const value = cpu.reg[t];
     const mask = 0b1 << bit;
 
-    const final = value & ~(mask);
-
-    cpu.reg[t] = final;
+    cpu.reg[t] = value & ~(mask);
 
     return 2;
 };
@@ -186,9 +182,7 @@ export function SET_R8(this: number, cpu: CPU): number {
     const value = cpu.reg[t];
     const mask = 0b1 << bit;
 
-    const final = value | mask;
-
-    cpu.reg[t] = final;
+    cpu.reg[t] = value | mask;;
 
     return 2;
 };

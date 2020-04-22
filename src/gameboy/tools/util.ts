@@ -1,25 +1,22 @@
 export function unTwo4b(n: number): number {
-    if ((n & 0b1000) !== 0) {
-        return n - 16;
-    } else {
-        return n;
-    }
+    if ((n & (1 << 3)) !== 0)
+        n -= (1 << 4);
+
+    return n;
 }
 
 export function unTwo8b(n: number): number {
-    if ((n & 0b10000000) !== 0) {
-        return n - 256;
-    } else {
-        return n;
-    }
+    if ((n & (1 << 7)) !== 0)
+        n -= (1 << 8);
+
+    return n;
 }
 
 export function unTwo16b(n: number): number {
-    if ((n & 0b1000000000000000) !== 0) {
-        return n - 65536;
-    } else {
-        return n;
-    }
+    if ((n & (1 << 15)) !== 0)
+        n -= (1 << 16);
+
+    return n;
 }
 
 export function do4b(i: number): boolean {
@@ -63,7 +60,7 @@ export function assert(n1: any, n2: any, reason: string) {
         console.error(`Assertion failed:
             ${reason}
             ${n1} != ${n2}
-        `)
+        `);
         return false;
     }
     return true;

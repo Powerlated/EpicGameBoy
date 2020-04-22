@@ -53,7 +53,7 @@ If a `VideoPlugin` is registered, when the emulated GPU hits Vblank, `VideoPlugi
 
 # Memory Bus
 
-`MemoryBus` has the main `readMem8` and `writeMem8` methods that are used for reading and writing data by components.
+`MemoryBus` has the main `read` and `write` methods that are used for reading and writing data by components.
 
 Addresses are decoded by `if` statement. An HWIO interface is available for components that have memory mapped I/O.
 
