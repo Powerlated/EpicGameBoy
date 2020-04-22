@@ -1045,8 +1045,6 @@ UNPREFIXED_EXECUTORS[0x39] = ADD_HL_R16; // ADD HL, SP
 export function RST(this: number, cpu: CPU): number {
     const target = this & 0b111000;
 
-    cpu.tick(4);
-
     cpu.push_tick(cpu.pc + 1);
 
     cpu.pc = target - 1;
