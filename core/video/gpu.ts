@@ -329,7 +329,6 @@ class GPU implements HWIO {
                             this.hdmaProcessed = false;
 
                             this.lY++;
-                            this.updateSTAT();
 
                             // If we're at LCDCy = 144, enter Vblank
                             // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
@@ -349,14 +348,12 @@ class GPU implements HWIO {
                                 }
 
                                 this.lcdStatus.mode = LCDMode.VBLANK;
-                                this.updateSTAT();
 
                                 this.totalFrameCount++;
                             }
                             else {
                                 // Enter back into OAM mode if not Vblank
                                 this.lcdStatus.mode = LCDMode.OAM;
-                                this.updateSTAT();
                             }
                         }
                     }
@@ -367,14 +364,12 @@ class GPU implements HWIO {
                             this.lineClock -= 456;
 
                             this.lY++;
-                            this.updateSTAT();
 
                             this.currentWindowLine = 0;
                             this.windowOnscreenYetThisFrame = false;
 
                             if (this.lY === 153) {
                                 this.lcdStatus.mode = LCDMode.LINE153;
-                                this.updateSTAT();
                             }
                         }
                     }
@@ -387,7 +382,6 @@ class GPU implements HWIO {
                             }
                             this.oamScanned = true;
 
-                            this.updateSTAT();
                             // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
                         }
                         if (this.lineClock >= 80) {
@@ -400,7 +394,6 @@ class GPU implements HWIO {
                             }
 
                             this.lcdStatus.mode = LCDMode.VRAM;
-                            this.updateSTAT();
                         }
                     }
                     break;
@@ -458,7 +451,6 @@ class GPU implements HWIO {
 
                             // VRAM -> HBLANK
                             this.lcdStatus.mode = LCDMode.HBLANK;
-                            this.updateSTAT();
 
 
                             // Render sprites at end of scanline
@@ -506,7 +498,6 @@ class GPU implements HWIO {
                     {
                         if (this.mode5lYReset === false && this.lineClock >= 4) {
                             this.lY = 0;
-                            this.updateSTAT();
 
                             this.mode5lYReset = true;
                         }
@@ -514,7 +505,6 @@ class GPU implements HWIO {
                             this.lineClock -= 456;
 
                             this.lcdStatus.mode = LCDMode.OAM;
-                            this.updateSTAT();
 
                             this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
 
@@ -523,6 +513,7 @@ class GPU implements HWIO {
                     }
                     break;
             }
+            this.updateSTAT();
         } else {
             this.lineClock = 0;
             this.lcdStatus.mode = 0;
@@ -531,7 +522,9 @@ class GPU implements HWIO {
     }
 
     updateSTAT() {
-        this.lcdStatus.coincidenceFlag_______2 = this.lY === this.lYCompare;
+        if (this.lineClock <= 4) {
+            this.lcdStatus.coincidenceFlag_______2 = this.lY === this.lYCompare;
+        }
 
         // Determine LCD status interrupt conditions
         this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;

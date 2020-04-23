@@ -97,7 +97,7 @@ export default class GameBoy {
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
         let max = 4213.440 * deltaMs * this.speedMul;
 
-        if (this.doubleSpeed) max <<= 1;
+        if (this.doubleSpeed === true) max <<= 1;
 
         let i = 0;
         while (i < max) {
