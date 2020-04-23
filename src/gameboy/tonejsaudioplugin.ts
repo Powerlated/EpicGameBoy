@@ -70,7 +70,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.pulseOsc1.mute = true;
         this.pulseVolumeShaper1 = new Tone.WaveShaper((i: number) => 0);
         this.pulsePan1 = new Tone.Panner(0);
-        this.pulseOsc1.chain(this.pulseVolumeShaper1, this.pulsePan1, Tone.Master);
+        this.pulseOsc1.chain(this.pulseVolumeShaper1, new Tone.Filter(22050, 'lowpass', -96), this.pulsePan1, Tone.Master);
         this.pulseOsc1.start();
 
         this.pulseOsc2 = new Tone.Oscillator(0, "triangle");
@@ -78,7 +78,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.pulseOsc2.mute = true;
         this.pulseVolumeShaper2 = new Tone.WaveShaper((i: number) => 0);
         this.pulsePan2 = new Tone.Panner(0);
-        this.pulseOsc2.chain(this.pulseVolumeShaper2, this.pulsePan2, Tone.Master);
+        this.pulseOsc2.chain(this.pulseVolumeShaper2, new Tone.Filter(22050, 'lowpass', -96), this.pulsePan2, Tone.Master);
         this.pulseOsc2.start();
 
 
@@ -112,7 +112,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.noise15Src.start();
 
         this.masterVolume = new Tone.Volume(-12);
-        Tone.Master.chain(new Tone.Filter(22050, 'lowpass', -96), this.masterVolume);
+        Tone.Master.chain(this.masterVolume);
 
         Tone.context.lookAhead = 0;
     }
@@ -124,7 +124,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.pulsePan1.pan.value = s.pulse1.pan;
                 this.pulseOsc1.mute = false;
                 this.pulseVolumeShaper1.setMap((i: number) => {
-                    const mul = 0.6;
+                    const mul = 0.7;
 
                     const vol = s.pulse1.volume / 15;
                     if (i > thresholds[s.pulse1.width]) {
@@ -148,7 +148,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.pulsePan2.pan.value = s.pulse2.pan;
                 this.pulseOsc2.mute = false;
                 this.pulseVolumeShaper2.setMap((i: number) => {
-                    const mul = 0.6;
+                    const mul = 0.7;
 
                     const vol = s.pulse2.volume / 15;
                     if (i > thresholds[s.pulse2.width]) {
