@@ -518,9 +518,9 @@ class GPU implements HWIO {
 
             // Determine LCD status interrupt conditions
             this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
-            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && this.lcdStatus.mode === LCDMode.HBLANK;
-            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && this.lcdStatus.mode === LCDMode.VBLANK;
-            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && this.lcdStatus.mode === LCDMode.OAM;
+            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && (this.lcdStatus.mode & 3) === LCDMode.HBLANK;
+            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && (this.lcdStatus.mode & 3) === LCDMode.VBLANK;
+            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && (this.lcdStatus.mode & 3) === LCDMode.OAM;
 
             // If any of the conditions are met, set the condition met flag
             if (
