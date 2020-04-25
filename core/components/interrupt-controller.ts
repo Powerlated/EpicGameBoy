@@ -1,6 +1,7 @@
 import MemoryBus from "../memory/memorybus";
 import GameBoy from "../gameboy";
 import { HWIO } from "../memory/hwio";
+import { BIT_0, BIT_1, BIT_2, BIT_3, BIT_4 } from "../bit_constants";
 
 /**
  * Instances of this class are checked every single time the CPU 
@@ -58,11 +59,11 @@ class InterruptFlag {
     }
 
     setNumerical(i: number) {
-        this.vblank = (i & (1 << 0)) !== 0;
-        this.lcdStat = (i & (1 << 1)) !== 0;
-        this.timer = (i & (1 << 2)) !== 0;
-        this.serial = (i & (1 << 3)) !== 0;
-        this.joypad = (i & (1 << 4)) !== 0;
+        this.vblank = (i & BIT_0) !== 0;
+        this.lcdStat = (i & BIT_1) !== 0;
+        this.timer = (i & BIT_2) !== 0;
+        this.serial = (i & BIT_3) !== 0;
+        this.joypad = (i & BIT_4) !== 0;
 
         // Just store this flag and return it later, it's faster
         this.numerical = i;

@@ -3,6 +3,7 @@ import { TickSignal } from "tone";
 import { hex, unTwo8b } from "../../src/gameboy/tools/util";
 import { VideoPlugin } from "./videoplugin";
 import { HWIO } from "../memory/hwio";
+import { BIT_7, BIT_6, BIT_5, BIT_4, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -17,26 +18,26 @@ class LCDCRegister {
 
     getNumerical(): number {
         let flagN = 0;
-        if (this.lcdDisplayEnable7) flagN = flagN | (1 << 7);
-        if (this.windowTilemapSelect___6) flagN = flagN | (1 << 6);
-        if (this.enableWindow____5) flagN = flagN | (1 << 5);
-        if (this.bgWindowTiledataSelect__4) flagN = flagN | (1 << 4);
-        if (this.bgTilemapSelect_3) flagN = flagN | (1 << 3);
-        if (this.spriteSize______2) flagN = flagN | (1 << 2);
-        if (this.spriteDisplay___1) flagN = flagN | (1 << 1);
-        if (this.bgWindowEnable0) flagN = flagN | (1 << 0);
+        if (this.lcdDisplayEnable7) flagN = flagN | BIT_7;
+        if (this.windowTilemapSelect___6) flagN = flagN | BIT_6;
+        if (this.enableWindow____5) flagN = flagN | BIT_5;
+        if (this.bgWindowTiledataSelect__4) flagN = flagN | BIT_4;
+        if (this.bgTilemapSelect_3) flagN = flagN | BIT_3;
+        if (this.spriteSize______2) flagN = flagN | BIT_2;
+        if (this.spriteDisplay___1) flagN = flagN | BIT_1;
+        if (this.bgWindowEnable0) flagN = flagN | BIT_0;
         return flagN;
     }
 
     setNumerical(i: number) {
-        this.lcdDisplayEnable7 = (i & (1 << 7)) !== 0;
-        this.windowTilemapSelect___6 = (i & (1 << 6)) !== 0;
-        this.enableWindow____5 = (i & (1 << 5)) !== 0;
-        this.bgWindowTiledataSelect__4 = (i & (1 << 4)) !== 0;
-        this.bgTilemapSelect_3 = (i & (1 << 3)) !== 0;
-        this.spriteSize______2 = (i & (1 << 2)) !== 0;
-        this.spriteDisplay___1 = (i & (1 << 1)) !== 0;
-        this.bgWindowEnable0 = (i & (1 << 0)) !== 0;
+        this.lcdDisplayEnable7 = (i & BIT_7) !== 0;
+        this.windowTilemapSelect___6 = (i & BIT_6) !== 0;
+        this.enableWindow____5 = (i & BIT_5) !== 0;
+        this.bgWindowTiledataSelect__4 = (i & BIT_4) !== 0;
+        this.bgTilemapSelect_3 = (i & BIT_3) !== 0;
+        this.spriteSize______2 = (i & BIT_2) !== 0;
+        this.spriteDisplay___1 = (i & BIT_1) !== 0;
+        this.bgWindowEnable0 = (i & BIT_0) !== 0;
     }
 }
 
@@ -56,21 +57,21 @@ class LCDStatusRegister {
 
     getNumerical(): number {
         let flagN = 0;
-        if (this.lyCoincidenceInterrupt6) flagN = flagN | (1 << 6);
-        if (this.mode2OamInterrupt_____5) flagN = flagN | (1 << 5);
-        if (this.mode1VblankInterrupt__4) flagN = flagN | (1 << 4);
-        if (this.mode0HblankInterrupt__3) flagN = flagN | (1 << 3);
-        if (this.coincidenceFlag_______2) flagN = flagN | (1 << 2);
+        if (this.lyCoincidenceInterrupt6) flagN = flagN | BIT_6;
+        if (this.mode2OamInterrupt_____5) flagN = flagN | BIT_5;
+        if (this.mode1VblankInterrupt__4) flagN = flagN | BIT_4;
+        if (this.mode0HblankInterrupt__3) flagN = flagN | BIT_3;
+        if (this.coincidenceFlag_______2) flagN = flagN | BIT_2;
 
         flagN = flagN | (this.mode & 0b11);
         return flagN;
     }
 
     setNumerical(i: number) {
-        this.lyCoincidenceInterrupt6 = (i & (1 << 6)) !== 0;
-        this.mode2OamInterrupt_____5 = (i & (1 << 5)) !== 0;
-        this.mode1VblankInterrupt__4 = (i & (1 << 4)) !== 0;
-        this.mode0HblankInterrupt__3 = (i & (1 << 3)) !== 0;
+        this.lyCoincidenceInterrupt6 = (i & BIT_6) !== 0;
+        this.mode2OamInterrupt_____5 = (i & BIT_5) !== 0;
+        this.mode1VblankInterrupt__4 = (i & BIT_4) !== 0;
+        this.mode0HblankInterrupt__3 = (i & BIT_3) !== 0;
 
         // this.mode = i & 0b11; // this is read only when numerically setting
     }
@@ -102,11 +103,11 @@ export class OAMFlags {
     }
 
     setNumerical(i: number) {
-        this.behindBG = (i & (1 << 7)) !== 0;
-        this.yFlip = (i & (1 << 6)) !== 0;
-        this.xFlip = (i & (1 << 5)) !== 0;
-        this.paletteNumberDMG = (i & (1 << 4)) !== 0;
-        this.vramBank = (i & (1 << 3)) !== 0;
+        this.behindBG = (i & BIT_7) !== 0;
+        this.yFlip = (i & BIT_6) !== 0;
+        this.xFlip = (i & BIT_5) !== 0;
+        this.paletteNumberDMG = (i & BIT_4) !== 0;
+        this.vramBank = (i & BIT_3) !== 0;
 
         this.paletteNumberCGB = i & 0b111;
     }
@@ -185,10 +186,10 @@ class CGBTileFlags {
     }
 
     setNumerical(i: number) {
-        this.ignoreSpritePriority = (i & (1 << 7)) !== 0;
-        this.yFlip = (i & (1 << 6)) !== 0;
-        this.xFlip = (i & (1 << 5)) !== 0;
-        this.vramBank = (i & (1 << 3)) !== 0;
+        this.ignoreSpritePriority = (i & BIT_7) !== 0;
+        this.yFlip = (i & BIT_6) !== 0;
+        this.xFlip = (i & BIT_5) !== 0;
+        this.vramBank = (i & BIT_3) !== 0;
 
         this.bgPalette = i & 0b111;
     }

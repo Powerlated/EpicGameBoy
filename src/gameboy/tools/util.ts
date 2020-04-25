@@ -1,20 +1,22 @@
+import { BIT_3, BIT_4, BIT_7, BIT_8, BIT_15, BIT_16 } from "../../../core/bit_constants";
+
 export function unTwo4b(n: number): number {
-    if ((n & (1 << 3)) !== 0)
-        n -= (1 << 4);
+    if ((n & BIT_3) !== 0)
+        n -= BIT_4;
 
     return n;
 }
 
 export function unTwo8b(n: number): number {
-    if ((n & (1 << 7)) !== 0)
-        n -= (1 << 8);
+    if ((n & BIT_7) !== 0)
+        n -= BIT_8;
 
     return n;
 }
 
 export function unTwo16b(n: number): number {
-    if ((n & (1 << 15)) !== 0)
-        n -= (1 << 16);
+    if ((n & BIT_15) !== 0)
+        n -= BIT_16;
 
     return n;
 }

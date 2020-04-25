@@ -1,5 +1,6 @@
 import GameBoy from "../gameboy";
 import { HWIO } from "../memory/hwio";
+import { BIT_4, BIT_3, BIT_2, BIT_1, BIT_0, BIT_5 } from "../bit_constants";
 
 export class JoypadRegister implements HWIO {
 
@@ -88,20 +89,20 @@ export class JoypadRegister implements HWIO {
         let n = 0xFF;
 
         if (this.selectDpad) {
-            n &= ~(1 << 4);
+            n &= ~BIT_4;
 
-            if (this._down) n &= ~(1 << 3);
-            if (this._up) n &= ~(1 << 2);
-            if (this._left) n &= ~(1 << 1);
-            if (this._right) n &= ~(1 << 0);
+            if (this._down) n &= ~BIT_3;
+            if (this._up) n &= ~BIT_2;
+            if (this._left) n &= ~BIT_1;
+            if (this._right) n &= ~BIT_0;
         }
         if (this.selectButtons) {
-            n &= ~(1 << 5);
+            n &= ~BIT_5;
 
-            if (this._start) n &= ~(1 << 3);
-            if (this._select) n &= ~(1 << 2);
-            if (this._b) n &= ~(1 << 1);
-            if (this._a) n &= ~(1 << 0);
+            if (this._start) n &= ~BIT_3;
+            if (this._select) n &= ~BIT_2;
+            if (this._b) n &= ~BIT_1;
+            if (this._a) n &= ~BIT_0;
         }
         return n;
     }

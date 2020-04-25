@@ -1,6 +1,7 @@
 import * as Tone from "tone";
 import { AudioPlugin } from "../../core/sound/audioplugin";
 import SoundChip from "../../core/sound/sound";
+import { BIT_6 } from "../../core/bit_constants";
 
 const thresholds = [-0.75, -0.5, 0, 0.5]; // CORRECT
 
@@ -272,7 +273,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 seed = (seed >> 1) | (bit << 14);
 
                 if (sevenBit == true) {
-                    seed &= ~(1 << 6);
+                    seed &= ~BIT_6;
                     seed |= (bit << 6);
                 }
 

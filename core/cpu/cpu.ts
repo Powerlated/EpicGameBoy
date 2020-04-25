@@ -7,6 +7,7 @@ import { VBLANK_VECTOR, LCD_STATUS_VECTOR, TIMER_OVERFLOW_VECTOR, SERIAL_LINK_VE
 import UNPREFIXED_EXECUTORS, { Executor } from "./unprefixed_executors";
 import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
 import Decoder from "./legacy_decoder";
+import { BIT_7, BIT_6, BIT_5, BIT_4 } from "../bit_constants";
 
 function undefErr(cpu: CPU, name: string) {
     alert(`
@@ -54,19 +55,19 @@ class Registers {
     get f() {
         let flagN = 0;
 
-        if (this._f.zero) flagN |= (1 << 7);
-        if (this._f.negative) flagN |= (1 << 6);
-        if (this._f.half_carry) flagN |= (1 << 5);
-        if (this._f.carry) flagN |= (1 << 4);
+        if (this._f.zero) flagN |= BIT_7;
+        if (this._f.negative) flagN |= BIT_6;
+        if (this._f.half_carry) flagN |= BIT_5;
+        if (this._f.carry) flagN |= BIT_4;
 
         return flagN;
     }
 
     set f(i: number) {
-        this._f.zero = (i & (1 << 7)) !== 0;
-        this._f.negative = (i & (1 << 6)) !== 0;
-        this._f.half_carry = (i & (1 << 5)) !== 0;
-        this._f.carry = (i & (1 << 4)) !== 0;
+        this._f.zero = (i & BIT_7) !== 0;
+        this._f.negative = (i & BIT_6) !== 0;
+        this._f.half_carry = (i & BIT_5) !== 0;
+        this._f.carry = (i & BIT_4) !== 0;
     }
 
     sp = 0;

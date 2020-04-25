@@ -3,6 +3,7 @@ import GameBoy from "../gameboy";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
+import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
 
 export default class SoundChip implements HWIO {
     constructor(gb: GameBoy) {
@@ -424,12 +425,12 @@ export default class SoundChip implements HWIO {
 
             if (addr === 0xFF26) { // NR52
                 i = 0;
-                if (this.enabled) i |= (1 << 7);
+                if (this.enabled) i |= BIT_7;
                 i |= 0b01110000;
-                if (this.noise.enabled && this.noise.dacEnabled) i |= (1 << 3);
-                if (this.wave.enabled && this.wave.dacEnabled) i |= (1 << 2);
-                if (this.pulse2.enabled && this.pulse2.dacEnabled) i |= (1 << 1);
-                if (this.pulse1.enabled && this.pulse1.dacEnabled) i |= (1 << 0);
+                if (this.noise.enabled && this.noise.dacEnabled) i |= BIT_3;
+                if (this.wave.enabled && this.wave.dacEnabled) i |= BIT_2;
+                if (this.pulse2.enabled && this.pulse2.dacEnabled) i |= BIT_1;
+                if (this.pulse1.enabled && this.pulse1.dacEnabled) i |= BIT_0;
                 return i;
             }
 
