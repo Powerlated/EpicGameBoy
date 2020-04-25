@@ -355,6 +355,7 @@ class GPU implements HWIO {
 
                             if (this.lY >= 153) {
                                 this.lcdStatus.mode = LCDMode.LINE153;
+                                this.updateSTAT();
                             }
                         }
                     }
@@ -437,7 +438,9 @@ class GPU implements HWIO {
 
                             if (this.renderingThisFrame === true) {
 
-                                this.renderSprites();
+                                if (this.lcdControl.spriteDisplay___1 === true) {
+                                    this.renderSprites();
+                                }
 
                                 /*
                                 const index = 160 * 4 * (this.lY);
@@ -472,6 +475,8 @@ class GPU implements HWIO {
                     break;
                 case LCDMode.LINE153:
                     {
+                        this.updateSTAT();
+
                         // LY returns to top early at line 153
                         this.lY = 0;
                         if (this.lineClock >= 456) {
