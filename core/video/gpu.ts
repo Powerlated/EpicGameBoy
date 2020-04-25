@@ -547,6 +547,7 @@ class GPU implements HWIO {
             this.lineClock = 0;
             this.lcdStatus.mode = 0;
             this.lY = 0;
+            this.renderingThisFrame = false;
         }
     }
 
