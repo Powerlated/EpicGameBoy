@@ -107,14 +107,14 @@ export default class GameBoy {
 
     speed() {
         this.cpu.debugging = false;
-        this.animationFrame = requestAnimationFrame(this.frame.bind(this));
+        this.animationFrame = requestAnimationFrame(this.run.bind(this));
         this.soundChip.setMuted(false);
 
         this.currentlyRunning = true;
     }
 
     lastTime = 0;
-    frame() {
+    run() {
         const now = performance.now();
         let deltaMs = now - this.lastTime;
         if (deltaMs > (1000 / 60)) deltaMs = (1000 / 60); // limit this for performance reasons
@@ -134,9 +134,16 @@ export default class GameBoy {
             this.stopNow = false;
         }
 
-        this.animationFrame = requestAnimationFrame(this.frame.bind(this));
+        this.animationFrame = requestAnimationFrame(this.run.bind(this));
 
         this.millisUntilMuteAudio = 100;
+    }
+
+    frame() {
+        const cyclesToRun = this.doubleSpeed ? 70224 * 2 : 70224;
+        for (let i = 0; i < cyclesToRun;) {
+            i += this.step();
+        }
     }
 
     reset() {

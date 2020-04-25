@@ -49,15 +49,14 @@ function disassemble(cpu) {
 }
 
 function executeAtPc() {
-    let cpu = window.cpu;
+    let cpu = gb.cpu;
     let pc = gb.cpu.pc;
-    cpu.debugging = false;
     if (cpu.breakpoints[pc]) {
         cpu.clearBreakpoint(pc);
-        cpu.step();
+        gb.step();
         cpu.setBreakpoint(pc);
     } else {
-        cpu.step();
+        gb.step();
     }
 
     disassemble(cpu);
