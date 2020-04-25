@@ -15,6 +15,25 @@ export default class GameBoy {
         writeDebug("New gameboy!");
         this.cgb = cgb;
         setInterval(() => { this.bus.ext.saveGameSram(); }, 100);
+
+        /* 
+        * Intervals run while out of the tab as opposed to animation frames, which are
+        * stopped by the browser when the user leaves the active tab.
+        * 
+        * A timer is constantly refreshed by frame() and when the timer runs out,
+        * mute the audio.
+        */
+        setInterval(() => {
+            if (this.soundChip.getMuted() === true && this.millisUntilMuteAudio === 100) {
+                this.soundChip.setMuted(false);
+            } else if (this.millisUntilMuteAudio < 0) {
+                this.soundChip.setMuted(true);
+            }
+
+            if (this.millisUntilMuteAudio >= 0) {
+                this.millisUntilMuteAudio -= 50;
+            }
+        }, 50);
     }
 
     cpu = new CPU(this);
@@ -44,6 +63,9 @@ export default class GameBoy {
 
     speedMul = 1;
     speedIntervals: Array<number> = [];
+    currentlyRunning = false;
+    animationFrame = 0;
+    millisUntilMuteAudio = 0;
 
     step(): number {
         if (this.cpuPausedTCyclesRemaining !== 0) {
@@ -76,15 +98,19 @@ export default class GameBoy {
     }
 
     speedStop() {
-        this.speedIntervals.forEach(i => { clearInterval(i); });
+        cancelAnimationFrame(this.animationFrame);
         this.soundChip.setMuted(true);
         this.stopNow = true;
+
+        this.currentlyRunning = false;
     }
 
     speed() {
         this.cpu.debugging = false;
-        this.speedIntervals.push(setInterval(this.frame.bind(this), 10));
+        this.animationFrame = requestAnimationFrame(this.frame.bind(this));
         this.soundChip.setMuted(false);
+
+        this.currentlyRunning = true;
     }
 
     lastTime = 0;
@@ -107,6 +133,10 @@ export default class GameBoy {
         if (this.stopNow == true) {
             this.stopNow = false;
         }
+
+        this.animationFrame = requestAnimationFrame(this.frame.bind(this));
+
+        this.millisUntilMuteAudio = 100;
     }
 
     reset() {

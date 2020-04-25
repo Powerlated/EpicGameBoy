@@ -496,9 +496,16 @@ export default class SoundChip implements HWIO {
         }
     }
 
+    private muted = false;
+
+    getMuted(): boolean {
+        return this.muted;
+    }
+
     setMuted(muted: boolean) {
         if (this.ap !== null) {
             this.ap.setMuted(muted);
         }
+        this.muted = muted;
     }
 }
