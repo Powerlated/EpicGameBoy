@@ -330,12 +330,14 @@ class GPU implements HWIO {
                                 }
 
                                 this.lcdStatus.mode = LCDMode.VBLANK;
+                                this.updateSTAT();
 
                                 this.totalFrameCount++;
                             }
                             else {
                                 // Enter back into OAM mode if not Vblank
                                 this.lcdStatus.mode = LCDMode.OAM;
+                                this.updateSTAT();
                             }
                         }
                     }
@@ -346,6 +348,7 @@ class GPU implements HWIO {
                             this.lineClock -= 456;
 
                             this.lY++;
+                            this.updateSTAT();
 
                             this.currentWindowLine = 0;
                             this.windowOnscreenYetThisFrame = false;
@@ -374,6 +377,7 @@ class GPU implements HWIO {
                             }
 
                             this.lcdStatus.mode = LCDMode.VRAM;
+                            this.updateSTAT();
                         }
                     }
                     break;
@@ -427,6 +431,7 @@ class GPU implements HWIO {
 
                             // VRAM -> HBLANK
                             this.lcdStatus.mode = LCDMode.HBLANK;
+                            this.updateSTAT();
 
                             this.gb.dma.continueHdma();
 
@@ -473,46 +478,49 @@ class GPU implements HWIO {
                             this.lineClock -= 456;
 
                             this.lcdStatus.mode = LCDMode.OAM;
+                            this.updateSTAT();
 
                             this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0 && this.vp !== null;
                         }
                     }
                     break;
             }
-
-            this.lcdStatus.coincidenceFlag_______2 = this.lY === this.lYCompare;
-
-            // Determine LCD status interrupt conditions
-            this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
-            this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && (this.lcdStatus.mode & 3) === LCDMode.HBLANK;
-            this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && (this.lcdStatus.mode & 3) === LCDMode.VBLANK;
-            this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && (this.lcdStatus.mode & 3) === LCDMode.OAM;
-
-            // If any of the conditions are met, set the condition met flag
-            if (
-                this.lcdStatusMode0 === true ||
-                this.lcdStatusMode1 === true ||
-                this.lcdStatusMode2 === true ||
-                this.lcdStatusCoincidence === true
-            ) {
-                this.lcdStatusConditionMet = true;
-            } else {
-                this.lcdStatusConditionMet = false;
-                this.lcdStatusFired = false;
-            }
-
-            // If the condition is met and the interrupt has not been fired yet, request the interrupt
-            if (this.lcdStatusFired === false && this.lcdStatusConditionMet === true) {
-                this.gb.interrupts.requested.lcdStat = true;
-                this.lcdStatusFired = true;
-
-                // console.log(`${this.lYCompare} === ${this.lY} STAT IRQ LINECLOCK: ${this.lineClock}`);
-            }
         } else {
             this.lineClock = 0;
             this.lcdStatus.mode = 0;
             this.lY = 0;
             this.renderingThisFrame = false;
+        }
+    }
+
+    updateSTAT() {
+        this.lcdStatus.coincidenceFlag_______2 = this.lY === this.lYCompare;
+
+        // Determine LCD status interrupt conditions
+        this.lcdStatusCoincidence = this.lcdStatus.lyCoincidenceInterrupt6 === true && this.lcdStatus.coincidenceFlag_______2 === true;
+        this.lcdStatusMode0 = this.lcdStatus.mode0HblankInterrupt__3 === true && (this.lcdStatus.mode & 3) === LCDMode.HBLANK;
+        this.lcdStatusMode1 = this.lcdStatus.mode1VblankInterrupt__4 === true && (this.lcdStatus.mode & 3) === LCDMode.VBLANK;
+        this.lcdStatusMode2 = this.lcdStatus.mode2OamInterrupt_____5 === true && (this.lcdStatus.mode & 3) === LCDMode.OAM;
+
+        // If any of the conditions are met, set the condition met flag
+        if (
+            this.lcdStatusMode0 === true ||
+            this.lcdStatusMode1 === true ||
+            this.lcdStatusMode2 === true ||
+            this.lcdStatusCoincidence === true
+        ) {
+            this.lcdStatusConditionMet = true;
+        } else {
+            this.lcdStatusConditionMet = false;
+            this.lcdStatusFired = false;
+        }
+
+        // If the condition is met and the interrupt has not been fired yet, request the interrupt
+        if (this.lcdStatusFired === false && this.lcdStatusConditionMet === true) {
+            this.gb.interrupts.requested.lcdStat = true;
+            this.lcdStatusFired = true;
+
+            // console.log(`${this.lYCompare} === ${this.lY} STAT IRQ LINECLOCK: ${this.lineClock}`);
         }
     }
 
@@ -743,6 +751,7 @@ class GPU implements HWIO {
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.setNumerical(value);
+                this.updateSTAT();
                 break;
             case 0xFF42:
                 if (this.scrY !== value) this.setScreenDirty();
@@ -755,6 +764,7 @@ class GPU implements HWIO {
             case 0xFF44: break;
             case 0xFF45:
                 this.lYCompare = value;
+                this.updateSTAT();
                 break;
             case 0xFF46:
                 this.gb.dma.oamDma(value << 8);
