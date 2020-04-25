@@ -203,6 +203,7 @@ export default class CPU {
     // #region
 
     cycles = 0;
+    pendingCycles = 0;
 
     lastSerialOut = 0;
     lastInstructionDebug = "";
@@ -224,6 +225,7 @@ export default class CPU {
 
     tick(cycles: number) {
         this.cycles += cycles;
+        this.pendingCycles += cycles;
         this.gb.tick(cycles);
     }
 
@@ -282,8 +284,7 @@ export default class CPU {
     }
 
     execute(): number {
-        const c = this.cycles;
-
+        this.pendingCycles = 0;
 
         // // Run the debug information collector
         // if (this.debugging || this.logging)
@@ -373,10 +374,11 @@ export default class CPU {
         if ((requested.numerical & enabled.numerical & 0x1F) !== 0) {
             this.halted = false;
 
-            // 1 M-cycles doing nothing
-            this.tick(4);
-
             if (this.gb.interrupts.masterEnabled === true) {
+                
+                // 1 M-cycles doing nothing
+                this.tick(4);
+                
                 // If servicing any interrupt, disable the master flag
                 this.gb.interrupts.masterEnabled = false;
 
@@ -419,8 +421,7 @@ export default class CPU {
             }
         }
 
-        const lastInstructionCycles = this.cycles - c;
-        return lastInstructionCycles;
+        return this.pendingCycles;
     }
 
     addToLog(s: string) {
