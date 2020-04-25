@@ -275,9 +275,6 @@ class GPU implements HWIO {
     // Have events happened this scanline yet? - for internal tracking
     bgDrawn = false;
     windowDrawn = false;
-    oamScanned = false;
-    mode5lYReset = false;
-    hdmaProcessed = false;
 
     // Interrupt levels for STAT interrupt, these are all OR'd and trigger STAT on rising edge
     lcdStatusMode0 = false;
@@ -304,27 +301,19 @@ class GPU implements HWIO {
         // THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
         // You don't have to be cycle-accurate for everything
 
-
         if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
             switch (this.lcdStatus.mode) {
                 case LCDMode.HBLANK: // Mode 0
                     {
-                        if (this.hdmaProcessed === false && this.lineClock >= 220) {
-                            this.hdmaProcessed = true;
-
-                            this.gb.dma.continueHdma();
-                        }
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
                             // Reset scanline specific flags
                             this.bgDrawn = false;
                             this.windowDrawn = false;
-                            this.oamScanned = false;
                             // this.mode3CyclesOffset = 0;
                             this.setDirty = false;
-                            this.hdmaProcessed = false;
 
                             this.lY++;
 
@@ -369,14 +358,8 @@ class GPU implements HWIO {
                     break;
                 case LCDMode.OAM: // Mode 2
                     {
-                        if (this.oamScanned === false) {
-                            if (this.renderingThisFrame === true) {
-                                this.scanOAM();
-                            }
-                            this.oamScanned = true;
+                        // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
 
-                            // this.mode3CyclesOffset += 6 * this.scannedEntriesCount;
-                        }
                         if (this.lineClock >= 80) {
 
                             if (
@@ -384,6 +367,10 @@ class GPU implements HWIO {
                                 this.screenDirty === true
                             ) {
                                 this.currentScanlineDirty = true;
+                            }
+
+                            if (this.renderingThisFrame === true) {
+                                this.scanOAM();
                             }
 
                             this.lcdStatus.mode = LCDMode.VRAM;
@@ -402,11 +389,11 @@ class GPU implements HWIO {
                             * only AFTER the window has already been enabled.
                             */
                             if (
+                                this.lY === this.windowYpos &&
                                 this.windowDrawn === false &&
                                 this.lcdControl.enableWindow____5 === true &&
                                 this.windowOnscreenYetThisFrame === false &&
-                                this.windowXpos < 160 && this.windowYpos < 144 &&
-                                this.lY === this.windowYpos
+                                this.windowXpos < 160
                             ) {
                                 this.currentWindowLine = this.windowYpos - this.lY;
                                 this.windowOnscreenYetThisFrame = true;
@@ -421,9 +408,7 @@ class GPU implements HWIO {
                                 if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
                                     // Only IF the window is onscreen
                                     if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
-                                        if (this.vp !== null) {
-                                            this.renderWindow();
-                                        }
+                                        this.renderWindow();
                                         // this.mode3CyclesOffset += 8;
                                         this.currentWindowLine++;
                                     }
@@ -431,9 +416,7 @@ class GPU implements HWIO {
                                 }
 
                                 if (this.bgDrawn === false) {
-                                    if (this.vp !== null) {
-                                        this.renderBg();
-                                    }
+                                    this.renderBg();
                                     this.bgDrawn = true;
 
                                     // this.mode3CyclesOffset += this.scrX & 7;
@@ -445,17 +428,12 @@ class GPU implements HWIO {
                             // VRAM -> HBLANK
                             this.lcdStatus.mode = LCDMode.HBLANK;
 
-
-                            // Render sprites at end of scanline
-                            if (this.lcdControl.spriteDisplay___1) {
-                                if (this.renderingThisFrame === true) {
-                                    if (this.currentScanlineDirty === true && this.vp !== null) {
-                                        this.renderSprites();
-                                    }
-                                }
-                            }
+                            this.gb.dma.continueHdma();
 
                             if (this.renderingThisFrame === true) {
+
+                                this.renderSprites();
+
                                 /*
                                 const index = 160 * 4 * (this.lY);
                                 const img = this.imageGameboy.data;
@@ -489,19 +467,14 @@ class GPU implements HWIO {
                     break;
                 case LCDMode.LINE153:
                     {
-                        if (this.mode5lYReset === false && this.lineClock >= 4) {
-                            this.lY = 0;
-
-                            this.mode5lYReset = true;
-                        }
+                        // LY returns to top early at line 153
+                        this.lY = 0;
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
                             this.lcdStatus.mode = LCDMode.OAM;
 
-                            this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0;
-
-                            this.mode5lYReset = false;
+                            this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0 && this.vp !== null;
                         }
                     }
                     break;
@@ -625,7 +598,6 @@ class GPU implements HWIO {
 
         this.bgDrawn = false;
         this.windowDrawn = false;
-        this.oamScanned = false;
         // this.mode3CyclesOffset = 0;
 
         this.lcdStatusMode0 = false;
@@ -635,8 +607,6 @@ class GPU implements HWIO {
 
         this.lcdStatusConditionMet = false;
         this.lcdStatusFired = false;
-
-        this.hdmaProcessed = false;
     }
 
     writeOam(index: number, value: number) {
