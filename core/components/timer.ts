@@ -3,6 +3,7 @@ import { hex } from "../../src/gameboy/tools/util";
 import { HWIO } from "../memory/hwio";
 import { BIT_12, BIT_13, BIT_5, BIT_3, BIT_7, BIT_9 } from "../bit_constants";
 
+const TIMER_BITS = [BIT_9, BIT_3, BIT_5, BIT_7];
 
 export default class Timer implements HWIO {
 
@@ -90,23 +91,7 @@ export default class Timer implements HWIO {
                 this.gb.interrupts.requested.timer = true;
             }
 
-            let now: boolean;
-
-            switch (this.control.speed) {
-                case 1:
-                    now = (this.internal & BIT_3) !== 0;
-                    break;
-                case 2:
-                    now = (this.internal & BIT_5) !== 0;
-                    break;
-                case 3:
-                    now = (this.internal & BIT_7) !== 0;
-                    break;
-                default:
-                case 0:
-                    now = (this.internal & BIT_9) !== 0;
-                    break;
-            }
+            let now = (this.internal & TIMER_BITS[this.control.speed]) !== 0;
 
             const condition = this.control.running && now;
             if (condition === false && this.previousMain === true) {
