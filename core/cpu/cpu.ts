@@ -373,6 +373,9 @@ export default class CPU {
         if ((requested.numerical & enabled.numerical & 0x1F) !== 0) {
             this.halted = false;
 
+            // 1 M-cycles doing nothing
+            this.tick(4);
+
             if (this.gb.interrupts.masterEnabled === true) {
                 // If servicing any interrupt, disable the master flag
                 this.gb.interrupts.masterEnabled = false;
@@ -406,9 +409,6 @@ export default class CPU {
                     requested.joypad = false;
                     vector = JOYPAD_PRESS_VECTOR;
                 }
-
-                // 1 M-cycles doing nothing
-                this.tick(4);
 
                 this.push_tick(this.pc);
 
