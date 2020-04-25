@@ -1,4 +1,4 @@
-import CPU, { R16 } from './cpu/cpu';
+import CPU from './cpu/cpu';
 import GPU from './video/gpu';
 import MemoryBus from './memory/memorybus';
 import Disassembler from '../src/gameboy/tools/disassembler';
@@ -9,6 +9,7 @@ import { DMAController } from './memory/dma';
 import InterruptController from './components/interrupt-controller';
 import { JoypadRegister } from './components/joypad';
 import { SerialPort } from './components/serial';
+import { R16 } from './cpu/cpu_types';
 
 export default class GameBoy {
     constructor(cgb: boolean) {

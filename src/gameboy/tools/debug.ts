@@ -1,7 +1,7 @@
-import GameBoy from "../../../core/gameboy";
+import GameBoy, { CPU } from "../../../core/gameboy";
 import GPU, { colors555 } from "../../../core/video/gpu";
-import CPU, { R8, R16 } from "../../../core/cpu/cpu";
 import { hex, pad, hexN } from "./util";
+import { R16, R8 } from "../../../core/cpu/cpu_types";
 
 export const DebugSettings = {
     highlight: 0

@@ -1,7 +1,8 @@
-import { Op, CC, R8, R16 } from "./cpu";
 import { LD_R8_N8, PUSH_R16, POP_R16, INC_R8, DEC_R8, INC_R16, DEC_R16, LD_R16_N16, ADD_A_N8, ADC_A_N8, SUB_A_N8, SBC_A_N8, RET, LD_SP_HL, ADD_SP_E8, RLCA, RRCA, RRA, RLA, AND_A_N8, OR_A_N8, XOR_A_N8, CP_A_N8, STOP, HALT, SCF, CCF, JP_HL, ADD_HL_R16, RST, LD_iHLinc_A, LD_iHLdec_A, LD_A_iHLinc, LD_A_iHLdec, LD_A_iFF00plusN8, LD_iFF00plusN8_A, LD_A_iFF00plusC, LD_iFF00plusC_A, LD_A_iN16, LD_iN16_A, LD_iN16_SP, DI, EI, LD_iHL_N8, CPL, RETI, NOP, LD_R8_R8, JR, JP, CALL, LD_iBC_A, LD_iDE_A, LD_A_iBC, LD_A_iDE, DAA, OR_A_R8, ADD_A_R8, SUB_A_R8, AND_A_R8, ADC_A_R8, SBC_A_R8, XOR_A_R8, CP_A_R8, INVALID, LD_HL_SPplusE8 } from "./unprefixed_executors";
 import { RLC_R8, RL_R8, SLA_R8, SWAP_R8, RRC_R8, RR_R8, SRA_R8, SRL_R8, BIT_R8, RES_R8, SET_R8 } from "./cb_prefixed_executors";
 import { BIT_3 } from "../bit_constants";
+import { Op } from "./cpu";
+import { CC, R8, R16 } from "./cpu_types";
 
 /** @deprecated
  * 

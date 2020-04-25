@@ -1,6 +1,6 @@
 import { Executor } from "./unprefixed_executors";
 import { CPU } from "../gameboy";
-import { R8 } from "./cpu";
+import { R8 } from "./cpu_types";
 
 const CB_PREFIXED_EXECUTORS: Executor[] = new Array(256);
 export default CB_PREFIXED_EXECUTORS;

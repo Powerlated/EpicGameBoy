@@ -8,6 +8,7 @@ import UNPREFIXED_EXECUTORS, { Executor } from "./unprefixed_executors";
 import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
 import Decoder from "./legacy_decoder";
 import { BIT_7, BIT_6, BIT_5, BIT_4 } from "../bit_constants";
+import { R16, R8, CC } from "./cpu_types";
 
 function undefErr(cpu: CPU, name: string) {
     alert(`
@@ -145,24 +146,6 @@ class Registers {
     }
 }
 
-export enum R8 {
-    B = 0, C = 1, D = 2, E = 3, H = 4, L = 5, iHL = 6, A = 7
-}
-
-export enum R16 {
-    AF = 0x10, BC = 0x11, DE = 0x12, HL = 0x13, SP = 0x14
-}
-
-export type R = R8 | R16;
-
-export enum CC {
-    UNCONDITIONAL = -1,
-    NZ = 0,
-    Z = 1,
-    NC = 2,
-    C = 3,
-}
-
 export type OperandType = R8 | R16 | CC | number;
 
 export interface OpFunction {
@@ -170,7 +153,7 @@ export interface OpFunction {
 }
 
 export interface Op {
-    op: OpFunction, type?: OperandType, type2?: OperandType, length: number;
+    op: Function, type?: OperandType, type2?: OperandType, length: number;
 };
 
 export default class CPU {
@@ -378,7 +361,7 @@ export default class CPU {
                 
                 // 1 M-cycles doing nothing
                 this.tick(4);
-                
+
                 // If servicing any interrupt, disable the master flag
                 this.gb.interrupts.masterEnabled = false;
 

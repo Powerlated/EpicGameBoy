@@ -1,7 +1,7 @@
-import CPU, { R16, R8, CC } from "./cpu";
 import { unTwo8b } from "../../src/gameboy/tools/util";
-import GameBoy from "../gameboy";
+import GameBoy, { CPU } from "../gameboy";
 import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
+import { R16, R8, CC } from "./cpu_types";
 
 export type IncrementPCBy = number;
 export type Executor = (cpu: CPU) => IncrementPCBy;
@@ -1015,31 +1015,6 @@ UNPREFIXED_EXECUTORS[0xC8] = RET;  // RET Z
 UNPREFIXED_EXECUTORS[0xC0] = RET;  // RET NZ
 
 
-/** ADD HL, R16 */
-export function ADD_HL_R16(this: number, cpu: CPU): number {
-    const r16Value = cpu.reg[[R16.BC, R16.DE, R16.HL, R16.SP][(this & 0b110000) >> 4]];
-
-    const hl = cpu.reg[R16.HL];
-    const newValue = r16Value + hl;
-
-    // Set flag
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = (hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
-    cpu.reg._f.carry = newValue > 0xFFFF;;
-
-    // Set register values
-    cpu.reg[R16.HL] = newValue & 0xFFFF;
-
-    // Register read takes 4 more cycles
-    cpu.tick(4);
-
-    return 1;
-};
-UNPREFIXED_EXECUTORS[0x09] = ADD_HL_R16;  // ADD HL, BC
-UNPREFIXED_EXECUTORS[0x19] = ADD_HL_R16;  // ADD HL, DE
-UNPREFIXED_EXECUTORS[0x29] = ADD_HL_R16;  // ADD HL, HL
-UNPREFIXED_EXECUTORS[0x39] = ADD_HL_R16; // ADD HL, SP
-
 /** Reset Vectors */
 export function RST(this: number, cpu: CPU): number {
     const target = this & 0b111000;
@@ -1084,5 +1059,32 @@ UNPREFIXED_EXECUTORS[0xCB] = function (this: number, cpu: CPU): number {
 };
 
 for (let i = 0; i < 256; i++) {
-    UNPREFIXED_EXECUTORS[i] = UNPREFIXED_EXECUTORS[i].bind(i);
+    const func = UNPREFIXED_EXECUTORS[i];
+    if (func != undefined)
+        UNPREFIXED_EXECUTORS[i] = func.bind(i);
 }
+
+/** ADD HL, R16 */
+export function ADD_HL_R16(target: R16, cpu: CPU): number {
+    const r16Value = cpu.reg[target];
+
+    const hl = cpu.reg[R16.HL];
+    const newValue = r16Value + hl;
+
+    // Set flag
+    cpu.reg._f.negative = false;
+    cpu.reg._f.half_carry = (hl & 0xFFF) + (r16Value & 0xFFF) > 0xFFF;
+    cpu.reg._f.carry = newValue > 0xFFFF;
+
+    // Set register values
+    cpu.reg[R16.HL] = newValue & 0xFFFF;
+
+    // Register read takes 4 more cycles
+    cpu.tick(4);
+
+    return 1;
+};
+UNPREFIXED_EXECUTORS[0x09] = ADD_HL_R16.bind(null, R16.BC); // ADD HL, BC
+UNPREFIXED_EXECUTORS[0x19] = ADD_HL_R16.bind(null, R16.DE); // ADD HL, DE
+UNPREFIXED_EXECUTORS[0x29] = ADD_HL_R16.bind(null, R16.HL); // ADD HL, HL
+UNPREFIXED_EXECUTORS[0x39] = ADD_HL_R16.bind(null, R16.SP); // ADD HL, SP
