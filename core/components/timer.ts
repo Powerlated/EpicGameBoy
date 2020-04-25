@@ -1,6 +1,7 @@
 import GameBoy from "../gameboy";
 import { hex } from "../../src/gameboy/tools/util";
 import { HWIO } from "../memory/hwio";
+import { BIT_12, BIT_13, BIT_5, BIT_3, BIT_7, BIT_9 } from "../bit_constants";
 
 
 export default class Timer implements HWIO {
@@ -23,7 +24,8 @@ export default class Timer implements HWIO {
 
     internal = 0;
 
-    previous = false;
+    previousMain = false;
+    previousSoundClock = false;
 
     queueReload = false;
 
@@ -92,30 +94,37 @@ export default class Timer implements HWIO {
 
             switch (this.control.speed) {
                 case 1:
-                    now = (this.internal & (1 << 3)) !== 0;
+                    now = (this.internal & BIT_3) !== 0;
                     break;
                 case 2:
-                    now = (this.internal & (1 << 5)) !== 0;
+                    now = (this.internal & BIT_5) !== 0;
                     break;
                 case 3:
-                    now = (this.internal & (1 << 7)) !== 0;
+                    now = (this.internal & BIT_7) !== 0;
                     break;
                 default:
                 case 0:
-                    now = (this.internal & (1 << 9)) !== 0;
+                    now = (this.internal & BIT_9) !== 0;
                     break;
             }
 
             const condition = this.control.running && now;
-            if (condition === false && this.previous === true) {
+            if (condition === false && this.previousMain === true) {
                 this.counter++;
                 if (this.counter > 255) {
                     this.counter = 0;
                     this.queueReload = true;
                 }
             }
-            this.previous = condition;
+            this.previousMain = condition;
         }
+
+        const mask = this.gb.doubleSpeed ? BIT_13 : BIT_12;
+        const condition = (this.internal & mask) !== 0;
+        if (condition === false && this.previousSoundClock === true) {
+            this.gb.soundChip.advanceFrameSequencer();
+        }
+        this.previousSoundClock = condition;
     }
 
     reset() {
@@ -128,7 +137,7 @@ export default class Timer implements HWIO {
         this.internal = 0;
 
         this.queueReload = false;
-        this.previous = false;
+        this.previousMain = false;
 
     }
 }

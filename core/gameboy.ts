@@ -71,7 +71,7 @@ export default class GameBoy {
         if (this.doubleSpeed === true) stepCycles >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.tick(cyclesRan);
-        this.soundChip.tick(stepCycles);
+        // The APU is ticked by the timer so it's the timer class
         this.gpu.tick(stepCycles);
     }
 

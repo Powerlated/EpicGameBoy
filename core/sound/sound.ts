@@ -19,7 +19,6 @@ export default class SoundChip implements HWIO {
     clockPulse1FreqSweep = 0;
     freqSweepEnabled = false;
 
-    clockFrameSequencer = 0;
     frameSequencerStep = 0;
 
     pulse1 = new PulseChannel();
@@ -31,41 +30,33 @@ export default class SoundChip implements HWIO {
 
     soundRegisters = new Uint8Array(65536).fill(0);
 
-    tick(cycles: number) {
-        // #region CLOCK
-        if (this.enabled === true) {
-            this.clockFrameSequencer += cycles;
 
-            // 512Hz Frame Sequencer
-            while (this.clockFrameSequencer >= 8192) {
-                switch (this.frameSequencerStep) {
-                    case 0:
-                    case 4:
-                        this.length();
-                        this.tjsCheck();
-                        break;
-                    case 2:
-                    case 6:
-                        this.length();
-                        this.frequencySweep();
-                        this.tjsCheck();
-                        break;
-                    case 7:
-                        this.volumeEnvelope();
-                        this.tjsCheck();
-                        break;
-                    default:
-                        break;
-                }
-
-
-                this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
-                this.clockFrameSequencer -= 8192;
-            }
-        } else {
-            this.clockFrameSequencer = 0;
+    advanceFrameSequencer() {
+        // 512Hz Frame Sequencer
+        switch (this.frameSequencerStep) {
+            case 0:
+            case 4:
+                this.length();
+                this.tjsCheck();
+                break;
+            case 2:
+            case 6:
+                this.length();
+                this.frequencySweep();
+                this.tjsCheck();
+                break;
+            case 7:
+                this.volumeEnvelope();
+                this.tjsCheck();
+                break;
+            default:
+                break;
         }
+
+
+        this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
     }
+
 
     frequencySweep() {
         // writeDebug("Frequency sweep")
@@ -493,7 +484,6 @@ export default class SoundChip implements HWIO {
             this.ap.noise(this);
         }
 
-        this.clockFrameSequencer = 0;
         this.ticksEnvelopePulse1 = 0;
         this.ticksEnvelopePulse2 = 0;
         this.ticksEnvelopeNoise = 0;
