@@ -698,6 +698,8 @@ class GPU implements HWIO {
                     tileset[tile][y][x] =
                         (lsb !== 0 ? 1 : 0) +
                         (msb !== 0 ? 2 : 0);
+
+                    this.setScreenDirty();
                 }
             }
 
