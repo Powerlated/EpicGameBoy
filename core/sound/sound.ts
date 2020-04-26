@@ -59,7 +59,7 @@ export default class SoundChip implements HWIO {
     }
 
 
-    frequencySweep() {
+    private frequencySweep() {
         // writeDebug("Frequency sweep")
         let actualPeriod = this.pulse1.freqSweepPeriod;
         if (actualPeriod == 0) actualPeriod = 8;
@@ -96,7 +96,7 @@ export default class SoundChip implements HWIO {
         this.tjsCheck();
     }
 
-    volumeEnvelope() {
+    private volumeEnvelope() {
         this.ticksEnvelopePulse1++;
         if (this.ticksEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
             if (this.pulse1.volumeEnvelopeSweep !== 0) {
@@ -152,7 +152,7 @@ export default class SoundChip implements HWIO {
         }
     }
 
-    length() {
+    private length() {
         if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
             this.pulse1.lengthCounter--;
             if (this.pulse1.lengthCounter === 0) {
@@ -192,15 +192,17 @@ export default class SoundChip implements HWIO {
         }
     }
 
-    tjsCheck() {
+    private tjsCheck() {
         if (this.ap !== null) {
             if (this.pulse1.updated) {
                 this.ap.pulse1(this);
                 this.pulse1.updated = false;
+                this.pulse1.widthUpdated = false;
             }
             if (this.pulse2.updated) {
                 this.ap.pulse2(this);
                 this.pulse2.updated = false;
+                this.pulse2.widthUpdated = false;
             }
             if (this.wave.updated) {
                 this.ap.wave(this);
@@ -226,6 +228,7 @@ export default class SoundChip implements HWIO {
                     this.pulse1.updated = true;
                     break;
                 case 0xFF11: // NR11
+                    this.pulse1.widthUpdated = true;
                     this.pulse1.width = value >> 6;
                     this.pulse1.lengthCounter = 64 - (value & 0b111111);
                     this.pulse1.updated = true;
@@ -260,6 +263,7 @@ export default class SoundChip implements HWIO {
 
                 // Pulse 2
                 case 0xFF16: // NR21
+                    this.pulse2.widthUpdated = true;
                     this.pulse2.width = value >> 6;
                     this.pulse2.lengthCounter = 64 - (value & 0b111111);
                     this.pulse2.updated = true;
