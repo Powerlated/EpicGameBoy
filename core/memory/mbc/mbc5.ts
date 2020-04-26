@@ -19,7 +19,7 @@ export default class MBC5 extends MBCWithRAM implements MBC {
         }
         // Banks 00-1FF (Read Only)
         if (addr >= 0x4000 && addr <= 0x7FFF) {
-            return this.ext.romData[this.romBank % this.ext.romBanks][addr & 16383];
+            return this.ext.romData[this.romBank][addr & 16383];
         }
         // RAM Bank 00-03
         if (addr >= 0xA000 && addr <= 0xBFFF) {
@@ -59,6 +59,8 @@ export default class MBC5 extends MBCWithRAM implements MBC {
         if (addr >= 0x2000 && addr <= 0x2FFF) {
             this.romBank &= 0b100000000; // Zero out low 8 bits
             this.romBank |= value;
+
+            this.romBank %= this.ext.romBanks;
             return;
         }
         // High bit of ROM Bank Number (Write);
@@ -66,6 +68,8 @@ export default class MBC5 extends MBCWithRAM implements MBC {
             this.romBank &= 0b011111111; // Zero out high bit
             this.romBank |= (value << 8);
             this.romBank &= 0b111111111; // Make sure everything fits
+
+            this.romBank %= this.ext.romBanks;
             return;
         }
     }
