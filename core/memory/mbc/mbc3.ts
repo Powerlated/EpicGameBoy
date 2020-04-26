@@ -48,9 +48,9 @@ export default class MBC3 extends MBCWithRAM implements MBC {
 
     write(addr: number, value: number) {
         if (addr >= 0x0000 && addr <= 0x1FFF) {
-            this.enableExternalRam = true;
+            this.enableExternalRam = (value & 0xF) === 0xA;
         }
-        if (addr >= 0x2000 && addr <= 0x3FFF) {
+        else if (addr >= 0x2000 && addr <= 0x3FFF) {
             // MBC3 - Writing 0 will select 1
             if (value === 0) {
                 this.romBank = 1;
@@ -60,11 +60,11 @@ export default class MBC3 extends MBCWithRAM implements MBC {
             this.romBank %= this.ext.romBanks;
             return;
         }
-        if (addr >= 0x4000 && addr <= 0x5FFF) {
+        else if (addr >= 0x4000 && addr <= 0x5FFF) {
             this.ramBank = value;
         }
         // RAM Bank 00-0F (Read/Write)
-        if (addr >= 0xA000 && addr <= 0xBFFF) {
+        else if (addr >= 0xA000 && addr <= 0xBFFF) {
             if (this.enableExternalRam) {
                 if (this.ramBank < 0x8) {
                     this.writeBankRam(addr, this.ramBank, value);

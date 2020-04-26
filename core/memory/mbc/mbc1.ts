@@ -58,18 +58,16 @@ export default class MBC1 extends MBCWithRAM implements MBC {
             } else {
                 this.enableExternalRam = false;
             }
-            return;
         }
         // ROM Bank Number Lower 5 Bits
-        if (addr >= 0x2000 && addr <= 0x3FFF) {
+        else if (addr >= 0x2000 && addr <= 0x3FFF) {
             this.romBank &= 0b11100000; // Erase 5 bits
             this.romBank |= (value & 0b00011111); // Whole 5 bits
 
             this.romBank %= this.ext.romBanks;
-            return;
         }
         // RAM Bank Number / Upper Bits of ROM Bank Number
-        if (addr >= 0x4000 && addr <= 0x5FFF) {
+        else if (addr >= 0x4000 && addr <= 0x5FFF) {
             value &= 0b11;
             if (this.bankingMode === BankingMode.RAM) {
                 console.log("Set RAM Bank to: " + value);
@@ -80,22 +78,18 @@ export default class MBC1 extends MBCWithRAM implements MBC {
 
                 this.romBank %= this.ext.romBanks;
             }
-
-            return;
         }
         // RAM Bank 00-03
-        if (addr >= 0xA000 && addr <= 0xBFFF && this.enableExternalRam) {
+        else if (addr >= 0xA000 && addr <= 0xBFFF && this.enableExternalRam) {
             this.externalRam[this.calcBankAddrRam(addr, this.ramBank)] = value;
-            return;
         }
 
-        if (addr >= 0x6000 && addr <= 0x7FFF) {
+        else if (addr >= 0x6000 && addr <= 0x7FFF) {
             if ((value & 1) !== 0) {
                 this.bankingMode = BankingMode.RAM;
             } else {
                 this.bankingMode = BankingMode.ROM;
             }
-            return;
         }
     }
 
