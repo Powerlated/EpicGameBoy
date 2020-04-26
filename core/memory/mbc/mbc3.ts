@@ -55,7 +55,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
             if (value === 0) {
                 this.romBank = 1;
             } else {
-                this.romBank = value & 0b1111111; // Whole 7 bits
+                this.romBank = value & 0b11111111; // Whole byte
             }
             this.romBank %= this.ext.romBanks;
             return;
