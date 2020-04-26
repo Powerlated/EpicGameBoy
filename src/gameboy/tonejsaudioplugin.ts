@@ -75,7 +75,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.ctx = new AudioContext();
 
         function mul<T>(arr: Array<T>): Array<T> {
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 8; i++) {
                 arr = arr.flatMap(v => [v, v]);
             }
             return arr;
@@ -188,15 +188,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.wavePan.pan.value = s.wave.pan;
                 this.waveOsc.frequency.value = s.wave.frequencyHz;
 
-                let vol = 0;
-                switch (s.wave.volume) {
-                    case 0: vol = 0; break;
-                    case 1: vol = 1; break;
-                    case 2: vol = 0.75; break;
-                    case 3: vol = 0.50; break;
-                }
-
-                this.waveGain.gain.value = vol;
+                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume];
             }
         } else {
             this.waveGain.gain.value = 0;
@@ -207,15 +199,30 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.waveOsc.setPeriodicWave(this.generateWaveBuffer(s));
     }
 
+    waveTableCache: PeriodicWave[] = [];
+
     generateWaveBuffer(s: SoundChip): PeriodicWave {
-        const waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [
-            i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
-            i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
-        ]);
+        let sum = 0;
+        for (let i = 0; i < 32; i++) {
+            // Very primitive checksum
+            sum += s.wave.waveTable[i];
+            sum += i << 2;
+            sum ^ ~(i << 5);
+        }
 
-        const transformed = FFT(waveTable);
+        const check = this.waveTableCache[sum];
+        if (check == undefined) {
+            const waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [
+                i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
+                i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
+            ]);
 
-        return this.ctx.createPeriodicWave(transformed.real, transformed.imag);
+            const transformed = FFT(waveTable);
+
+            return this.waveTableCache[sum] = this.ctx.createPeriodicWave(transformed.real, transformed.imag);
+        } else {
+            return check;
+        }
     }
 
     noise(s: SoundChip) {
@@ -230,13 +237,13 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 if (s.noise.counterStep) {
                     // 7 bit noise
                     this.noise15Gain.gain.value = 0;
-                    this.noise7Gain.gain.value = s.noise.volume / 15 / 2;
+                    this.noise7Gain.gain.value = s.noise.volume / 15 / 2.5;
 
                     if (isFinite(rate))
                         this.noise7Buf.playbackRate.value = rate / (48000 / 16);
                 } else {
                     // 15 bit noise
-                    this.noise15Gain.gain.value = s.noise.volume / 15 / 2;
+                    this.noise15Gain.gain.value = s.noise.volume / 15 / 2.5;
                     this.noise7Gain.gain.value = 0;
 
                     if (isFinite(rate))
