@@ -30,8 +30,8 @@ export class PulseChannel implements BasicChannel {
     freqSweepUp = false;
     
     freqSweepShift = 0;
-    updated = false;
-    widthUpdated = false;
+    updated = true;
+    widthUpdated = true;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;

@@ -157,8 +157,6 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.pulse1Pan.pan.value = s.pulse1.pan;
                 this.pulse1Gain.gain.value = s.pulse1.volume / 15;
                 this.pulse1Osc.frequency.value = s.pulse1.frequencyHz;
-            }
-            if (s.pulse1.widthUpdated) {
                 this.pulse1Osc.setPeriodicWave(this.periodicWaves[s.pulse1.width]);
             }
         } else {
@@ -173,8 +171,6 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.pulse2Pan.pan.value = s.pulse2.pan;
                 this.pulse2Gain.gain.value = s.pulse2.volume / 15;
                 this.pulse2Osc.frequency.value = s.pulse2.frequencyHz;
-            }
-            if (s.pulse2.widthUpdated) {
                 this.pulse2Osc.setPeriodicWave(this.periodicWaves[s.pulse2.width]);
             }
         } else {
@@ -188,7 +184,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.wavePan.pan.value = s.wave.pan;
                 this.waveOsc.frequency.value = s.wave.frequencyHz;
 
-                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume];
+                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] * 0.75;
             }
         } else {
             this.waveGain.gain.value = 0;
@@ -202,13 +198,17 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
     waveTableCache: PeriodicWave[] = [];
 
     generateWaveBuffer(s: SoundChip): PeriodicWave {
-        let sum = 0;
+        let sum1 = 0;
+        let sum2 = 0;
         for (let i = 0; i < 32; i++) {
             // Very primitive checksum
-            sum += s.wave.waveTable[i];
-            sum += i << 2;
-            sum ^ ~(i << 5);
+            sum1 = (sum1 + s.wave.waveTable[i]) & 0xFF;
+            sum2 = (sum2 + sum1) & 0xFF;
         }
+
+        let sum = (sum2 << 8) | sum1;
+
+        console.log(sum);
 
         const check = this.waveTableCache[sum];
         if (check == undefined) {
@@ -237,13 +237,13 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 if (s.noise.counterStep) {
                     // 7 bit noise
                     this.noise15Gain.gain.value = 0;
-                    this.noise7Gain.gain.value = s.noise.volume / 15 / 2.5;
+                    this.noise7Gain.gain.value = s.noise.volume / 15 / 4;
 
                     if (isFinite(rate))
                         this.noise7Buf.playbackRate.value = rate / (48000 / 16);
                 } else {
                     // 15 bit noise
-                    this.noise15Gain.gain.value = s.noise.volume / 15 / 2.5;
+                    this.noise15Gain.gain.value = s.noise.volume / 15 / 4;
                     this.noise7Gain.gain.value = 0;
 
                     if (isFinite(rate))
