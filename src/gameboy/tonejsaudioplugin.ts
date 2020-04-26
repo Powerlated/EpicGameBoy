@@ -184,7 +184,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.wavePan.pan.value = s.wave.pan;
                 this.waveOsc.frequency.value = s.wave.frequencyHz;
 
-                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] * 0.5;
+                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] * 0.66;
             }
         } else {
             this.waveGain.gain.value = 0;
