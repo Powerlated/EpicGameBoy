@@ -1,7 +1,7 @@
-import * as Tone from "tone";
 import { AudioPlugin } from "../../core/sound/audioplugin";
 import SoundChip from "../../core/sound/sound";
 import { BIT_6 } from "../../core/bit_constants";
+import { FFT } from "./fft/fft";
 
 const thresholds = [-0.75, -0.5, 0, 0.5]; // CORRECT
 
@@ -34,111 +34,135 @@ function convertVolumeWave(v: number) {
     return base + mute + (10 * Math.log(v / 16));
 }
 
+const preFFT = [
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+];
+
 export default class ToneJsAudioPlugin implements AudioPlugin {
-    pulseOsc1: Tone.Oscillator;
-    pulseVolumeShaper1: Tone.WaveShaper;
-    pulsePan1: Tone.Panner;
+    ctx: AudioContext;
 
-    pulseOsc2: Tone.Oscillator;
-    pulseVolumeShaper2: Tone.WaveShaper;
-    pulsePan2: Tone.Panner;
+    periodicWaves: PeriodicWave[] = [];
 
-    waveSrc: Tone.BufferSource;
-    wavePan: Tone.Panner;
-    waveVolumeShaper: Tone.WaveShaper;
-    waveVolume: Tone.Volume;
+    pulse1Osc: OscillatorNode;
+    pulse1Gain: GainNode;
+    pulse1Pan: StereoPannerNode;
 
-    noise7Src: Tone.BufferSource;
-    noise7Volume: Tone.Volume;
+    pulse2Osc: OscillatorNode;
+    pulse2Gain: GainNode;
+    pulse2Pan: StereoPannerNode;
 
-    noise15Src: Tone.BufferSource;
-    noise15Volume: Tone.Volume;
+    waveOsc: OscillatorNode;
+    waveGain: GainNode;
+    wavePan: StereoPannerNode;
 
-    noiseVolumeShaper: Tone.WaveShaper;
-
-    noisePan: Tone.Panner;
+    noise7Buf: AudioBufferSourceNode;
+    noise7Gain: GainNode;
+    noise15Buf: AudioBufferSourceNode;
+    noise15Gain: GainNode;
+    noisePan: StereoPannerNode;
 
     ch1 = true;
     ch2 = true;
     ch3 = true;
     ch4 = true;
 
-    masterVolume: Tone.Volume;
+    masterGain: GainNode;
 
     constructor() {
-        this.pulseOsc1 = new Tone.Oscillator(0, "triangle");
-        this.pulseOsc1.volume.value = 0;
-        this.pulseOsc1.mute = true;
-        this.pulseVolumeShaper1 = new Tone.WaveShaper((i: number) => 0);
-        this.pulsePan1 = new Tone.Panner(0);
-        this.pulseOsc1.chain(this.pulseVolumeShaper1, new Tone.Filter(22050, 'lowpass', -96), this.pulsePan1, Tone.Master);
-        this.pulseOsc1.start();
+        this.ctx = new AudioContext();
 
-        this.pulseOsc2 = new Tone.Oscillator(0, "triangle");
-        this.pulseOsc2.volume.value = 0;
-        this.pulseOsc2.mute = true;
-        this.pulseVolumeShaper2 = new Tone.WaveShaper((i: number) => 0);
-        this.pulsePan2 = new Tone.Panner(0);
-        this.pulseOsc2.chain(this.pulseVolumeShaper2, new Tone.Filter(22050, 'lowpass', -96), this.pulsePan2, Tone.Master);
-        this.pulseOsc2.start();
+        function mul<T>(arr: Array<T>): Array<T> {
+            for (let i = 0; i < 8; i++) {
+                arr = arr.flatMap(v => [v, v]);
+            }
+            return arr;
+        }
 
 
-        // Create a dummy AudioBuffer, this is updated by updateWaveTable();
-        const dummyBuffer = (Tone.context as any as AudioContext).createBuffer(1, 1, 48000);
+        let real = FFT(mul(preFFT[0])).real;
+        let imag = FFT(mul(preFFT[0])).imag;
 
-        this.waveSrc = new Tone.BufferSource(dummyBuffer, () => { });
-        this.waveSrc.loop = true;
-        this.wavePan = new Tone.Panner(0);
-        this.waveVolume = new Tone.Volume(0);
-        this.waveVolume.mute = true;
-        this.waveVolumeShaper = new Tone.WaveShaper((i: number) => 0);
-        this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master);
-        this.waveSrc.start();
+        this.periodicWaves[0] = this.ctx.createPeriodicWave(real, imag);
 
-        this.noiseVolumeShaper = new Tone.WaveShaper((i: number) => 0);
-        this.noisePan = new Tone.Panner(0);
+        real = FFT(mul(preFFT[1])).real;
+        imag = FFT(mul(preFFT[1])).imag;
 
-        this.noise7Src = new Tone.BufferSource(this.generateNoiseBuffer(true), () => { });
-        this.noise7Src.loop = true;
-        this.noise7Volume = new Tone.Volume(0);
-        this.noise7Volume.mute = true;
-        this.noise7Src.chain(this.noise7Volume, this.noiseVolumeShaper, this.noisePan, Tone.Master);
-        this.noise7Src.start();
+        this.periodicWaves[1] = this.ctx.createPeriodicWave(real, imag);
 
-        this.noise15Src = new Tone.BufferSource(this.generateNoiseBuffer(false), () => { });
-        this.noise15Src.loop = true;
-        this.noise15Volume = new Tone.Volume(0);
-        this.noise15Volume.mute = true;
-        this.noise15Src.chain(this.noise15Volume, this.noiseVolumeShaper, this.noisePan, Tone.Master);
-        this.noise15Src.start();
+        real = FFT(mul(preFFT[2])).real;
+        imag = FFT(mul(preFFT[2])).imag;
 
-        this.masterVolume = new Tone.Volume(-12);
-        Tone.Master.chain(this.masterVolume);
+        this.periodicWaves[2] = this.ctx.createPeriodicWave(real, imag);
 
-        Tone.context.lookAhead = 0;
+        real = FFT(mul(preFFT[3])).real;
+        imag = FFT(mul(preFFT[3])).imag;
+
+        this.periodicWaves[3] = this.ctx.createPeriodicWave(real, imag);
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = MAX_VOLUME;
+
+        this.pulse1Gain = this.ctx.createGain();
+        this.pulse1Gain.gain.value = 0;
+        this.pulse1Osc = this.ctx.createOscillator();
+        this.pulse1Osc.setPeriodicWave(this.periodicWaves[2]);
+        this.pulse1Pan = this.ctx.createStereoPanner();
+        this.pulse1Osc.connect(this.pulse1Gain).connect(this.pulse1Pan).connect(this.masterGain);
+        this.pulse1Osc.start();
+
+        this.pulse2Gain = this.ctx.createGain();
+        this.pulse2Gain.gain.value = 0;
+        this.pulse2Osc = this.ctx.createOscillator();
+        this.pulse2Osc.setPeriodicWave(this.periodicWaves[2]);
+        this.pulse2Pan = this.ctx.createStereoPanner();
+        this.pulse2Osc.connect(this.pulse2Gain).connect(this.pulse2Pan).connect(this.masterGain);
+        this.pulse2Osc.start();
+
+        this.waveGain = this.ctx.createGain();
+        this.waveGain.gain.value = 0;
+        this.waveOsc = this.ctx.createOscillator();
+        this.waveOsc.setPeriodicWave(this.periodicWaves[2]);
+        this.wavePan = this.ctx.createStereoPanner();
+        this.waveOsc.connect(this.waveGain).connect(this.wavePan).connect(this.masterGain);
+        this.waveOsc.start();
+
+        this.noisePan = this.ctx.createStereoPanner();
+
+        this.noise7Gain = this.ctx.createGain();
+        this.noise7Gain.gain.value = 0;
+        this.noise7Buf = this.ctx.createBufferSource();
+        this.noise7Buf.loop = true;
+        this.noise7Buf.buffer = this.generateNoiseBuffer(true);
+        this.noise7Buf.connect(this.noise7Gain).connect(this.noisePan).connect(this.masterGain);
+        this.noise7Buf.start();
+
+        this.noise15Gain = this.ctx.createGain();
+        this.noise15Gain.gain.value = 0;
+        this.noise15Buf = this.ctx.createBufferSource();
+        this.noise15Buf.loop = true;
+        this.noise15Buf.buffer = this.generateNoiseBuffer(false);
+        this.noise15Buf.connect(this.noise15Gain).connect(this.noisePan).connect(this.masterGain);
+        this.noise15Buf.start();
+
+        this.masterGain.connect(this.ctx.destination);
     }
 
     pulse1(s: SoundChip) {
         // Pulse 1
         if (s.enabled && this.ch1 && s.pulse1.enabled && s.pulse1.dacEnabled && (s.pulse1.outputLeft || s.pulse1.outputRight)) {
             if (s.pulse1.updated) {
-                this.pulsePan1.pan.value = s.pulse1.pan;
-                this.pulseOsc1.mute = false;
-                this.pulseVolumeShaper1.setMap((i: number) => {
-                    const mul = 0.7;
-
-                    const vol = s.pulse1.volume / 15;
-                    if (i > thresholds[s.pulse1.width]) {
-                        return 1 * vol * mul;
-                    } else {
-                        return -1 * vol * mul;
-                    }
-                });
-                this.pulseOsc1.frequency.value = s.pulse1.frequencyHz;
-                // this.pulseOsc1.width.value = widths[s.pulse1.width];
+                this.pulse1Pan.pan.value = s.pulse1.pan;
+                this.pulse1Gain.gain.value = s.pulse1.volume / 15;
+                this.pulse1Osc.frequency.value = s.pulse1.frequencyHz;
+            }
+            if (s.pulse1.widthUpdated) {
+                this.pulse1Osc.setPeriodicWave(this.periodicWaves[s.pulse1.width]);
             }
         } else {
-            this.pulseOsc1.mute = true;
+            this.pulse1Gain.gain.value = 0;
         }
     }
 
@@ -146,91 +170,55 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         // Pulse 2
         if (s.enabled && this.ch2 && s.pulse2.enabled && s.pulse2.dacEnabled && (s.pulse2.outputLeft || s.pulse2.outputRight)) {
             if (s.pulse2.updated) {
-                this.pulsePan2.pan.value = s.pulse2.pan;
-                this.pulseOsc2.mute = false;
-                this.pulseVolumeShaper2.setMap((i: number) => {
-                    const mul = 0.7;
-
-                    const vol = s.pulse2.volume / 15;
-                    if (i > thresholds[s.pulse2.width]) {
-                        return 1 * vol * mul;
-                    } else {
-                        return -1 * vol * mul;
-                    }
-                });
-                this.pulseOsc2.frequency.value = s.pulse2.frequencyHz;
-                // this.pulseOsc2.width.value = widths[s.pulse2.width];
+                this.pulse2Pan.pan.value = s.pulse1.pan;
+                this.pulse2Gain.gain.value = s.pulse2.volume / 15;
+                this.pulse2Osc.frequency.value = s.pulse2.frequencyHz;
+            }
+            if (s.pulse2.widthUpdated) {
+                this.pulse2Osc.setPeriodicWave(this.periodicWaves[s.pulse2.width]);
             }
         } else {
-            this.pulseOsc2.mute = true;
+            this.pulse2Gain.gain.value = 0;
         }
     }
 
     wave(s: SoundChip) {
         if (s.enabled && this.ch3 && s.wave.enabled && s.wave.dacEnabled && (s.wave.outputLeft || s.wave.outputRight)) {
             if (s.wave.updated) {
-                this.waveVolume.mute = false;
-
                 this.wavePan.pan.value = s.wave.pan;
-                this.waveSrc.playbackRate.value = s.wave.frequencyHz / 220;
+                this.waveOsc.frequency.value = s.wave.frequencyHz;
 
                 let vol = 0;
                 switch (s.wave.volume) {
                     case 0: vol = 0; break;
                     case 1: vol = 1; break;
-                    case 2: vol = 0.50; break;
-                    case 3: vol = 0.25; break;
+                    case 2: vol = 0.75; break;
+                    case 3: vol = 0.50; break;
                 }
 
-
-                this.waveVolumeShaper.setMap((i: number) => {
-                    return i * vol;
-                });
+                this.waveGain.gain.value = vol * 0.8;
             }
         } else {
-            this.waveVolume.mute = true;
+            this.waveGain.gain.value = 0;
         }
-
     }
 
     updateWaveTable(s: SoundChip) {
-        // return;
-        this.waveSrc.stop();
-        this.wavePan.disconnect(Tone.Master);
-        this.waveVolume.disconnect(this.waveVolumeShaper);
-        this.waveSrc.buffer.dispose();
-        this.waveSrc.dispose();
-
-        this.waveSrc = new Tone.BufferSource(this.generateWaveBuffer(s), () => { });
-        this.waveSrc.playbackRate.value = s.wave.frequencyHz / 220;
-        this.waveSrc.loop = true;
-        this.waveSrc.chain(this.waveVolume, this.waveVolumeShaper, this.wavePan, Tone.Master).start();
+        this.waveOsc.setPeriodicWave(this.generateWaveBuffer(s));
     }
 
-    generateWaveBuffer(s: SoundChip): AudioBuffer {
-        const sampleRate = 112640; // A440 without any division
-        const waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
+    generateWaveBuffer(s: SoundChip): PeriodicWave {
+        const waveTable = s.wave.waveTable.map(v => (v - 8) / 16).flatMap(i => [i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i]);
 
-        const ac = (Tone.context as any as AudioContext);
-        const arrayBuffer = ac.createBuffer(1, waveTable.length, sampleRate);
-        const buffering = arrayBuffer.getChannelData(0);
-        for (let i = 0; i < arrayBuffer.length; i++) {
-            buffering[i] = waveTable[i % waveTable.length];
-        }
+        const transformed = FFT(waveTable);
 
-        return arrayBuffer;
+        return this.ctx.createPeriodicWave(transformed.real, transformed.imag);
     }
 
     noise(s: SoundChip) {
         // Noise
         if (s.noise.enabled && this.ch4 && s.noise.dacEnabled && (s.noise.outputLeft || s.noise.outputRight)) {
             if (s.noise.updated) {
-                this.noiseVolumeShaper.setMap((i: number) => {
-                    const mul = 1;
-
-                    return i * (s.noise.volume / 15) * mul;
-                });
-
                 this.noisePan.pan.value = s.noise.pan;
 
                 const div = [8, 16, 32, 48, 64, 80, 96, 112][s.noise.divisorCode];
@@ -238,25 +226,24 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
                 if (s.noise.counterStep) {
                     // 7 bit noise
-                    this.noise15Volume.mute = true;
-                    this.noise7Volume.mute = false;
+                    this.noise15Gain.gain.value = 0;
+                    this.noise7Gain.gain.value = s.noise.volume / 15 / 4;
 
                     if (isFinite(rate))
-                        this.noise7Src.playbackRate.value = rate / (48000 / 16);
+                        this.noise7Buf.playbackRate.value = rate / (48000 / 16);
                 } else {
                     // 15 bit noise
-                    this.noise15Volume.mute = false;
-                    this.noise7Volume.mute = true;
+                    this.noise15Gain.gain.value = s.noise.volume / 15 / 4;
+                    this.noise7Gain.gain.value = 0;
 
                     if (isFinite(rate))
-                        this.noise15Src.playbackRate.value = rate / (48000 / 16);
+                        this.noise15Buf.playbackRate.value = rate / (48000 / 16);
                 }
             }
         } else {
-            this.noise15Volume.mute = true;
-            this.noise7Volume.mute = true;
+            this.noise15Gain.gain.value = 0;
+            this.noise7Gain.gain.value = 0;
         }
-
     }
 
 
@@ -299,16 +286,13 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             return out;
         });
 
-
-
         // waveTable = waveTable.map((v, i) => {
         // return Math.round(Math.random());
         // });
 
         // waveTable = waveTable.reduce(function (m, i) { return (m as any).concat(new Array(4).fill(i)); }, []);
 
-        const ac = Tone.context as any as AudioContext;
-        const arrayBuffer = ac.createBuffer(1, waveTable.length, 48000);
+        const arrayBuffer = this.ctx.createBuffer(1, waveTable.length, 48000);
         const buffering = arrayBuffer.getChannelData(0);
         for (let i = 0; i < arrayBuffer.length; i++) {
             buffering[i] = waveTable[i % waveTable.length];
@@ -318,14 +302,20 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
     }
 
     reset() {
-        this.pulseOsc1.mute = true;
-        this.pulseOsc2.mute = true;
-        this.waveVolume.mute = true;
-        this.noise15Volume.mute = true;
-        this.noise7Volume.mute = true;
+        // this.pulseOsc1.mute = true;
+        // this.pulseOsc2.mute = true;
+        // this.waveVolume.mute = true;
+        // this.noise15Gain.mute = true;
+        // this.noise7Gain.mute = true;
     }
 
     setMuted(muted: boolean) {
-        Tone.Master.mute = muted;
+        if (muted) {
+            this.masterGain.gain.value = 0;
+        } else {
+            this.masterGain.gain.value = MAX_VOLUME;
+        }
     }
 }
+
+const MAX_VOLUME = 0.5;
