@@ -232,7 +232,7 @@ window.speedMul = 10;
 function init() {
     let gb = new GameBoy(true);
     // Set the audio and video plugin
-    gb.soundChip.ap = new ToneJsAudioPlugin();
+    gb.soundChip.ap = new WebAudioPlugin();
 
     let cGameboy = document.getElementById("gameboy");
     let cTileset = document.getElementById("tileset");
@@ -352,14 +352,6 @@ function init() {
                 break;
         }
     };
-
-    // Start tone.js
-    window.addEventListener('click', () => {
-        Tone.start();
-    });
-    window.addEventListener('touchstart', () => {
-        Tone.start();
-    });
 };
 
 function dropHandler(ev) {
