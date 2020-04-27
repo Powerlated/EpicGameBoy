@@ -98,10 +98,10 @@ export class WaveChannel implements BasicChannel {
 
     get pan(): number {
         if (this.outputLeft && !this.outputRight) {
-            return -0.5;
+            return 0.5;
         }
         if (this.outputRight && !this.outputLeft) {
-            return 0.5;
+            return -0.5;
         }
         if (this.outputLeft && this.outputRight) {
             return 0;
@@ -155,10 +155,10 @@ export class NoiseChannel implements BasicChannel {
 
     get pan(): number {
         if (this.outputLeft && !this.outputRight) {
-            return -0.5;
+            return 0.5;
         }
         if (this.outputRight && !this.outputLeft) {
-            return 0.5;
+            return -0.5;
         }
         if (this.outputLeft && this.outputRight) {
             return 0;
