@@ -186,17 +186,15 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
     waveTableCache: PeriodicWave[] = [];
 
     generateWaveBuffer(s: SoundChip): PeriodicWave {
-        let sum1 = 0;
-        let sum2 = 0;
+        let hash = 0;
         for (let i = 0; i < 32; i++) {
-            // Very primitive checksum
-            sum1 = (sum1 + s.wave.waveTable[i]) & 0xFF;
-            sum2 = (sum2 + sum1) & 0xFF;
+            // Port of Java string hashCode
+            var char = s.wave.waveTable[i];
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
         }
 
-        let sum = (sum2 << 8) | sum1;
-
-        const check = this.waveTableCache[sum];
+        const check = this.waveTableCache[hash];
         if (check == undefined) {
             const waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [
                 i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
@@ -205,7 +203,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
             const transformed = FFT(waveTable);
 
-            return this.waveTableCache[sum] = this.ctx.createPeriodicWave(transformed.real, transformed.imag);
+            return this.waveTableCache[hash] = this.ctx.createPeriodicWave(transformed.real, transformed.imag);
         } else {
             return check;
         }
