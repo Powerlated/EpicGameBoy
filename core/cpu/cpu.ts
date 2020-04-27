@@ -347,7 +347,11 @@ export default class CPU {
 
             // this.opcodesRan.add(pcTriplet[0]);
         } else {
-            this.tick(4);
+            if (this.gb.doubleSpeed === true) {
+                this.tick(8);
+            } else {
+                this.tick(4);
+            }
         }
 
 
@@ -358,7 +362,7 @@ export default class CPU {
             this.halted = false;
 
             if (this.gb.interrupts.masterEnabled === true) {
-                
+
                 // 1 M-cycles doing nothing
                 this.tick(4);
 
