@@ -75,32 +75,16 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.ctx = new AudioContext();
 
         function mul<T>(arr: Array<T>): Array<T> {
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 12; i++) {
                 arr = arr.flatMap(v => [v, v]);
             }
             return arr;
         }
 
-
-        let real = FFT(mul(preFFT[0])).real;
-        let imag = FFT(mul(preFFT[0])).imag;
-
-        this.periodicWaves[0] = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
-
-        real = FFT(mul(preFFT[1])).real;
-        imag = FFT(mul(preFFT[1])).imag;
-
-        this.periodicWaves[1] = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
-
-        real = FFT(mul(preFFT[2])).real;
-        imag = FFT(mul(preFFT[2])).imag;
-
-        this.periodicWaves[2] = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
-
-        real = FFT(mul(preFFT[3])).real;
-        imag = FFT(mul(preFFT[3])).imag;
-
-        this.periodicWaves[3] = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+        for (let i = 0; i < 4; i++) {
+            let t = FFT(mul(preFFT[i]));
+            this.periodicWaves[i] = this.ctx.createPeriodicWave(t.real, t.imag, { disableNormalization: false });
+        }
 
         this.masterGain = this.ctx.createGain();
         this.masterGain.gain.value = MAX_VOLUME;
@@ -147,7 +131,11 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.noise15Buf.connect(this.noise15Gain).connect(this.noisePan).connect(this.masterGain);
         this.noise15Buf.start();
 
-        this.masterGain.connect(this.ctx.destination);
+        let highPass = this.ctx.createBiquadFilter();
+        highPass.type = 'highpass';
+        highPass.frequency.value = 120;
+
+        this.masterGain.connect(highPass).connect(this.ctx.destination);
     }
 
     pulse1(s: SoundChip) {
@@ -155,7 +143,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch1 && s.pulse1.enabled && s.pulse1.dacEnabled && (s.pulse1.outputLeft || s.pulse1.outputRight)) {
             if (s.pulse1.updated) {
                 this.pulse1Pan.pan.value = s.pulse1.pan;
-                this.pulse1Gain.gain.value = s.pulse1.volume / 15 / 1.3;
+                this.pulse1Gain.gain.value = s.pulse1.volume / 15 / 2;
                 this.pulse1Osc.frequency.value = s.pulse1.frequencyHz;
                 this.pulse1Osc.setPeriodicWave(this.periodicWaves[s.pulse1.width]);
             }
@@ -169,7 +157,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch2 && s.pulse2.enabled && s.pulse2.dacEnabled && (s.pulse2.outputLeft || s.pulse2.outputRight)) {
             if (s.pulse2.updated) {
                 this.pulse2Pan.pan.value = s.pulse2.pan;
-                this.pulse2Gain.gain.value = s.pulse2.volume / 15 / 1.3;
+                this.pulse2Gain.gain.value = s.pulse2.volume / 15 / 2;
                 this.pulse2Osc.frequency.value = s.pulse2.frequencyHz;
                 this.pulse2Osc.setPeriodicWave(this.periodicWaves[s.pulse2.width]);
             }
@@ -229,7 +217,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             if (s.noise.updated) {
                 this.noisePan.pan.value = s.noise.pan;
 
-                
+
 
                 const div = [8, 16, 32, 48, 64, 80, 96, 112][s.noise.divisorCode];
                 const rate = 4194304 / (div << s.noise.shiftClockFrequency);
