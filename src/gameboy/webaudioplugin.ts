@@ -71,6 +71,8 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
     masterGain: GainNode;
 
+    resumed = false;
+
     constructor() {
         this.ctx = new AudioContext();
 
@@ -136,6 +138,15 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         highPass.frequency.value = 120;
 
         this.masterGain.connect(highPass).connect(this.ctx.destination);
+
+
+        window.addEventListener('click', () => {
+            if (!this.resumed) {
+                this.resumed = true;
+
+                this.setMuted(false);
+            }
+        });
     }
 
     pulse1(s: SoundChip) {
@@ -143,7 +154,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch1 && s.pulse1.enabled && s.pulse1.dacEnabled && (s.pulse1.outputLeft || s.pulse1.outputRight)) {
             if (s.pulse1.updated) {
                 this.pulse1Pan.pan.value = s.pulse1.pan;
-                this.pulse1Gain.gain.value = s.pulse1.volume / 15 / 2;
+                this.pulse1Gain.gain.value = s.pulse1.volume / 15 / 2.5
                 this.pulse1Osc.frequency.value = s.pulse1.frequencyHz;
                 this.pulse1Osc.setPeriodicWave(this.periodicWaves[s.pulse1.width]);
             }
@@ -157,7 +168,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch2 && s.pulse2.enabled && s.pulse2.dacEnabled && (s.pulse2.outputLeft || s.pulse2.outputRight)) {
             if (s.pulse2.updated) {
                 this.pulse2Pan.pan.value = s.pulse2.pan;
-                this.pulse2Gain.gain.value = s.pulse2.volume / 15 / 2;
+                this.pulse2Gain.gain.value = s.pulse2.volume / 15 / 2.5
                 this.pulse2Osc.frequency.value = s.pulse2.frequencyHz;
                 this.pulse2Osc.setPeriodicWave(this.periodicWaves[s.pulse2.width]);
             }
@@ -172,7 +183,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 this.wavePan.pan.value = s.wave.pan;
                 this.waveOsc.frequency.value = s.wave.frequencyHz;
 
-                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] * 0.66;
+                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] / 2.25
             }
         } else {
             this.waveGain.gain.value = 0;
@@ -306,10 +317,14 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
     }
 
     setMuted(muted: boolean) {
-        if (muted) {
-            this.masterGain.gain.value = 0;
+        if (muted === true) {
+            if (this.ctx.state === 'running') {
+                this.ctx.suspend();
+            }
         } else {
-            this.masterGain.gain.value = MAX_VOLUME;
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
         }
     }
 }
