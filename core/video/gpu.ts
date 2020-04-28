@@ -863,14 +863,14 @@ class GPU implements HWIO {
                 tile = unTwo8b(tile) + 256;
             }
 
-            adjY = attr.yFlip ? 7 - y : y;
+            adjY = attr.yFlip ? y ^ 7 : y;
 
             tileRow = tileset[tile][adjY];
 
             for (let i = 0; i < 8; i++) {
                 if (pixel >= endAt) return;
                 if (pixel >= 0) {
-                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
+                    prePalette = tileRow[attr.xFlip ? i ^ 7 : i];
 
                     color = palette[prePalette];
 
@@ -924,13 +924,13 @@ class GPU implements HWIO {
                     tile = unTwo8b(tile) + 256;
                 }
 
-                adjY = attr.yFlip ? 7 - y : y;
+                adjY = attr.yFlip ? y ^ 7 : y;
 
                 tileRow = tileset[tile][adjY];
 
                 for (let i = 0; i < 8; i++) {
                     if (pixel >= 160) return;
-                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
+                    prePalette = tileRow[attr.xFlip ? i ^ 7 : i];
 
                     this.imageGameboyPre[pixel] = prePalette;
                     this.imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
@@ -1010,7 +1010,7 @@ class GPU implements HWIO {
                 tile += h;
             }
 
-            const pixelY = flags.yFlip ? 7 - y : y;
+            const pixelY = flags.yFlip ? y ^ 7 : y;
             const tileRow = tileset[tile][pixelY];
 
             let imgIndex = ((this.lY * 160) + screenXPos) * 4;
@@ -1038,7 +1038,7 @@ class GPU implements HWIO {
                     continue;
                 }
 
-                const tileX = flags.xFlip ? 7 - x : x;
+                const tileX = flags.xFlip ? x ^ 7: x;
 
                 // Simulate transparency 
                 const prePalette = tileRow[tileX];
