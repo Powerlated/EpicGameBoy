@@ -221,7 +221,7 @@ class GPU implements HWIO {
 
     totalFrameCount = 0;
 
-    // [tile][pixel]
+    // [tile][column][row] - quite friendly for CPU cache
     tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 0
     tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 1
 
@@ -237,7 +237,7 @@ class GPU implements HWIO {
     scrX = 0; // 0xFF43 - Scroll X
 
     lY = 0; // 0xFF44 - Current scanning line
-    lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lcdcY === lcdcYCompare 
+    lYCompare = 0; // 0xFF45 - Request STAT interrupt and set STAT flag in LCDStatus when lY === lYCompare 
 
     windowYpos = 0; // 0xFF4A - Window Y Position
     windowXpos = 0; // 0xFF4B - Window X Position
@@ -347,16 +347,14 @@ class GPU implements HWIO {
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
+                            if (this.lY >= 152) {
+                                this.lcdStatus.mode = LCDMode.LINE153;
+                            }
+
                             this.lY++;
                             this.updateSTAT();
 
-                            this.currentWindowLine = 0;
                             this.windowOnscreenYetThisFrame = false;
-
-                            if (this.lY >= 153) {
-                                this.lcdStatus.mode = LCDMode.LINE153;
-                                this.updateSTAT();
-                            }
                         }
                     }
                     break;
@@ -366,14 +364,14 @@ class GPU implements HWIO {
 
                         if (this.lineClock >= 80) {
 
-                            if (
-                                this.dirtyScanlines[this.lY] > 0 ||
-                                this.screenDirty === true
-                            ) {
-                                this.currentScanlineDirty = true;
-                            }
-
                             if (this.renderingThisFrame === true) {
+                                if (
+                                    this.dirtyScanlines[this.lY] > 0 ||
+                                    this.screenDirty === true
+                                ) {
+                                    this.currentScanlineDirty = true;
+                                }
+
                                 this.scanOAM();
                             }
 
@@ -395,7 +393,6 @@ class GPU implements HWIO {
                             */
                             if (
                                 this.lY === this.windowYpos &&
-                                this.windowDrawn === false &&
                                 this.lcdControl.enableWindow____5 === true &&
                                 this.windowOnscreenYetThisFrame === false &&
                                 this.windowXpos < 160
@@ -403,17 +400,20 @@ class GPU implements HWIO {
                                 this.currentWindowLine = this.windowYpos - this.lY;
                                 this.windowOnscreenYetThisFrame = true;
                             }
+
                             const bgWindowEnable =
                                 (
                                     this.gb.cgb === false &&
                                     this.lcdControl.bgWindowEnable0 === true
                                 ) || this.gb.cgb === true;
+
                             if (bgWindowEnable === true) {
                                 // Delay window rendering based on its X position, and don't be too picky, it's only X position
                                 if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
                                     // Only IF the window is onscreen
                                     if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
-                                        this.renderWindow();
+                                        if (this.currentScanlineDirty === true)
+                                            this.renderWindow();
                                         // this.mode3CyclesOffset += 8;
                                         this.currentWindowLine++;
                                     }
@@ -421,7 +421,8 @@ class GPU implements HWIO {
                                 }
 
                                 if (this.bgDrawn === false) {
-                                    this.renderBg();
+                                    if (this.currentScanlineDirty === true)
+                                        this.renderBg();
                                     this.bgDrawn = true;
 
                                     // this.mode3CyclesOffset += this.scrX & 7;
@@ -946,10 +947,6 @@ class GPU implements HWIO {
         let tile: number;
         let tileset: Uint8Array[][];
 
-        const img = this.imageGameboy.data;
-        const imageGameboyPre = this.imageGameboyPre;
-        const imageGameboyNoSprites = this.imageGameboyNoSprites;
-
         while (true) {
             tile = this.tilemap[mapOffset + lineOffset];
             attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
@@ -966,29 +963,23 @@ class GPU implements HWIO {
 
             tileRow = tileset[tile][adjY];
 
-            if (this.currentScanlineDirty === true) {
-                for (let i = 0; i < 8; i++) {
-                    if (pixel >= endAt) return;
-                    if (pixel >= 0) {
-                        prePalette = tileRow[attr.xFlip ? 7 - i : i];
-
-                        imageGameboyPre[pixel] = prePalette;
-                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
-
-                        color = palette[prePalette];
-
-                        img[imgIndex + 0] = color[0];
-                        img[imgIndex + 1] = color[1];
-                        img[imgIndex + 2] = color[2];
-
-                        imgIndex += 4;
-                    }
-                    pixel++;
-                }
-            } else {
-                imgIndex += 32;
-                pixel += 8;
+            for (let i = 0; i < 8; i++) {
                 if (pixel >= endAt) return;
+                if (pixel >= 0) {
+                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
+
+                    color = palette[prePalette];
+
+                    this.imageGameboyPre[pixel] = prePalette;
+                    this.imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+
+                    this.imageGameboy.data[imgIndex + 0] = color[0];
+                    this.imageGameboy.data[imgIndex + 1] = color[1];
+                    this.imageGameboy.data[imgIndex + 2] = color[2];
+
+                    imgIndex += 4;
+                }
+                pixel++;
             }
 
             // When this tile ends, read another
@@ -1005,9 +996,6 @@ class GPU implements HWIO {
             let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800
 
             const y = this.currentWindowLine & 0b111; // CORRECT
-            const img = this.imageGameboy.data;
-            const imageGameboyPre = this.imageGameboyPre;
-            const imageGameboyNoSprites = this.imageGameboyNoSprites;
 
             let adjY: number;
             let tileRow: Uint8Array;
@@ -1036,26 +1024,20 @@ class GPU implements HWIO {
 
                 tileRow = tileset[tile][adjY];
 
-                if (this.currentScanlineDirty === true) {
-                    for (let i = 0; i < 8; i++) {
-                        if (pixel >= 160) return;
-                        prePalette = tileRow[attr.xFlip ? 7 - i : i];
-
-                        imageGameboyPre[pixel] = prePalette;
-                        imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
-
-                        color = palette[prePalette];
-                        img[imgIndex + 0] = color[0];
-                        img[imgIndex + 1] = color[1];
-                        img[imgIndex + 2] = color[2];
-                        imgIndex += 4;
-                        pixel++;
-                    }
-                }
-                else {
-                    imgIndex += 32;
-                    pixel += 8;
+                for (let i = 0; i < 8; i++) {
                     if (pixel >= 160) return;
+                    prePalette = tileRow[attr.xFlip ? 7 - i : i];
+
+                    this.imageGameboyPre[pixel] = prePalette;
+                    this.imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+
+                    color = palette[prePalette];
+                    this.imageGameboy.data[imgIndex + 0] = color[0];
+                    this.imageGameboy.data[imgIndex + 1] = color[1];
+                    this.imageGameboy.data[imgIndex + 2] = color[2];
+
+                    imgIndex += 4;
+                    pixel++;
                 }
 
                 mapOffset++;
