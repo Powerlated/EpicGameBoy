@@ -54,7 +54,6 @@ export default class SoundChip implements HWIO {
                 break;
         }
 
-
         this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
     }
 
@@ -194,21 +193,19 @@ export default class SoundChip implements HWIO {
 
     private tjsCheck() {
         if (this.ap !== null) {
-            if (this.pulse1.updated) {
+            if (this.pulse1.updated === true) {
                 this.ap.pulse1(this);
                 this.pulse1.updated = false;
-                this.pulse1.widthUpdated = false;
             }
-            if (this.pulse2.updated) {
+            if (this.pulse2.updated === true) {
                 this.ap.pulse2(this);
                 this.pulse2.updated = false;
-                this.pulse2.widthUpdated = false;
             }
-            if (this.wave.updated) {
+            if (this.wave.updated === true) {
                 this.ap.wave(this);
                 this.wave.updated = false;
             }
-            if (this.noise.updated) {
+            if (this.noise.updated === true) {
                 this.ap.noise(this);
                 this.noise.updated = false;
             }
@@ -228,7 +225,6 @@ export default class SoundChip implements HWIO {
                     this.pulse1.updated = true;
                     break;
                 case 0xFF11: // NR11
-                    this.pulse1.widthUpdated = true;
                     this.pulse1.width = value >> 6;
                     this.pulse1.lengthCounter = 64 - (value & 0b111111);
                     this.pulse1.updated = true;
@@ -263,7 +259,6 @@ export default class SoundChip implements HWIO {
 
                 // Pulse 2
                 case 0xFF16: // NR21
-                    this.pulse2.widthUpdated = true;
                     this.pulse2.width = value >> 6;
                     this.pulse2.lengthCounter = 64 - (value & 0b111111);
                     this.pulse2.updated = true;
