@@ -290,12 +290,6 @@ class GPU implements HWIO {
     // Skip frames when turboing
     renderingThisFrame = false;
 
-    dirtyScanlines = new Uint8Array(144).fill(0);
-    dirtySprites: boolean[] = new Array(40).fill(false);
-    screenDirty = false;
-    screenDirtyUntil = 0;
-    currentScanlineDirty = false;
-
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     tick(cycles: number) {
         // THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
@@ -313,7 +307,6 @@ class GPU implements HWIO {
                             this.bgDrawn = false;
                             this.windowDrawn = false;
                             // this.mode3CyclesOffset = 0;
-                            this.setDirty = false;
 
                             this.lY++;
 
@@ -365,13 +358,6 @@ class GPU implements HWIO {
                         if (this.lineClock >= 80) {
 
                             if (this.renderingThisFrame === true) {
-                                if (
-                                    this.dirtyScanlines[this.lY] > 0 ||
-                                    this.screenDirty === true
-                                ) {
-                                    this.currentScanlineDirty = true;
-                                }
-
                                 this.scanOAM();
                             }
 
@@ -412,8 +398,7 @@ class GPU implements HWIO {
                                 if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
                                     // Only IF the window is onscreen
                                     if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
-                                        if (this.currentScanlineDirty === true)
-                                            this.renderWindow();
+                                        this.renderWindow();
                                         // this.mode3CyclesOffset += 8;
                                         this.currentWindowLine++;
                                     }
@@ -421,8 +406,7 @@ class GPU implements HWIO {
                                 }
 
                                 if (this.bgDrawn === false) {
-                                    if (this.currentScanlineDirty === true)
-                                        this.renderBg();
+                                    this.renderBg();
                                     this.bgDrawn = true;
 
                                     // this.mode3CyclesOffset += this.scrX & 7;
@@ -438,37 +422,8 @@ class GPU implements HWIO {
                             this.gb.dma.continueHdma();
 
                             if (this.renderingThisFrame === true) {
-
                                 if (this.lcdControl.spriteDisplay___1 === true) {
                                     this.renderSprites();
-                                }
-
-                                /*
-                                const index = 160 * 4 * (this.lY);
-                                const img = this.imageGameboy.data;
-                
-                                if (this.currentScanlineDirty === true) {
-                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                    img[index + 0] = 0xFF; img[index + 1] = 0; img[index + 2] = 0; index += 4;
-                                } else {
-                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                    img[index + 0] = 0xFF; img[index + 1] = 0xFF; img[index + 2] = 0xFF; index += 4;
-                                }
-                                */
-
-                                if (this.dirtyScanlines[this.lY] > 0) this.dirtyScanlines[this.lY]--;
-                                this.currentScanlineDirty = false;
-
-                                if (this.lY === this.screenDirtyUntil) {
-                                    if (this.lY >= 143) {
-                                        this.screenDirty = false;
-                                    } else {
-                                        this.screenDirtyUntil = 143;
-                                    }
                                 }
                             }
                         }
@@ -532,23 +487,6 @@ class GPU implements HWIO {
 
     constructor(gb: GameBoy) {
         this.gb = gb;
-    }
-
-    setDirty = false;
-
-    /*
-    * Queues the entire screen for re-rendering
-    * becuase something big has changed.
-    * 
-    * Limited but not including to:
-    * - LCD Control
-    * - Palettes
-    * - Scroll X/Y
-    * - WIndow X/Y
-    */
-    setScreenDirty() {
-        this.screenDirtyUntil = this.lY - 1;
-        this.screenDirty = true;
     }
 
     reset() {
@@ -629,8 +567,6 @@ class GPU implements HWIO {
         if (this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK || this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK) {
             if (this.oam[index] !== value) {
                 this.oam[index] = value;
-
-                this.dirtySprites[index >> 2] = true;
             }
         }
     }
@@ -682,8 +618,6 @@ class GPU implements HWIO {
                     tileset[tile][y][x] =
                         (lsb !== 0 ? 1 : 0) +
                         (msb !== 0 ? 2 : 0);
-
-                    this.setScreenDirty();
                 }
             }
 
@@ -692,7 +626,6 @@ class GPU implements HWIO {
                 if (index >= 0x9800 && index < 0xA000) {
                     if (this.tilemap[index - 0x9800] !== value) {
                         this.tilemap[index - 0x9800] = value;
-                        this.setScreenDirty();
                     }
                 }
             } else if (this.vramBank === 1) {
@@ -753,18 +686,15 @@ class GPU implements HWIO {
         switch (addr) {
             case 0xFF40: // LCD Control
                 this.lcdControl.setNumerical(value);
-                this.setScreenDirty();
                 break;
             case 0xFF41: // LCDC Status
                 this.lcdStatus.setNumerical(value);
                 this.updateSTAT();
                 break;
             case 0xFF42:
-                if (this.scrY !== value) this.setScreenDirty();
                 this.scrY = value;
                 break;
             case 0xFF43:
-                if (this.scrX !== value) this.setScreenDirty();
                 this.scrX = value;
                 break;
             case 0xFF44: break;
@@ -776,12 +706,6 @@ class GPU implements HWIO {
                 this.gb.dma.oamDma(value << 8);
                 break;
             case 0xFF47: // Palette
-                if (
-                    this.gb.cgb === false &&
-                    this.dmgBgPalette !== value
-                ) {
-                    this.setScreenDirty();
-                }
                 this.dmgBgPalette = value;
                 if (this.gb.cgb === false) {
                     this.setDmgBgPalette(0, (value >> 0) & 0b11);
@@ -791,12 +715,6 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF48: // Palette OBJ 0
-                if (
-                    this.gb.cgb === false &&
-                    this.dmgObj0Palette !== value
-                ) {
-                    this.setScreenDirty();
-                }
                 this.dmgObj0Palette = value;
                 if (this.gb.cgb === false) {
                     this.setDmgObjPalette(0, (value >> 0) & 0b11);
@@ -806,15 +724,8 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF49: // Palette OBJ 1
-                if (
-                    this.gb.cgb === false &&
-                    this.dmgObj1Palette !== value
-                ) {
-                    this.setScreenDirty();
-                }
                 this.dmgObj1Palette = value;
                 if (this.gb.cgb === false) {
-                    this.setScreenDirty();
                     this.setDmgObjPalette(4, (value >> 0) & 0b11);
                     this.setDmgObjPalette(5, (value >> 2) & 0b11);
                     this.setDmgObjPalette(6, (value >> 4) & 0b11);
@@ -822,11 +733,9 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF4A: // Window Y Position
-                if (this.windowYpos !== value) this.setScreenDirty();
                 this.windowYpos = value;
                 break;
             case 0xFF4B: // Window X Position
-                if (this.windowXpos !== value) this.setScreenDirty();
                 this.windowXpos = value;
                 break;
             case 0xFF4F: // CGB - VRAM Bank
@@ -850,12 +759,9 @@ class GPU implements HWIO {
             case 0xFF69: // CGB - Background Palette Data
                 if (this.gb.cgb === true) {
                     if (this.cgbBgPalette.data[this.cgbBgPaletteIndex] !== value) {
-                        this.setScreenDirty();
+                        this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
+                        this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3, (this.cgbBgPaletteIndex >> 1) & 3);
                     }
-
-
-                    this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
-                    this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3, (this.cgbBgPaletteIndex >> 1) & 3);
 
                     if (this.cgbBgPaletteIndexAutoInc === true) {
                         this.cgbBgPaletteIndex++;
@@ -872,12 +778,9 @@ class GPU implements HWIO {
             case 0xFF6B: // CGB - Sprite Palette Data
                 if (this.gb.cgb === true) {
                     if (this.cgbObjPalette.data[this.cgbObjPaletteIndex] !== value) {
-                        this.setScreenDirty();
+                        this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
+                        this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3, (this.cgbObjPaletteIndex >> 1) & 3);
                     }
-
-
-                    this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
-                    this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3, (this.cgbObjPaletteIndex >> 1) & 3);
 
                     if (this.cgbObjPaletteIndexAutoInc === true) {
                         this.cgbObjPaletteIndex++;
@@ -1070,31 +973,8 @@ class GPU implements HWIO {
                 entry.tile = tile;
                 entry.flags.setNumerical(this.oam[base + 3]);
                 this.scannedEntriesCount++;
-
-
-                // They see me unrollin', they hatin...
-                this.dirtyScanlines[screenYPos + 0] = 2;
-                this.dirtyScanlines[screenYPos + 1] = 2;
-                this.dirtyScanlines[screenYPos + 2] = 2;
-                this.dirtyScanlines[screenYPos + 3] = 2;
-                this.dirtyScanlines[screenYPos + 4] = 2;
-                this.dirtyScanlines[screenYPos + 5] = 2;
-                this.dirtyScanlines[screenYPos + 6] = 2;
-                this.dirtyScanlines[screenYPos + 7] = 2;
-
-                if (this.lcdControl.spriteSize______2 === true) {
-                    this.dirtyScanlines[screenYPos + 8] = 2;
-                    this.dirtyScanlines[screenYPos + 9] = 2;
-                    this.dirtyScanlines[screenYPos + 10] = 2;
-                    this.dirtyScanlines[screenYPos + 11] = 2;
-                    this.dirtyScanlines[screenYPos + 12] = 2;
-                    this.dirtyScanlines[screenYPos + 13] = 2;
-                    this.dirtyScanlines[screenYPos + 14] = 2;
-                    this.dirtyScanlines[screenYPos + 15] = 2;
-                }
             }
         }
-
     }
 
     renderSprites() {
