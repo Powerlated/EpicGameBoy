@@ -1038,7 +1038,7 @@ class GPU implements HWIO {
                     continue;
                 }
 
-                const tileX = flags.xFlip ? x ^ 7: x;
+                const tileX = flags.xFlip ? x ^ 7 : x;
 
                 // Simulate transparency 
                 const prePalette = tileRow[tileX];
@@ -1067,33 +1067,38 @@ class GPU implements HWIO {
 
 
         this.tileset0.forEach((tile, tileIndex) => {
-            for (let tileX = 0; tileX < 8; tileX++) {
-                for (let tileY = 0; tileY < 8; tileY++) {
-                    const x = ((tileIndex << 3) + (tileX & 7)) % WIDTH;
-                    const y = tileY + (8 * (tileIndex >> 5));
+            for (let tileY = 0; tileY < 8; tileY++) {
+                const offset = 0;
+                const x = (tileIndex << 3) & 255;
+                const y = tileY + (8 * (tileIndex >> 5));
 
+                let index = 4 * (((y * WIDTH) + x) + offset);
+                for (let tileX = 0; tileX < 8; tileX++) {
                     const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                    const index = 4 * ((y * WIDTH) + x);
                     this.imageTileset.data[index + 0] = c[0];
                     this.imageTileset.data[index + 1] = c[1];
                     this.imageTileset.data[index + 2] = c[2];
+
+                    index += 4;
                 }
             }
         });
         this.tileset1.forEach((tile, tileIndex) => {
-            for (let tileX = 0; tileX < 8; tileX++) {
-                for (let tileY = 0; tileY < 8; tileY++) {
-                    const x = ((tileIndex << 3) + (tileX & 7)) % WIDTH;
-                    const y = tileY + (8 * (tileIndex >> 5));
+            for (let tileY = 0; tileY < 8; tileY++) {
+                const offset = (256 * 96);
+                const y = tileY + (8 * (tileIndex >> 5));
+                const x = (tileIndex << 3) & 255;
 
+                let index = 4 * (((y * WIDTH) + x) + offset);
+                for (let tileX = 0; tileX < 8; tileX++) {
                     const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                    const offset = (256 * 96);
-                    const index = 4 * (((y * WIDTH) + x) + offset);
                     this.imageTileset.data[index + 0] = c[0];
                     this.imageTileset.data[index + 1] = c[1];
                     this.imageTileset.data[index + 2] = c[2];
+
+                    index += 4;
                 }
             }
         });
