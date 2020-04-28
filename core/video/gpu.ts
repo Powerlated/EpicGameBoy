@@ -322,6 +322,9 @@ class GPU implements HWIO {
                                     }
                                 }
 
+                                this.currentWindowLine = 0;
+                                this.windowOnscreenYetThisFrame = false;
+
                                 this.lcdStatus.mode = LCDMode.VBLANK;
                                 this.updateSTAT();
 
@@ -346,8 +349,6 @@ class GPU implements HWIO {
 
                             this.lY++;
                             this.updateSTAT();
-
-                            this.windowOnscreenYetThisFrame = false;
                         }
                     }
                     break;
@@ -395,7 +396,7 @@ class GPU implements HWIO {
 
                             if (bgWindowEnable === true) {
                                 // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                                if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80 + 12) {
+                                if (this.windowDrawn === false) {
                                     // Only IF the window is onscreen
                                     if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
                                         this.renderWindow();
