@@ -9,7 +9,6 @@ export default class Timer implements HWIO {
 
     static TimerSpeeds = [4096, 262144, 65536, 16384]; // In terms of HZ 
 
-
     constructor(gb: GameBoy) {
         this.gb = gb;
     }
@@ -25,8 +24,8 @@ export default class Timer implements HWIO {
 
     internal = 0;
 
-    previousMain = false;
-    previousSoundClock = false;
+    previousTimerCondition = false;
+    previousFrameSequencerCondition = false;
 
     queueReload = false;
 
@@ -91,23 +90,24 @@ export default class Timer implements HWIO {
                 this.gb.interrupts.requested.timer = true;
             }
 
-            const condition = this.control.running && (this.internal & TIMER_BITS[this.control.speed]) !== 0;
-            if (condition === false && this.previousMain === true) {
+            const timerCondition = this.control.running && (this.internal & TIMER_BITS[this.control.speed]) !== 0;
+            if (timerCondition === false && this.previousTimerCondition === true) {
                 this.counter++;
                 if (this.counter > 255) {
                     this.counter = 0;
                     this.queueReload = true;
                 }
             }
-            this.previousMain = condition;
+            this.previousTimerCondition = timerCondition;
         }
 
         const mask = this.gb.doubleSpeed ? BIT_13 : BIT_12;
-        const condition = (this.internal & mask) !== 0;
-        if (condition === false && this.previousSoundClock === true) {
+        const frameSequencerCondition = (this.internal & mask) !== 0;
+        if (frameSequencerCondition === false && this.previousFrameSequencerCondition === true) {
             this.gb.soundChip.advanceFrameSequencer();
         }
-        this.previousSoundClock = condition;
+
+        this.previousFrameSequencerCondition = frameSequencerCondition;
     }
 
     reset() {
@@ -120,7 +120,7 @@ export default class Timer implements HWIO {
         this.internal = 0;
 
         this.queueReload = false;
-        this.previousMain = false;
+        this.previousTimerCondition = false;
 
     }
 }
