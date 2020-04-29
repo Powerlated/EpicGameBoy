@@ -23,7 +23,7 @@ export default class MBC {
 export class MBCWithRAM extends MBC {
     ramBank = 0;
     enableExternalRam = false;
-    externalRam: Uint8Array = new Uint8Array(32768).fill(0xFF);
+    externalRam: Uint8Array = new Uint8Array(131072).fill(0xFF);
     externalRamDirtyBytes = 0;
 
     readBankRam(addr: number, bank: number): number {
