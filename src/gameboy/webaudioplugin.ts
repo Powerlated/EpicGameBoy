@@ -35,10 +35,10 @@ function convertVolumeWave(v: number) {
 }
 
 const preFFT = [
-    [0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 1, 1, 1],
-    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xF],
+    [0xF, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xF],
+    [0xF, 0x0, 0x0, 0x0, 0x0, 0xF, 0xF, 0xF],
+    [0x0, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0x0],
 ];
 
 export default class ToneJsAudioPlugin implements AudioPlugin {
@@ -190,7 +190,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 if (freq > 24000) freq = 24000;
                 this.waveOsc.frequency.value = freq;
 
-                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] / 2.25;
+                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] / 2.5;
             }
         } else {
             this.waveGain.gain.value = 0;
@@ -214,7 +214,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
         const check = this.waveTableCache[hash];
         if (check == undefined) {
-            const waveTable = s.wave.waveTable.map(v => (v - 8) / 8).flatMap(i => [
+            const waveTable = s.wave.waveTable.flatMap(i => [
                 i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
                 i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
             ]);
