@@ -154,8 +154,10 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch1 && s.pulse1.enabled && s.pulse1.dacEnabled && (s.pulse1.outputLeft || s.pulse1.outputRight)) {
             if (s.pulse1.updated) {
                 this.pulse1Pan.pan.value = s.pulse1.pan;
-                this.pulse1Gain.gain.value = s.pulse1.volume / 15 / 2.5
-                this.pulse1Osc.frequency.value = s.pulse1.frequencyHz;
+                this.pulse1Gain.gain.value = s.pulse1.volume / 15 / 2.5;
+                let freq = s.pulse1.frequencyHz;
+                if (freq > 24000) freq = 24000;
+                this.pulse1Osc.frequency.value = freq;
                 this.pulse1Osc.setPeriodicWave(this.periodicWaves[s.pulse1.width]);
             }
         } else {
@@ -168,8 +170,10 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch2 && s.pulse2.enabled && s.pulse2.dacEnabled && (s.pulse2.outputLeft || s.pulse2.outputRight)) {
             if (s.pulse2.updated) {
                 this.pulse2Pan.pan.value = s.pulse2.pan;
-                this.pulse2Gain.gain.value = s.pulse2.volume / 15 / 2.5
-                this.pulse2Osc.frequency.value = s.pulse2.frequencyHz;
+                this.pulse2Gain.gain.value = s.pulse2.volume / 15 / 2.5;
+                let freq = s.pulse2.frequencyHz;
+                if (freq > 24000) freq = 24000;
+                this.pulse2Osc.frequency.value = freq;
                 this.pulse2Osc.setPeriodicWave(this.periodicWaves[s.pulse2.width]);
             }
         } else {
@@ -181,9 +185,12 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         if (s.enabled && this.ch3 && s.wave.enabled && s.wave.dacEnabled && (s.wave.outputLeft || s.wave.outputRight)) {
             if (s.wave.updated) {
                 this.wavePan.pan.value = s.wave.pan;
-                this.waveOsc.frequency.value = s.wave.frequencyHz;
 
-                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] / 2.25
+                let freq = s.wave.frequencyHz;
+                if (freq > 24000) freq = 24000;
+                this.waveOsc.frequency.value = freq;
+
+                this.waveGain.gain.value = [0, 1, 0.50, 0.25][s.wave.volume] / 2.25;
             }
         } else {
             this.waveGain.gain.value = 0;
