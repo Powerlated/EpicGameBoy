@@ -5,9 +5,9 @@ export type Value = {
 
 export default class ComplexArray {
     ArrayType: any;
-    real: any;
-    imag: any;
-    length: any;
+    real: number[];
+    imag: number[];
+    length: number;
     constructor(other: number | ComplexArray, arrayType = Float32Array) {
         if (other instanceof ComplexArray) {
             // Copy constuctor.
@@ -25,7 +25,7 @@ export default class ComplexArray {
     }
 
     toString() {
-        const components: any[] = [];
+        const components: string[] = [];
 
         this.forEach((value: Value, i: number) => {
             components.push(

@@ -12,7 +12,7 @@ export function InvFFT(input: any) {
     return ensureComplexArray(input).InvFFT();
 };
 
-export function frequencyMap(input: any, filterer: any) {
+export function frequencyMap(input: any, filterer: Function) {
     return ensureComplexArray(input).frequencyMap(filterer);
 };
 
@@ -30,7 +30,7 @@ export class ComplexArray extends baseComplexArray {
     // Applies a frequency-space filter to input, and returns the real-space
     // filtered input.
     // filterer accepts freq, i, n and modifies freq.real and freq.imag.
-    frequencyMap(filterer: any) {
+    frequencyMap(filterer: Function) {
         return this.FFT().map(filterer).InvFFT();
     }
 }
@@ -49,7 +49,7 @@ function fft(input: ComplexArray, inverse: boolean): ComplexArray {
     }
 }
 
-function FFT_Recursive(input: ComplexArray, inverse: any) {
+function FFT_Recursive(input: ComplexArray, inverse: boolean) {
     const n = input.length;
 
     if (n === 1) {
@@ -106,7 +106,7 @@ function FFT_Recursive(input: ComplexArray, inverse: any) {
     return input;
 }
 
-function FFT_2_Iterative(input: ComplexArray, inverse: any) {
+function FFT_2_Iterative(input: ComplexArray, inverse: boolean) {
     const n = input.length;
 
     const output = BitReverseComplexArray(input);
