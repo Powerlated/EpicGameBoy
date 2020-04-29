@@ -17,10 +17,8 @@ export default class Timer implements HWIO {
 
     counter = 0; // TIMA
     modulo = 0;
-    control = {
-        speed: 0,
-        running: false
-    };
+    speed = 0;
+    running = false;
 
     internal = 0;
 
@@ -40,8 +38,8 @@ export default class Timer implements HWIO {
             case 0xFF07: // Timer control
                 let n = 0;
 
-                n |= (this.control.speed & 0b11); // Bits 0-1
-                if (this.control.running) n |= 0b00000100; // Bit 2
+                n |= (this.speed & 0b11); // Bits 0-1
+                if (this.running) n |= 0b00000100; // Bit 2
 
                 return n;
         }
@@ -60,8 +58,8 @@ export default class Timer implements HWIO {
                 this.modulo = value;
                 break;
             case 0xFF07: // Timer control - TAC
-                this.control.speed = value & 0b11; // Bits 0-1
-                this.control.running = (value >> 2) !== 0; // Bit 2
+                this.speed = value & 0b11; // Bits 0-1
+                this.running = (value >> 2) !== 0; // Bit 2
                 break;
         }
     }
@@ -90,7 +88,7 @@ export default class Timer implements HWIO {
                 this.gb.interrupts.requested.timer = true;
             }
 
-            const timerCondition = this.control.running && (this.internal & TIMER_BITS[this.control.speed]) !== 0;
+            const timerCondition = this.running && (this.internal & TIMER_BITS[this.speed]) !== 0;
             if (timerCondition === false && this.previousTimerCondition === true) {
                 this.counter++;
                 if (this.counter > 255) {
@@ -114,8 +112,8 @@ export default class Timer implements HWIO {
         this.counter = 0;
         this.modulo = 0;
 
-        this.control.speed = 0;
-        this.control.running = false;
+        this.speed = 0;
+        this.running = false;
 
         this.internal = 0;
 
