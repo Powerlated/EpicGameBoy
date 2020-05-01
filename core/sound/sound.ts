@@ -31,24 +31,23 @@ export default class SoundChip implements HWIO {
 
     soundRegisters = new Uint8Array(65536).fill(0);
 
-
     advanceFrameSequencer() {
         // 512Hz Frame Sequencer
         switch (this.frameSequencerStep) {
             case 0:
             case 4:
                 this.length();
-                this.tjsCheck();
+                this.apCheck();
                 break;
             case 2:
             case 6:
                 this.length();
                 this.frequencySweep();
-                this.tjsCheck();
+                this.apCheck();
                 break;
             case 7:
                 this.volumeEnvelope();
-                this.tjsCheck();
+                this.apCheck();
                 break;
             default:
                 break;
@@ -92,14 +91,14 @@ export default class SoundChip implements HWIO {
         }
         this.pulse1.updated = true;
 
-        this.tjsCheck();
+        this.apCheck();
     }
 
     private volumeEnvelope() {
         this.ticksEnvelopePulse1++;
         if (this.ticksEnvelopePulse1 >= this.pulse1.volumeEnvelopeSweep) {
             if (this.pulse1.volumeEnvelopeSweep !== 0) {
-                if (this.pulse1.volumeEnvelopeUp) {
+                if (this.pulse1.volumeEnvelopeUp === true) {
                     if (this.pulse1.volume < 15) {
                         this.pulse1.volume++;
                         this.pulse1.updated = true;
@@ -117,7 +116,7 @@ export default class SoundChip implements HWIO {
         this.ticksEnvelopePulse2++;
         if (this.ticksEnvelopePulse2 >= this.pulse2.volumeEnvelopeSweep) {
             if (this.pulse2.volumeEnvelopeSweep !== 0) {
-                if (this.pulse2.volumeEnvelopeUp) {
+                if (this.pulse2.volumeEnvelopeUp === true) {
                     if (this.pulse2.volume < 15) {
                         this.pulse2.volume++;
                         this.pulse2.updated = true;
@@ -135,7 +134,7 @@ export default class SoundChip implements HWIO {
         this.ticksEnvelopeNoise++;
         if (this.ticksEnvelopeNoise >= this.noise.volumeEnvelopeSweep) {
             if (this.noise.volumeEnvelopeSweep !== 0) {
-                if (this.noise.volumeEnvelopeUp) {
+                if (this.noise.volumeEnvelopeUp === true) {
                     if (this.noise.volume < 15) {
                         this.noise.volume++;
                         this.noise.updated = true;
@@ -152,7 +151,7 @@ export default class SoundChip implements HWIO {
     }
 
     private length() {
-        if (this.pulse1.lengthCounter > 0 && this.pulse1.lengthEnable) {
+        if (this.pulse1.lengthEnable === true && this.pulse1.lengthCounter > 0) {
             this.pulse1.lengthCounter--;
             if (this.pulse1.lengthCounter === 0) {
                 this.pulse1.enabled = false;
@@ -160,7 +159,7 @@ export default class SoundChip implements HWIO {
             }
         }
 
-        if (this.pulse2.lengthCounter > 0 && this.pulse2.lengthEnable) {
+        if (this.pulse2.lengthEnable === true && this.pulse2.lengthCounter > 0) {
             this.pulse2.lengthCounter--;
             if (this.pulse2.lengthCounter === 0) {
                 this.pulse2.enabled = false;
@@ -168,7 +167,7 @@ export default class SoundChip implements HWIO {
             }
         }
 
-        if (this.wave.lengthCounter > 0 && this.wave.lengthEnable) {
+        if (this.wave.lengthEnable === true && this.wave.lengthCounter > 0) {
             this.wave.lengthCounter--;
             if (this.wave.lengthCounter === 0) {
                 this.wave.enabled = false;
@@ -176,7 +175,7 @@ export default class SoundChip implements HWIO {
             }
         }
 
-        if (this.noise.lengthCounter > 0 && this.noise.lengthEnable) {
+        if (this.noise.lengthEnable === true && this.noise.lengthCounter > 0) {
             this.noise.lengthCounter--;
             if (this.noise.lengthCounter === 0) {
                 this.noise.enabled = false;
@@ -191,7 +190,7 @@ export default class SoundChip implements HWIO {
         }
     }
 
-    private tjsCheck() {
+    private apCheck() {
         if (this.ap !== null) {
             if (this.pulse1.updated === true) {
                 this.ap.pulse1(this);

@@ -117,12 +117,16 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
         this.noisePan = this.ctx.createStereoPanner();
 
+        let lp = this.ctx.createBiquadFilter();
+        lp.frequency.value = 11025;
+        lp.type = 'lowpass';
+
         this.noise7Gain = this.ctx.createGain();
         this.noise7Gain.gain.value = 0;
         this.noise7Buf = this.ctx.createBufferSource();
         this.noise7Buf.loop = true;
         this.noise7Buf.buffer = this.generateNoiseBuffer(true);
-        this.noise7Buf.connect(this.noise7Gain).connect(this.noisePan).connect(this.masterGain);
+        this.noise7Buf.connect(this.noise7Gain).connect(lp).connect(this.noisePan).connect(this.masterGain);
         this.noise7Buf.start();
 
         this.noise15Gain = this.ctx.createGain();
@@ -130,7 +134,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         this.noise15Buf = this.ctx.createBufferSource();
         this.noise15Buf.loop = true;
         this.noise15Buf.buffer = this.generateNoiseBuffer(false);
-        this.noise15Buf.connect(this.noise15Gain).connect(this.noisePan).connect(this.masterGain);
+        this.noise15Buf.connect(this.noise15Gain).connect(lp).connect(this.noisePan).connect(this.masterGain);
         this.noise15Buf.start();
 
         let highPass = this.ctx.createBiquadFilter();
