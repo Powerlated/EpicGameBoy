@@ -262,11 +262,15 @@ function init() {
                 $('#enableDebugger').click();
                 e.preventDefault();
             }
-            if (e.key === "T") {
+            else if (e.key === "T") {
                 $('#drawTileset').click();
                 e.preventDefault();
             }
-            if (e.key === "B") {
+            else if (e.key === "F") {
+                gb.gpu.frameBlending = !gb.gpu.frameBlending;
+                e.preventDefault();
+            }
+            else if (e.key === "B") {
                 $('#big-screen').click();
                 e.preventDefault();
             }

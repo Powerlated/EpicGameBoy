@@ -211,6 +211,8 @@ export enum LCDMode {
 }
 
 class GPU implements HWIO {
+    frameBlending = false;
+
     gb: GameBoy;
 
     vram0 = new Uint8Array(0x2000);
@@ -260,9 +262,16 @@ class GPU implements HWIO {
     dmgObj0Palette = 0;
     dmgObj1Palette = 0;
 
-    imageGameboyPre = new Uint8Array(160);
-    imageGameboyNoSprites: boolean[] = new Array(160).fill(false);
-    imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+    pre = new Uint8Array(160);
+    noSprites: boolean[] = new Array(160).fill(false);
+
+    imageGameboy0 = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+    imageGameboy1 = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+
+    imageGameboy = this.imageGameboy1;
+
+    imagePrepared = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+
     imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
     showBorders = false;
@@ -289,6 +298,26 @@ class GPU implements HWIO {
 
     // Skip frames when turboing
     renderingThisFrame = false;
+
+    swapBuffers() {
+        switch (this.imageGameboy) {
+            case this.imageGameboy0:
+                this.imageGameboy = this.imageGameboy1;
+                break;
+            case this.imageGameboy1:
+                this.imageGameboy = this.imageGameboy0;
+                break;
+        }
+    }
+
+    prepareImageOut() {
+        for (let i = 0; i < 160 * 144 * 4; i++) {
+            this.imagePrepared.data[i] = (
+                this.imageGameboy0.data[i] +
+                this.imageGameboy1.data[i]
+            ) >> 1;
+        }
+    }
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     tick(cycles: number) {
@@ -318,7 +347,13 @@ class GPU implements HWIO {
                                 // Draw to the canvas
                                 if (this.renderingThisFrame === true) {
                                     if (this.vp !== null) {
-                                        this.vp.drawGameboy(this.imageGameboy);
+                                        if (this.frameBlending === true) {
+                                            this.swapBuffers();
+                                            this.prepareImageOut();
+                                            this.vp.drawGameboy(this.imagePrepared);
+                                        } else {
+                                            this.vp.drawGameboy(this.imageGameboy);
+                                        }
                                     }
                                 }
 
@@ -540,9 +575,8 @@ class GPU implements HWIO {
         this.dmgObj0Palette = 0;
         this.dmgObj1Palette = 0;
 
-        this.imageGameboyPre = new Uint8Array(160);
-        this.imageGameboyNoSprites = new Array(160).fill(false);
-        this.imageGameboy = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
+        this.pre = new Uint8Array(160);
+        this.noSprites = new Array(160).fill(false);
         this.imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
         this.currentWindowLine = 0;
@@ -875,8 +909,8 @@ class GPU implements HWIO {
 
                     color = palette[prePalette];
 
-                    this.imageGameboyPre[pixel] = prePalette;
-                    this.imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                    this.pre[pixel] = prePalette;
+                    this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
 
                     this.imageGameboy.data[imgIndex + 0] = color[0];
                     this.imageGameboy.data[imgIndex + 1] = color[1];
@@ -933,8 +967,8 @@ class GPU implements HWIO {
                     if (pixel >= 160) return;
                     prePalette = tileRow[attr.xFlip ? i ^ 7 : i];
 
-                    this.imageGameboyPre[pixel] = prePalette;
-                    this.imageGameboyNoSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                    this.pre[pixel] = prePalette;
+                    this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
 
                     color = palette[prePalette];
                     this.imageGameboy.data[imgIndex + 0] = color[0];
@@ -1049,8 +1083,8 @@ class GPU implements HWIO {
 
                 const noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
                 if (noTransparency === false) {
-                    if (flags.behindBG && this.imageGameboyPre[screenXPos] !== 0) { imgIndex += 4; continue; }
-                    if (this.imageGameboyNoSprites[screenXPos] === true) { imgIndex += 4; continue; }
+                    if (flags.behindBG && this.pre[screenXPos] !== 0) { imgIndex += 4; continue; }
+                    if (this.noSprites[screenXPos] === true) { imgIndex += 4; continue; }
                 }
 
                 this.imageGameboy.data[imgIndex + 0] = pixel[0];
