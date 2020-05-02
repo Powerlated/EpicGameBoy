@@ -417,24 +417,23 @@ class GPU implements HWIO {
                                 this.lY === this.windowYpos &&
                                 this.lcdControl.enableWindow____5 === true &&
                                 this.windowOnscreenYetThisFrame === false &&
-                                this.windowXpos < 160
+                                this.windowXpos < 167
                             ) {
                                 this.currentWindowLine = this.windowYpos - this.lY;
                                 this.windowOnscreenYetThisFrame = true;
                             }
 
                             // Bit 0 of LCDC is used to manage priority in CGB mode
-                            const bgWindowEnable =
+                            if (
                                 (
                                     this.gb.cgb === false &&
                                     this.lcdControl.bgWindowEnable0 === true
-                                ) || this.gb.cgb === true;
-
-                            if (bgWindowEnable === true) {
+                                ) || this.gb.cgb === true
+                            ) {
                                 // Delay window rendering based on its X position, and don't be too picky, it's only X position
                                 if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80) {
                                     // Only IF the window is onscreen
-                                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 160) {
+                                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
                                         this.renderWindow();
                                         // this.mode3CyclesOffset += 8;
                                         this.currentWindowLine++;
