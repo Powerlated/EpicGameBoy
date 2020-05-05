@@ -11,12 +11,12 @@ export default class NullMBC extends MBC implements MBC {
         this.ext = ext;
     }
 
-    romBank = 0;
+    // Keep this 1 so MemoryBus will read ROM 0x4### correctly
+    romBank = 1;
 
     // Pass reads straight through with no MBC, however, one address line is missing
     read(addr: number): number {
-        addr &= 32767;
-        return this.ext.romData[addr >> 14][addr & 16383];
+        return 0;
     }
     write(addr: number, value: number) {
         return;

@@ -71,12 +71,26 @@ class MemoryBus {
         }
     }
 
-    read(addr: number): number {
-        const cheat = this.cheats[addr];
-        if (cheat !== null) {
-            return cheat;
-        }
+    readFunc = [
+        this.readRom0br.bind(this), // ROM0 - 0###
+        this.readRom0.bind(this), // ROM0 - 1###
+        this.readRom0.bind(this), // ROM0 - 2###
+        this.readRom0.bind(this), // ROM0 - 3###
+        this.readRomX.bind(this), // ROMX - 4###
+        this.readRomX.bind(this), // ROMX - 5###
+        this.readRomX.bind(this), // ROMX - 6###
+        this.readRomX.bind(this), // ROMX - 7###
+        this.readVram.bind(this), // VRAM - 8###
+        this.readVram.bind(this), // VRAM - 9###
+        this.readCartRam.bind(this), // Cart RAM - A###
+        this.readCartRam.bind(this), // Cart RAM - B###
+        this.readRam0.bind(this), // RAM0 - C###
+        this.readRamX.bind(this), // RAMX - D###
+        this.readRam0.bind(this), // Echo RAM0 - E###
+        this.readHigh.bind(this), // High Area - F###
+    ];
 
+    readRom0br(addr: number): number {
         if (this.bootromEnabled === true && addr < 0x100) {
             if (addr >= 0x0000 && addr < 0x100) {
                 return this.bootrom[addr];
@@ -85,31 +99,36 @@ class MemoryBus {
             }
         }
 
-        // Read from ROM through External Bus
-        else if (addr < 0x8000) {
-            return this.ext.mbc.read(addr);
-        }
+        return this.ext.romData[0][addr];
+    }
 
-        // Return from VRAM
-        else if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
-            return this.gb.gpu.read(addr);
-        }
+    readRom0(addr: number): number {
+        return this.ext.romData[0][addr];
+    }
 
-        // Read from External RAM through External Bus
-        else if (addr >= 0xA000 && addr <= 0xBFFF) {
-            return this.ext.mbc.read(addr);
-        }
+    readRomX(addr: number): number {
+        return this.ext.romData[this.ext.mbc.romBank][addr & 0x3FFF];
+    }
 
-        // Echo RAM
-        if (addr >= 0xE000 && addr <= 0xFDFF) {
-            addr -= 8192;
-        }
+    readVram(addr: number): number {
+        return this.gb.gpu.read(addr);
+    }
 
-        // Write to Internal RAM 
-        if (addr >= 0xC000 && addr <= 0xCFFF) {
-            return this.workRamBanks[0][addr - 0xC000];
-        } else if (addr >= 0xD000 && addr <= 0xDFFF) {
-            return this.workRamBank[addr - 0xD000];
+    readCartRam(addr: number): number {
+        return this.ext.mbc.read(addr);
+    }
+
+    readRam0(addr: number): number {
+        return this.workRamBanks[0][addr & 0xFFF];
+    }
+
+    readRamX(addr: number): number {
+        return this.workRamBank[addr & 0xFFF];
+    }
+
+    readHigh(addr: number): number {
+        if (addr >= 0xF000 && addr <= 0xFDFF) {
+            return this.readRamX(addr);
         }
 
         // Read from OAM
@@ -133,7 +152,7 @@ class MemoryBus {
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
                         const bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
-                        const bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0) << 7;
+                        const bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0);
                         return bit7 | bit0;
                     }
                     break;
@@ -167,35 +186,60 @@ class MemoryBus {
         return 0xFF;
     }
 
-
-    write(addr: number, value: number): void {
-        // ROM Write (MBC Control)
-        if (addr < 0x8000) {
-            this.ext.mbc.write(addr, value);
-            return;
+    read(addr: number): number {
+        const cheat = this.cheats[addr];
+        if (cheat !== null) {
+            return cheat;
         }
 
-        // Write to VRAM
-        else if (addr >= VRAM_BEGIN && addr <= VRAM_END) {
-            // writeDebug(`[PC 0x${this.cpu.pc.toString(16)}] Wrote to tileset ram 0x${value.toString(16)} @ 0x${addr.toString(16)}`);
-            this.gb.gpu.write(addr, value);
-        }
+        return this.readFunc[addr >> 12](addr);
+    }
 
-        // Write from External RAM through External Bus
-        else if (addr >= 0xA000 && addr <= 0xBFFF) {
-            this.ext.mbc.write(addr, value);
-        }
 
-        // Echo RAM
-        if (addr >= 0xE000 && addr <= 0xFDFF) {
-            addr -= 8192;
-        }
 
-        // Write to Internal RAM 
-        if (addr >= 0xC000 && addr <= 0xCFFF) {
-            this.workRamBanks[0][addr - 0xC000] = value;
-        } else if (addr >= 0xD000 && addr <= 0xDFFF) {
-            this.workRamBank[addr - 0xD000] = value;
+    writeFunc = [
+        this.writeMbc.bind(this), // ROM0 - 0###
+        this.writeMbc.bind(this), // ROM0 - 1###
+        this.writeMbc.bind(this), // ROM0 - 2###
+        this.writeMbc.bind(this), // ROM0 - 3###
+        this.writeMbc.bind(this), // ROMX - 4###
+        this.writeMbc.bind(this), // ROMX - 5###
+        this.writeMbc.bind(this), // ROMX - 6###
+        this.writeMbc.bind(this), // ROMX - 7###
+        this.writeVram.bind(this), // VRAM - 8###
+        this.writeVram.bind(this), // VRAM - 9###
+        this.writeCartRam.bind(this), // Cart RAM - A###
+        this.writeCartRam.bind(this), // Cart RAM - B###
+        this.writeRam0.bind(this), // RAM0 - C###
+        this.writeRamX.bind(this), // RAMX - D###
+        this.writeRam0.bind(this), // Echo RAM0 - E###
+        this.writeHigh.bind(this), // High Area - F###
+    ];
+
+
+    writeMbc(addr: number, value: number): void {
+        this.ext.mbc.write(addr, value);
+    }
+
+    writeVram(addr: number, value: number): void {
+        this.gb.gpu.write(addr, value);
+    }
+
+    writeCartRam(addr: number, value: number): void {
+        this.ext.mbc.write(addr, value);
+    }
+
+    writeRam0(addr: number, value: number): void {
+        this.workRamBanks[0][addr & 0xFFF] = value;
+    }
+
+    writeRamX(addr: number, value: number): void {
+        this.workRamBank[addr & 0xFFF] = value;
+    }
+
+    writeHigh(addr: number, value: number): void {
+        if (addr >= 0xF000 && addr <= 0xFDFF) {
+            this.writeRamX(addr, value);
         }
 
         // Write to High RAM
@@ -260,6 +304,10 @@ class MemoryBus {
                 this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
             }
         }
+    }
+
+    write(addr: number, value: number): void {
+        this.writeFunc[addr >> 12](addr, value);
     }
 
     readMem16(addr: number) {
