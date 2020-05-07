@@ -245,14 +245,14 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
                 if (s.noise.counterStep) {
                     // 7 bit noise
                     this.noise15Gain.gain.value = 0;
-                    this.noise7Gain.gain.value = s.noise.volume / 15 / 4;
+                    this.noise7Gain.gain.value = s.noise.volume / 15 / 2.5;
 
                     if (isFinite(rate))
                         this.noise7Buf.playbackRate.value = rate / (48000 / 16);
                 } else {
                     // 15 bit noise
                     this.noise7Gain.gain.value = 0;
-                    this.noise15Gain.gain.value = s.noise.volume / 15 / 4;
+                    this.noise15Gain.gain.value = s.noise.volume / 15 / 2.5;
 
                     if (isFinite(rate))
                         this.noise15Buf.playbackRate.value = rate / (48000 / 16);
@@ -272,7 +272,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         let period = 0;
 
         function lfsr(p: number) {
-            let bit = (seed >> 1) ^ (seed >> 2);
+            let bit = (seed) ^ (seed >> 1);
             bit &= 1;
             if (period > p) {
                 seed = (seed >> 1) | (bit << 14);
@@ -286,7 +286,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             }
             period++;
 
-            return seed & 1;
+            return (seed & 1) ^ 1;
         }
 
         const LFSR_MUL = 16;
@@ -294,14 +294,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
         let waveTable = new Array(32768 * LFSR_MUL).fill(0);
 
         waveTable = waveTable.map((v, i) => {
-            const bit = lfsr(LFSR_MUL);
-            let out;
-            if (bit == 1) {
-                out = 1;
-            } else {
-                out = -1;
-            }
-            return out;
+            return lfsr(LFSR_MUL);
         });
 
         // waveTable = waveTable.map((v, i) => {
