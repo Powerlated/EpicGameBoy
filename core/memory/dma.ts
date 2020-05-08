@@ -51,8 +51,8 @@ export class DMAController implements HWIO {
 
     continueHdma() {
         if (this.hDmaRemaining > 0 && this.hDmaPaused === false) {
-            this.newDma(16);
-            this.hDmaRemaining -= 16;
+            this.newDma(1);
+            this.hDmaRemaining--;
             // this.gb.cpuPausedTCyclesRemaining += 8;
         } else {
             this.hDmaRemaining = 0;
@@ -75,13 +75,17 @@ export class DMAController implements HWIO {
     }
 
     newDma(length: number) {
-        this.gb.tick(8 * (this.newDmaLength >> 4));
         for (let i = 0; i < length; i++) {
-            this.gb.gpu.write(this.hDmaDestAt, this.gb.bus.read(this.hDmaSourceAt));
-            this.hDmaSourceAt++;
-            this.hDmaSourceAt &= 0xFFFF;
-            this.hDmaDestAt++;
-            this.hDmaDestAt &= 0xFFFF;
+            this.gb.tick(8);
+
+            for (let j = 0; j < 16; j++) {
+                this.gb.gpu.write(this.hDmaDestAt, this.gb.bus.read(this.hDmaSourceAt));
+
+                this.hDmaSourceAt++;
+                this.hDmaSourceAt &= 0xFFFF;
+                this.hDmaDestAt++;
+                this.hDmaDestAt &= 0xFFFF;
+            }
         }
     }
 
@@ -105,7 +109,7 @@ export class DMAController implements HWIO {
                         return 0xFF;
                     }
                     else {
-                        return (this.hDmaRemaining >> 4) - 1;
+                        return this.hDmaRemaining - 1;
                     }
                 }
                 break;
@@ -141,7 +145,7 @@ export class DMAController implements HWIO {
                 break;
             case 0xFF55:
                 if (this.gb.cgb) {
-                    this.newDmaLength = ((value & 127) + 1) << 4;
+                    this.newDmaLength = (value & 127) + 1;
                     const newDmaHblank = ((value >> 7) & 1) !== 0;
                     if (newDmaHblank) {
                         // console.log(`Init HDMA ${this.newDmaLength} bytes: ${hex(this.newDmaSource, 4)} => ${hex(this.newDmaDest, 4)}`);
