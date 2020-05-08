@@ -71,7 +71,7 @@ class MemoryBus {
         }
     }
 
-    readFunc = [
+    private readFunc = [
         this.readRom0br.bind(this), // ROM0 - 0###
         this.readRom0.bind(this), // ROM0 - 1###
         this.readRom0.bind(this), // ROM0 - 2###
@@ -90,7 +90,7 @@ class MemoryBus {
         this.readHigh.bind(this), // High Area - F###
     ];
 
-    readRom0br(addr: number): number {
+    private readRom0br(addr: number): number {
         if (this.bootromEnabled === true && addr < 0x100) {
             if (addr >= 0x0000 && addr < 0x100) {
                 return this.bootrom[addr];
@@ -102,31 +102,31 @@ class MemoryBus {
         return this.ext.romData[0][addr];
     }
 
-    readRom0(addr: number): number {
+    private readRom0(addr: number): number {
         return this.ext.romData[0][addr];
     }
 
-    readRomX(addr: number): number {
+    private readRomX(addr: number): number {
         return this.ext.romData[this.ext.mbc.romBank][addr & 0x3FFF];
     }
 
-    readVram(addr: number): number {
+    private readVram(addr: number): number {
         return this.gb.gpu.read(addr);
     }
 
-    readCartRam(addr: number): number {
+    private readCartRam(addr: number): number {
         return this.ext.mbc.read(addr);
     }
 
-    readRam0(addr: number): number {
+    private readRam0(addr: number): number {
         return this.workRamBanks[0][addr & 0xFFF];
     }
 
-    readRamX(addr: number): number {
+    private readRamX(addr: number): number {
         return this.workRamBank[addr & 0xFFF];
     }
 
-    readHigh(addr: number): number {
+    private readHigh(addr: number): number {
         if (addr >= 0xF000 && addr <= 0xFDFF) {
             return this.readRamX(addr);
         }
@@ -195,9 +195,7 @@ class MemoryBus {
         return this.readFunc[addr >> 12](addr);
     }
 
-
-
-    writeFunc = [
+    private writeFunc = [
         this.writeMbc.bind(this), // ROM0 - 0###
         this.writeMbc.bind(this), // ROM0 - 1###
         this.writeMbc.bind(this), // ROM0 - 2###
@@ -217,27 +215,27 @@ class MemoryBus {
     ];
 
 
-    writeMbc(addr: number, value: number): void {
+    private writeMbc(addr: number, value: number): void {
         this.ext.mbc.write(addr, value);
     }
 
-    writeVram(addr: number, value: number): void {
+    private writeVram(addr: number, value: number): void {
         this.gb.gpu.write(addr, value);
     }
 
-    writeCartRam(addr: number, value: number): void {
+    private writeCartRam(addr: number, value: number): void {
         this.ext.mbc.write(addr, value);
     }
 
-    writeRam0(addr: number, value: number): void {
+    private writeRam0(addr: number, value: number): void {
         this.workRamBanks[0][addr & 0xFFF] = value;
     }
 
-    writeRamX(addr: number, value: number): void {
+    private writeRamX(addr: number, value: number): void {
         this.workRamBank[addr & 0xFFF] = value;
     }
 
-    writeHigh(addr: number, value: number): void {
+    private writeHigh(addr: number, value: number): void {
         if (addr >= 0xF000 && addr <= 0xFDFF) {
             this.writeRamX(addr, value);
         }
