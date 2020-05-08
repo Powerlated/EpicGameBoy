@@ -619,13 +619,13 @@ class GPU implements HWIO {
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === LCDMode.VRAM) return 0xFF;
-        return this.vram[index - 0x8000];
+        return this.vram[index & 0x7FFF];
     }
 
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === LCDMode.VRAM) return;
-        let adjIndex = index - 0x8000;
+        let adjIndex = index & 0x7FFF;
 
         if (this.vram[adjIndex] !== value) {
             this.vram[adjIndex] = value;
