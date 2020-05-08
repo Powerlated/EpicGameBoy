@@ -25,8 +25,8 @@ export class DMAController implements HWIO {
 
     newDmaLength = 0;
     hDmaRemaining = 0;
-    cgbDmaSourceAt = 0;
-    cgbDmaDestAt = 0;
+    hDmaSourceAt = 0;
+    hDmaDestAt = 0;
     hDmaCompleted = false;
     hDmaPaused = false;
 
@@ -53,6 +53,7 @@ export class DMAController implements HWIO {
         if (this.hDmaRemaining > 0 && this.hDmaPaused === false) {
             this.newDma(16);
             this.hDmaRemaining -= 16;
+            // this.gb.cpuPausedTCyclesRemaining += 8;
         } else {
             this.hDmaRemaining = 0;
             this.hDmaCompleted = true;
@@ -66,21 +67,21 @@ export class DMAController implements HWIO {
         this.newDmaDestHigh = 0;
         this.newDmaLength = 0;
         this.hDmaRemaining = 0;
-        this.cgbDmaSourceAt = 0;
-        this.cgbDmaDestAt = 0;
+        this.hDmaSourceAt = 0;
+        this.hDmaDestAt = 0;
         this.hDmaCompleted = false;
         this.hDmaPaused = false;
         this.gDmaCompleted = false;
     }
 
-    newDma(dmaLength: number) {
+    newDma(length: number) {
         this.gb.tick(8 * (this.newDmaLength >> 4));
-        for (let i = 0; i < dmaLength ; i++) {
-            this.gb.gpu.write(this.cgbDmaDestAt, this.gb.bus.read(this.cgbDmaSourceAt));
-            this.cgbDmaSourceAt++;
-            this.cgbDmaSourceAt &= 0xFFFF;
-            this.cgbDmaDestAt++;
-            this.cgbDmaDestAt  &= 0xFFFF
+        for (let i = 0; i < length; i++) {
+            this.gb.gpu.write(this.hDmaDestAt, this.gb.bus.read(this.hDmaSourceAt));
+            this.hDmaSourceAt++;
+            this.hDmaSourceAt &= 0xFFFF;
+            this.hDmaDestAt++;
+            this.hDmaDestAt &= 0xFFFF;
         }
     }
 
@@ -115,16 +116,28 @@ export class DMAController implements HWIO {
     writeHwio(addr: number, value: number) {
         switch (addr) {
             case 0xFF51:
-                if (this.gb.cgb) this.newDmaSourceHigh = value;
+                if (this.gb.cgb) {
+                    this.newDmaSourceHigh = value;
+                    this.hDmaSourceAt = this.newDmaSource;
+                }
                 break;
             case 0xFF52:
-                if (this.gb.cgb) this.newDmaSourceLow = value & 0xF0;
+                if (this.gb.cgb) {
+                    this.newDmaSourceLow = value & 0xF0;
+                    this.hDmaSourceAt = this.newDmaSource;
+                }
                 break;
             case 0xFF53:
-                if (this.gb.cgb) this.newDmaDestHigh = value & 0x1F;
+                if (this.gb.cgb) {
+                    this.newDmaDestHigh = value & 0x1F;
+                    this.hDmaDestAt = this.newDmaDest;
+                }
                 break;
             case 0xFF54:
-                if (this.gb.cgb) this.newDmaDestLow = value & 0xF0;
+                if (this.gb.cgb) {
+                    this.newDmaDestLow = value & 0xF0;
+                    this.hDmaDestAt = this.newDmaDest;
+                }
                 break;
             case 0xFF55:
                 if (this.gb.cgb) {
@@ -133,8 +146,6 @@ export class DMAController implements HWIO {
                     if (newDmaHblank) {
                         // console.log(`Init HDMA ${this.newDmaLength} bytes: ${hex(this.newDmaSource, 4)} => ${hex(this.newDmaDest, 4)}`);
                         this.hDmaRemaining = this.newDmaLength;
-                        this.cgbDmaSourceAt = this.newDmaSource;
-                        this.cgbDmaDestAt = this.newDmaDest;
                         this.hDmaCompleted = false;
                         this.hDmaPaused = false;
                         this.gDmaCompleted = false;
