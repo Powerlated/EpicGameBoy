@@ -50,10 +50,8 @@ export default class GameBoy {
     dma = new DMAController(this);
 
     cgb = false;
-    doubleSpeed = false;
+    doubleSpeedShift = 1;
     prepareSpeedSwitch = false;
-
-    cpuPausedTCyclesRemaining = 0;
     oamDmaCyclesRemaining = 0;
 
     soundChip = new SoundChip(this);
@@ -69,16 +67,7 @@ export default class GameBoy {
     millisUntilMuteAudio = 0;
 
     step(): number {
-        if (this.cpuPausedTCyclesRemaining !== 0) {
-            const remaining = this.cpuPausedTCyclesRemaining;
-            this.cpuPausedTCyclesRemaining = 0;
-
-            this.tick(remaining - 4);
-            this.tick(4);
-            return remaining;
-        } else {
-            return this.cpu.execute();
-        }
+        return this.cpu.execute();
     }
 
     until = 0;
@@ -91,11 +80,10 @@ export default class GameBoy {
             this.oamDmaCyclesRemaining -= cyclesRan;
         }
 
-        if (this.doubleSpeed === true) stepCycles >>= 1;
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.tick(cyclesRan);
         // The APU is ticked by the timer so it's the timer class
-        this.gpu.tick(stepCycles);
+        this.gpu.tick(stepCycles >>= this.doubleSpeedShift);
     }
 
     speedStop() {
@@ -124,7 +112,7 @@ export default class GameBoy {
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
         let max = 4213.440 * deltaMs * this.speedMul;
 
-        if (this.doubleSpeed === true) max <<= 1;
+        if (this.doubleSpeedShift) max <<= 1;
 
         let i = 0;
         while (i < max) {
@@ -141,7 +129,7 @@ export default class GameBoy {
     }
 
     frame() {
-        const cyclesToRun = this.doubleSpeed ? 70224 * 2 : 70224;
+        const cyclesToRun = this.doubleSpeedShift ? 70224 * 2 : 70224;
         for (let i = 0; i < cyclesToRun;) {
             i += this.step();
         }
@@ -156,10 +144,9 @@ export default class GameBoy {
         this.soundChip.reset();
         this.dma.reset();
 
-        this.doubleSpeed = false;
+        this.doubleSpeedShift = 0;
         this.prepareSpeedSwitch = false;
 
-        this.cpuPausedTCyclesRemaining = 0;
         this.oamDmaCyclesRemaining = 0;
 
         this.until = 0;

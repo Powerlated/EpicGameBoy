@@ -113,7 +113,11 @@ UNPREFIXED_EXECUTORS[0xC4] = CALL; // CALL NZ, N16
 /** Interrupts */
 export function STOP(this: number, cpu: CPU): number {
     if (cpu.gb.prepareSpeedSwitch) {
-        cpu.gb.doubleSpeed = !cpu.gb.doubleSpeed;
+        if (cpu.gb.doubleSpeedShift) {
+            cpu.gb.doubleSpeedShift = 0;
+        } else {
+            cpu.gb.doubleSpeedShift = 1;
+        }
     }
     return 2;
 };

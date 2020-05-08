@@ -347,7 +347,7 @@ export default class CPU {
 
             // this.opcodesRan.add(pcTriplet[0]);
         } else {
-            if (this.gb.doubleSpeed === true) {
+            if (this.gb.doubleSpeedShift === 1) {
                 this.tick(8);
             } else {
                 this.tick(4);

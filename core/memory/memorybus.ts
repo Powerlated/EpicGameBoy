@@ -151,7 +151,7 @@ class MemoryBus {
             switch (addr) {
                 case 0xFF4D: // KEY1
                     if (this.gb.cgb) {
-                        const bit7 = (this.gb.doubleSpeed ? 1 : 0) << 7;
+                        const bit7 = (this.gb.doubleSpeedShift ? 1 : 0) << 7;
                         const bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0);
                         return bit7 | bit0;
                     }

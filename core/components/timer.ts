@@ -99,7 +99,7 @@ export default class Timer implements HWIO {
             this.previousTimerCondition = timerCondition;
         }
 
-        const mask = this.gb.doubleSpeed ? BIT_13 : BIT_12;
+        const mask = this.gb.doubleSpeedShift ? BIT_13 : BIT_12;
         const frameSequencerCondition = (this.internal & mask) !== 0;
         if (frameSequencerCondition === false && this.previousFrameSequencerCondition === true) {
             this.gb.soundChip.advanceFrameSequencer();

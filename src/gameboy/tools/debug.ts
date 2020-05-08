@@ -28,7 +28,7 @@ export function startDebugging() {
         const gpu = gb.gpu;
 
         let pct = (cpu.cycles - lastCyclesCount) / 4213520.36499 * 100;
-        if (gb.doubleSpeed) pct /= 2;
+        if (gb.doubleSpeedShift) pct /= 2;
 
         const speed = Math.round(pct);
         lastFrameCount = gpu.totalFrameCount;
