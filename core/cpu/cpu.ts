@@ -206,11 +206,6 @@ export default class CPU {
     minDebug = false;
     jumpLog: string[] = [];
 
-    tick(cycles: number) {
-        this.cycles += cycles;
-        this.pendingCycles += cycles;
-        this.gb.tick(cycles);
-    }
 
     reset() {
         this.reg = new Registers(this);
@@ -218,16 +213,30 @@ export default class CPU {
         this.time = 0;
         this.pc = 0;
         this.cycles = 0;
+        this.pendingCycles = 0;
         this.haltBug = false;
+        this.haltBugQueued = false;
         this.halted = false;
         this.scheduleEnableInterruptsForNextTick = false;
         this.invalidOpcodeExecuted = false;
     }
 
+
+    tick(cycles: number) {
+        this.cycles += cycles;
+        this.gb.tick(cycles);
+    }
+
+    tick_addPending(cycles: number) {
+        this.cycles += cycles;
+        this.pendingCycles += cycles;
+    }
     // #endregion
 
     read_tick(addr: number): number {
-        this.tick(4);
+        this.cycles += 4;
+        this.gb.tick(4 + this.pendingCycles);
+        this.pendingCycles = 0;
 
         // The CPU can only access high RAM during OAM DMA
         if (this.gb.oamDmaCyclesRemaining > 0 && this.gb.oamDmaCyclesRemaining <= 640) {
@@ -250,7 +259,10 @@ export default class CPU {
     }
 
     write_tick(addr: number, value: number): void {
-        this.tick(4);
+        this.cycles += 4;
+        this.gb.tick(4 + this.pendingCycles);
+        this.pendingCycles = 0;
+
         if (this.gb.oamDmaCyclesRemaining > 0) {
             if (addr >= 0xFF80 && addr <= 0xFF7F) {
                 this.gb.bus.write(addr, value);
@@ -267,8 +279,7 @@ export default class CPU {
     }
 
     execute(): number {
-        this.pendingCycles = 0;
-
+        const c = this.cycles;
         // // Run the debug information collector
         // if (this.debugging || this.logging)
         //     this.stepDebug();
@@ -347,11 +358,7 @@ export default class CPU {
 
             // this.opcodesRan.add(pcTriplet[0]);
         } else {
-            if (this.gb.doubleSpeedShift === 1) {
-                this.tick(8);
-            } else {
-                this.tick(4);
-            }
+            this.tick(4 << this.gb.doubleSpeedShift);
         }
 
 
@@ -408,7 +415,7 @@ export default class CPU {
             }
         }
 
-        return this.pendingCycles;
+        return this.cycles - c;
     }
 
     addToLog(s: string) {
