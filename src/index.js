@@ -206,6 +206,18 @@ $('#gameromInput').addEventListener('change', function () {
     reader.readAsArrayBuffer(this.files[0]);
 }, false);
 
+$('#movieInput').addEventListener('change', function () {
+    var reader = new FileReader();
+    reader.onload = function () {
+        var arrayBuffer = this.result;
+        var array = new Uint8Array(arrayBuffer);
+
+        gb.vbmData = ParseVBM(array);
+    };
+    reader.readAsArrayBuffer(this.files[0]);
+}, false);
+
+
 $('#saveInput').addEventListener('change', function () {
     var reader = new FileReader();
     reader.onload = function () {

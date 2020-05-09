@@ -18,14 +18,14 @@ class LCDCRegister {
 
     getNumerical(): number {
         let flagN = 0;
-        if (this.lcdDisplayEnable7) flagN = flagN | BIT_7;
-        if (this.windowTilemapSelect___6) flagN = flagN | BIT_6;
-        if (this.enableWindow____5) flagN = flagN | BIT_5;
-        if (this.bgWindowTiledataSelect__4) flagN = flagN | BIT_4;
-        if (this.bgTilemapSelect_3) flagN = flagN | BIT_3;
-        if (this.spriteSize______2) flagN = flagN | BIT_2;
-        if (this.spriteDisplay___1) flagN = flagN | BIT_1;
-        if (this.bgWindowEnable0) flagN = flagN | BIT_0;
+        if (this.lcdDisplayEnable7) flagN |= BIT_7;
+        if (this.windowTilemapSelect___6) flagN |= BIT_6;
+        if (this.enableWindow____5) flagN |= BIT_5;
+        if (this.bgWindowTiledataSelect__4) flagN |= BIT_4;
+        if (this.bgTilemapSelect_3) flagN |= BIT_3;
+        if (this.spriteSize______2) flagN |= BIT_2;
+        if (this.spriteDisplay___1) flagN |= BIT_1;
+        if (this.bgWindowEnable0) flagN |= BIT_0;
         return flagN;
     }
 
@@ -57,13 +57,13 @@ class LCDStatusRegister {
 
     getNumerical(): number {
         let flagN = 0;
-        if (this.lyCoincidenceInterrupt6) flagN = flagN | BIT_6;
-        if (this.mode2OamInterrupt_____5) flagN = flagN | BIT_5;
-        if (this.mode1VblankInterrupt__4) flagN = flagN | BIT_4;
-        if (this.mode0HblankInterrupt__3) flagN = flagN | BIT_3;
-        if (this.coincidenceFlag_______2) flagN = flagN | BIT_2;
+        if (this.lyCoincidenceInterrupt6) flagN |= BIT_6;
+        if (this.mode2OamInterrupt_____5) flagN |= BIT_5;
+        if (this.mode1VblankInterrupt__4) flagN |= BIT_4;
+        if (this.mode0HblankInterrupt__3) flagN |= BIT_3;
+        if (this.coincidenceFlag_______2) flagN |= BIT_2;
 
-        flagN = flagN | (this.mode & 0b11);
+        flagN |= (this.mode & 0b11);
         return flagN;
     }
 
@@ -476,6 +476,8 @@ class GPU implements HWIO {
 
                             this.lcdStatus.mode = LCDMode.OAM;
                             this.updateSTAT();
+
+                            this.gb.frameDone();
 
                             this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0 && this.vp !== null;
                         }

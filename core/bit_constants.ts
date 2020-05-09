@@ -15,3 +15,7 @@ export const BIT_13 = 1 << 0xD;
 export const BIT_14 = 1 << 0xE;
 export const BIT_15 = 1 << 0xF;
 export const BIT_16 = 1 << 0x10;
+
+export function bit(i: number, bit: number) {
+    return (i & (1 << bit)) !== 0;
+}

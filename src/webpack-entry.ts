@@ -6,7 +6,7 @@ import WebAudioPlugin from './gameboy/webaudioplugin';
 import CanvasVideoPlugin from './gameboy/canvasvideoplugin';
 import { get, set } from 'idb-keyval';
 import { saveSram, loadSram } from './gameboy/localstorage';
-
+import { ParseVBM } from '../core/movies/vbm';
 
 declare global {
     interface Window {
@@ -17,6 +17,7 @@ declare global {
         CanvasVideoPlugin: typeof CanvasVideoPlugin,
         GameBoy: typeof GameBoy.GameBoy,
         Disassembler: typeof GameBoy.Disassembler;
+        ParseVBM: typeof ParseVBM;
     }
 }
 
@@ -28,3 +29,4 @@ window.CanvasVideoPlugin = CanvasVideoPlugin;
 
 window.GameBoy = GameBoy.GameBoy;
 window.Disassembler = GameBoy.Disassembler;
+window.ParseVBM = ParseVBM;
