@@ -36,7 +36,7 @@ export default class Timer implements HWIO {
             case 0xFF06: // Timer modulo
                 return this.modulo;
             case 0xFF07: // Timer control
-                let n = 0;
+                let n = 0b11111000;
 
                 n |= (this.speed & 0b11); // Bits 0-1
                 if (this.running) n |= 0b00000100; // Bit 2
@@ -99,7 +99,7 @@ export default class Timer implements HWIO {
             this.previousTimerCondition = timerCondition;
         }
 
-        const mask = this.gb.doubleSpeedShift ? BIT_13 : BIT_12;
+        const mask = BIT_12 << this.gb.doubleSpeedShift;
         const frameSequencerCondition = (this.internal & mask) !== 0;
         if (frameSequencerCondition === false && this.previousFrameSequencerCondition === true) {
             this.gb.soundChip.advanceFrameSequencer();

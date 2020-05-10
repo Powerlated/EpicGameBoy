@@ -38,8 +38,8 @@ export class JoypadRegister implements HWIO {
         }
     }
 
-    selectButtons = false;
-    selectDpad = false;
+    selectButtons = true;
+    selectDpad = true;
 
     private _down = false;
     private _up = false;
