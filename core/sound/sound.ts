@@ -9,10 +9,10 @@ export default class SoundChip implements HWIO {
     constructor(gb: GameBoy) {
         this.gb = gb;
     }
+    gb: GameBoy;
 
     enabled = false;
 
-    gb: GameBoy;
     ticksEnvelopePulse1 = 0;
     ticksEnvelopePulse2 = 0;
     ticksEnvelopeNoise = 0;
@@ -471,10 +471,21 @@ export default class SoundChip implements HWIO {
     reset() {
         this.enabled = false;
 
+        this.ticksEnvelopePulse1 = 0;
+        this.ticksEnvelopePulse2 = 0;
+        this.ticksEnvelopeNoise = 0;
+
+        this.clockPulse1FreqSweep = 0;
+        this.freqSweepEnabled = false;
+
+        this.frameSequencerStep = 0;
+
         this.pulse1 = new PulseChannel();
         this.pulse2 = new PulseChannel();
         this.wave = new WaveChannel();
         this.noise = new NoiseChannel();
+
+        this.soundRegisters = new Uint8Array(65536).fill(0);
 
         if (this.ap !== null) {
             this.ap.pulse1(this);
@@ -482,12 +493,6 @@ export default class SoundChip implements HWIO {
             this.ap.wave(this);
             this.ap.noise(this);
         }
-
-        this.ticksEnvelopePulse1 = 0;
-        this.ticksEnvelopePulse2 = 0;
-        this.ticksEnvelopeNoise = 0;
-
-        this.clockPulse1FreqSweep = 0;
 
         if (this.ap !== null) {
             this.ap.reset();

@@ -361,11 +361,8 @@ export default class CPU {
             this.tick(4 << this.gb.doubleSpeedShift);
         }
 
-
-        const requested = this.gb.interrupts.requested;
-        const enabled = this.gb.interrupts.enabled;
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((requested.numerical & enabled.numerical & 0x1F) !== 0) {
+        if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical & 0x1F) !== 0) {
             this.halted = false;
 
             if (this.gb.interrupts.masterEnabled === true) {
@@ -377,32 +374,47 @@ export default class CPU {
                 this.gb.interrupts.masterEnabled = false;
 
                 let vector = 0;
-                if (requested.vblank === true && enabled.vblank === true) {
-                    requested.vblank = false;
+                if (
+                    this.gb.interrupts.requested.vblank === true &&
+                    this.gb.interrupts.enabled.vblank === true
+                ) {
+                    this.gb.interrupts.requested.vblank = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
                     vector = VBLANK_VECTOR;
-                } else if (requested.lcdStat === true && enabled.lcdStat === true) {
-                    requested.lcdStat = false;
+                } else if (
+                    this.gb.interrupts.requested.lcdStat === true &&
+                    this.gb.interrupts.enabled.lcdStat === true
+                ) {
+                    this.gb.interrupts.requested.lcdStat = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
                     vector = LCD_STATUS_VECTOR;
-                } else if (requested.timer === true && enabled.timer === true) {
-                    requested.timer = false;
+                } else if (
+                    this.gb.interrupts.requested.timer === true &&
+                    this.gb.interrupts.enabled.timer === true
+                ) {
+                    this.gb.interrupts.requested.timer = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
                     vector = TIMER_OVERFLOW_VECTOR;
-                } else if (requested.serial === true && enabled.serial === true) {
-                    requested.serial = false;
+                } else if (
+                    this.gb.interrupts.requested.serial === true &&
+                    this.gb.interrupts.enabled.serial === true
+                ) {
+                    this.gb.interrupts.requested.serial = false;
                     vector = SERIAL_LINK_VECTOR;
-                } else if (requested.joypad === true && enabled.joypad === true) {
-                    requested.joypad = false;
+                } else if (
+                    this.gb.interrupts.requested.joypad === true &&
+                    this.gb.interrupts.enabled.joypad === true
+                ) {
+                    this.gb.interrupts.requested.joypad = false;
                     vector = JOYPAD_PRESS_VECTOR;
                 }
 

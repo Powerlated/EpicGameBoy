@@ -187,6 +187,8 @@ class MemoryBus {
     }
 
     read(addr: number): number {
+        addr &= 0xFFFF;
+
         const cheat = this.cheats[addr];
         if (cheat !== null) {
             return cheat;
@@ -305,6 +307,7 @@ class MemoryBus {
     }
 
     write(addr: number, value: number): void {
+        addr &= 0xFFFF;
         this.writeFunc[addr >> 12](addr, value);
     }
 
