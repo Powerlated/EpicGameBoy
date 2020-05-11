@@ -163,7 +163,6 @@ export default class CPU {
     }
 
     halted = false;
-    haltBugQueued = false;
     haltBug = false;
 
     invalidOpcodeExecuted = false;
@@ -215,7 +214,6 @@ export default class CPU {
         this.cycles = 0;
         this.pendingCycles = 0;
         this.haltBug = false;
-        this.haltBugQueued = false;
         this.halted = false;
         this.scheduleEnableInterruptsForNextTick = false;
         this.invalidOpcodeExecuted = false;
@@ -307,22 +305,18 @@ export default class CPU {
             //     }
             // }
 
+            const op = UNPREFIXED_EXECUTORS[this.read_tick(this.pc)];
 
-            if (this.haltBugQueued === true) {
-                this.haltBugQueued = false;
-
-                this.haltBug = true;
-            }
-
-            const length = UNPREFIXED_EXECUTORS[this.read_tick(this.pc)](this);
-
-            if (this.haltBug === false) {
-                this.pc += length;
-                this.pc &= 0xFFFF;
-            } else {
+            if (this.haltBug === true) {
                 this.haltBug = false;
-                console.log("PC NO INCREMENT");
+                this.pc--;
+                this.pc &= 0xFFFF;
             }
+            
+            const length = op(this);
+
+            this.pc += length;
+            this.pc &= 0xFFFF;
 
             this.totalI++;
 

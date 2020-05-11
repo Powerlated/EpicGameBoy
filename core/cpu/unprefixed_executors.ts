@@ -963,7 +963,7 @@ export function HALT(this: number, cpu: CPU): number {
             ) !== 0
         ) {
             // HALT bug
-            cpu.haltBugQueued = true;
+            cpu.haltBug = true;
         } else (
             cpu.gb.interrupts.enabled.numerical &
             cpu.gb.interrupts.requested.numerical &

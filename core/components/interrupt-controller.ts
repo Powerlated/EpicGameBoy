@@ -9,6 +9,12 @@ import { BIT_0, BIT_1, BIT_2, BIT_3, BIT_4 } from "../bit_constants";
  * numerical values for performance reasons.
  */
 class InterruptFlag {
+    ie = false;
+
+    constructor(ie: boolean) {
+        this.ie = ie;
+    }
+
     private _vblank = false;
     private _lcdStat = false;
     private _timer = false;
@@ -23,33 +29,38 @@ class InterruptFlag {
 
     set vblank(i: boolean) {
         this._vblank = i;
-        this.numerical &= 0b11111110;
         if (i === true)
-            this.numerical |= 0b11100001;
-    };
+            this.numerical |= BIT_0;
+        else
+            this.numerical &= ~BIT_0;
+    }
     set lcdStat(i: boolean) {
         this._lcdStat = i;
-        this.numerical &= 0b11111101;
         if (i === true)
-            this.numerical |= 0b11100010;
+            this.numerical |= BIT_1;
+        else
+            this.numerical &= ~BIT_1;
     };
     set timer(i: boolean) {
         this._timer = i;
-        this.numerical &= 0b11111011;
         if (i === true)
-            this.numerical |= 0b11100100;
+            this.numerical |= BIT_2;
+        else
+            this.numerical &= ~BIT_2;
     };
     set serial(i: boolean) {
         this._serial = i;
-        this.numerical &= 0b11110111;
         if (i === true)
-            this.numerical |= 0b11101000;
+            this.numerical |= BIT_3;
+        else
+            this.numerical &= ~BIT_3;
     };
     set joypad(i: boolean) {
         this._joypad = i;
-        this.numerical &= 0b11101111;
         if (i === true)
-            this.numerical |= 0b11110000;
+            this.numerical |= BIT_4;
+        else
+            this.numerical &= ~BIT_4;
     };
 
     numerical = 0;
@@ -67,7 +78,10 @@ class InterruptFlag {
 
         // Just store this flag and return it later, it's faster
         this.numerical = i;
-        return;
+
+        // Interrupt Flag is external to the SM83 core, so it only has 5 lines
+        if (!this.ie)
+            this.numerical |= 0b11100000;
     }
 }
 
@@ -87,17 +101,15 @@ export default class InterruptController {
 
     masterEnabled = true; // IME
 
-    enabled = new InterruptFlag(); // 0xFFFF
-    requested = new InterruptFlag(); // 0xFF0F
+    enabled = new InterruptFlag(true); // 0xFFFF
+    requested = new InterruptFlag(false); // 0xFF0F
 
     // Note: When an interrupt is *handled*, the master interrupt flag is disabled
 
     reset() {
         this.masterEnabled = true;
 
-        this.enabled = new InterruptFlag(); // 0xFFFF
-        this.requested = new InterruptFlag(); // 0xFF0F
-
-        this.requested.setNumerical(0xE1);
+        this.enabled = new InterruptFlag(true); // 0xFFFF
+        this.requested = new InterruptFlag(false); // 0xFF0F
     }
 }
