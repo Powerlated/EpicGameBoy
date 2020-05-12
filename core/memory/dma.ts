@@ -32,18 +32,39 @@ export class DMAController implements HWIO {
 
     gDmaCompleted = false;
 
-
+    oamDmaRunning = false;
+    oamDmaCyclesRemaining = 0;
+    oamDmaStart = 0;
+    oamDmaStartAddr = 0;
 
     // Source must be < 0xA000
-    oamDma(startAddr: number) {
-        this.gb.oamDmaCyclesRemaining = 648;
+    setupOamDma(startAddr: number) {
+        this.oamDmaStart = 8;
+        this.oamDmaStartAddr = startAddr;
+        // console.log("START OAM DMA")
         // writeDebug(`OAM DMA @ ${hex(startAddr, 4)}`);
-        for (let i = 0; i < 0xA0; i++) {
-            // If $FE00, read from external bus 
-            if (startAddr === 0xFE00) {
-                this.gb.gpu.writeOam(0xFE00 | i, this.gb.bus.ext.mbc.read(startAddr + i));
-            } else { // General bus read
-                this.gb.gpu.writeOam(0xFE00 | i, this.gb.bus.read(startAddr + i));
+    }
+
+    tick(cycles: number) {
+        if (this.oamDmaCyclesRemaining > 0) {
+            this.oamDmaCyclesRemaining -= cycles;
+
+            if (this.oamDmaCyclesRemaining <= 0) {
+                this.oamDmaRunning = false;
+            }
+        }
+
+        if (this.oamDmaStart > 0) {
+            this.oamDmaStart -= cycles;
+
+            if (this.oamDmaStart <= 0) {
+                this.oamDmaCyclesRemaining = 640;
+                this.oamDmaRunning = true;
+
+                for (let i = 0; i < 0xA0; i++) {
+                    // Feed it directly into OAM, bypassing the write function
+                    this.gb.gpu.oam[i] = this.gb.bus.read(this.oamDmaStartAddr + i);
+                }
             }
         }
     }
@@ -72,6 +93,10 @@ export class DMAController implements HWIO {
         this.hDmaCompleted = false;
         this.hDmaPaused = false;
         this.gDmaCompleted = false;
+
+        this.oamDmaRunning = false;
+        this.oamDmaCyclesRemaining = 0;
+        this.oamDmaStart = 0;
     }
 
     newDma(length: number) {

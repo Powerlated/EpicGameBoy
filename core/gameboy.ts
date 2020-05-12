@@ -54,7 +54,6 @@ export default class GameBoy {
     cgb = false;
     doubleSpeedShift = 1;
     prepareSpeedSwitch = false;
-    oamDmaCyclesRemaining = 0;
 
     soundChip = new SoundChip(this);
 
@@ -76,14 +75,11 @@ export default class GameBoy {
     pending = 0;
 
     tick(cyclesRan: number) {
-        if (this.oamDmaCyclesRemaining > 0) {
-            this.oamDmaCyclesRemaining -= cyclesRan;
-        }
-
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.tick(cyclesRan);
         // The APU is ticked by the timer so it's the timer class
-        this.gpu.tick(cyclesRan >>= this.doubleSpeedShift);
+        this.gpu.tick(cyclesRan >> this.doubleSpeedShift);
+        this.dma.tick(cyclesRan << this.doubleSpeedShift);
     }
 
     speedStop() {
@@ -116,6 +112,10 @@ export default class GameBoy {
 
         let i = 0;
         while (i < max) {
+            if (this.cpu.breakpoints[this.cpu.pc] === true) {
+                this.speedStop();
+                return;
+            }
             i += this.step();
         }
 
@@ -146,8 +146,6 @@ export default class GameBoy {
 
         this.doubleSpeedShift = 0;
         this.prepareSpeedSwitch = false;
-
-        this.oamDmaCyclesRemaining = 0;
 
         this.until = 0;
         this.pending = 0;
@@ -207,8 +205,6 @@ export default class GameBoy {
 
         // Make a write to disable the bootrom
         this.bus.write(0xFF50, 1);
-
-        this.timer.internal = 0xABC8;
     }
 
     dmgBootrom() {
@@ -237,7 +233,6 @@ export default class GameBoy {
         const base = 0x104;
         for (let i = 0; i < 48; i++) {
             let byte = this.bus.ext.romData[0][base + i];
-            console.log(hex(byte, 2));
             logoData[i] = byte;
         }
 
@@ -279,6 +274,11 @@ export default class GameBoy {
 
         // Tile for copyright symbol
         this.bus.write(0x9910, 0x19);
+
+        // Turn on the LCD, enable Background, use Tileset 0x8000, 
+        this.bus.write(0xFF40, 0x91);
+
+        this.timer.internal = 0xABC8;
     }
 }
 

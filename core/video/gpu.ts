@@ -219,7 +219,7 @@ class GPU implements HWIO {
     vram0 = new Uint8Array(0x2000);
     vram1 = new Uint8Array(0x2000);
 
-    private oam = new Uint8Array(160);
+    oam = new Uint8Array(160);
     vram = this.vram0;
 
     totalFrameCount = 0;
@@ -488,7 +488,7 @@ class GPU implements HWIO {
                             this.lineClock -= 76;
 
                             this.lcdStatus.mode = LCDMode.VRAM;
-                            console.log("Exit Glitched OAM")
+                            // console.log("Exit Glitched OAM");
                         }
                     }
                     break;
@@ -610,7 +610,14 @@ class GPU implements HWIO {
     writeOam(index: number, value: number) {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK || this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK) {
+        if (!this.gb.dma.oamDmaRunning &&
+            (
+                this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK ||
+                this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK ||
+                this.gb.gpu.lcdStatus.mode === LCDMode.LINE153 ||
+                this.gb.gpu.lcdStatus.mode === LCDMode.GLITCHED_OAM
+            )
+        ) {
             if (this.oam[index] !== value) {
                 this.oam[index] = value;
             }
@@ -620,7 +627,15 @@ class GPU implements HWIO {
     readOam(index: number): number {
         index -= 0xFE00;
 
-        if (this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK || this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK) {
+        if (
+            !this.gb.dma.oamDmaRunning &&
+            (
+                this.gb.gpu.lcdStatus.mode === LCDMode.VBLANK ||
+                this.gb.gpu.lcdStatus.mode === LCDMode.HBLANK ||
+                this.gb.gpu.lcdStatus.mode === LCDMode.LINE153 ||
+                this.gb.gpu.lcdStatus.mode === LCDMode.GLITCHED_OAM
+            )
+        ) {
             return this.oam[index];
         } else {
             return 0xFF;
@@ -749,7 +764,7 @@ class GPU implements HWIO {
                 this.updateSTAT();
                 break;
             case 0xFF46:
-                this.gb.dma.oamDma(value << 8);
+                this.gb.dma.setupOamDma(value << 8);
                 break;
             case 0xFF47: // Palette
                 this.dmgBgPalette = value;
