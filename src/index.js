@@ -148,10 +148,10 @@ $('#big-screen').addEventListener('change', function (e) {
 }, false);
 
 $('#haltInput').addEventListener('change', function (e) {
-    cpu.setBreakpoint(parseInt(`0x${e.target.value}`));
+    gb.cpu.setBreakpoint(parseInt(`0x${e.target.value}`));
 }, false);
 $('#halt2Input').addEventListener('change', function (e) {
-    cpu.haltWhen = parseInt(`${e.target.value}`);
+    gb.cpu.haltWhen = parseInt(`${e.target.value}`);
     writeDebug(`Set halt instructions executed to ${parseInt(cpu.haltWhen).toString(10)}`);
 }, false);
 $('#enableDebugger').addEventListener('change', function (e) {
