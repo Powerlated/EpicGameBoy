@@ -765,10 +765,8 @@ UNPREFIXED_EXECUTORS[0x2F] = CPL;  // CPL
 
 export function RETI(this: number, cpu: CPU): number {
     cpu.pc = cpu.pop_tick() - 1;
-
     cpu.tick_addPending(4); // Branching takes 4 cycles
-
-    cpu.scheduleEnableInterruptsForNextTick = true;
+    cpu.gb.interrupts.masterEnabled = true;
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xD9] = RETI;  // RETI

@@ -257,8 +257,8 @@ export default class CPU {
 
     // Timing already satisfied by fetchMem8
     write16_tick(addr: number, value: number): void {
-        this.write_tick(addr, value & 0xFF);
         this.write_tick(addr + 1, value >> 8);
+        this.write_tick(addr, value & 0xFF);
     }
 
     execute(): number {
