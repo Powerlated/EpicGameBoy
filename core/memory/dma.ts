@@ -12,14 +12,14 @@ export class DMAController implements HWIO {
     newDmaSourceLow = 0;
     newDmaSourceHigh = 0;
 
-    get newDmaSource() {
+    getNewDmaSource() {
         return (this.newDmaSourceHigh << 8) | this.newDmaSourceLow;
     }
 
     newDmaDestLow = 0;
     newDmaDestHigh = 0;
 
-    get newDmaDest() {
+    getNewDmaDest() {
         return ((this.newDmaDestHigh << 8) | this.newDmaDestLow) | 0x8000;
     }
 
@@ -122,25 +122,25 @@ export class DMAController implements HWIO {
             case 0xFF51:
                 if (this.gb.cgb) {
                     this.newDmaSourceHigh = value;
-                    this.hDmaSourceAt = this.newDmaSource;
+                    this.hDmaSourceAt = this.getNewDmaSource();
                 }
                 break;
             case 0xFF52:
                 if (this.gb.cgb) {
                     this.newDmaSourceLow = value & 0xF0;
-                    this.hDmaSourceAt = this.newDmaSource;
+                    this.hDmaSourceAt = this.getNewDmaSource();
                 }
                 break;
             case 0xFF53:
                 if (this.gb.cgb) {
                     this.newDmaDestHigh = value & 0x1F;
-                    this.hDmaDestAt = this.newDmaDest;
+                    this.hDmaDestAt = this.getNewDmaDest();
                 }
                 break;
             case 0xFF54:
                 if (this.gb.cgb) {
                     this.newDmaDestLow = value & 0xF0;
-                    this.hDmaDestAt = this.newDmaDest;
+                    this.hDmaDestAt = this.getNewDmaDest();
                 }
                 break;
             case 0xFF55:
