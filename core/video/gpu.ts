@@ -207,7 +207,8 @@ export enum LCDMode {
     VBLANK = 1,
     OAM = 2,
     VRAM = 3,
-    LINE153 = 5
+    LINE153 = 5,
+    GLITCHED_OAM = 4, // Reads Hblank in STAT
 }
 
 class GPU implements HWIO {
@@ -481,10 +482,20 @@ class GPU implements HWIO {
                         }
                     }
                     break;
+                case LCDMode.GLITCHED_OAM:
+                    {
+                        if (this.lineClock >= 76) {
+                            this.lineClock -= 76;
+
+                            this.lcdStatus.mode = LCDMode.VRAM;
+                            console.log("Exit Glitched OAM")
+                        }
+                    }
+                    break;
             }
         } else {
             this.lineClock = 0;
-            this.lcdStatus.mode = 0;
+            this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
             this.lY = 0;
             this.renderingThisFrame = false;
         }
@@ -551,7 +562,7 @@ class GPU implements HWIO {
         this.scrX = 0;
 
         this.lineClock = 0;
-        this.lcdStatus.mode = 0;
+        this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
         this.lY = 0;
 
         this.windowYpos = 0;
