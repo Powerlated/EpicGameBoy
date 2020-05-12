@@ -45,7 +45,7 @@ export function RL_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
-    const carryMask = (cpu.reg.f & 0b00010000) >> 4;
+    const carryMask = cpu.reg._f.carry ? 1 : 0;
 
     const newValue = ((value << 1) | carryMask) & 0xFF;
 
@@ -64,7 +64,7 @@ export function RR_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
     const value = cpu.reg[t];
 
-    const carryMask = (cpu.reg.f & 0b00010000) << 3;
+    const carryMask = cpu.reg._f.carry ? 128 : 0;
 
     const newValue = ((value >> 1) | carryMask) & 0xFF;
 
