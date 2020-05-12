@@ -10,6 +10,8 @@ import InterruptController from './components/interrupt-controller';
 import { JoypadRegister } from './components/joypad';
 import { SerialPort } from './components/serial';
 import { R16 } from './cpu/cpu_types';
+import { hex } from '../src/gameboy/tools/util';
+import { bitSetValue, bitGet } from './bit_constants';
 
 export default class GameBoy {
     constructor(cgb: boolean) {
@@ -161,14 +163,8 @@ export default class GameBoy {
             this.cpu.reg[R16.HL] = 0x000D;
             this.cpu.reg.sp = 0xFFFE;
         } else {
-            this.cpu.reg[R16.AF] = 0x01B0;
-            this.cpu.reg[R16.BC] = 0x0013;
-            this.cpu.reg[R16.DE] = 0x00D8;
-            this.cpu.reg[R16.HL] = 0x014D;
-            this.cpu.reg.sp = 0xFFFE;
+            this.dmgBootrom();
         }
-
-
 
         this.bus.write(0xFF05, 0x00); // TIMA
         this.bus.write(0xFF06, 0x00); // TMA
@@ -213,6 +209,76 @@ export default class GameBoy {
         this.bus.write(0xFF50, 1);
 
         this.timer.internal = 0xABC8;
+    }
+
+    dmgBootrom() {
+        this.cpu.reg[R16.AF] = 0x01B0;
+        this.cpu.reg[R16.BC] = 0x0013;
+        this.cpu.reg[R16.DE] = 0x00D8;
+        this.cpu.reg[R16.HL] = 0x014D;
+        this.cpu.reg.sp = 0xFFFE;
+
+        // Clear VRAM
+        const vramPointer = 0x8000;
+        for (let i = 0; i < 0x2000; i++) {
+            this.bus.write(vramPointer + i, 0);
+        }
+
+        // Set palette
+        this.bus.write(0xFF47, 0xFC);
+
+        // Reset scroll registers
+        this.gpu.scrX = 0;
+        this.gpu.scrY = 0;
+
+
+        // Copy Nintendo logo from cartridge
+        let logoData = new Uint8Array(48);
+        const base = 0x104;
+        for (let i = 0; i < 48; i++) {
+            let byte = this.bus.ext.romData[0][base + i];
+            console.log(hex(byte, 2));
+            logoData[i] = byte;
+        }
+
+        // Put copyright symbol into tile data
+        let copyrightSymbol = Uint8Array.of(0x3C, 0x42, 0xB9, 0xA5, 0xB9, 0xA5, 0x42, 0x3C);
+        const copyrightPointer = 0x8190;
+        for (let i = 0; i < 8; i++) {
+            this.bus.write(copyrightPointer + (i * 2) + 0, copyrightSymbol[i]);
+            this.bus.write(copyrightPointer + (i * 2) + 1, copyrightSymbol[i]);
+        }
+
+        // Write Nintendo logo tile map
+        const row1Pointer = 0x9904;
+        const row2Pointer = 0x9924;
+        for (let i = 0; i < 12; i++) {
+            this.bus.write(row1Pointer + i, i + 0x1);
+            this.bus.write(row2Pointer + i, i + 0xD);
+        }
+
+        // Expand Nintendo logo tile data
+        let logoTilesPointer = 0x8010;
+        for (let i = 0; i < 48; i++) {
+            let dataByte = logoData[i];
+            let upper = dataByte >> 4;
+            let lower = dataByte & 0xF;
+
+            let lowerFull = 0;
+            let upperFull = 0;
+            for (let j = 0; j < 8; j++) {
+                lowerFull = bitSetValue(lowerFull, j, bitGet(lower, j >> 1));
+                upperFull = bitSetValue(upperFull, j, bitGet(upper, j >> 1));
+            }
+
+            for (let j = 0; j < 4; j++) {
+                this.bus.write(logoTilesPointer + (i * 8) + j + 0, upperFull);
+                this.bus.write(logoTilesPointer + (i * 8) + j + 3, lowerFull);
+            }
+        }
+
+        // Tile for copyright symbol
+        this.bus.write(0x9910, 0x19);
     }
 }
 

@@ -15,3 +15,23 @@ export const BIT_13 = 1 << 0xD;
 export const BIT_14 = 1 << 0xE;
 export const BIT_15 = 1 << 0xF;
 export const BIT_16 = 1 << 0x10;
+
+export function bitGet(i: number, bit: number) {
+    return (i & (1 << bit)) !== 0;
+}
+
+export function bitSet(i: number, bit: number) {
+    return i | (1 << bit);
+}
+
+export function bitReset(i: number, bit: number) {
+    return i & (~(1 << bit));
+}
+
+export function bitSetValue(i: number, bit: number, value: boolean) {
+    if (value) {
+        return i | (1 << bit);
+    } else {
+        return i & (~(1 << bit));
+    }
+}
