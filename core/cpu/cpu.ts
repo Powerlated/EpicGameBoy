@@ -312,7 +312,7 @@ export default class CPU {
                 this.pc--;
                 this.pc &= 0xFFFF;
             }
-            
+
             const length = op(this);
 
             this.pc += length;
@@ -357,12 +357,16 @@ export default class CPU {
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
         if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical & 0x1F) !== 0) {
-            this.halted = false;
-
             if (this.gb.interrupts.masterEnabled === true) {
 
                 // 1 M-cycles doing nothing
-                this.tick(4);
+                this.tick(8);
+
+                const pcUpper = this.pc >> 8;
+                const pcLower = this.pc & 0xFF;
+
+                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                this.write_tick(this.reg.sp, pcUpper);
 
                 // If servicing any interrupt, disable the master flag
                 this.gb.interrupts.masterEnabled = false;
@@ -412,13 +416,16 @@ export default class CPU {
                     vector = JOYPAD_PRESS_VECTOR;
                 }
 
-                this.push_tick(this.pc);
+                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
+                this.write_tick(this.reg.sp, pcLower);
 
                 // Setting PC takes 1 M-cycle
                 this.tick(4);
 
                 this.pc = vector;
             }
+
+            this.halted = false;
         }
 
         return this.cycles - c;
@@ -506,8 +513,8 @@ export default class CPU {
         this.enableBreakpoints = true;
     }
 
+    // 4 cycle penalty
     push_tick(n16: number): void {
-        // 4 cycle penalty
         this.tick(4);
 
         this.reg.sp = (this.reg.sp - 2) & 0xFFFF;
