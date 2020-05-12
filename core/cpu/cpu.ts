@@ -236,16 +236,7 @@ export default class CPU {
         this.gb.tick(4 + this.pendingCycles);
         this.pendingCycles = 0;
 
-        // The CPU can only access high RAM during OAM DMA
-        if (this.gb.dma.oamDmaRunning) {
-            if (addr >= 0xFF00 && addr <= 0xFFFF) {
-                return this.gb.bus.read(addr);
-            } else {
-                return 0xFF;
-            }
-        } else {
-            return this.gb.bus.read(addr);
-        }
+        return this.gb.bus.read(addr);
     }
 
     // Timing already satisfied by fetchMem8
@@ -261,13 +252,7 @@ export default class CPU {
         this.gb.tick(4 + this.pendingCycles);
         this.pendingCycles = 0;
 
-        if (this.gb.dma.oamDmaRunning) {
-            if (addr >= 0xFF00 && addr <= 0xFFFF) {
-                this.gb.bus.write(addr, value);
-            }
-        } else {
-            this.gb.bus.write(addr, value);
-        }
+        this.gb.bus.write(addr, value);
     }
 
     // Timing already satisfied by fetchMem8
