@@ -406,48 +406,46 @@ class GPU implements HWIO {
                 case LCDMode.VRAM: // Mode 3
                     {
                         if (this.renderingThisFrame === true) {
-                            /* 
-                            * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
-                            * 
-                            *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
-                            *     B. Disabled entirely through bit 5 of LCD Control
-                            * 
-                            * only AFTER the window has already been enabled.
-                            */
-                            if (
-                                this.lY === this.windowYpos &&
-                                this.lcdControl.enableWindow____5 === true &&
-                                this.windowOnscreenYetThisFrame === false &&
-                                this.windowXpos < 167
-                            ) {
-                                this.currentWindowLine = this.windowYpos - this.lY;
-                                this.windowOnscreenYetThisFrame = true;
+                            // Bit 0 of LCDC is used to manage priority in CGB mode
+                            // Delay window rendering based on its X position, and don't be too picky, it's only X position
+                            if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80) {
+
+                                /* 
+                                * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
+                                * 
+                                *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
+                                *     B. Disabled entirely through bit 5 of LCD Control
+                                * 
+                                * only AFTER the window has already been enabled.
+                                */
+                                if (
+                                    this.lY === this.windowYpos &&
+                                    this.lcdControl.enableWindow____5 === true &&
+                                    this.windowOnscreenYetThisFrame === false &&
+                                    this.windowXpos < 167
+                                ) {
+                                    this.currentWindowLine = this.windowYpos - this.lY;
+                                    this.windowOnscreenYetThisFrame = true;
+                                }
+
+                                // Only IF the window is onscreen
+                                if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
+                                    this.renderWindow();
+                                    // this.mode3CyclesOffset += 8;
+                                    this.currentWindowLine++;
+                                }
+                                this.windowDrawn = true;
                             }
 
-                            // Bit 0 of LCDC is used to manage priority in CGB mode
-                            if (
-                                (
-                                    this.gb.cgb === false &&
-                                    this.lcdControl.bgWindowEnable0 === true
-                                ) || this.gb.cgb === true
-                            ) {
-                                // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                                if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80) {
-                                    // Only IF the window is onscreen
-                                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
-                                        this.renderWindow();
-                                        // this.mode3CyclesOffset += 8;
-                                        this.currentWindowLine++;
-                                    }
-                                    this.windowDrawn = true;
-                                }
-
-                                if (this.bgDrawn === false) {
+                            if (this.bgDrawn === false) {
+                                if (this.gb.cgb || this.lcdControl.bgWindowEnable0) {
                                     this.renderBg();
-                                    this.bgDrawn = true;
-
-                                    // this.mode3CyclesOffset += this.scrX & 7;
+                                } else {
+                                    this.renderBlankScanline();
                                 }
+                                this.bgDrawn = true;
+
+                                // this.mode3CyclesOffset += this.scrX & 7;
                             }
                         }
                         if (this.lineClock >= 252) {
@@ -880,6 +878,17 @@ class GPU implements HWIO {
         this.cgbObjPalette.update(palette >> 2, palette & 3);
     }
 
+    renderBlankScanline() {
+        let imgIndex = 160 * 4 * (this.lY);
+        for (let i = 0; i < 160; i++) {
+            this.imageGameboy.data[imgIndex + 0] = 0xFF;
+            this.imageGameboy.data[imgIndex + 1] = 0xFF;
+            this.imageGameboy.data[imgIndex + 2] = 0xFF;
+
+            imgIndex += 4;
+        }
+    }
+
     renderBg() {
         // This is the Y value within a tile
         const y = (this.lY + this.scrY) & 0b111;
@@ -1015,14 +1024,14 @@ class GPU implements HWIO {
                         if (pixel >= 0) {
                             prePalette = tileRow[i];
                             color = palette[prePalette];
-    
+
                             this.pre[pixel] = prePalette;
                             this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
-    
+
                             this.imageGameboy.data[imgIndex + 0] = color[0];
                             this.imageGameboy.data[imgIndex + 1] = color[1];
                             this.imageGameboy.data[imgIndex + 2] = color[2];
-    
+
                             imgIndex += 4;
                         }
                         pixel++;
@@ -1032,16 +1041,16 @@ class GPU implements HWIO {
                         if (pixel >= 160) return;
                         if (pixel >= 0) {
                             prePalette = tileRow[i];
-    
+
                             color = palette[prePalette];
-    
+
                             this.pre[pixel] = prePalette;
                             this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
-    
+
                             this.imageGameboy.data[imgIndex + 0] = color[0];
                             this.imageGameboy.data[imgIndex + 1] = color[1];
                             this.imageGameboy.data[imgIndex + 2] = color[2];
-    
+
                             imgIndex += 4;
                         }
                         pixel++;
