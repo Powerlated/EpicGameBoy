@@ -2,131 +2,107 @@ import GPU from "../../core/video/gpu";
 import { VideoPlugin } from "../../core/video/videoplugin";
 
 export default class GPUCanvas implements VideoPlugin {
+
+    cGameboy: HTMLCanvasElement;
     ctxGameboy: WebGL2RenderingContext;
     ctxTileset: CanvasRenderingContext2D | null;
 
+
+    vertBuf: WebGLBuffer;
+    texCoordBuf: WebGLBuffer;
+
+    shaderProgram: WebGLProgram;
+
     constructor(cGameboy: HTMLCanvasElement, cTileset?: HTMLCanvasElement) {
         this.ctxGameboy = cGameboy.getContext("webgl2")!;
+        this.cGameboy = cGameboy;
 
         let gl = this.ctxGameboy;
 
 
         let vertices = [
-            -1, 1, 0.0,
-            -1, -1, 0.0,
-            1, -1, 0.0,
-            1, 1, 0.0
+            -1, -1,
+            -1, 1,
+            1, 1,
+            1, -1
         ];
 
-        const indices = [3, 2, 1, 3, 1, 0];
+        const texCoords = [
+            0, 0, 0, 0, 0, 0, 0, 0
+        ];
 
         // Create an empty buffer object to store vertex buffer
-        let vertex_buffer = gl.createBuffer();
+        this.vertBuf = gl.createBuffer()!;
 
-        // Bind appropriate array buffer to it
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.activeTexture(gl.TEXTURE0);
 
-        // Pass the vertex data to the buffer
+        // Bind, pass data, unbind
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuf);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-        // Unbind the buffer
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
         // Create an empty buffer object to store Index buffer
-        let Index_Buffer = gl.createBuffer();
+        this.texCoordBuf = gl.createBuffer()!;
 
-        // Bind appropriate array buffer to it
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
-
-        // Pass the vertex data to the buffer
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-        // Unbind the buffer
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.texCoordBuf);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
         /*====================== Shaders =======================*/
 
-        // Vertex shader source code
         let vertCode =
-            'attribute vec3 coordinates;' +
-            'void main(void) {' +
-            ' gl_Position = vec4(coordinates, 1.0);' +
-            '}';
+            `
+            attribute vec2 aVertex;
+            attribute vec2 aUV;
+            varying vec2 vTex;
+            void main(void) {
+                gl_Position = vec4(aVertex, 0.0, 1.0);
+                vTex = aUV;
+            }
+        `;
 
-        // Create a vertex shader object
-        let vertShader = gl.createShader(gl.VERTEX_SHADER)!;
-
-        // Attach vertex shader source code
-        gl.shaderSource(vertShader, vertCode);
-
-        // Compile the vertex shader
-        gl.compileShader(vertShader);
-
-        // Fragment shader source code
         let fragCode =
-            'void main(void) {' +
-            ' gl_FragColor = vec4(1.0, 0.0, 0.0, 1);' +
-            '}';
+            `
+            precision highp float;
+            varying vec2 vTex;
+            uniform sampler2D sampler0;
+            void main(void){
+                gl_FragColor = texture2D(sampler0, vTex);
+            }
+        `;
+        
+
+        let vertShader = gl.createShader(gl.VERTEX_SHADER)!;
+        gl.shaderSource(vertShader, vertCode);
+        gl.compileShader(vertShader);
 
         // Create fragment shader object 
         let fragShader = gl.createShader(gl.FRAGMENT_SHADER)!;
-
-        // Attach fragment shader source code
         gl.shaderSource(fragShader, fragCode);
-
-        // Compile the fragmentt shader
         gl.compileShader(fragShader);
 
         // Create a shader program object to
         // store the combined shader program
-        let shaderProgram = gl.createProgram()!;
+        this.shaderProgram = gl.createProgram()!;
 
-        // Attach a vertex shader
-        gl.attachShader(shaderProgram, vertShader);
+        // Attach shaders
+        gl.attachShader(this.shaderProgram, vertShader);
+        gl.attachShader(this.shaderProgram, fragShader);
 
-        // Attach a fragment shader
-        gl.attachShader(shaderProgram, fragShader);
-
-        // Link both the programs
-        gl.linkProgram(shaderProgram);
-
-        // Use the combined shader program object
-        gl.useProgram(shaderProgram);
+        // Link and use
+        gl.linkProgram(this.shaderProgram);
+        gl.useProgram(this.shaderProgram);
 
         /* ======= Associating shaders to buffer objects =======*/
 
-        // Bind vertex buffer object
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        let vLoc = gl.getAttribLocation(this.shaderProgram, "aVertex");
+        let tLoc = gl.getAttribLocation(this.shaderProgram, "aUV");
 
-        // Bind index buffer object
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer);
+        gl.enableVertexAttribArray(vLoc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuf);
+        gl.vertexAttribPointer(vLoc, 2, gl.FLOAT, false, 0, 0);
 
-        // Get the attribute location
-        let coord = gl.getAttribLocation(shaderProgram, "coordinates");
-
-        // Point an attribute to the currently bound VBO
-        gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-
-        // Enable the attribute
-        gl.enableVertexAttribArray(coord);
-
-        /*============= Drawing the Quad ================*/
-
-        // Clear the canvas
-        gl.clearColor(0, 0, 1, 1);
-
-        // Enable the depth test
-        gl.enable(gl.DEPTH_TEST);
-
-        // Clear the color buffer bit
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-
-        // Set the view port
-        gl.viewport(0, 0, cGameboy.width, cGameboy.height);
-
-        // Draw the triangle
-        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        gl.enableVertexAttribArray(tLoc);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.texCoordBuf);
+        gl.vertexAttribPointer(tLoc, 2, gl.FLOAT, false, 0, 0);
 
         if (cTileset) {
             this.ctxTileset = cTileset.getContext("2d")!;
@@ -143,8 +119,30 @@ export default class GPUCanvas implements VideoPlugin {
     }
 
     drawGameboy(data: ImageData) {
+
         const gl = this.ctxGameboy;
-        gl.blitFramebuffer(0, 0, 160, 144, 0, 0, 160, 144, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+        let tex = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
+
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 160, 144, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+        // Clear the canvas
+        gl.clearColor(0, 0, 1, 1);
+
+        // Enable the depth test
+        gl.enable(gl.DEPTH_TEST);
+        // Clear the color buffer bit
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // Set the view port
+        gl.viewport(0, 0, 160, 144);
+
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
 
     drawTileset(data: ImageData) {
@@ -152,7 +150,7 @@ export default class GPUCanvas implements VideoPlugin {
             this.ctxTileset.putImageData(data, 0, 0);
         }
 
-        // this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 0.5)';
+        // this.ctxTileset.fillStyle = 'rgba(255, 255, 128, 1)';
         // // 0: Bottom half used, 1: Top half used
         // // Draw over unused with transparent yellow
         // if (this.gpu.lcdControl.bgWindowTiledataSelect__4) {
