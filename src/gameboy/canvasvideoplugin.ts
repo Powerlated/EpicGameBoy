@@ -21,10 +21,10 @@ export default class GPUCanvas implements VideoPlugin {
 
 
         let vertices = [
-            -1, -1,
-            -1, 1,
+            1, 0,
             1, 1,
-            1, -1
+            0, 1,
+            0, 0,
         ];
 
         const texCoords = [
@@ -33,29 +33,26 @@ export default class GPUCanvas implements VideoPlugin {
 
         // Create an empty buffer object to store vertex buffer
         this.vertBuf = gl.createBuffer()!;
-
-        gl.activeTexture(gl.TEXTURE0);
-
         // Bind, pass data, unbind
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuf);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
         // Create an empty buffer object to store Index buffer
         this.texCoordBuf = gl.createBuffer()!;
-
+        // Bind, pass data, unbind
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.texCoordBuf);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(texCoords), gl.STATIC_DRAW);
 
         /*====================== Shaders =======================*/
 
         let vertCode =
             `
             attribute vec2 aVertex;
-            attribute vec2 aUV;
+            attribute vec2 aTex;
             varying vec2 vTex;
             void main(void) {
-                gl_Position = vec4(aVertex, 0.0, 1.0);
-                vTex = aUV;
+                gl_Position = (vec4(aVertex, 0.0, 1.0) * vec4(2.0, -2.0, 1.0, 1.0)) + vec4(-1.0, 1.0, 0.0, 0.0);
+                vTex = aTex;
             }
         `;
 
@@ -68,7 +65,7 @@ export default class GPUCanvas implements VideoPlugin {
                 gl_FragColor = texture2D(sampler0, vTex);
             }
         `;
-        
+
 
         let vertShader = gl.createShader(gl.VERTEX_SHADER)!;
         gl.shaderSource(vertShader, vertCode);
@@ -94,15 +91,16 @@ export default class GPUCanvas implements VideoPlugin {
         /* ======= Associating shaders to buffer objects =======*/
 
         let vLoc = gl.getAttribLocation(this.shaderProgram, "aVertex");
-        let tLoc = gl.getAttribLocation(this.shaderProgram, "aUV");
-
         gl.enableVertexAttribArray(vLoc);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuf);
-        gl.vertexAttribPointer(vLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(vLoc, 2, gl.FLOAT, false, 8, 0);
 
+        let tLoc = gl.getAttribLocation(this.shaderProgram, "aTex");
         gl.enableVertexAttribArray(tLoc);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.texCoordBuf);
-        gl.vertexAttribPointer(tLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(tLoc, 2, gl.FLOAT, false, 8, 0);
+
+        // Enable the depth test
+        gl.enable(gl.DEPTH_TEST);
+        gl.viewport(0, 0, 160, 144);
 
         if (cTileset) {
             this.ctxTileset = cTileset.getContext("2d")!;
@@ -131,16 +129,6 @@ export default class GPUCanvas implements VideoPlugin {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 160, 144, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-
-        // Clear the canvas
-        gl.clearColor(0, 0, 1, 1);
-
-        // Enable the depth test
-        gl.enable(gl.DEPTH_TEST);
-        // Clear the color buffer bit
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        // Set the view port
-        gl.viewport(0, 0, 160, 144);
 
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
