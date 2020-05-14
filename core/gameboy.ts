@@ -57,8 +57,6 @@ export default class GameBoy {
 
     soundChip = new SoundChip(this);
 
-    stopNow = true;
-
     timer = new Timer(this);
 
     speedMul = 1;
@@ -79,14 +77,12 @@ export default class GameBoy {
         this.timer.tick(cyclesRan);
         // The APU is ticked by the timer so it's the timer class
         this.gpu.tick(cyclesRan >> this.doubleSpeedShift);
-        this.dma.tick(cyclesRan << this.doubleSpeedShift);
+        this.dma.tick(cyclesRan);
     }
 
     speedStop() {
         cancelAnimationFrame(this.animationFrame);
         this.soundChip.setMuted(true);
-        this.stopNow = true;
-
         this.currentlyRunning = false;
     }
 
@@ -94,7 +90,6 @@ export default class GameBoy {
         this.cpu.debugging = false;
         this.animationFrame = requestAnimationFrame(this.run.bind(this));
         this.soundChip.setMuted(false);
-
         this.currentlyRunning = true;
     }
 
@@ -111,16 +106,18 @@ export default class GameBoy {
         if (this.doubleSpeedShift) max <<= 1;
 
         let i = 0;
-        while (i < max) {
-            if (this.cpu.breakpoints[this.cpu.pc] === true) {
-                this.speedStop();
-                return;
+        if (this.cpu.enableBreakpoints) {
+            while (i < max) {
+                if (this.cpu.breakpoints[this.cpu.pc] === true) {
+                    this.speedStop();
+                    return;
+                }
+                i += this.step();
             }
-            i += this.step();
-        }
-
-        if (this.stopNow == true) {
-            this.stopNow = false;
+        } else {
+            while (i < max) {
+                i += this.step();
+            }
         }
 
         this.animationFrame = requestAnimationFrame(this.run.bind(this));
@@ -277,6 +274,7 @@ export default class GameBoy {
 
         // Turn on the LCD, enable Background, use Tileset 0x8000, 
         this.bus.write(0xFF40, 0x91);
+        this.bus.write(0xFF0F, 0xE1);
 
         this.timer.internal = 0xABC8;
     }

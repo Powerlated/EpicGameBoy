@@ -345,7 +345,7 @@ export default class CPU {
             if (this.gb.interrupts.masterEnabled === true) {
 
                 // 1 M-cycles doing nothing
-                this.tick(8);
+                this.tick_addPending(4);
 
                 const pcUpper = this.pc >> 8;
                 const pcLower = this.pc & 0xFF;
@@ -405,7 +405,7 @@ export default class CPU {
                 this.write_tick(this.reg.sp, pcLower);
 
                 // Setting PC takes 1 M-cycle
-                this.tick(4);
+                this.tick_addPending(4);
 
                 this.pc = vector;
             }
@@ -490,12 +490,22 @@ export default class CPU {
     setBreakpoint(point: number) {
         writeDebug("Set breakpoint at " + hex(point, 4));
         this.breakpoints[point] = true;
-        this.enableBreakpoints = true;
+        this.updateEnableBreakpoints();
     }
     clearBreakpoint(point: number) {
         writeDebug("Cleared breakpoint at " + hex(point, 4));
         this.breakpoints[point] = false;
-        this.enableBreakpoints = true;
+        this.updateEnableBreakpoints();
+    }
+
+    private updateEnableBreakpoints() {
+        let found = false;
+        for (let i = 0; i < 65536; i++) {
+            if (this.breakpoints[i] === true) {
+                found = true;
+            }
+        }
+        this.enableBreakpoints = found;
     }
 
     // 4 cycle penalty
