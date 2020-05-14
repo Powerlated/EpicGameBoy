@@ -927,24 +927,45 @@ class GPU implements HWIO {
 
             tileRow = tileset[tile][adjY];
 
-            for (let i = 0; i < 8; i++) {
-                if (pixel >= endAt) return;
-                if (pixel >= 0) {
-                    prePalette = tileRow[attr.xFlip ? i ^ 7 : i];
+            if (!attr.xFlip) {
+                for (let i = 0; i < 8; i++) {
+                    if (pixel >= endAt) return;
+                    if (pixel >= 0) {
+                        prePalette = tileRow[i];
+                        color = palette[prePalette];
 
-                    color = palette[prePalette];
+                        this.pre[pixel] = prePalette;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
 
-                    this.pre[pixel] = prePalette;
-                    this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                        this.imageGameboy.data[imgIndex + 0] = color[0];
+                        this.imageGameboy.data[imgIndex + 1] = color[1];
+                        this.imageGameboy.data[imgIndex + 2] = color[2];
 
-                    this.imageGameboy.data[imgIndex + 0] = color[0];
-                    this.imageGameboy.data[imgIndex + 1] = color[1];
-                    this.imageGameboy.data[imgIndex + 2] = color[2];
-
-                    imgIndex += 4;
+                        imgIndex += 4;
+                    }
+                    pixel++;
                 }
-                pixel++;
+            } else {
+                for (let i = 7; i >= 0; i--) {
+                    if (pixel >= endAt) return;
+                    if (pixel >= 0) {
+                        prePalette = tileRow[i];
+
+                        color = palette[prePalette];
+
+                        this.pre[pixel] = prePalette;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+
+                        this.imageGameboy.data[imgIndex + 0] = color[0];
+                        this.imageGameboy.data[imgIndex + 1] = color[1];
+                        this.imageGameboy.data[imgIndex + 2] = color[2];
+
+                        imgIndex += 4;
+                    }
+                    pixel++;
+                }
             }
+
 
             // When this tile ends, read another
             lineOffset++;
@@ -988,22 +1009,44 @@ class GPU implements HWIO {
 
                 tileRow = tileset[tile][adjY];
 
-                for (let i = 0; i < 8; i++) {
-                    if (pixel >= 160) return;
-                    prePalette = tileRow[attr.xFlip ? i ^ 7 : i];
-
-                    this.pre[pixel] = prePalette;
-                    this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
-
-                    color = palette[prePalette];
-                    this.imageGameboy.data[imgIndex + 0] = color[0];
-                    this.imageGameboy.data[imgIndex + 1] = color[1];
-                    this.imageGameboy.data[imgIndex + 2] = color[2];
-
-                    imgIndex += 4;
-                    pixel++;
+                if (!attr.xFlip) {
+                    for (let i = 0; i < 8; i++) {
+                        if (pixel >= 160) return;
+                        if (pixel >= 0) {
+                            prePalette = tileRow[i];
+                            color = palette[prePalette];
+    
+                            this.pre[pixel] = prePalette;
+                            this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+    
+                            this.imageGameboy.data[imgIndex + 0] = color[0];
+                            this.imageGameboy.data[imgIndex + 1] = color[1];
+                            this.imageGameboy.data[imgIndex + 2] = color[2];
+    
+                            imgIndex += 4;
+                        }
+                        pixel++;
+                    }
+                } else {
+                    for (let i = 7; i >= 0; i--) {
+                        if (pixel >= 160) return;
+                        if (pixel >= 0) {
+                            prePalette = tileRow[i];
+    
+                            color = palette[prePalette];
+    
+                            this.pre[pixel] = prePalette;
+                            this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+    
+                            this.imageGameboy.data[imgIndex + 0] = color[0];
+                            this.imageGameboy.data[imgIndex + 1] = color[1];
+                            this.imageGameboy.data[imgIndex + 2] = color[2];
+    
+                            imgIndex += 4;
+                        }
+                        pixel++;
+                    }
                 }
-
                 mapOffset++;
             }
         }
