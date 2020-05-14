@@ -421,6 +421,8 @@ export default class SoundChip implements HWIO {
 
             if (addr >= 0xFF27 && addr <= 0xFF2F) return 0xFF;
 
+            if (addr >= 0xFF30 && addr <= 0xFF3F && this.wave.dacEnabled) return 0xFF;
+
             if (addr === 0xFF26) { // NR52
                 i = 0;
                 if (this.enabled) i |= BIT_7;
