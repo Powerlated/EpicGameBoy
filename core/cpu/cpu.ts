@@ -156,6 +156,25 @@ export interface Op {
     op: Function, type?: OperandType, type2?: OperandType, length: number;
 };
 
+const memTickRegions: boolean[] = [
+    false, // ROM0 - 0###
+    false, // ROM0 - 1###
+    false, // ROM0 - 2###
+    false, // ROM0 - 3###
+    false, // ROMX - 4###
+    false, // ROMX - 5###
+    false, // ROMX - 6###
+    false, // ROMX - 7###
+    true, // VRAM - 8###
+    true, // VRAM - 9###
+    false, // Cart RAM - A###
+    false, // Cart RAM - B###
+    false, // RAM0 - C###
+    false, // RAMX - D###
+    false, // Echo RAM0 - E###
+    true, // High Area - F###
+];
+
 export default class CPU {
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -233,8 +252,12 @@ export default class CPU {
 
     read_tick(addr: number): number {
         this.cycles += 4;
-        this.gb.tick(4 + this.pendingCycles);
-        this.pendingCycles = 0;
+        if (memTickRegions[addr >> 12]) {
+            this.gb.tick(4 + this.pendingCycles);
+            this.pendingCycles = 0;
+        } else {
+            this.pendingCycles += 4;
+        }
 
         return this.gb.bus.read(addr);
     }
@@ -249,8 +272,12 @@ export default class CPU {
 
     write_tick(addr: number, value: number): void {
         this.cycles += 4;
-        this.gb.tick(4 + this.pendingCycles);
-        this.pendingCycles = 0;
+        if (memTickRegions[addr >> 12]) {
+            this.gb.tick(4 + this.pendingCycles);
+            this.pendingCycles = 0;
+        } else {
+            this.pendingCycles += 4;
+        }
 
         this.gb.bus.write(addr, value);
     }
@@ -259,7 +286,7 @@ export default class CPU {
     write16_tick(addr: number, value: number): void {
         this.write_tick(addr + 1, value >> 8);
         this.write_tick(addr, value & 0xFF);
-    }
+    };
 
     execute(): number {
         const c = this.cycles;
@@ -305,7 +332,7 @@ export default class CPU {
 
             this.totalI++;
 
-            // Checking for proper timings below here
+            /** Checking for proper timings below here
 
             // if (b0 !== 0xCB) {
             //     // These are variable length instructions / control flow
@@ -336,8 +363,14 @@ export default class CPU {
             // }
 
             // this.opcodesRan.add(pcTriplet[0]);
+            */
         } else {
             this.tick(4 << this.gb.doubleSpeedShift);
+        }
+
+        if (this.pendingCycles > 0) {
+            this.gb.tick(this.pendingCycles);
+            this.pendingCycles = 0;
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
@@ -516,7 +549,7 @@ export default class CPU {
 
         this.reg.sp = (this.reg.sp - 2) & 0xFFFF;
         this.write16_tick(this.reg.sp, n16);
-    }
+    };
 
     pop_tick(): number {
         const value = this.read16_tick(this.reg.sp);
