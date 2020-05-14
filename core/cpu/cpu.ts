@@ -344,6 +344,8 @@ export default class CPU {
         if ((this.gb.interrupts.requested.numerical & this.gb.interrupts.enabled.numerical & 0x1F) !== 0) {
             if (this.gb.interrupts.masterEnabled === true) {
 
+                if (this.halted) this.tick_addPending(4);
+
                 // 1 M-cycles doing nothing
                 this.tick_addPending(4);
 
