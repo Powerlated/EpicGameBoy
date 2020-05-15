@@ -441,7 +441,8 @@ class GPU implements HWIO {
 
                                 // Only IF the window is onscreen
                                 if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
-                                    this.renderWindow();
+                                    if (this.gb.cgb || this.lcdControl.bgWindowEnable0)
+                                        this.renderWindow();
                                     // this.mode3CyclesOffset += 8;
                                     this.currentWindowLine++;
                                 }
