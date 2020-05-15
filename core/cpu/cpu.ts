@@ -45,8 +45,10 @@ function overflow16bErr(cpu: CPU, name: string, overflow: any) {
 
 class InterruptFlag {
     isIe = false;
+    cpu: CPU;
 
-    constructor(ie: boolean) {
+    constructor(cpu: CPU, ie: boolean) {
+        this.cpu = cpu;
         this.isIe = ie;
     }
 
@@ -68,6 +70,10 @@ class InterruptFlag {
             this.numerical |= BIT_0;
         else
             this.numerical &= ~BIT_0;
+
+        if (!this.isIe) {
+            this.calcAvailable();
+        }
     }
     set lcdStat(i: boolean) {
         this._lcdStat = i;
@@ -75,28 +81,60 @@ class InterruptFlag {
             this.numerical |= BIT_1;
         else
             this.numerical &= ~BIT_1;
-    };
+
+        if (!this.isIe) {
+            this.calcAvailable();
+        }
+    }
     set timer(i: boolean) {
         this._timer = i;
         if (i === true)
             this.numerical |= BIT_2;
         else
             this.numerical &= ~BIT_2;
-    };
+
+        if (!this.isIe) {
+            this.calcAvailable();
+        }
+    }
     set serial(i: boolean) {
         this._serial = i;
         if (i === true)
             this.numerical |= BIT_3;
         else
             this.numerical &= ~BIT_3;
-    };
+
+        if (!this.isIe) {
+            this.calcAvailable();
+        }
+    }
     set joypad(i: boolean) {
         this._joypad = i;
         if (i === true)
             this.numerical |= BIT_4;
         else
             this.numerical &= ~BIT_4;
+
+        if (!this.isIe) {
+            this.calcAvailable();
+        }
     };
+
+    calcAvailable() {
+        const joypad = this._joypad && this.cpu.ie._joypad;
+        const serial = this._serial && this.cpu.ie._serial;
+        const timer = this._timer && this.cpu.ie._timer;
+        const vblank = this._vblank && this.cpu.ie._vblank;
+        const lcdStat = this._lcdStat && this.cpu.ie._lcdStat;
+
+        this.cpu.joypadAvailable = joypad;
+        this.cpu.serialAvailable = serial;
+        this.cpu.timerAvailable = timer;
+        this.cpu.vblankAvailable = vblank;
+        this.cpu.lcdStatAvailable = lcdStat;
+
+        this.cpu.interruptAvailable = joypad || serial || timer || vblank || lcdStat;
+    }
 
     numerical = 0;
 
@@ -265,9 +303,16 @@ export default class CPU {
     }
 
 
-    ie = new InterruptFlag(true);
-    if = new InterruptFlag(false);
+    ie = new InterruptFlag(this, true);
+    if = new InterruptFlag(this, false);
     ime = false;
+    interruptAvailable = false;
+
+    joypadAvailable = false;
+    serialAvailable = false;
+    timerAvailable = false;
+    vblankAvailable = false;
+    lcdStatAvailable = false;
 
     cycles = 0;
     pendingCycles = 0;
@@ -323,9 +368,17 @@ export default class CPU {
         this.scheduleEnableInterruptsForNextTick = false;
         this.invalidOpcodeExecuted = false;
 
-        this.ie = new InterruptFlag(true);
-        this.if = new InterruptFlag(false);
+        this.ie = new InterruptFlag(this, true);
+        this.if = new InterruptFlag(this, false);
         this.ime = false;
+
+        this.interruptAvailable = false;
+
+        this.joypadAvailable = false;
+        this.serialAvailable = false;
+        this.timerAvailable = false;
+        this.vblankAvailable = false;
+        this.lcdStatAvailable = false;
     }
 
 
@@ -464,7 +517,7 @@ export default class CPU {
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if ((this.if.numerical & this.ie.numerical & 0x1F) !== 0) {
+        if (this.interruptAvailable) {
             if (this.ime === true) {
 
                 if (this.halted) this.tick_addPending(4);
@@ -482,46 +535,31 @@ export default class CPU {
                 this.ime = false;
 
                 let vector = 0;
-                if (
-                    this.if.vblank === true &&
-                    this.ie.vblank === true
-                ) {
+                if (this.vblankAvailable) {
                     this.if.vblank = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- VBLANK INTERRUPT ---`);
 
                     vector = VBLANK_VECTOR;
-                } else if (
-                    this.if.lcdStat === true &&
-                    this.ie.lcdStat === true
-                ) {
+                } else if (this.lcdStatAvailable) {
                     this.if.lcdStat = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- LCDSTAT INTERRUPT ---`);
 
                     vector = LCD_STATUS_VECTOR;
-                } else if (
-                    this.if.timer === true &&
-                    this.ie.timer === true
-                ) {
+                } else if (this.timerAvailable) {
                     this.if.timer = false;
 
                     // if (this.minDebug)
                     //     this.addToLog(`--- TIMER INTERRUPT ---`);
 
                     vector = TIMER_OVERFLOW_VECTOR;
-                } else if (
-                    this.if.serial === true &&
-                    this.ie.serial === true
-                ) {
+                } else if (this.serialAvailable) {
                     this.if.serial = false;
                     vector = SERIAL_LINK_VECTOR;
-                } else if (
-                    this.if.joypad === true &&
-                    this.ie.joypad === true
-                ) {
+                } else if (this.joypadAvailable) {
                     this.if.joypad = false;
                     vector = JOYPAD_PRESS_VECTOR;
                 }
@@ -689,6 +727,14 @@ export default class CPU {
         state.PUT_BOOL(this.if._serial);
         state.PUT_BOOL(this.if._joypad);
         state.PUT_8(this.if.numerical);
+
+        state.PUT_BOOL(this.interruptAvailable);
+
+        state.PUT_BOOL(this.joypadAvailable);
+        state.PUT_BOOL(this.serialAvailable);
+        state.PUT_BOOL(this.timerAvailable);
+        state.PUT_BOOL(this.vblankAvailable);
+        state.PUT_BOOL(this.lcdStatAvailable);
     }
 
     deserialize(state: Serializer) {
@@ -733,6 +779,14 @@ export default class CPU {
         this.if._serial = state.GET_BOOL();
         this.if._joypad = state.GET_BOOL();
         this.if.numerical = state.GET_8();
+
+        this.interruptAvailable = state.GET_BOOL();
+
+        this.joypadAvailable = state.GET_BOOL();
+        this.serialAvailable = state.GET_BOOL();
+        this.timerAvailable = state.GET_BOOL();
+        this.vblankAvailable = state.GET_BOOL();
+        this.lcdStatAvailable = state.GET_BOOL();
     }
 }
 
