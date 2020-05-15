@@ -4,6 +4,7 @@ import { writeDebug } from "../../src/gameboy/tools/debug";
 import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
 import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
+import { Serializer, PUT_BOOL, PUT_32LE, PUT_16LE, PUT_8, PUT_8ARRAY, GET_BOOL, GET_16LE, GET_8, GET_8ARRAY } from "../serialize";
 
 export default class SoundChip implements HWIO {
     constructor(gb: GameBoy) {
@@ -512,5 +513,172 @@ export default class SoundChip implements HWIO {
             this.ap.setMuted(muted);
         }
         this.muted = muted;
+    }
+
+    serialize(state: Serializer) {
+        PUT_BOOL(state, this.enabled);
+
+        PUT_16LE(state, this.ticksEnvelopePulse1);
+        PUT_16LE(state, this.ticksEnvelopePulse2);
+        PUT_16LE(state, this.ticksEnvelopeNoise);
+
+        PUT_16LE(state, this.clockPulse1FreqSweep);
+        PUT_BOOL(state, this.freqSweepEnabled);
+
+        PUT_8(state, this.frameSequencerStep);
+
+        PUT_BOOL(state, this.pulse1.enabled);
+        PUT_8(state, this.pulse1.width);
+        PUT_BOOL(state, this.pulse1.dacEnabled);
+        PUT_BOOL(state, this.pulse1.lengthEnable);
+        PUT_8(state, this.pulse1.lengthCounter);
+        PUT_8(state, this.pulse1.frequencyUpper);
+        PUT_8(state, this.pulse1.frequencyLower);
+        PUT_8(state, this.pulse1.volume);
+        PUT_BOOL(state, this.pulse1.volumeEnvelopeUp);
+        PUT_8(state, this.pulse1.volumeEnvelopeSweep);
+        PUT_8(state, this.pulse1.volumeEnvelopeStart);
+        PUT_8(state, this.pulse1.oldVolume);
+        PUT_BOOL(state, this.pulse1.outputLeft);
+        PUT_BOOL(state, this.pulse1.outputRight);
+        PUT_8(state, this.pulse1.freqSweepPeriod);
+        PUT_BOOL(state, this.pulse1.freqSweepUp);
+        PUT_8(state, this.pulse1.freqSweepShift);
+        PUT_BOOL(state, this.pulse1.updated);
+
+        PUT_BOOL(state, this.pulse2.enabled);
+        PUT_8(state, this.pulse2.width);
+        PUT_BOOL(state, this.pulse2.dacEnabled);
+        PUT_BOOL(state, this.pulse2.lengthEnable);
+        PUT_8(state, this.pulse2.lengthCounter);
+        PUT_8(state, this.pulse2.frequencyUpper);
+        PUT_8(state, this.pulse2.frequencyLower);
+        PUT_8(state, this.pulse2.volume);
+        PUT_BOOL(state, this.pulse2.volumeEnvelopeUp);
+        PUT_8(state, this.pulse2.volumeEnvelopeSweep);
+        PUT_8(state, this.pulse2.volumeEnvelopeStart);
+        PUT_8(state, this.pulse2.oldVolume);
+        PUT_BOOL(state, this.pulse2.outputLeft);
+        PUT_BOOL(state, this.pulse2.outputRight);
+        PUT_8(state, this.pulse2.freqSweepPeriod);
+        PUT_BOOL(state, this.pulse2.freqSweepUp);
+        PUT_8(state, this.pulse2.freqSweepShift);
+        PUT_BOOL(state, this.pulse2.updated);
+
+        PUT_BOOL(state, this.wave.enabled);
+        PUT_BOOL(state, this.wave.dacEnabled);
+        PUT_BOOL(state, this.wave.lengthEnable);
+        PUT_8(state, this.wave.lengthCounter);
+        PUT_8(state, this.wave.frequencyUpper);
+        PUT_8(state, this.wave.frequencyLower);
+        PUT_8(state, this.wave.volume);
+        PUT_8(state, this.wave.oldVolume);
+        PUT_8ARRAY(state, this.wave.waveTable, 32);
+        PUT_BOOL(state, this.wave.waveTableUpdated);
+        PUT_BOOL(state, this.wave.outputLeft);
+        PUT_BOOL(state, this.wave.outputRight);
+        PUT_BOOL(state, this.wave.updated);
+
+        PUT_BOOL(state, this.noise.enabled);
+        PUT_8(state, this.noise.divisorCode);
+        PUT_BOOL(state, this.noise.lengthEnable);
+        PUT_8(state, this.noise.lengthCounter);
+        PUT_BOOL(state, this.noise.dacEnabled);
+        PUT_8(state, this.noise.volume);
+        PUT_BOOL(state, this.noise.volumeEnvelopeUp);
+        PUT_8(state, this.noise.volumeEnvelopeSweep);
+        PUT_8(state, this.noise.volumeEnvelopeStart);
+        PUT_BOOL(state, this.noise.outputLeft);
+        PUT_BOOL(state, this.noise.outputRight);
+        PUT_8(state, this.noise.shiftClockFrequency);
+        PUT_BOOL(state, this.noise.counterStep);
+        PUT_8(state, this.noise.envelopeSweep);
+        PUT_BOOL(state, this.noise.updated);
+
+        PUT_8ARRAY(state, this.soundRegisters, 65536);
+
+    }
+
+    deserialize(state: Serializer) {
+        this.enabled = GET_BOOL(state);
+
+        this.ticksEnvelopePulse1 = GET_16LE(state);
+        this.ticksEnvelopePulse2 = GET_16LE(state);
+        this.ticksEnvelopeNoise = GET_16LE(state);
+
+        this.clockPulse1FreqSweep = GET_16LE(state);
+        this.freqSweepEnabled = GET_BOOL(state);
+
+        this.frameSequencerStep = GET_8(state);
+
+        this.pulse1.enabled = GET_BOOL(state);
+        this.pulse1.width = GET_8(state);
+        this.pulse1.dacEnabled = GET_BOOL(state);
+        this.pulse1.lengthEnable = GET_BOOL(state);
+        this.pulse1.lengthCounter = GET_8(state);
+        this.pulse1.frequencyUpper = GET_8(state);
+        this.pulse1.frequencyLower = GET_8(state);
+        this.pulse1.volume = GET_8(state);
+        this.pulse1.volumeEnvelopeUp = GET_BOOL(state);
+        this.pulse1.volumeEnvelopeSweep = GET_8(state);
+        this.pulse1.volumeEnvelopeStart = GET_8(state);
+        this.pulse1.oldVolume = GET_8(state);
+        this.pulse1.outputLeft = GET_BOOL(state);
+        this.pulse1.outputRight = GET_BOOL(state);
+        this.pulse1.freqSweepPeriod = GET_8(state);
+        this.pulse1.freqSweepUp = GET_BOOL(state);
+        this.pulse1.freqSweepShift = GET_8(state);
+        this.pulse1.updated = GET_BOOL(state);
+
+        this.pulse2.enabled = GET_BOOL(state);
+        this.pulse2.width = GET_8(state);
+        this.pulse2.dacEnabled = GET_BOOL(state);
+        this.pulse2.lengthEnable = GET_BOOL(state);
+        this.pulse2.lengthCounter = GET_8(state);
+        this.pulse2.frequencyUpper = GET_8(state);
+        this.pulse2.frequencyLower = GET_8(state);
+        this.pulse2.volume = GET_8(state);
+        this.pulse2.volumeEnvelopeUp = GET_BOOL(state);
+        this.pulse2.volumeEnvelopeSweep = GET_8(state);
+        this.pulse2.volumeEnvelopeStart = GET_8(state);
+        this.pulse2.oldVolume = GET_8(state);
+        this.pulse2.outputLeft = GET_BOOL(state);
+        this.pulse2.outputRight = GET_BOOL(state);
+        this.pulse2.freqSweepPeriod = GET_8(state);
+        this.pulse2.freqSweepUp = GET_BOOL(state);
+        this.pulse2.freqSweepShift = GET_8(state);
+        this.pulse2.updated = GET_BOOL(state);
+
+        this.wave.enabled = GET_BOOL(state);
+        this.wave.dacEnabled = GET_BOOL(state);
+        this.wave.lengthEnable = GET_BOOL(state);
+        this.wave.lengthCounter = GET_8(state);
+        this.wave.frequencyUpper = GET_8(state);
+        this.wave.frequencyLower = GET_8(state);
+        this.wave.volume = GET_8(state);
+        this.wave.oldVolume = GET_8(state);
+        this.wave.waveTable = GET_8ARRAY(state, 32);
+        this.wave.waveTableUpdated = GET_BOOL(state);
+        this.wave.outputLeft = GET_BOOL(state);
+        this.wave.outputRight = GET_BOOL(state);
+        this.wave.updated = GET_BOOL(state);
+
+        this.noise.enabled = GET_BOOL(state);
+        this.noise.divisorCode = GET_8(state);
+        this.noise.lengthEnable = GET_BOOL(state);
+        this.noise.lengthCounter = GET_8(state);
+        this.noise.dacEnabled = GET_BOOL(state);
+        this.noise.volume = GET_8(state);
+        this.noise.volumeEnvelopeUp = GET_BOOL(state);
+        this.noise.volumeEnvelopeSweep = GET_8(state);
+        this.noise.volumeEnvelopeStart = GET_8(state);
+        this.noise.outputLeft = GET_BOOL(state);
+        this.noise.outputRight = GET_BOOL(state);
+        this.noise.shiftClockFrequency = GET_8(state);
+        this.noise.counterStep = GET_BOOL(state);
+        this.noise.envelopeSweep = GET_8(state);
+        this.noise.updated = GET_BOOL(state);
+
+        this.soundRegisters = GET_8ARRAY(state, 65536);
     }
 }

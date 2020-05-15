@@ -141,6 +141,8 @@ export default class GameBoy {
         this.cpu.serialize(state);
         this.gpu.serialize(state);
         this.interrupts.serialize(state);
+        this.soundChip.serialize(state);
+
     }
 
     deserialize() {
@@ -156,6 +158,7 @@ export default class GameBoy {
         this.cpu.deserialize(state);
         this.gpu.deserialize(state);
         this.interrupts.deserialize(state);
+        this.soundChip.deserialize(state);
 
     }
 

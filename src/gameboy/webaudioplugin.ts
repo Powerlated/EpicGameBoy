@@ -218,7 +218,7 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
 
         const check = this.waveTableCache[hash];
         if (check == undefined) {
-            const waveTable = s.wave.waveTable.flatMap(i => [
+            const waveTable = Array.from(s.wave.waveTable).flatMap(i => [
                 i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
                 i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i,
             ]);

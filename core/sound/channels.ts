@@ -15,7 +15,7 @@ export class PulseChannel implements BasicChannel {
 
     frequencyUpper = 0; // Frequency = 131072/(2048-x) Hz
     frequencyLower = 0;
-    
+
     volume = 0; // 4-bit value 0-15
     volumeEnvelopeUp = false;
     volumeEnvelopeSweep = 4;
@@ -28,7 +28,7 @@ export class PulseChannel implements BasicChannel {
 
     freqSweepPeriod = 0;
     freqSweepUp = false;
-    
+
     freqSweepShift = 0;
     updated = true;
 
@@ -76,15 +76,12 @@ export class WaveChannel implements BasicChannel {
 
     frequencyUpper = 0;
     frequencyLower = 0;
-    oldFrequencyHz = 0;
 
     volume = 0;
     oldVolume = 0;
 
-    waveTable: Array<number> = [0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF];
+    waveTable: Uint8Array = new Uint8Array(32);
     waveTableUpdated = true;
-
-    restartSound = false;
 
     outputLeft = false;
     outputRight = false;
