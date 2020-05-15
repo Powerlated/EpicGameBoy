@@ -1228,6 +1228,7 @@ class GPU implements HWIO {
         for (let i = 0; i < 384; i++) {
             for (let j = 0; j < 8; j++) {
                 PUT_8ARRAY(state, this.tileset0[i][j], 8);
+                PUT_8ARRAY(state, this.tileset1[i][j], 8);
             }
         }
 
@@ -1301,6 +1302,7 @@ class GPU implements HWIO {
         for (let i = 0; i < 384; i++) {
             for (let j = 0; j < 8; j++) {
                 this.tileset0[i][j] = GET_8ARRAY(state, 8);
+                this.tileset1[i][j] = GET_8ARRAY(state, 8);
             }
         }
 

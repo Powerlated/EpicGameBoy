@@ -680,5 +680,12 @@ export default class SoundChip implements HWIO {
         this.noise.updated = GET_BOOL(state);
 
         this.soundRegisters = GET_8ARRAY(state, 65536);
+
+        if (this.ap) {
+            this.ap.noise(this);
+            this.ap.pulse1(this);
+            this.ap.pulse2(this);
+            this.ap.updateWaveTable(this);
+        }
     }
 }

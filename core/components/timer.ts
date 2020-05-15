@@ -2,6 +2,7 @@ import GameBoy from "../gameboy";
 import { hex } from "../../src/gameboy/tools/util";
 import { HWIO } from "../memory/hwio";
 import { BIT_12, BIT_13, BIT_5, BIT_3, BIT_7, BIT_9 } from "../bit_constants";
+import { PUT_16LE, Serializer, PUT_8, PUT_BOOL, GET_8, GET_BOOL, GET_16LE } from "../serialize";
 
 const TIMER_BITS = Uint16Array.of(BIT_9, BIT_3, BIT_5, BIT_7);
 
@@ -111,14 +112,42 @@ export default class Timer implements HWIO {
     reset() {
         this.counter = 0;
         this.modulo = 0;
-
         this.speed = 0;
         this.running = false;
 
         this.internal = 0;
 
-        this.queueReload = false;
         this.previousTimerCondition = false;
+        this.previousFrameSequencerCondition = false;
 
+        this.queueReload = false;
+    }
+
+    serialize(state: Serializer) {
+        PUT_8(state, this.counter);
+        PUT_8(state, this.modulo);
+        PUT_8(state, this.speed);
+        PUT_BOOL(state, this.running);
+
+        PUT_16LE(state, this.internal);
+
+        PUT_BOOL(state, this.previousTimerCondition);
+        PUT_BOOL(state, this.previousFrameSequencerCondition);
+
+        PUT_BOOL(state, this.queueReload);
+    }
+
+    deserialize(state: Serializer) {
+        this.counter = GET_8(state);
+        this.modulo = GET_8(state);
+        this.speed = GET_8(state);
+        this.running = GET_BOOL(state);
+
+        this.internal = GET_16LE(state);
+
+        this.previousTimerCondition = GET_BOOL(state);
+        this.previousFrameSequencerCondition = GET_BOOL(state);
+
+        this.queueReload = GET_BOOL(state);
     }
 }
