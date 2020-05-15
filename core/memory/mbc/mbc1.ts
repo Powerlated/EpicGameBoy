@@ -3,14 +3,13 @@ import MBC, { MBCWithRAM } from "./mbc";
 import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
 import { writeDebug } from "../../../src/gameboy/tools/debug";
+import { Serializer, PUT_BOOL, PUT_32LE, GET_BOOL, GET_32LE, PUT_8, GET_8 } from "../../serialize";
 
 enum BankingMode {
-    ROM = "ROM", RAM = "RAM"
+    ROM = 0, RAM = 1
 }
 
 export default class MBC1 extends MBCWithRAM implements MBC {
-    enableExternalRam = false;
-
     bankingMode = BankingMode.ROM;
 
     ext: ExternalBus;
@@ -81,5 +80,23 @@ export default class MBC1 extends MBCWithRAM implements MBC {
         this.ramBank = 0;
         this.enableExternalRam = false;
         this.bankingMode = BankingMode.ROM;
+    }
+
+    serialize(state: Serializer) {
+        PUT_BOOL(state, this.enableExternalRam);
+        PUT_32LE(state, this.externalRamDirtyBytes);
+        PUT_32LE(state, this.romBank);
+        PUT_32LE(state, this.ramBank);
+
+        PUT_8(state, this.bankingMode);
+    }
+
+    deserialize(state: Serializer) {
+        this.enableExternalRam = GET_BOOL(state);
+        this.externalRamDirtyBytes = GET_32LE(state);
+        this.romBank = GET_32LE(state);
+        this.ramBank = GET_32LE(state);
+
+        this.bankingMode = GET_8(state);
     }
 }

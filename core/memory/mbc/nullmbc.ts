@@ -1,6 +1,7 @@
 import MemoryBus from "../memorybus";
 import MBC from "./mbc";
 import ExternalBus from "../externalbus";
+import { Serializer } from "../../serialize";
 
 export default class NullMBC extends MBC implements MBC {
 
@@ -21,6 +22,10 @@ export default class NullMBC extends MBC implements MBC {
     write(addr: number, value: number) {
         return;
     }
+
+    serialize(state: Serializer) { }
+
+    deserialize(state: Serializer) { }
 
     reset() { }
 }

@@ -2,6 +2,7 @@ import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
 import ExternalBus from "../externalbus";
 import { hex } from "../../../src/gameboy/tools/util";
+import { Serializer, PUT_BOOL, PUT_32LE, GET_BOOL, GET_32LE } from "../../serialize";
 
 export default class MBC5 extends MBCWithRAM implements MBC {
     ext: ExternalBus;
@@ -55,6 +56,20 @@ export default class MBC5 extends MBCWithRAM implements MBC {
                 this.writeBankRam(addr, this.ramBank, value);
             }
         }
+    }
+
+    serialize(state: Serializer) {
+        PUT_BOOL(state, this.enableExternalRam);
+        PUT_32LE(state, this.externalRamDirtyBytes);
+        PUT_32LE(state, this.romBank);
+        PUT_32LE(state, this.ramBank);
+    }
+
+    deserialize(state: Serializer) {
+        this.enableExternalRam = GET_BOOL(state);
+        this.externalRamDirtyBytes = GET_32LE(state);
+        this.romBank = GET_32LE(state);
+        this.ramBank = GET_32LE(state);
     }
 
     reset() {

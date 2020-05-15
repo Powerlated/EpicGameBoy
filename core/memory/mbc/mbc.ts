@@ -1,6 +1,7 @@
 import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
 import { hex } from "../../../src/gameboy/tools/util";
+import { Serializer } from "../../serialize";
 
 export default interface MBC {
 
@@ -9,6 +10,9 @@ export default interface MBC {
 
     read(addr: number): number;
     write(addr: number, value: number): void;
+
+    serialize(state: Serializer): void;
+    deserialize(state: Serializer): void;
 
     reset(): void;
 }

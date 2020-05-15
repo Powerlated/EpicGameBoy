@@ -1,6 +1,7 @@
 import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
 import ExternalBus from "../externalbus";
+import { Serializer, PUT_32LE, PUT_BOOL, GET_BOOL, GET_32LE } from "../../serialize";
 
 export default class MBC3 extends MBCWithRAM implements MBC {
     selectRtc = false;
@@ -71,5 +72,23 @@ export default class MBC3 extends MBCWithRAM implements MBC {
 
     reset() {
         this.romBank = 1;
+    }
+
+    serialize(state: Serializer) {
+        PUT_BOOL(state, this.enableExternalRam);
+        PUT_32LE(state, this.externalRamDirtyBytes);
+        PUT_32LE(state, this.romBank);
+        PUT_32LE(state, this.ramBank);
+
+        PUT_BOOL(state, this.selectRtc);
+    }
+
+    deserialize(state: Serializer) {
+        this.enableExternalRam = GET_BOOL(state);
+        this.externalRamDirtyBytes = GET_32LE(state);
+        this.romBank = GET_32LE(state);
+        this.ramBank = GET_32LE(state);
+
+        this.selectRtc = GET_BOOL(state);
     }
 }

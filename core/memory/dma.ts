@@ -1,6 +1,7 @@
 import GameBoy from "../gameboy";
 import { HWIO } from "./hwio";
 import { hex } from "../../src/gameboy/tools/util";
+import { Serializer, PUT_16LE, PUT_BOOL, GET_16LE, GET_BOOL } from "../serialize";
 
 export class DMAController implements HWIO {
 
@@ -90,6 +91,7 @@ export class DMAController implements HWIO {
         this.oamDmaRunning = false;
         this.oamDmaCyclesRemaining = 0;
         this.oamDmaStart = 0;
+        this.oamDmaStartAddr = 0;
     }
 
     newDma(length: number) {
@@ -194,5 +196,41 @@ export class DMAController implements HWIO {
                 break;
 
         }
+    }
+
+    serialize(state: Serializer) {
+        PUT_16LE(state, this.newDmaSourceLow);
+        PUT_16LE(state, this.newDmaSourceHigh);
+        PUT_16LE(state, this.newDmaDestLow);
+        PUT_16LE(state, this.newDmaDestHigh);
+        PUT_16LE(state, this.newDmaLength);
+        PUT_16LE(state, this.hDmaRemaining);
+        PUT_16LE(state, this.hDmaSourceAt);
+        PUT_16LE(state, this.hDmaDestAt);
+        PUT_BOOL(state, this.hDmaCompleted);
+        PUT_BOOL(state, this.hDmaPaused);
+        PUT_BOOL(state, this.gDmaCompleted);
+        PUT_BOOL(state, this.oamDmaRunning);
+        PUT_16LE(state, this.oamDmaCyclesRemaining);
+        PUT_16LE(state, this.oamDmaStart);
+        PUT_16LE(state, this.oamDmaStartAddr);
+    }
+
+    deserialize(state: Serializer) {
+        this.newDmaSourceLow = GET_16LE(state);
+        this.newDmaSourceHigh = GET_16LE(state);
+        this.newDmaDestLow = GET_16LE(state);
+        this.newDmaDestHigh = GET_16LE(state);
+        this.newDmaLength = GET_16LE(state);
+        this.hDmaRemaining = GET_16LE(state);
+        this.hDmaSourceAt = GET_16LE(state);
+        this.hDmaDestAt = GET_16LE(state);
+        this.hDmaCompleted = GET_BOOL(state);
+        this.hDmaPaused = GET_BOOL(state);
+        this.gDmaCompleted = GET_BOOL(state);
+        this.oamDmaRunning = GET_BOOL(state);
+        this.oamDmaCyclesRemaining = GET_16LE(state);
+        this.oamDmaStart = GET_16LE(state);
+        this.oamDmaStartAddr = GET_16LE(state);
     }
 }

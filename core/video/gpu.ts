@@ -4,7 +4,7 @@ import { hex, unTwo8b } from "../../src/gameboy/tools/util";
 import { VideoPlugin } from "./videoplugin";
 import { HWIO } from "../memory/hwio";
 import { BIT_7, BIT_6, BIT_5, BIT_4, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
-import { PUT_8ARRAY, Serializer, PUT_BOOL, PUT_8, GET_8ARRAY, GET_8, GET_BOOL } from "../serialize";
+import { PUT_8ARRAY, Serializer, PUT_BOOL, PUT_8, GET_8ARRAY, GET_8, GET_BOOL, GET_16LE, PUT_16LE } from "../serialize";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -164,7 +164,7 @@ class CGBPaletteData {
 
     updateAll() {
         for (let pal = 0; pal < 8; pal++) {
-            for (let col = 0; pal < 8; pal++) {
+            for (let col = 0; col < 4; col++) {
                 this.update(pal, col);
             }
         }
@@ -227,9 +227,9 @@ class GPU implements HWIO {
 
     vram0 = new Uint8Array(0x2000);
     vram1 = new Uint8Array(0x2000);
+    vram = [this.vram0, this.vram1];
 
     oam = new Uint8Array(160);
-    vram = this.vram0;
 
     totalFrameCount = 0;
 
@@ -550,8 +550,6 @@ class GPU implements HWIO {
         this.vram1 = new Uint8Array(0x2000);
 
         this.oam = new Uint8Array(160);
-        this.vram = this.vram0;
-
         this.totalFrameCount = 0;
 
         // [tile][pixel]
@@ -653,7 +651,7 @@ class GPU implements HWIO {
     read(index: number): number {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === LCDMode.VRAM) return 0xFF;
-        return this.vram[index & 0x7FFF];
+        return this.vram[this.vramBank][index & 0x7FFF];
     }
 
     write(index: number, value: number) {
@@ -662,8 +660,8 @@ class GPU implements HWIO {
         index |= 0x8000;
         let adjIndex = index & 0x7FFF;
 
-        if (this.vram[adjIndex] !== value) {
-            this.vram[adjIndex] = value;
+        if (this.vram[this.vramBank][adjIndex] !== value) {
+            this.vram[this.vramBank][adjIndex] = value;
 
             const tile = adjIndex >> 4;
 
@@ -676,7 +674,7 @@ class GPU implements HWIO {
 
                 for (let x = 0; x < 8; x++) {
                     // Find bit index for this pixel
-                    const bytes = [this.vram[adjIndex], this.vram[adjIndex + 1]];
+                    const bytes = [this.vram[this.vramBank][adjIndex], this.vram[this.vramBank][adjIndex + 1]];
 
                     const mask = 0b1 << (7 - x);
                     const lsb = bytes[0] & mask;
@@ -818,13 +816,6 @@ class GPU implements HWIO {
             case 0xFF4F: // CGB - VRAM Bank
                 if (this.gb.cgb === true) {
                     this.vramBank = (value & 1);
-                    if (this.vramBank === 1) {
-                        // console.log("VRAM BANK -> 1");
-                        this.vram = this.vram1;
-                    } else {
-                        // console.log("VRAM BANK -> 0");
-                        this.vram = this.vram0;
-                    }
                 }
                 break;
             case 0xFF68: // CGB - Background Palette Index
@@ -1291,6 +1282,11 @@ class GPU implements HWIO {
         PUT_BOOL(state, this.lcdStatusCoincidence);
         PUT_BOOL(state, this.lcdStatusConditionMet);
         PUT_BOOL(state, this.lcdStatusFired);
+
+        PUT_16LE(state, this.lineClock);
+
+        PUT_8(state, this.currentWindowLine);
+        PUT_BOOL(state, this.windowOnscreenYetThisFrame);
     }
 
     deserialize(state: Serializer) {
@@ -1368,6 +1364,11 @@ class GPU implements HWIO {
         this.lcdStatusCoincidence = GET_BOOL(state);
         this.lcdStatusConditionMet = GET_BOOL(state);
         this.lcdStatusFired = GET_BOOL(state);
+
+        this.lineClock = GET_16LE(state);
+
+        this.currentWindowLine = GET_8(state);
+        this.windowOnscreenYetThisFrame = GET_BOOL(state);
     }
 }
 
