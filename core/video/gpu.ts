@@ -129,7 +129,7 @@ export class OAMEntry {
 }
 
 class CGBPaletteData {
-    data = new Uint8Array(64);
+    data = new Uint8Array(64).fill(0xFF);
 
     shades: Uint8Array[][] = new Array(8).fill(0).map(() => [
         new Uint8Array(3),
@@ -144,6 +144,7 @@ class CGBPaletteData {
         for (let i = 0; i < 32; i++) {
             this.rgb5to8Table[i] = i * (255 / 31);
         }
+        this.updateAll();
     }
 
 
@@ -952,7 +953,7 @@ class GPU implements HWIO {
                         let color = palette[prePalette];
 
                         this.pre[pixel] = prePalette;
-                        this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority;
 
                         this.imageGameboy.data[imgIndex + 0] = color[0];
                         this.imageGameboy.data[imgIndex + 1] = color[1];
@@ -970,7 +971,7 @@ class GPU implements HWIO {
                         let color = palette[prePalette];
 
                         this.pre[pixel] = prePalette;
-                        this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority;
 
                         this.imageGameboy.data[imgIndex + 0] = color[0];
                         this.imageGameboy.data[imgIndex + 1] = color[1];
@@ -1018,37 +1019,33 @@ class GPU implements HWIO {
                 if (!attr.xFlip) {
                     for (let i = 0; i < 8; i++) {
                         if (pixel >= 160) return;
-                        if (pixel >= 0) {
-                            let prePalette = tileRow[i];
-                            let color = palette[prePalette];
+                        let prePalette = tileRow[i];
+                        let color = palette[prePalette];
 
-                            this.pre[pixel] = prePalette;
-                            this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                        this.pre[pixel] = prePalette;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority;
 
-                            this.imageGameboy.data[imgIndex + 0] = color[0];
-                            this.imageGameboy.data[imgIndex + 1] = color[1];
-                            this.imageGameboy.data[imgIndex + 2] = color[2];
+                        this.imageGameboy.data[imgIndex + 0] = color[0];
+                        this.imageGameboy.data[imgIndex + 1] = color[1];
+                        this.imageGameboy.data[imgIndex + 2] = color[2];
 
-                            imgIndex += 4;
-                        }
+                        imgIndex += 4;
                         pixel++;
                     }
                 } else {
                     for (let i = 7; i >= 0; i--) {
                         if (pixel >= 160) return;
-                        if (pixel >= 0) {
-                            let prePalette = tileRow[i];
-                            let color = palette[prePalette];
+                        let prePalette = tileRow[i];
+                        let color = palette[prePalette];
 
-                            this.pre[pixel] = prePalette;
-                            this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
+                        this.pre[pixel] = prePalette;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority;
 
-                            this.imageGameboy.data[imgIndex + 0] = color[0];
-                            this.imageGameboy.data[imgIndex + 1] = color[1];
-                            this.imageGameboy.data[imgIndex + 2] = color[2];
+                        this.imageGameboy.data[imgIndex + 0] = color[0];
+                        this.imageGameboy.data[imgIndex + 1] = color[1];
+                        this.imageGameboy.data[imgIndex + 2] = color[2];
 
-                            imgIndex += 4;
-                        }
+                        imgIndex += 4;
                         pixel++;
                     }
                 }
@@ -1155,8 +1152,10 @@ class GPU implements HWIO {
 
                 const noTransparency = this.gb.cgb && !this.lcdControl.bgWindowEnable0;
                 if (noTransparency === false) {
-                    if (flags.behindBG && this.pre[screenXPos] !== 0) { imgIndex += 4; continue; }
-                    if (this.noSprites[screenXPos] === true) { imgIndex += 4; continue; }
+                    if (
+                        (flags.behindBG && this.pre[screenXPos] !== 0) ||
+                        (this.noSprites[screenXPos] && this.pre[screenXPos] !== 0)
+                    ) { imgIndex += 4; continue; }
                 }
 
                 this.imageGameboy.data[imgIndex + 0] = pixel[0];
