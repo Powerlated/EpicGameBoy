@@ -230,9 +230,25 @@ export default class SoundChip implements HWIO {
                     this.pulse1.updated = true;
                     break;
                 case 0xFF12: // NR12
-                    this.pulse1.volume = (value >> 4) & 0xF;
+                    const newUp = ((value >> 3) & 1) === 1;
+
+                    if (this.pulse1.enabled) {
+                        if (this.pulse1.volumeEnvelopeSweep === 0) {
+                            if (this.pulse1.volumeEnvelopeUp) {
+                                this.pulse1.volume += 1;
+                                this.pulse1.volume &= 0xF;
+                            } else {
+                                this.pulse1.volume += 2;
+                                this.pulse1.volume &= 0xF;
+                            }
+                        }
+
+                        if (this.pulse1.volumeEnvelopeUp !== newUp)
+                            this.pulse1.volume = 0;
+                    }
+
                     this.pulse1.volumeEnvelopeStart = (value >> 4) & 0xF;
-                    this.pulse1.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
+                    this.pulse1.volumeEnvelopeUp = newUp;
                     this.pulse1.volumeEnvelopeSweep = value & 0b111;
                     this.pulse1.dacEnabled = (value & 0b11111000) !== 0;
                     if (!this.pulse1.dacEnabled) this.pulse1.enabled = false;
@@ -264,13 +280,31 @@ export default class SoundChip implements HWIO {
                     this.pulse2.updated = true;
                     break;
                 case 0xFF17: // NR22
-                    this.pulse2.volume = (value >> 4) & 0xF;
-                    this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
-                    this.pulse2.volumeEnvelopeUp = ((value >> 3) & 1) === 1;
-                    this.pulse2.volumeEnvelopeSweep = value & 0b111;
-                    this.pulse2.dacEnabled = (value & 0b11111000) !== 0;
-                    if (!this.pulse2.dacEnabled) this.pulse2.enabled = false;
-                    this.pulse2.updated = true;
+                    {
+                        const newUp = ((value >> 3) & 1) === 1;
+
+                        if (this.pulse2.enabled) {
+                            if (this.pulse2.volumeEnvelopeSweep === 0) {
+                                if (this.pulse2.volumeEnvelopeUp) {
+                                    this.pulse2.volume += 1;
+                                    this.pulse2.volume &= 0xF;
+                                } else {
+                                    this.pulse2.volume += 2;
+                                    this.pulse2.volume &= 0xF;
+                                }
+                            }
+
+                            if (this.pulse2.volumeEnvelopeUp !== newUp)
+                                this.pulse2.volume = 0;
+                        }
+
+                        this.pulse2.volumeEnvelopeStart = (value >> 4) & 0xF;
+                        this.pulse2.volumeEnvelopeUp = newUp;
+                        this.pulse2.volumeEnvelopeSweep = value & 0b111;
+                        this.pulse2.dacEnabled = (value & 0b11111000) !== 0;
+                        if (!this.pulse2.dacEnabled) this.pulse2.enabled = false;
+                        this.pulse2.updated = true;
+                    }
                     break;
                 case 0xFF18: // NR23
                     this.pulse2.frequencyLower = value;
