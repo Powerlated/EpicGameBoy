@@ -566,7 +566,7 @@ export default class CPU {
         PUT_BOOL(state, this.scheduleEnableInterruptsForNextTick);
         PUT_32LE(state, this.totalI);
 
-        PUT_8(state, this.reg.sp);
+        PUT_16LE(state, this.reg.sp);
 
         PUT_8(state, this.reg[R8.A]);
         PUT_8(state, this.reg[R8.B]);
@@ -592,7 +592,7 @@ export default class CPU {
         this.scheduleEnableInterruptsForNextTick = GET_BOOL(state);
         this.totalI = GET_32LE(state);
 
-        this.reg.sp = GET_8(state);
+        this.reg.sp = GET_16LE(state);
 
         this.reg[R8.A] = GET_8(state);
         this.reg[R8.B] = GET_8(state);

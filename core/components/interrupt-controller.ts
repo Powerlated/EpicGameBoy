@@ -2,6 +2,7 @@ import MemoryBus from "../memory/memorybus";
 import GameBoy from "../gameboy";
 import { HWIO } from "../memory/hwio";
 import { BIT_0, BIT_1, BIT_2, BIT_3, BIT_4 } from "../bit_constants";
+import { Serializer, PUT_BOOL, PUT_8, GET_BOOL, GET_8 } from "../serialize";
 
 /**
  * Instances of this class are checked every single time the CPU 
@@ -15,11 +16,11 @@ class InterruptFlag {
         this.ie = ie;
     }
 
-    private _vblank = false;
-    private _lcdStat = false;
-    private _timer = false;
-    private _serial = false;
-    private _joypad = false;
+    _vblank = false;
+    _lcdStat = false;
+    _timer = false;
+    _serial = false;
+    _joypad = false;
 
     get vblank() { return this._vblank; };
     get lcdStat() { return this._lcdStat; };
@@ -111,5 +112,45 @@ export default class InterruptController {
 
         this.enabled = new InterruptFlag(true); // 0xFFFF
         this.requested = new InterruptFlag(false); // 0xFF0F
+    }
+
+    serialize(state: Serializer) {
+        PUT_BOOL(state, this.masterEnabled);
+
+        PUT_BOOL(state, this.enabled.ie);
+        PUT_BOOL(state, this.enabled._vblank);
+        PUT_BOOL(state, this.enabled._lcdStat);
+        PUT_BOOL(state, this.enabled._timer);
+        PUT_BOOL(state, this.enabled._serial);
+        PUT_BOOL(state, this.enabled._joypad);
+        PUT_8(state, this.enabled.numerical);
+
+        PUT_BOOL(state, this.requested.ie);
+        PUT_BOOL(state, this.requested._vblank);
+        PUT_BOOL(state, this.requested._lcdStat);
+        PUT_BOOL(state, this.requested._timer);
+        PUT_BOOL(state, this.requested._serial);
+        PUT_BOOL(state, this.requested._joypad);
+        PUT_8(state, this.requested.numerical);
+    }
+
+    deserialize(state: Serializer) {
+        this.masterEnabled = GET_BOOL(state);
+
+        this.enabled.ie = GET_BOOL(state);
+        this.enabled._vblank = GET_BOOL(state);
+        this.enabled._lcdStat = GET_BOOL(state);
+        this.enabled._timer = GET_BOOL(state);
+        this.enabled._serial = GET_BOOL(state);
+        this.enabled._joypad = GET_BOOL(state);
+        this.enabled.numerical = GET_8(state);
+
+        this.requested.ie = GET_BOOL(state);
+        this.requested._vblank = GET_BOOL(state);
+        this.requested._lcdStat = GET_BOOL(state);
+        this.requested._timer = GET_BOOL(state);
+        this.requested._serial = GET_BOOL(state);
+        this.requested._joypad = GET_BOOL(state);
+        this.requested.numerical = GET_8(state);
     }
 }
