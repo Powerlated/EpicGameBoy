@@ -86,7 +86,7 @@ export default class Timer implements HWIO {
                 this.queueReload = false;
 
                 this.counter = this.modulo;
-                this.gb.interrupts.requested.timer = true;
+                this.gb.cpu.if.timer = true;
             }
 
             const timerCondition = this.running && (this.internal & TIMER_BITS[this.speed]) !== 0;

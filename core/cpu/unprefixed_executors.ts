@@ -766,7 +766,7 @@ UNPREFIXED_EXECUTORS[0x2F] = CPL;  // CPL
 export function RETI(this: number, cpu: CPU): number {
     cpu.pc = cpu.pop_tick() - 1;
     cpu.tick_addPending(4); // Branching takes 4 cycles
-    cpu.gb.interrupts.masterEnabled = true;
+    cpu.ime = true;
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xD9] = RETI;  // RETI
@@ -862,7 +862,7 @@ export function LD_iFF00plusC_A(this: number, cpu: CPU): number {  // LD [$FF00+
 
 UNPREFIXED_EXECUTORS[0xF3] = DI;
 export function DI(this: number, cpu: CPU): number {  // DI - Disable interrupts master flag
-    cpu.gb.interrupts.masterEnabled = false;
+    cpu.ime = false;
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xFB] = EI;
@@ -950,21 +950,21 @@ export function RLA(this: number, cpu: CPU): number {  // RL A
 UNPREFIXED_EXECUTORS[0x76] = HALT;
 export function HALT(this: number, cpu: CPU): number {
     // HALT
-    if (cpu.gb.interrupts.masterEnabled === true) {
+    if (cpu.ime === true) {
         cpu.halted = true;
     } else {
         if (
             (
-                cpu.gb.interrupts.enabled.numerical &
-                cpu.gb.interrupts.requested.numerical &
+                cpu.ie.numerical &
+                cpu.if.numerical &
                 0x1F
             ) !== 0
         ) {
             // HALT bug
             cpu.haltBug = true;
         } else (
-            cpu.gb.interrupts.enabled.numerical &
-            cpu.gb.interrupts.requested.numerical &
+            cpu.ie.numerical &
+            cpu.if.numerical &
             0x1F) === 0;
         {
             cpu.halted = true;

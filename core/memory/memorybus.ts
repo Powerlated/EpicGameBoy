@@ -10,7 +10,6 @@ import NullMBC from "./mbc/nullmbc";
 import ExternalBus from "./externalbus";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { hex } from "../../src/gameboy/tools/util";
-import InterruptController from "../components/interrupt-controller";
 import { JoypadRegister } from "../components/joypad";
 import MBC5 from "./mbc/mbc5";
 import { Serializer } from "../serialize";
@@ -140,7 +139,7 @@ class MemoryBus {
 
         // GET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.gb.interrupts.enabled.getNumerical();
+            return this.gb.cpu.ie.getNumerical();
         }
 
         // Hardware I/O registers
@@ -169,7 +168,7 @@ class MemoryBus {
             } else if (addr >= 0xFF03 && addr <= 0xFF07) {
                 return this.gb.timer.readHwio(addr); // Timer
             } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-                return this.gb.interrupts.requested.numerical; // IF
+                return this.gb.cpu.if.numerical; // IF
             } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
                 return this.gb.soundChip.readHwio(addr); // Sound Chip
             } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
@@ -248,12 +247,12 @@ class MemoryBus {
 
         // SET Interrupt request flags
         else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            this.gb.interrupts.requested.setNumerical(value);
+            this.gb.cpu.if.setNumerical(value);
         }
 
         // SET Interrupt enable flags
         else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            this.gb.interrupts.enabled.setNumerical(value);
+            this.gb.cpu.ie.setNumerical(value);
         }
 
         // Write to OAM
@@ -291,7 +290,7 @@ class MemoryBus {
             } else if (addr >= 0xFF03 && addr <= 0xFF07) {
                 this.gb.timer.writeHwio(addr, value);
             } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-                this.gb.interrupts.requested.setNumerical(value);
+                this.gb.cpu.if.setNumerical(value);
             } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
                 this.gb.soundChip.writeHwio(addr, value);
             } else if (addr >= 0xFF40 && addr <= 0xFF4F) {

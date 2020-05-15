@@ -53,36 +53,36 @@ export class JoypadRegister implements HWIO {
 
     public set down(v: boolean) {
         this._down = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
     public set up(v: boolean) {
         this._up = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
     public set left(v: boolean) {
         this._left = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
     public set right(v: boolean) {
         this._right = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
 
     public set start(v: boolean) {
         this._start = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
     public set select(v: boolean) {
         this._select = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
     public set a(v: boolean) {
         this._a = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
     public set b(v: boolean) {
         this._b = v;
-        if (v === true) this.gb.interrupts.requested.joypad = true;
+        if (v === true) this.gb.cpu.if.joypad = true;
     }
 
     getNumerical(): number {

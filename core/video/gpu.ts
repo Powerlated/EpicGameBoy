@@ -355,7 +355,7 @@ class GPU implements HWIO {
                             // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                             if (this.lY >= 144) {
                                 // Fire the Vblank interrupt
-                                this.gb.interrupts.requested.vblank = true;
+                                this.gb.cpu.if.vblank = true;
                                 // Draw to the canvas
                                 if (this.renderingThisFrame === true) {
                                     if (this.vp !== null) {
@@ -535,7 +535,7 @@ class GPU implements HWIO {
 
         // If the condition is met and the interrupt has not been fired yet, request the interrupt
         if (this.lcdStatusFired === false && this.lcdStatusConditionMet === true) {
-            this.gb.interrupts.requested.lcdStat = true;
+            this.gb.cpu.if.lcdStat = true;
             this.lcdStatusFired = true;
 
             // console.log(`${this.lYCompare} === ${this.lY} STAT IRQ LINECLOCK: ${this.lineClock}`);

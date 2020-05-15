@@ -6,7 +6,6 @@ import { writeDebug } from '../src/gameboy/tools/debug';
 import SoundChip from './sound/sound';
 import Timer from './components/timer';
 import { DMAController } from './memory/dma';
-import InterruptController from './components/interrupt-controller';
 import { JoypadRegister } from './components/joypad';
 import { SerialPort } from './components/serial';
 import { R16 } from './cpu/cpu_types';
@@ -45,7 +44,6 @@ export default class GameBoy {
     bus = new MemoryBus(this);
     serial = new SerialPort();
     joypad = new JoypadRegister(this);
-    interrupts = new InterruptController(this);
     dma = new DMAController(this);
     soundChip = new SoundChip(this);
     timer = new Timer(this);
@@ -140,7 +138,6 @@ export default class GameBoy {
         this.bus.serialize(state);
         this.cpu.serialize(state);
         this.gpu.serialize(state);
-        this.interrupts.serialize(state);
         this.soundChip.serialize(state);
         this.timer.serialize(state);
 
@@ -166,7 +163,6 @@ export default class GameBoy {
         this.bus.deserialize(state);
         this.cpu.deserialize(state);
         this.gpu.deserialize(state);
-        this.interrupts.deserialize(state);
         this.soundChip.deserialize(state);
         this.timer.deserialize(state);
 
@@ -175,7 +171,6 @@ export default class GameBoy {
     reset() {
         this.cpu.reset();
         this.gpu.reset();
-        this.interrupts.reset();
         this.bus.reset();
         this.timer.reset();
         this.soundChip.reset();
