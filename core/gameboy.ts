@@ -12,7 +12,7 @@ import { SerialPort } from './components/serial';
 import { R16 } from './cpu/cpu_types';
 import { hex } from '../src/gameboy/tools/util';
 import { bitSetValue, bitGet } from './bit_constants';
-import { Serializer, PUT_8, GET_8, PUT_BOOL, GET_BOOL } from './serialize';
+import { Serializer, PUT_8, GET_8, PUT_BOOL, GET_BOOL, PUT_16LE } from './serialize';
 
 export default class GameBoy {
     constructor(cgb: boolean) {
@@ -139,6 +139,7 @@ export default class GameBoy {
 
         this.bus.serialize(state);
         this.cpu.serialize(state);
+        this.gpu.serialize(state);
     }
 
     deserialize() {
@@ -152,6 +153,7 @@ export default class GameBoy {
 
         this.bus.deserialize(state);
         this.cpu.deserialize(state);
+        this.gpu.deserialize(state);
 
     }
 
