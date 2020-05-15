@@ -13,6 +13,7 @@ import { hex } from "../../src/gameboy/tools/util";
 import InterruptController from "../components/interrupt-controller";
 import { JoypadRegister } from "../components/joypad";
 import MBC5 from "./mbc/mbc5";
+import { PUT_8, Serializer, GET_8, PUT_8ARRAY, GET_8ARRAY, PUT_BOOL, GET_BOOL } from "../serialize";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -30,16 +31,12 @@ class MemoryBus {
     }
 
     gb: GameBoy;
-
     ext: ExternalBus;
 
     workRamBanks = new Array(8).fill(0).map(() => new Uint8Array(4096).fill(0));
-    workRamBank = this.workRamBanks[1];
     workRamBankIndex = 1;
-
     highRam = new Uint8Array(128).fill(0);
     bootrom = new Uint8Array(256).fill(0);
-
     bootromEnabled = true;
     bootromLoaded = false;
 
@@ -123,7 +120,7 @@ class MemoryBus {
     }
 
     private readRamX(addr: number): number {
-        return this.workRamBank[addr & 0xFFF];
+        return this.workRamBanks[this.workRamBankIndex][addr & 0xFFF];
     }
 
     private readHigh(addr: number): number {
@@ -236,7 +233,7 @@ class MemoryBus {
     }
 
     private writeRamX(addr: number, value: number): void {
-        this.workRamBank[addr & 0xFFF] = value;
+        this.workRamBanks[this.workRamBankIndex][addr & 0xFFF] = value;
     }
 
     private writeHigh(addr: number, value: number): void {
@@ -282,7 +279,6 @@ class MemoryBus {
                 case 0xFF70:
                     if (this.gb.cgb) {
                         if (value === 0) value = 1;
-                        this.workRamBank = this.workRamBanks[value & 0b111];
                         this.workRamBankIndex = value & 0b111;
                     }
                     break;
@@ -335,7 +331,32 @@ class MemoryBus {
         });
 
         this.ext.mbc.reset();
-        this.workRamBank = this.workRamBanks[1];
+        this.workRamBankIndex = 1;
+    }
+
+    serialize(state: Serializer) {
+        for (let i = 0; i < 8; i++) {
+            let data = this.workRamBanks[i];
+            PUT_8ARRAY(state, data, 0x4000);
+        }
+
+        PUT_8(state, this.workRamBankIndex);
+        PUT_8ARRAY(state, this.highRam, 128);
+        PUT_8ARRAY(state, this.bootrom, 256);
+        PUT_BOOL(state, this.bootromEnabled);
+        PUT_BOOL(state, this.bootromLoaded);
+    }
+
+    deserialize(state: Serializer) {
+        for (let i = 0; i < 8; i++) {
+            this.workRamBanks[i] = GET_8ARRAY(state, 0x4000);
+        }
+
+        this.workRamBankIndex = GET_8(state);
+        this.highRam = GET_8ARRAY(state, 128);
+        this.bootrom = GET_8ARRAY(state, 256);
+        this.bootromEnabled = GET_BOOL(state);
+        this.bootromLoaded = GET_BOOL(state);
     }
 }
 

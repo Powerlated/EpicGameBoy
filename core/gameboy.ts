@@ -12,6 +12,7 @@ import { SerialPort } from './components/serial';
 import { R16 } from './cpu/cpu_types';
 import { hex } from '../src/gameboy/tools/util';
 import { bitSetValue, bitGet } from './bit_constants';
+import { Serializer, PUT_8, GET_8, PUT_BOOL, GET_BOOL } from './serialize';
 
 export default class GameBoy {
     constructor(cgb: boolean) {
@@ -42,22 +43,17 @@ export default class GameBoy {
     cpu = new CPU(this);
     gpu = new GPU(this);
     bus = new MemoryBus(this);
-
     serial = new SerialPort();
-
     joypad = new JoypadRegister(this);
-
     interrupts = new InterruptController(this);
-
     dma = new DMAController(this);
+    soundChip = new SoundChip(this);
+    timer = new Timer(this);
 
     cgb = false;
     doubleSpeedShift = 1;
     prepareSpeedSwitch = false;
 
-    soundChip = new SoundChip(this);
-
-    timer = new Timer(this);
 
     speedMul = 1;
     speedIntervals: Array<number> = [];
@@ -68,9 +64,6 @@ export default class GameBoy {
     step(): number {
         return this.cpu.execute();
     }
-
-    until = 0;
-    pending = 0;
 
     tick(cyclesRan: number) {
         // Timer runs at double speed as well, so use the unmodified value for timer
@@ -132,6 +125,36 @@ export default class GameBoy {
         }
     }
 
+    state: Serializer = new Serializer();
+
+    serialize() {
+        this.state = new Serializer();
+        const state = this.state;
+        
+        state.resetPos();
+
+        PUT_8(state, this.doubleSpeedShift);
+        PUT_BOOL(state, this.cgb);
+        PUT_BOOL(state, this.prepareSpeedSwitch);
+
+        this.bus.serialize(state);
+        this.cpu.serialize(state);
+    }
+
+    deserialize() {
+        const state = this.state;
+
+        state.resetPos();
+
+        this.doubleSpeedShift = GET_8(state);
+        this.cgb = GET_BOOL(state);
+        this.prepareSpeedSwitch = GET_BOOL(state);
+
+        this.bus.deserialize(state);
+        this.cpu.deserialize(state);
+
+    }
+
     reset() {
         this.cpu.reset();
         this.gpu.reset();
@@ -144,10 +167,7 @@ export default class GameBoy {
         this.doubleSpeedShift = 0;
         this.prepareSpeedSwitch = false;
 
-        this.until = 0;
-        this.pending = 0;
-
-        console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
+        // console.log("No bootrom is loaded, starting execution at 0x100 with proper values loaded");
         this.cpu.pc = 0x100;
 
         // Games check A for 0x11 to detect a CGB

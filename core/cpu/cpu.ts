@@ -9,6 +9,7 @@ import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
 import Decoder from "./legacy_decoder";
 import { BIT_7, BIT_6, BIT_5, BIT_4 } from "../bit_constants";
 import { R16, R8, CC } from "./cpu_types";
+import { Serializer, PUT_32LE, PUT_BOOL, PUT_16LE, PUT_8, GET_32LE, GET_BOOL, GET_16LE, GET_8 } from "../serialize";
 
 function undefErr(cpu: CPU, name: string) {
     alert(`
@@ -181,10 +182,16 @@ export default class CPU {
         writeDebug("CPU Bootstrap!");
     }
 
+    cycles = 0;
+    pendingCycles = 0;
     halted = false;
     haltBug = false;
-
     invalidOpcodeExecuted = false;
+    pc: number = 0x0000;
+    scheduleEnableInterruptsForNextTick = false;
+    totalI = 0;
+    reg = new Registers(this);
+
     gb: GameBoy;
 
     logging = false;
@@ -194,17 +201,10 @@ export default class CPU {
 
     // jumpLog: Array<string> = [];
 
-    reg = new Registers(this);
-    pc: number = 0x0000;
-
     breakpoints = new Array<boolean>(65536).fill(false);
 
-    scheduleEnableInterruptsForNextTick = false;
 
     // #region
-
-    cycles = 0;
-    pendingCycles = 0;
 
     lastSerialOut = 0;
     lastInstructionDebug = "";
@@ -214,7 +214,6 @@ export default class CPU {
     lastOpcode = 0;
     lastOpcodeReps = 0;
 
-    totalI = 0;
     time = 0;
 
     debugging = false;
@@ -555,6 +554,58 @@ export default class CPU {
         const value = this.read16_tick(this.reg.sp);
         this.reg.sp = (this.reg.sp + 2) & 0xFFFF;
         return value;
+    }
+
+    serialize(state: Serializer) {
+        PUT_32LE(state, this.cycles);
+        PUT_32LE(state, this.pendingCycles);
+        PUT_BOOL(state, this.halted);
+        PUT_BOOL(state, this.haltBug);
+        PUT_BOOL(state, this.invalidOpcodeExecuted);
+        PUT_16LE(state, this.pc);
+        PUT_BOOL(state, this.scheduleEnableInterruptsForNextTick);
+        PUT_32LE(state, this.totalI);
+
+        PUT_8(state, this.reg.sp);
+
+        PUT_8(state, this.reg[R8.A]);
+        PUT_8(state, this.reg[R8.B]);
+        PUT_8(state, this.reg[R8.C]);
+        PUT_8(state, this.reg[R8.D]);
+        PUT_8(state, this.reg[R8.E]);
+        PUT_8(state, this.reg[R8.H]);
+        PUT_8(state, this.reg[R8.L]);
+
+        PUT_BOOL(state, this.reg._f.carry);
+        PUT_BOOL(state, this.reg._f.half_carry);
+        PUT_BOOL(state, this.reg._f.negative);
+        PUT_BOOL(state, this.reg._f.zero);
+    }
+
+    deserialize(state: Serializer) {
+        this.cycles = GET_32LE(state);
+        this.pendingCycles = GET_32LE(state);
+        this.halted = GET_BOOL(state);
+        this.haltBug = GET_BOOL(state);
+        this.invalidOpcodeExecuted = GET_BOOL(state);
+        this.pc = GET_16LE(state);
+        this.scheduleEnableInterruptsForNextTick = GET_BOOL(state);
+        this.totalI = GET_32LE(state);
+
+        this.reg.sp = GET_8(state);
+
+        this.reg[R8.A] = GET_8(state);
+        this.reg[R8.B] = GET_8(state);
+        this.reg[R8.C] = GET_8(state);
+        this.reg[R8.D] = GET_8(state);
+        this.reg[R8.E] = GET_8(state);
+        this.reg[R8.H] = GET_8(state);
+        this.reg[R8.L] = GET_8(state);
+
+        this.reg._f.carry = GET_BOOL(state);
+        this.reg._f.half_carry = GET_BOOL(state);
+        this.reg._f.negative = GET_BOOL(state);
+        this.reg._f.zero = GET_BOOL(state);
     }
 }
 
