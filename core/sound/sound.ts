@@ -30,7 +30,7 @@ export default class SoundChip implements HWIO {
 
     ap: AudioPlugin | null = null;
 
-    soundRegisters = new Uint8Array(65536).fill(0);
+    soundRegisters = new Uint8Array(64).fill(0);
 
     advanceFrameSequencer() {
         // 512Hz Frame Sequencer
@@ -214,7 +214,7 @@ export default class SoundChip implements HWIO {
 
     writeHwio(addr: number, value: number) {
         if (this.enabled) {
-            this.soundRegisters[addr] = value;
+            this.soundRegisters[addr - 0xFF10] = value;
 
             switch (addr) {
                 // Pulse 1
@@ -409,7 +409,7 @@ export default class SoundChip implements HWIO {
                 this.writeHwio(0xFF23, 0);
 
                 for (let i = 0xFF10; i <= 0xFF25; i++) {
-                    this.soundRegisters[i] = 0;
+                    this.soundRegisters[i - 0xFF10] = 0;
                 }
                 this.enabled = false;
             }
@@ -418,7 +418,7 @@ export default class SoundChip implements HWIO {
 
     readHwio(addr: number): number {
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
-            let i = this.soundRegisters[addr];
+            let i = this.soundRegisters[addr - 0xFF10];
 
             if (addr >= 0xFF27 && addr <= 0xFF2F) return 0xFF;
 
@@ -595,7 +595,7 @@ export default class SoundChip implements HWIO {
         PUT_8(state, this.noise.envelopeSweep);
         PUT_BOOL(state, this.noise.updated);
 
-        PUT_8ARRAY(state, this.soundRegisters, 65536);
+        PUT_8ARRAY(state, this.soundRegisters, 64);
 
     }
 
@@ -679,7 +679,7 @@ export default class SoundChip implements HWIO {
         this.noise.envelopeSweep = GET_8(state);
         this.noise.updated = GET_BOOL(state);
 
-        this.soundRegisters = GET_8ARRAY(state, 65536);
+        this.soundRegisters = GET_8ARRAY(state, 64);
 
         if (this.ap) {
             this.ap.noise(this);

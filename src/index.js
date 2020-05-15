@@ -279,7 +279,36 @@ function init() {
                 $('#big-screen').click();
                 e.preventDefault();
             }
+            else if (e.key === "F1") {
+                gb.serialize(1);
+                e.preventDefault();
+            } else if (e.key === "F2") {
+                gb.serialize(2);
+                e.preventDefault();
+            } else if (e.key === "F3") {
+                gb.serialize(3);
+                e.preventDefault();
+            } else if (e.key === "F4") {
+                gb.serialize(4);
+                e.preventDefault();
+            }
+        } else {
+            if (e.key === "F1") {
+                gb.deserialize(1);
+                e.preventDefault();
+            } else if (e.key === "F2") {
+                gb.deserialize(2);
+                e.preventDefault();
+            } else if (e.key === "F3") {
+                gb.deserialize(3);
+                e.preventDefault();
+            } else if (e.key === "F4") {
+                gb.deserialize(4);
+                e.preventDefault();
+            }
         }
+
+
 
         if (e.getModifierState("Control")) {
             if (e.key === "r") {

@@ -335,9 +335,13 @@ class MemoryBus {
     }
 
     serialize(state: Serializer) {
-        for (let i = 0; i < 8; i++) {
-            let data = this.workRamBanks[i];
-            PUT_8ARRAY(state, data, 4096);
+        if (this.gb.cgb) {
+            for (let i = 0; i < 8; i++) {
+                PUT_8ARRAY(state, this.workRamBanks[i], 4096);
+            }
+        } else {
+            PUT_8ARRAY(state, this.workRamBanks[0], 4096);
+            PUT_8ARRAY(state, this.workRamBanks[1], 4096);
         }
 
         PUT_8(state, this.workRamBankIndex);
@@ -350,8 +354,13 @@ class MemoryBus {
     }
 
     deserialize(state: Serializer) {
-        for (let i = 0; i < 8; i++) {
-            this.workRamBanks[i] = GET_8ARRAY(state, 4096);
+        if (this.gb.cgb) {
+            for (let i = 0; i < 8; i++) {
+                this.workRamBanks[i] = GET_8ARRAY(state, 4096);
+            }
+        } else {
+            this.workRamBanks[0] = GET_8ARRAY(state, 4096);
+            this.workRamBanks[1] = GET_8ARRAY(state, 4096);
         }
 
         this.workRamBankIndex = GET_8(state);

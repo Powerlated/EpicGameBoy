@@ -83,7 +83,7 @@ export class OAMFlags {
     yFlip = false;
     xFlip = false;
     paletteNumberDMG = false; // DMG only (0, 1)
-    vramBank = false; // CGB only (0, 1)
+    vramBank = 0; // CGB only (0, 1)
     paletteNumberCGB = 0;
 
     getNumerical(): number {
@@ -108,7 +108,7 @@ export class OAMFlags {
         this.yFlip = (i & BIT_6) !== 0;
         this.xFlip = (i & BIT_5) !== 0;
         this.paletteNumberDMG = (i & BIT_4) !== 0;
-        this.vramBank = (i & BIT_3) !== 0;
+        this.vramBank = ((i & BIT_3) !== 0) ? 1 : 0;
 
         this.paletteNumberCGB = i & 0b111;
     }
@@ -175,7 +175,7 @@ class CGBTileFlags {
     ignoreSpritePriority = false; // Bit 7
     yFlip = false; // Bit 6
     xFlip = false; // Bit 5
-    vramBank = false; // Bit 3
+    vramBank = 0; // Bit 3
     bgPalette = 0; // Bit 0-2
 
 
@@ -198,7 +198,7 @@ class CGBTileFlags {
         this.ignoreSpritePriority = (i & BIT_7) !== 0;
         this.yFlip = (i & BIT_6) !== 0;
         this.xFlip = (i & BIT_5) !== 0;
-        this.vramBank = (i & BIT_3) !== 0;
+        this.vramBank = ((i & BIT_3) !== 0) ? 1 : 0;
 
         this.bgPalette = i & 0b111;
     }
@@ -225,19 +225,20 @@ class GPU implements HWIO {
 
     gb: GameBoy;
 
-    vram0 = new Uint8Array(0x2000);
-    vram1 = new Uint8Array(0x2000);
-    vram = [this.vram0, this.vram1];
+    vram = [
+        new Uint8Array(0x2000),
+        new Uint8Array(0x2000)
+    ];
 
     oam = new Uint8Array(160);
 
     totalFrameCount = 0;
 
     // [tile][column][row] - quite friendly for CPU cache
-    tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 0
-    tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))); // For bank 1
-
-    tileset = this.tileset0; // Assign active tileset reference to tileset 0
+    tileset = [
+        new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))), // For bank 0
+        new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))), // For bank 1
+    ];
 
     tilemap = new Uint8Array(2048); // For bank 0
     cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags()); // For bank 1
@@ -546,17 +547,20 @@ class GPU implements HWIO {
 
     reset() {
         this.totalFrameCount = 0;
-        this.vram0 = new Uint8Array(0x2000);
-        this.vram1 = new Uint8Array(0x2000);
+
+        this.vram = [
+            new Uint8Array(0x2000),
+            new Uint8Array(0x2000)
+        ];
 
         this.oam = new Uint8Array(160);
         this.totalFrameCount = 0;
 
         // [tile][pixel]
-        this.tileset0 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8)));
-        this.tileset1 = new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8)));
-
-        this.tileset = this.tileset0;
+        this.tileset = [
+            new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))), // For bank 0
+            new Array(384).fill(0).map(() => new Array(8).fill(0).map(() => new Uint8Array(8))), // For bank 1
+        ];
 
         this.tilemap = new Uint8Array(2048);
         this.cgbTileAttrs = new Array(2048).fill(0).map(() => new CGBTileFlags());
@@ -674,16 +678,15 @@ class GPU implements HWIO {
 
                 for (let x = 0; x < 8; x++) {
                     // Find bit index for this pixel
-                    const bytes = [this.vram[this.vramBank][adjIndex], this.vram[this.vramBank][adjIndex + 1]];
+                    const byte0 = this.vram[this.vramBank][adjIndex];
+                    const byte1 = this.vram[this.vramBank][adjIndex + 1];
 
                     const mask = 0b1 << (7 - x);
-                    const lsb = bytes[0] & mask;
-                    const msb = bytes[1] & mask;
+                    const lsb = byte0 & mask;
+                    const msb = byte1 & mask;
 
                     // Update tile set
-                    const tileset = this.vramBank === 1 ? this.tileset1 : this.tileset0;
-
-                    tileset[tile][y][x] =
+                    this.tileset[this.vramBank][tile][y][x] =
                         (lsb !== 0 ? 1 : 0) +
                         (msb !== 0 ? 2 : 0);
                 }
@@ -929,7 +932,6 @@ class GPU implements HWIO {
         while (true) {
             let tile = this.tilemap[mapOffset + lineOffset];
             let attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
-            let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
             let palette = this.cgbBgPalette.shades[attr.bgPalette];
 
@@ -939,7 +941,7 @@ class GPU implements HWIO {
             }
 
             let adjY = attr.yFlip ? y ^ 7 : y;
-            let tileRow = tileset[tile][adjY];
+            let tileRow = this.tileset[attr.vramBank][tile][adjY];
 
             if (!attr.xFlip) {
                 for (let i = 0; i < 8; i++) {
@@ -1002,7 +1004,6 @@ class GPU implements HWIO {
             while (true) {
                 let tile = this.tilemap[mapOffset];
                 let attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
-                let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
                 let palette = this.cgbBgPalette.shades[attr.bgPalette];
 
                 if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
@@ -1011,7 +1012,7 @@ class GPU implements HWIO {
                 }
 
                 let adjY = attr.yFlip ? y ^ 7 : y;
-                let tileRow = tileset[tile][adjY];
+                let tileRow = this.tileset[attr.vramBank][tile][adjY];
 
                 if (!attr.xFlip) {
                     for (let i = 0; i < 8; i++) {
@@ -1103,7 +1104,6 @@ class GPU implements HWIO {
 
             const y = (this.lY - yPos) & 7;
             const pal = this.gb.cgb ? flags.paletteNumberCGB : + flags.paletteNumberDMG;
-            const tileset = flags.vramBank ? this.tileset1 : this.tileset0;
 
             const h = this.lY > screenYPos + 7 ? 1 : 0;
 
@@ -1117,7 +1117,7 @@ class GPU implements HWIO {
             }
 
             const pixelY = flags.yFlip ? y ^ 7 : y;
-            const tileRow = tileset[tile][pixelY];
+            const tileRow = this.tileset[flags.vramBank][tile][pixelY];
 
             let imgIndex = ((this.lY * 160) + screenXPos) * 4;
 
@@ -1171,69 +1171,75 @@ class GPU implements HWIO {
     renderTiles() {
         const WIDTH = 256;
 
+        for (let i = 0; i < 2; i++) {
+            this.tileset[i].forEach((tile, tileIndex) => {
+                for (let tileY = 0; tileY < 8; tileY++) {
+                    const offset = (256 * 96) * i;
+                    const x = (tileIndex << 3) & 255;
+                    const y = tileY + (8 * (tileIndex >> 5));
 
-        this.tileset0.forEach((tile, tileIndex) => {
-            for (let tileY = 0; tileY < 8; tileY++) {
-                const offset = 0;
-                const x = (tileIndex << 3) & 255;
-                const y = tileY + (8 * (tileIndex >> 5));
+                    let index = 4 * (((y * WIDTH) + x) + offset);
+                    for (let tileX = 0; tileX < 8; tileX++) {
+                        const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
 
-                let index = 4 * (((y * WIDTH) + x) + offset);
-                for (let tileX = 0; tileX < 8; tileX++) {
-                    const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
+                        this.imageTileset.data[index + 0] = c[0];
+                        this.imageTileset.data[index + 1] = c[1];
+                        this.imageTileset.data[index + 2] = c[2];
 
-                    this.imageTileset.data[index + 0] = c[0];
-                    this.imageTileset.data[index + 1] = c[1];
-                    this.imageTileset.data[index + 2] = c[2];
+                        index += 4;
+                    }
+                }
+            });
+        }
+    }
 
-                    index += 4;
+    // Completely refresh the cached tileset from VRAM
+    regenerateTileset() {
+        for (let i = 0; i < 0x1800; i++) {
+            const tile = i >> 4;
+
+            let adjIndex = i & 0xFFFE;
+
+            // Work out which tile and row was updated
+            const y = (i & 0xF) >> 1;
+
+            for (let bank = 0; bank < 2; bank++) {
+                for (let pixelX = 0; pixelX < 8; pixelX++) {
+                    // Find bit index for this pixel
+                    let byte0 = this.vram[bank][adjIndex];
+                    let byte1 = this.vram[bank][adjIndex + 1];
+
+                    let mask = 0b1 << (7 - pixelX);
+                    let lsb = byte0 & mask;
+                    let msb = byte1 & mask;
+
+                    this.tileset[bank][tile][y][pixelX] =
+                        (lsb !== 0 ? 1 : 0) +
+                        (msb !== 0 ? 2 : 0);
                 }
             }
-        });
-        this.tileset1.forEach((tile, tileIndex) => {
-            for (let tileY = 0; tileY < 8; tileY++) {
-                const offset = (256 * 96);
-                const y = tileY + (8 * (tileIndex >> 5));
-                const x = (tileIndex << 3) & 255;
-
-                let index = 4 * (((y * WIDTH) + x) + offset);
-                for (let tileX = 0; tileX < 8; tileX++) {
-                    const c = this.cgbBgPalette.shades[0][tile[tileY][tileX]];
-
-                    this.imageTileset.data[index + 0] = c[0];
-                    this.imageTileset.data[index + 1] = c[1];
-                    this.imageTileset.data[index + 2] = c[2];
-
-                    index += 4;
-                }
-            }
-        });
+        }
     }
 
     serialize(state: Serializer) {
-        PUT_8ARRAY(state, this.vram0, 0x2000);
-        PUT_8ARRAY(state, this.vram1, 0x2000);
+        PUT_8ARRAY(state, this.vram[0], 0x2000);
+
+        if (this.gb.cgb)
+            PUT_8ARRAY(state, this.vram[1], 0x2000);
 
         PUT_8ARRAY(state, this.oam, 160);
-
-        for (let i = 0; i < 384; i++) {
-            for (let j = 0; j < 8; j++) {
-                PUT_8ARRAY(state, this.tileset0[i][j], 8);
-                PUT_8ARRAY(state, this.tileset1[i][j], 8);
-            }
-        }
-
         PUT_8ARRAY(state, this.tilemap, 2048);
 
-        for (let i = 0; i < 2048; i++) {
-            let attr = this.cgbTileAttrs[i];
+        if (this.gb.cgb)
+            for (let i = 0; i < 2048; i++) {
+                let attr = this.cgbTileAttrs[i];
 
-            PUT_8(state, attr.bgPalette);
-            PUT_BOOL(state, attr.vramBank);
-            PUT_BOOL(state, attr.ignoreSpritePriority);
-            PUT_BOOL(state, attr.xFlip);
-            PUT_BOOL(state, attr.yFlip);
-        }
+                PUT_8(state, attr.bgPalette);
+                PUT_8(state, attr.vramBank);
+                PUT_BOOL(state, attr.ignoreSpritePriority);
+                PUT_BOOL(state, attr.xFlip);
+                PUT_BOOL(state, attr.yFlip);
+            }
 
         PUT_BOOL(state, this.lcdControl.bgWindowEnable0);
         PUT_BOOL(state, this.lcdControl.spriteDisplay___1);
@@ -1290,29 +1296,26 @@ class GPU implements HWIO {
     }
 
     deserialize(state: Serializer) {
-        this.vram0 = GET_8ARRAY(state, 0x2000);
-        this.vram1 = GET_8ARRAY(state, 0x2000);
+        this.vram[0] = GET_8ARRAY(state, 0x2000);
+
+        if (this.gb.cgb)
+            this.vram[1] = GET_8ARRAY(state, 0x2000);
+
+        this.regenerateTileset();
 
         this.oam = GET_8ARRAY(state, 160);
-
-        for (let i = 0; i < 384; i++) {
-            for (let j = 0; j < 8; j++) {
-                this.tileset0[i][j] = GET_8ARRAY(state, 8);
-                this.tileset1[i][j] = GET_8ARRAY(state, 8);
-            }
-        }
-
         this.tilemap = GET_8ARRAY(state, 2048);
 
-        for (let i = 0; i < 2048; i++) {
-            let attr = this.cgbTileAttrs[i];
+        if (this.gb.cgb)
+            for (let i = 0; i < 2048; i++) {
+                let attr = this.cgbTileAttrs[i];
 
-            attr.bgPalette = GET_8(state);
-            attr.vramBank = GET_BOOL(state);
-            attr.ignoreSpritePriority = GET_BOOL(state);
-            attr.xFlip = GET_BOOL(state);
-            attr.yFlip = GET_BOOL(state);
-        }
+                attr.bgPalette = GET_8(state);
+                attr.vramBank = GET_8(state);
+                attr.ignoreSpritePriority = GET_BOOL(state);
+                attr.xFlip = GET_BOOL(state);
+                attr.yFlip = GET_BOOL(state);
+            }
 
         this.lcdControl.bgWindowEnable0 = GET_BOOL(state);
         this.lcdControl.spriteDisplay___1 = GET_BOOL(state);

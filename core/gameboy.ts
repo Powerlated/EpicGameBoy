@@ -125,12 +125,12 @@ export default class GameBoy {
         }
     }
 
-    state: Serializer = new Serializer();
+    state: Serializer[] = [];
 
-    serialize() {
-        this.state = new Serializer();
-        const state = this.state;
-        
+    serialize(id: number) {
+        this.state[id] = new Serializer(this.bus.ext.romTitle);
+        const state = this.state[id];
+
         state.resetPos();
 
         PUT_8(state, this.doubleSpeedShift);
@@ -144,10 +144,18 @@ export default class GameBoy {
         this.soundChip.serialize(state);
         this.timer.serialize(state);
 
+        console.log(`Serialize: ${state.pos} bytes`)
     }
 
-    deserialize() {
-        const state = this.state;
+    deserialize(id: number) {
+        if (!this.state[id]) return;
+
+        const state = this.state[id];
+
+        if (this.bus.ext.romTitle !== state.id) {
+            console.log("Deserialize: Wrong game")
+            return;
+        }
 
         state.resetPos();
 
