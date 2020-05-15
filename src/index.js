@@ -147,6 +147,11 @@ $('#big-screen').addEventListener('change', function (e) {
     }
 }, false);
 
+window.altControls = false;
+$('#altControls').addEventListener('change', function (e) {
+    window.altControls = e.target.checked;
+}, false);
+
 $('#haltInput').addEventListener('change', function (e) {
     gb.cpu.setBreakpoint(parseInt(`0x${e.target.value}`));
 }, false);
@@ -288,72 +293,65 @@ function init() {
             e.preventDefault();
         }
 
+        if (window.altControls) {
+            switch (e.key.toLowerCase()) {
+                case "a": gb.joypad.left = true; break;
+                case "w": gb.joypad.up = true; break;
+                case "d": gb.joypad.right = true; break;
+                case "s": gb.joypad.down = true; break;
+
+                case "k": gb.joypad.a = true; break;
+                case "j": gb.joypad.b = true; break;
+            }
+        } else {
+            switch (e.key.toLowerCase()) {
+                case "arrowleft": gb.joypad.left = true; break;
+                case "arrowup": gb.joypad.up = true; break;
+                case "arrowright": gb.joypad.right = true; break;
+                case "arrowdown": gb.joypad.down = true; break;
+
+                case "x": gb.joypad.a = true; break;
+                case "z": gb.joypad.b = true; break;
+            }
+        }
+
         switch (e.key) {
-            case "ArrowLeft":
-                gb.joypad.left = true;
-                break;
-            case "ArrowUp":
-                gb.joypad.up = true;
-                break;
-            case "ArrowRight":
-                gb.joypad.right = true;
-                break;
-            case "ArrowDown":
-                gb.joypad.down = true;
-                break;
-
-            case "x":
-                gb.joypad.a = true;
-                break;
-            case "z":
-                gb.joypad.b = true;
-                break;
-            case "Enter":
-                gb.joypad.start = true;
-                break;
-            case "\\":
-                gb.joypad.select = true;
-                break;
-
-            case "Tab":
-                gb.speedMul = window.speedMul;
-                break;
+            case "Enter": gb.joypad.start = true; break;
+            case "\\": gb.joypad.select = true; break;
+            case "Tab": gb.speedMul = window.speedMul; break;
         }
     };
     document.onkeyup = function (e) {
         if (block.includes(e.key))
             e.preventDefault();
 
+        if (window.altControls) {
+            switch (e.key.toLowerCase()) {
+                case "a": gb.joypad.left = false; break;
+                case "w": gb.joypad.up = false; break;
+                case "d": gb.joypad.right = false; break;
+                case "s": gb.joypad.down = false; break;
+
+                case "k": gb.joypad.a = false; break;
+                case "j": gb.joypad.b = false; break;
+            }
+        } else {
+            switch (e.key.toLowerCase()) {
+                case "arrowleft": gb.joypad.left = false; break;
+                case "arrowup": gb.joypad.up = false; break;
+                case "arrowright": gb.joypad.right = false; break;
+                case "arrowdown": gb.joypad.down = false; break;
+
+                case "x": gb.joypad.a = false; break;
+                case "z": gb.joypad.b = false; break;
+            }
+        }
+
         switch (e.key) {
-            case "ArrowLeft":
-                gb.joypad.left = false;
-                break;
-            case "ArrowUp":
-                gb.joypad.up = false;
-                break;
-            case "ArrowRight":
-                gb.joypad.right = false;
-                break;
-            case "ArrowDown":
-                gb.joypad.down = false;
-                break;
+            case "Enter": gb.joypad.start = false; break;
+            case "\\": gb.joypad.select = false; break;
 
-            case "x":
-                gb.joypad.a = false;
-                break;
-            case "z":
-                gb.joypad.b = false;
-                break;
-            case "Enter":
-                gb.joypad.start = false;
-                break;
-            case "\\":
-                gb.joypad.select = false;
-                break;
-
-            case "Tab":
-                gb.speedMul = 1;
-                break;
+            case "Tab": gb.speedMul = 1; break;
         }
     };
 };
