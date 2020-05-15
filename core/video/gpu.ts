@@ -257,6 +257,8 @@ class GPU implements HWIO {
     cgbObjPaletteIndexAutoInc = false;
     cgbObjPalette = new CGBPaletteData();
 
+    cgbObjPriority = false;
+
     vramBank = 0;
 
     dmgBgPalette = 0;
@@ -649,6 +651,7 @@ class GPU implements HWIO {
     write(index: number, value: number) {
         // During mode 3, the CPU cannot access VRAM or CGB palette data
         if (this.lcdStatus.mode === LCDMode.VRAM) return;
+        index |= 0x8000;
         let adjIndex = index & 0x7FFF;
 
         if (this.vram[adjIndex] !== value) {
@@ -735,6 +738,13 @@ class GPU implements HWIO {
                 break;
             case 0xFF6B: // CGB - Sprite Palette Data
                 if (this.gb.cgb) return this.cgbObjPalette.data[this.cgbObjPaletteIndex];
+                break;
+            case 0xFF6C: // Undocumented register 0xFF6C
+                if (this.gb.cgb) {
+                    return 0xFE | (this.cgbObjPriority ? 1 : 0);
+                } else {
+                    return 0xFF;
+                }
                 break;
         }
 
@@ -847,6 +857,11 @@ class GPU implements HWIO {
                     }
                 }
                 break;
+            case 0xFF6C: // Undocumented register 0xFF6C
+                if (this.gb.cgb) {
+                    this.cgbObjPriority = (value & 1) !== 0;
+                }
+                break;
         }
     }
 
@@ -910,38 +925,29 @@ class GPU implements HWIO {
         const xPos = this.windowXpos - 7; // Get the real X position of the window
         const endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos && xPos <= 160 ? xPos : 160;
 
-        let adjY: number;
-        let tileRow: Uint8Array;
-        let color: Uint8Array;
         let pixel = -x;
-        let prePalette = 0;
-        let palette: Uint8Array[];
-        let attr: CGBTileFlags;
-        let tile: number;
-        let tileset: Uint8Array[][];
 
         while (true) {
-            tile = this.tilemap[mapOffset + lineOffset];
-            attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
-            tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+            let tile = this.tilemap[mapOffset + lineOffset];
+            let attr = this.cgbTileAttrs[mapOffset + lineOffset]; // Update attributes too
+            let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
 
-            palette = this.cgbBgPalette.shades[attr.bgPalette];
+            let palette = this.cgbBgPalette.shades[attr.bgPalette];
 
             if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
                 // Two's Complement on high tileset
                 tile = unTwo8b(tile) + 256;
             }
 
-            adjY = attr.yFlip ? y ^ 7 : y;
-
-            tileRow = tileset[tile][adjY];
+            let adjY = attr.yFlip ? y ^ 7 : y;
+            let tileRow = tileset[tile][adjY];
 
             if (!attr.xFlip) {
                 for (let i = 0; i < 8; i++) {
                     if (pixel >= endAt) return;
                     if (pixel >= 0) {
-                        prePalette = tileRow[i];
-                        color = palette[prePalette];
+                        let prePalette = tileRow[i];
+                        let color = palette[prePalette];
 
                         this.pre[pixel] = prePalette;
                         this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
@@ -958,9 +964,8 @@ class GPU implements HWIO {
                 for (let i = 7; i >= 0; i--) {
                     if (pixel >= endAt) return;
                     if (pixel >= 0) {
-                        prePalette = tileRow[i];
-
-                        color = palette[prePalette];
+                        let prePalette = tileRow[i];
+                        let color = palette[prePalette];
 
                         this.pre[pixel] = prePalette;
                         this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
@@ -991,39 +996,30 @@ class GPU implements HWIO {
 
             const y = this.currentWindowLine & 0b111; // CORRECT
 
-            let adjY: number;
-            let tileRow: Uint8Array;
-            let color: Uint8Array;
-            let pixel = this.windowXpos - 7;;
-            let prePalette = 0;
-            let palette: Uint8Array[];
-            let attr: CGBTileFlags;
-            let tile: number;
-            let tileset: Uint8Array[][];
+            let pixel = this.windowXpos - 7;
 
             let imgIndex = 160 * 4 * (this.lY) + (pixel * 4);
 
             while (true) {
-                tile = this.tilemap[mapOffset];
-                attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
-                tileset = attr.vramBank ? this.tileset1 : this.tileset0;
-                palette = this.cgbBgPalette.shades[attr.bgPalette];
+                let tile = this.tilemap[mapOffset];
+                let attr = this.cgbTileAttrs[mapOffset]; // Update attributes too
+                let tileset = attr.vramBank ? this.tileset1 : this.tileset0;
+                let palette = this.cgbBgPalette.shades[attr.bgPalette];
 
                 if (this.lcdControl.bgWindowTiledataSelect__4 === false) {
                     // Two's Complement on high tileset
                     tile = unTwo8b(tile) + 256;
                 }
 
-                adjY = attr.yFlip ? y ^ 7 : y;
-
-                tileRow = tileset[tile][adjY];
+                let adjY = attr.yFlip ? y ^ 7 : y;
+                let tileRow = tileset[tile][adjY];
 
                 if (!attr.xFlip) {
                     for (let i = 0; i < 8; i++) {
                         if (pixel >= 160) return;
                         if (pixel >= 0) {
-                            prePalette = tileRow[i];
-                            color = palette[prePalette];
+                            let prePalette = tileRow[i];
+                            let color = palette[prePalette];
 
                             this.pre[pixel] = prePalette;
                             this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;
@@ -1040,9 +1036,8 @@ class GPU implements HWIO {
                     for (let i = 7; i >= 0; i--) {
                         if (pixel >= 160) return;
                         if (pixel >= 0) {
-                            prePalette = tileRow[i];
-
-                            color = palette[prePalette];
+                            let prePalette = tileRow[i];
+                            let color = palette[prePalette];
 
                             this.pre[pixel] = prePalette;
                             this.noSprites[pixel] = attr.ignoreSpritePriority === true && prePalette !== 0;

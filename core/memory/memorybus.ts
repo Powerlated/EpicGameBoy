@@ -181,6 +181,8 @@ class MemoryBus {
                 return this.gb.dma.readHwio(addr); // DMA
             } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
                 return this.gb.gpu.readHwio(addr); // CGB Palette Data
+            } else if (addr === 0xFF6C) {
+                return this.gb.gpu.readHwio(addr); // FF6C undocumented
             }
         }
         return 0xFF;
@@ -302,6 +304,8 @@ class MemoryBus {
                 this.gb.dma.writeHwio(addr, value);
             } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
                 this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
+            } else if (addr === 0xFF6C) {
+                this.gb.gpu.writeHwio(addr, value); // FF6C undocumented
             }
         }
     }
