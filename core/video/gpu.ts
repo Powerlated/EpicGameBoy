@@ -4,7 +4,7 @@ import { hex, unTwo8b } from "../../src/gameboy/tools/util";
 import { VideoPlugin } from "./videoplugin";
 import { HWIO } from "../memory/hwio";
 import { BIT_7, BIT_6, BIT_5, BIT_4, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
-import { PUT_8ARRAY, Serializer, PUT_BOOL, PUT_8, GET_8ARRAY, GET_8, GET_BOOL, GET_16LE, PUT_16LE } from "../serialize";
+import { Serializer } from "../serialize";
 
 class LCDCRegister {
     // https://gbdev.gg8.se/wiki/articles/Video_Display#LCD_Control_Register
@@ -1222,156 +1222,156 @@ class GPU implements HWIO {
     }
 
     serialize(state: Serializer) {
-        PUT_8ARRAY(state, this.vram[0], 0x2000);
+        state.PUT_8ARRAY(this.vram[0], 0x2000);
 
         if (this.gb.cgb)
-            PUT_8ARRAY(state, this.vram[1], 0x2000);
+            state.PUT_8ARRAY(this.vram[1], 0x2000);
 
-        PUT_8ARRAY(state, this.oam, 160);
-        PUT_8ARRAY(state, this.tilemap, 2048);
+        state.PUT_8ARRAY(this.oam, 160);
+        state.PUT_8ARRAY(this.tilemap, 2048);
 
         if (this.gb.cgb)
             for (let i = 0; i < 2048; i++) {
                 let attr = this.cgbTileAttrs[i];
 
-                PUT_8(state, attr.bgPalette);
-                PUT_8(state, attr.vramBank);
-                PUT_BOOL(state, attr.ignoreSpritePriority);
-                PUT_BOOL(state, attr.xFlip);
-                PUT_BOOL(state, attr.yFlip);
+                state.PUT_8(attr.bgPalette);
+                state.PUT_8(attr.vramBank);
+                state.PUT_BOOL(attr.ignoreSpritePriority);
+                state.PUT_BOOL(attr.xFlip);
+                state.PUT_BOOL(attr.yFlip);
             }
 
-        PUT_BOOL(state, this.lcdControl.bgWindowEnable0);
-        PUT_BOOL(state, this.lcdControl.spriteDisplay___1);
-        PUT_BOOL(state, this.lcdControl.spriteSize______2);
-        PUT_BOOL(state, this.lcdControl.bgTilemapSelect_3);
-        PUT_BOOL(state, this.lcdControl.bgWindowTiledataSelect__4);
-        PUT_BOOL(state, this.lcdControl.enableWindow____5);
-        PUT_BOOL(state, this.lcdControl.windowTilemapSelect___6);
-        PUT_BOOL(state, this.lcdControl.lcdDisplayEnable7);
+        state.PUT_BOOL(this.lcdControl.bgWindowEnable0);
+        state.PUT_BOOL(this.lcdControl.spriteDisplay___1);
+        state.PUT_BOOL(this.lcdControl.spriteSize______2);
+        state.PUT_BOOL(this.lcdControl.bgTilemapSelect_3);
+        state.PUT_BOOL(this.lcdControl.bgWindowTiledataSelect__4);
+        state.PUT_BOOL(this.lcdControl.enableWindow____5);
+        state.PUT_BOOL(this.lcdControl.windowTilemapSelect___6);
+        state.PUT_BOOL(this.lcdControl.lcdDisplayEnable7);
 
-        PUT_8(state, this.lcdStatus.mode);
-        PUT_BOOL(state, this.lcdStatus.coincidenceFlag_______2);
-        PUT_BOOL(state, this.lcdStatus.mode0HblankInterrupt__3);
-        PUT_BOOL(state, this.lcdStatus.mode1VblankInterrupt__4);
-        PUT_BOOL(state, this.lcdStatus.mode2OamInterrupt_____5);
-        PUT_BOOL(state, this.lcdStatus.lyCoincidenceInterrupt6);
+        state.PUT_8(this.lcdStatus.mode);
+        state.PUT_BOOL(this.lcdStatus.coincidenceFlag_______2);
+        state.PUT_BOOL(this.lcdStatus.mode0HblankInterrupt__3);
+        state.PUT_BOOL(this.lcdStatus.mode1VblankInterrupt__4);
+        state.PUT_BOOL(this.lcdStatus.mode2OamInterrupt_____5);
+        state.PUT_BOOL(this.lcdStatus.lyCoincidenceInterrupt6);
 
-        PUT_8(state, this.scrY);
-        PUT_8(state, this.scrX);
+        state.PUT_8(this.scrY);
+        state.PUT_8(this.scrX);
 
-        PUT_8(state, this.lY);
-        PUT_8(state, this.lYCompare);
+        state.PUT_8(this.lY);
+        state.PUT_8(this.lYCompare);
 
-        PUT_8(state, this.windowXpos);
-        PUT_8(state, this.windowYpos);
+        state.PUT_8(this.windowXpos);
+        state.PUT_8(this.windowYpos);
 
-        PUT_8(state, this.cgbBgPaletteIndex);
-        PUT_BOOL(state, this.cgbBgPaletteIndexAutoInc);
-        PUT_8ARRAY(state, this.cgbBgPalette.data, 64);
+        state.PUT_8(this.cgbBgPaletteIndex);
+        state.PUT_BOOL(this.cgbBgPaletteIndexAutoInc);
+        state.PUT_8ARRAY(this.cgbBgPalette.data, 64);
 
-        PUT_8(state, this.cgbObjPaletteIndex);
-        PUT_BOOL(state, this.cgbObjPaletteIndexAutoInc);
-        PUT_8ARRAY(state, this.cgbObjPalette.data, 64);
+        state.PUT_8(this.cgbObjPaletteIndex);
+        state.PUT_BOOL(this.cgbObjPaletteIndexAutoInc);
+        state.PUT_8ARRAY(this.cgbObjPalette.data, 64);
 
-        PUT_BOOL(state, this.cgbObjPriority);
+        state.PUT_BOOL(this.cgbObjPriority);
 
-        PUT_8(state, this.vramBank);
+        state.PUT_8(this.vramBank);
 
-        PUT_8(state, this.dmgBgPalette);
-        PUT_8(state, this.dmgObj0Palette);
-        PUT_8(state, this.dmgObj1Palette);
+        state.PUT_8(this.dmgBgPalette);
+        state.PUT_8(this.dmgObj0Palette);
+        state.PUT_8(this.dmgObj1Palette);
 
-        PUT_BOOL(state, this.lcdStatusMode0);
-        PUT_BOOL(state, this.lcdStatusMode1);
-        PUT_BOOL(state, this.lcdStatusMode2);
-        PUT_BOOL(state, this.lcdStatusCoincidence);
-        PUT_BOOL(state, this.lcdStatusConditionMet);
-        PUT_BOOL(state, this.lcdStatusFired);
+        state.PUT_BOOL(this.lcdStatusMode0);
+        state.PUT_BOOL(this.lcdStatusMode1);
+        state.PUT_BOOL(this.lcdStatusMode2);
+        state.PUT_BOOL(this.lcdStatusCoincidence);
+        state.PUT_BOOL(this.lcdStatusConditionMet);
+        state.PUT_BOOL(this.lcdStatusFired);
 
-        PUT_16LE(state, this.lineClock);
+        state.PUT_16LE(this.lineClock);
 
-        PUT_8(state, this.currentWindowLine);
-        PUT_BOOL(state, this.windowOnscreenYetThisFrame);
+        state.PUT_8(this.currentWindowLine);
+        state.PUT_BOOL(this.windowOnscreenYetThisFrame);
     }
 
     deserialize(state: Serializer) {
-        this.vram[0] = GET_8ARRAY(state, 0x2000);
+        this.vram[0] = state.GET_8ARRAY(0x2000);
 
         if (this.gb.cgb)
-            this.vram[1] = GET_8ARRAY(state, 0x2000);
+            this.vram[1] = state.GET_8ARRAY(0x2000);
 
         this.regenerateTileset();
 
-        this.oam = GET_8ARRAY(state, 160);
-        this.tilemap = GET_8ARRAY(state, 2048);
+        this.oam = state.GET_8ARRAY(160);
+        this.tilemap = state.GET_8ARRAY(2048);
 
         if (this.gb.cgb)
             for (let i = 0; i < 2048; i++) {
                 let attr = this.cgbTileAttrs[i];
 
-                attr.bgPalette = GET_8(state);
-                attr.vramBank = GET_8(state);
-                attr.ignoreSpritePriority = GET_BOOL(state);
-                attr.xFlip = GET_BOOL(state);
-                attr.yFlip = GET_BOOL(state);
+                attr.bgPalette = state.GET_8();
+                attr.vramBank = state.GET_8();
+                attr.ignoreSpritePriority = state.GET_BOOL();
+                attr.xFlip = state.GET_BOOL();
+                attr.yFlip = state.GET_BOOL();
             }
 
-        this.lcdControl.bgWindowEnable0 = GET_BOOL(state);
-        this.lcdControl.spriteDisplay___1 = GET_BOOL(state);
-        this.lcdControl.spriteSize______2 = GET_BOOL(state);
-        this.lcdControl.bgTilemapSelect_3 = GET_BOOL(state);
-        this.lcdControl.bgWindowTiledataSelect__4 = GET_BOOL(state);
-        this.lcdControl.enableWindow____5 = GET_BOOL(state);
-        this.lcdControl.windowTilemapSelect___6 = GET_BOOL(state);
-        this.lcdControl.lcdDisplayEnable7 = GET_BOOL(state);
+        this.lcdControl.bgWindowEnable0 = state.GET_BOOL();
+        this.lcdControl.spriteDisplay___1 = state.GET_BOOL();
+        this.lcdControl.spriteSize______2 = state.GET_BOOL();
+        this.lcdControl.bgTilemapSelect_3 = state.GET_BOOL();
+        this.lcdControl.bgWindowTiledataSelect__4 = state.GET_BOOL();
+        this.lcdControl.enableWindow____5 = state.GET_BOOL();
+        this.lcdControl.windowTilemapSelect___6 = state.GET_BOOL();
+        this.lcdControl.lcdDisplayEnable7 = state.GET_BOOL();
 
-        this.lcdStatus.mode = GET_8(state);
-        this.lcdStatus.coincidenceFlag_______2 = GET_BOOL(state);
-        this.lcdStatus.mode0HblankInterrupt__3 = GET_BOOL(state);
-        this.lcdStatus.mode1VblankInterrupt__4 = GET_BOOL(state);
-        this.lcdStatus.mode2OamInterrupt_____5 = GET_BOOL(state);
-        this.lcdStatus.lyCoincidenceInterrupt6 = GET_BOOL(state);
+        this.lcdStatus.mode = state.GET_8();
+        this.lcdStatus.coincidenceFlag_______2 = state.GET_BOOL();
+        this.lcdStatus.mode0HblankInterrupt__3 = state.GET_BOOL();
+        this.lcdStatus.mode1VblankInterrupt__4 = state.GET_BOOL();
+        this.lcdStatus.mode2OamInterrupt_____5 = state.GET_BOOL();
+        this.lcdStatus.lyCoincidenceInterrupt6 = state.GET_BOOL();
 
-        this.scrY = GET_8(state);
-        this.scrX = GET_8(state);
+        this.scrY = state.GET_8();
+        this.scrX = state.GET_8();
 
-        this.lY = GET_8(state);
-        this.lYCompare = GET_8(state);
+        this.lY = state.GET_8();
+        this.lYCompare = state.GET_8();
 
-        this.windowXpos = GET_8(state);
-        this.windowYpos = GET_8(state);
+        this.windowXpos = state.GET_8();
+        this.windowYpos = state.GET_8();
 
-        this.cgbBgPaletteIndex = GET_8(state);
-        this.cgbBgPaletteIndexAutoInc = GET_BOOL(state);
-        this.cgbBgPalette.data = GET_8ARRAY(state, 64);
+        this.cgbBgPaletteIndex = state.GET_8();
+        this.cgbBgPaletteIndexAutoInc = state.GET_BOOL();
+        this.cgbBgPalette.data = state.GET_8ARRAY(64);
 
-        this.cgbObjPaletteIndex = GET_8(state);
-        this.cgbObjPaletteIndexAutoInc = GET_BOOL(state);
-        this.cgbObjPalette.data = GET_8ARRAY(state, 64);
+        this.cgbObjPaletteIndex = state.GET_8();
+        this.cgbObjPaletteIndexAutoInc = state.GET_BOOL();
+        this.cgbObjPalette.data = state.GET_8ARRAY(64);
 
         this.cgbBgPalette.updateAll();
         this.cgbObjPalette.updateAll();
 
-        this.cgbObjPriority = GET_BOOL(state);
+        this.cgbObjPriority = state.GET_BOOL();
 
-        this.vramBank = GET_8(state);
+        this.vramBank = state.GET_8();
 
-        this.dmgBgPalette = GET_8(state);
-        this.dmgObj0Palette = GET_8(state);
-        this.dmgObj1Palette = GET_8(state);
+        this.dmgBgPalette = state.GET_8();
+        this.dmgObj0Palette = state.GET_8();
+        this.dmgObj1Palette = state.GET_8();
 
-        this.lcdStatusMode0 = GET_BOOL(state);
-        this.lcdStatusMode1 = GET_BOOL(state);
-        this.lcdStatusMode2 = GET_BOOL(state);
-        this.lcdStatusCoincidence = GET_BOOL(state);
-        this.lcdStatusConditionMet = GET_BOOL(state);
-        this.lcdStatusFired = GET_BOOL(state);
+        this.lcdStatusMode0 = state.GET_BOOL();
+        this.lcdStatusMode1 = state.GET_BOOL();
+        this.lcdStatusMode2 = state.GET_BOOL();
+        this.lcdStatusCoincidence = state.GET_BOOL();
+        this.lcdStatusConditionMet = state.GET_BOOL();
+        this.lcdStatusFired = state.GET_BOOL();
 
-        this.lineClock = GET_16LE(state);
+        this.lineClock = state.GET_16LE();
 
-        this.currentWindowLine = GET_8(state);
-        this.windowOnscreenYetThisFrame = GET_BOOL(state);
+        this.currentWindowLine = state.GET_8();
+        this.windowOnscreenYetThisFrame = state.GET_BOOL();
     }
 }
 

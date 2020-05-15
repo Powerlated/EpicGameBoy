@@ -1,7 +1,7 @@
 import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
 import ExternalBus from "../externalbus";
-import { Serializer, PUT_32LE, PUT_BOOL, GET_BOOL, GET_32LE } from "../../serialize";
+import { Serializer } from "../../serialize";
 
 export default class MBC3 extends MBCWithRAM implements MBC {
     selectRtc = false;
@@ -75,20 +75,20 @@ export default class MBC3 extends MBCWithRAM implements MBC {
     }
 
     serialize(state: Serializer) {
-        PUT_BOOL(state, this.enableExternalRam);
-        PUT_32LE(state, this.externalRamDirtyBytes);
-        PUT_32LE(state, this.romBank);
-        PUT_32LE(state, this.ramBank);
+        state.PUT_BOOL(this.enableExternalRam);
+        state.PUT_32LE(this.externalRamDirtyBytes);
+        state.PUT_32LE(this.romBank);
+        state.PUT_32LE(this.ramBank);
 
-        PUT_BOOL(state, this.selectRtc);
+        state.PUT_BOOL(this.selectRtc);
     }
 
     deserialize(state: Serializer) {
-        this.enableExternalRam = GET_BOOL(state);
-        this.externalRamDirtyBytes = GET_32LE(state);
-        this.romBank = GET_32LE(state);
-        this.ramBank = GET_32LE(state);
+        this.enableExternalRam = state.GET_BOOL();
+        this.externalRamDirtyBytes = state.GET_32LE();
+        this.romBank = state.GET_32LE();
+        this.ramBank = state.GET_32LE();
 
-        this.selectRtc = GET_BOOL(state);
+        this.selectRtc = state.GET_BOOL();
     }
 }

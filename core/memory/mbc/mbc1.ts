@@ -3,7 +3,7 @@ import MBC, { MBCWithRAM } from "./mbc";
 import MemoryBus from "../memorybus";
 import ExternalBus from "../externalbus";
 import { writeDebug } from "../../../src/gameboy/tools/debug";
-import { Serializer, PUT_BOOL, PUT_32LE, GET_BOOL, GET_32LE, PUT_8, GET_8 } from "../../serialize";
+import { Serializer } from "../../serialize";
 
 enum BankingMode {
     ROM = 0, RAM = 1
@@ -83,20 +83,20 @@ export default class MBC1 extends MBCWithRAM implements MBC {
     }
 
     serialize(state: Serializer) {
-        PUT_BOOL(state, this.enableExternalRam);
-        PUT_32LE(state, this.externalRamDirtyBytes);
-        PUT_32LE(state, this.romBank);
-        PUT_32LE(state, this.ramBank);
+        state.PUT_BOOL(this.enableExternalRam);
+        state.PUT_32LE(this.externalRamDirtyBytes);
+        state.PUT_32LE(this.romBank);
+        state.PUT_32LE(this.ramBank);
 
-        PUT_8(state, this.bankingMode);
+        state.PUT_8(this.bankingMode);
     }
 
     deserialize(state: Serializer) {
-        this.enableExternalRam = GET_BOOL(state);
-        this.externalRamDirtyBytes = GET_32LE(state);
-        this.romBank = GET_32LE(state);
-        this.ramBank = GET_32LE(state);
+        this.enableExternalRam = state.GET_BOOL();
+        this.externalRamDirtyBytes = state.GET_32LE();
+        this.romBank = state.GET_32LE();
+        this.ramBank = state.GET_32LE();
 
-        this.bankingMode = GET_8(state);
+        this.bankingMode = state.GET_8();
     }
 }

@@ -12,7 +12,7 @@ import { SerialPort } from './components/serial';
 import { R16 } from './cpu/cpu_types';
 import { hex } from '../src/gameboy/tools/util';
 import { bitSetValue, bitGet } from './bit_constants';
-import { Serializer, PUT_8, GET_8, PUT_BOOL, GET_BOOL, PUT_16LE } from './serialize';
+import { Serializer } from './serialize';
 
 export default class GameBoy {
     constructor(cgb: boolean) {
@@ -133,9 +133,9 @@ export default class GameBoy {
 
         state.resetPos();
 
-        PUT_8(state, this.doubleSpeedShift);
-        PUT_BOOL(state, this.cgb);
-        PUT_BOOL(state, this.prepareSpeedSwitch);
+        state.PUT_8(this.doubleSpeedShift);
+        state.PUT_BOOL(this.cgb);
+        state.PUT_BOOL(this.prepareSpeedSwitch);
 
         this.bus.serialize(state);
         this.cpu.serialize(state);
@@ -159,9 +159,9 @@ export default class GameBoy {
 
         state.resetPos();
 
-        this.doubleSpeedShift = GET_8(state);
-        this.cgb = GET_BOOL(state);
-        this.prepareSpeedSwitch = GET_BOOL(state);
+        this.doubleSpeedShift = state.GET_8();
+        this.cgb = state.GET_BOOL();
+        this.prepareSpeedSwitch = state.GET_BOOL();
 
         this.bus.deserialize(state);
         this.cpu.deserialize(state);

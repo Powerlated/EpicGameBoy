@@ -9,7 +9,7 @@ import CB_PREFIXED_EXECUTORS from "./cb_prefixed_executors";
 import Decoder from "./legacy_decoder";
 import { BIT_7, BIT_6, BIT_5, BIT_4 } from "../bit_constants";
 import { R16, R8, CC } from "./cpu_types";
-import { Serializer, PUT_32LE, PUT_BOOL, PUT_16LE, PUT_8, GET_32LE, GET_BOOL, GET_16LE, GET_8 } from "../serialize";
+import { Serializer } from "../serialize";
 
 function undefErr(cpu: CPU, name: string) {
     alert(`
@@ -557,55 +557,55 @@ export default class CPU {
     }
 
     serialize(state: Serializer) {
-        PUT_32LE(state, this.cycles);
-        PUT_32LE(state, this.pendingCycles);
-        PUT_BOOL(state, this.halted);
-        PUT_BOOL(state, this.haltBug);
-        PUT_BOOL(state, this.invalidOpcodeExecuted);
-        PUT_16LE(state, this.pc);
-        PUT_BOOL(state, this.scheduleEnableInterruptsForNextTick);
-        PUT_32LE(state, this.totalI);
+        state.PUT_32LE(this.cycles);
+        state.PUT_32LE(this.pendingCycles);
+        state.PUT_BOOL(this.halted);
+        state.PUT_BOOL(this.haltBug);
+        state.PUT_BOOL(this.invalidOpcodeExecuted);
+        state.PUT_16LE(this.pc);
+        state.PUT_BOOL(this.scheduleEnableInterruptsForNextTick);
+        state.PUT_32LE(this.totalI);
 
-        PUT_16LE(state, this.reg.sp);
+        state.PUT_16LE(this.reg.sp);
 
-        PUT_8(state, this.reg[R8.A]);
-        PUT_8(state, this.reg[R8.B]);
-        PUT_8(state, this.reg[R8.C]);
-        PUT_8(state, this.reg[R8.D]);
-        PUT_8(state, this.reg[R8.E]);
-        PUT_8(state, this.reg[R8.H]);
-        PUT_8(state, this.reg[R8.L]);
+        state.PUT_8(this.reg[R8.A]);
+        state.PUT_8(this.reg[R8.B]);
+        state.PUT_8(this.reg[R8.C]);
+        state.PUT_8(this.reg[R8.D]);
+        state.PUT_8(this.reg[R8.E]);
+        state.PUT_8(this.reg[R8.H]);
+        state.PUT_8(this.reg[R8.L]);
 
-        PUT_BOOL(state, this.reg._f.carry);
-        PUT_BOOL(state, this.reg._f.half_carry);
-        PUT_BOOL(state, this.reg._f.negative);
-        PUT_BOOL(state, this.reg._f.zero);
+        state.PUT_BOOL(this.reg._f.carry);
+        state.PUT_BOOL(this.reg._f.half_carry);
+        state.PUT_BOOL(this.reg._f.negative);
+        state.PUT_BOOL(this.reg._f.zero);
     }
 
     deserialize(state: Serializer) {
-        this.cycles = GET_32LE(state);
-        this.pendingCycles = GET_32LE(state);
-        this.halted = GET_BOOL(state);
-        this.haltBug = GET_BOOL(state);
-        this.invalidOpcodeExecuted = GET_BOOL(state);
-        this.pc = GET_16LE(state);
-        this.scheduleEnableInterruptsForNextTick = GET_BOOL(state);
-        this.totalI = GET_32LE(state);
+        this.cycles = state.GET_32LE();
+        this.pendingCycles = state.GET_32LE();
+        this.halted = state.GET_BOOL();
+        this.haltBug = state.GET_BOOL();
+        this.invalidOpcodeExecuted = state.GET_BOOL();
+        this.pc = state.GET_16LE();
+        this.scheduleEnableInterruptsForNextTick = state.GET_BOOL();
+        this.totalI = state.GET_32LE();
 
-        this.reg.sp = GET_16LE(state);
+        this.reg.sp = state.GET_16LE();
 
-        this.reg[R8.A] = GET_8(state);
-        this.reg[R8.B] = GET_8(state);
-        this.reg[R8.C] = GET_8(state);
-        this.reg[R8.D] = GET_8(state);
-        this.reg[R8.E] = GET_8(state);
-        this.reg[R8.H] = GET_8(state);
-        this.reg[R8.L] = GET_8(state);
+        this.reg[R8.A] = state.GET_8();
+        this.reg[R8.B] = state.GET_8();
+        this.reg[R8.C] = state.GET_8();
+        this.reg[R8.D] = state.GET_8();
+        this.reg[R8.E] = state.GET_8();
+        this.reg[R8.H] = state.GET_8();
+        this.reg[R8.L] = state.GET_8();
 
-        this.reg._f.carry = GET_BOOL(state);
-        this.reg._f.half_carry = GET_BOOL(state);
-        this.reg._f.negative = GET_BOOL(state);
-        this.reg._f.zero = GET_BOOL(state);
+        this.reg._f.carry = state.GET_BOOL();
+        this.reg._f.half_carry = state.GET_BOOL();
+        this.reg._f.negative = state.GET_BOOL();
+        this.reg._f.zero = state.GET_BOOL();
     }
 }
 

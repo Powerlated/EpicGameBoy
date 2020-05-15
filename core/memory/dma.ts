@@ -1,7 +1,7 @@
 import GameBoy from "../gameboy";
 import { HWIO } from "./hwio";
 import { hex } from "../../src/gameboy/tools/util";
-import { Serializer, PUT_16LE, PUT_BOOL, GET_16LE, GET_BOOL } from "../serialize";
+import { Serializer } from "../serialize";
 
 export class DMAController implements HWIO {
 
@@ -199,38 +199,38 @@ export class DMAController implements HWIO {
     }
 
     serialize(state: Serializer) {
-        PUT_16LE(state, this.newDmaSourceLow);
-        PUT_16LE(state, this.newDmaSourceHigh);
-        PUT_16LE(state, this.newDmaDestLow);
-        PUT_16LE(state, this.newDmaDestHigh);
-        PUT_16LE(state, this.newDmaLength);
-        PUT_16LE(state, this.hDmaRemaining);
-        PUT_16LE(state, this.hDmaSourceAt);
-        PUT_16LE(state, this.hDmaDestAt);
-        PUT_BOOL(state, this.hDmaCompleted);
-        PUT_BOOL(state, this.hDmaPaused);
-        PUT_BOOL(state, this.gDmaCompleted);
-        PUT_BOOL(state, this.oamDmaRunning);
-        PUT_16LE(state, this.oamDmaCyclesRemaining);
-        PUT_16LE(state, this.oamDmaStart);
-        PUT_16LE(state, this.oamDmaStartAddr);
+        state.PUT_16LE(this.newDmaSourceLow);
+        state.PUT_16LE(this.newDmaSourceHigh);
+        state.PUT_16LE(this.newDmaDestLow);
+        state.PUT_16LE(this.newDmaDestHigh);
+        state.PUT_16LE(this.newDmaLength);
+        state.PUT_16LE(this.hDmaRemaining);
+        state.PUT_16LE(this.hDmaSourceAt);
+        state.PUT_16LE(this.hDmaDestAt);
+        state.PUT_BOOL(this.hDmaCompleted);
+        state.PUT_BOOL(this.hDmaPaused);
+        state.PUT_BOOL(this.gDmaCompleted);
+        state.PUT_BOOL(this.oamDmaRunning);
+        state.PUT_16LE(this.oamDmaCyclesRemaining);
+        state.PUT_16LE(this.oamDmaStart);
+        state.PUT_16LE(this.oamDmaStartAddr);
     }
 
     deserialize(state: Serializer) {
-        this.newDmaSourceLow = GET_16LE(state);
-        this.newDmaSourceHigh = GET_16LE(state);
-        this.newDmaDestLow = GET_16LE(state);
-        this.newDmaDestHigh = GET_16LE(state);
-        this.newDmaLength = GET_16LE(state);
-        this.hDmaRemaining = GET_16LE(state);
-        this.hDmaSourceAt = GET_16LE(state);
-        this.hDmaDestAt = GET_16LE(state);
-        this.hDmaCompleted = GET_BOOL(state);
-        this.hDmaPaused = GET_BOOL(state);
-        this.gDmaCompleted = GET_BOOL(state);
-        this.oamDmaRunning = GET_BOOL(state);
-        this.oamDmaCyclesRemaining = GET_16LE(state);
-        this.oamDmaStart = GET_16LE(state);
-        this.oamDmaStartAddr = GET_16LE(state);
+        this.newDmaSourceLow = state.GET_16LE();
+        this.newDmaSourceHigh = state.GET_16LE();
+        this.newDmaDestLow = state.GET_16LE();
+        this.newDmaDestHigh = state.GET_16LE();
+        this.newDmaLength = state.GET_16LE();
+        this.hDmaRemaining = state.GET_16LE();
+        this.hDmaSourceAt = state.GET_16LE();
+        this.hDmaDestAt = state.GET_16LE();
+        this.hDmaCompleted = state.GET_BOOL();
+        this.hDmaPaused = state.GET_BOOL();
+        this.gDmaCompleted = state.GET_BOOL();
+        this.oamDmaRunning = state.GET_BOOL();
+        this.oamDmaCyclesRemaining = state.GET_16LE();
+        this.oamDmaStart = state.GET_16LE();
+        this.oamDmaStartAddr = state.GET_16LE();
     }
 }

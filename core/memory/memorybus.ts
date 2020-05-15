@@ -13,7 +13,7 @@ import { hex } from "../../src/gameboy/tools/util";
 import InterruptController from "../components/interrupt-controller";
 import { JoypadRegister } from "../components/joypad";
 import MBC5 from "./mbc/mbc5";
-import { PUT_8, Serializer, GET_8, PUT_8ARRAY, GET_8ARRAY, PUT_BOOL, GET_BOOL } from "../serialize";
+import { Serializer } from "../serialize";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -337,18 +337,18 @@ class MemoryBus {
     serialize(state: Serializer) {
         if (this.gb.cgb) {
             for (let i = 0; i < 8; i++) {
-                PUT_8ARRAY(state, this.workRamBanks[i], 4096);
+                state.PUT_8ARRAY(this.workRamBanks[i], 4096);
             }
         } else {
-            PUT_8ARRAY(state, this.workRamBanks[0], 4096);
-            PUT_8ARRAY(state, this.workRamBanks[1], 4096);
+            state.PUT_8ARRAY(this.workRamBanks[0], 4096);
+            state.PUT_8ARRAY(this.workRamBanks[1], 4096);
         }
 
-        PUT_8(state, this.workRamBankIndex);
-        PUT_8ARRAY(state, this.highRam, 128);
-        PUT_8ARRAY(state, this.bootrom, 256);
-        PUT_BOOL(state, this.bootromEnabled);
-        PUT_BOOL(state, this.bootromLoaded);
+        state.PUT_8(this.workRamBankIndex);
+        state.PUT_8ARRAY(this.highRam, 128);
+        state.PUT_8ARRAY(this.bootrom, 256);
+        state.PUT_BOOL(this.bootromEnabled);
+        state.PUT_BOOL(this.bootromLoaded);
 
         this.ext.mbc.serialize(state);
     }
@@ -356,18 +356,18 @@ class MemoryBus {
     deserialize(state: Serializer) {
         if (this.gb.cgb) {
             for (let i = 0; i < 8; i++) {
-                this.workRamBanks[i] = GET_8ARRAY(state, 4096);
+                this.workRamBanks[i] = state.GET_8ARRAY(4096);
             }
         } else {
-            this.workRamBanks[0] = GET_8ARRAY(state, 4096);
-            this.workRamBanks[1] = GET_8ARRAY(state, 4096);
+            this.workRamBanks[0] = state.GET_8ARRAY(4096);
+            this.workRamBanks[1] = state.GET_8ARRAY(4096);
         }
 
-        this.workRamBankIndex = GET_8(state);
-        this.highRam = GET_8ARRAY(state, 128);
-        this.bootrom = GET_8ARRAY(state, 256);
-        this.bootromEnabled = GET_BOOL(state);
-        this.bootromLoaded = GET_BOOL(state);
+        this.workRamBankIndex = state.GET_8();
+        this.highRam = state.GET_8ARRAY(128);
+        this.bootrom = state.GET_8ARRAY(256);
+        this.bootromEnabled = state.GET_BOOL();
+        this.bootromLoaded = state.GET_BOOL();
 
         this.ext.mbc.deserialize(state);
     }
