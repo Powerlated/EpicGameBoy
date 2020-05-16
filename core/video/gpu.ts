@@ -455,7 +455,7 @@ class GPU implements HWIO {
                             }
                         }
                         this.fetcherCycles += cycles;
-                        if (this.lineClock >= 252 + this.fetcherDiscardPixels) {
+                        if (this.lineClock >= 252 + this.fetcherStall) {
                             this.fetcherFlush();
 
                             // VRAM -> HBLANK
@@ -465,7 +465,9 @@ class GPU implements HWIO {
                             this.gb.dma.continueHdma();
 
                             if (this.renderingThisFrame === true) {
-                                this.renderSprites();
+                                if (this.lcdControl.spriteDisplay___1) {
+                                    this.renderSprites();
+                                }
                             }
                         }
                     }
@@ -507,12 +509,13 @@ class GPU implements HWIO {
 
     fetcherCycles = 0;
 
+    fetcherStall = 0;
+
     fetcherStep: number = PixelFetcher.SLEEP0;
     fetcherTileIndex = 0;
     fetcherTileAttrs = new CGBTileFlags();
     fetcherX = 0;
     fetcherScreenX = 0;
-    fetcherDiscardPixels = 0;
 
     fetcherTileY = 0;
 
@@ -537,88 +540,94 @@ class GPU implements HWIO {
         while (i > 0) {
             i--;
 
-            switch (this.fetcherStep) {
-                case PixelFetcher.SLEEP0: break;
-                case PixelFetcher.GET_TILE1:
-                    this.fetcherPushed = false;
+            if (this.fetcherStall > 0) {
+                this.fetcherStall--;
+            } else {
+                switch (this.fetcherStep) {
+                    case PixelFetcher.SLEEP0: break;
+                    case PixelFetcher.GET_TILE1:
+                        this.fetcherPushed = false;
 
-                    this.fetcherTileY = this.scrY + this.lY;
+                        this.fetcherTileY = this.scrY + this.lY;
 
-                    const tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
-                    const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
-                    const lineOffset = ((this.fetcherX + this.scrX) >> 3) & 31;
+                        const tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+                        const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
+                        const lineOffset = ((this.fetcherX + this.scrX) >> 3) & 31;
 
-                    this.fetcherX += 8;
+                        this.fetcherX += 8;
 
-                    const tile = tileBase + tileY + lineOffset;
+                        const tile = tileBase + tileY + lineOffset;
 
-                    this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
-                    this.fetcherTileIndex = this.vram[0][tile];
-                    // this.fetcherTileAttrs = this.cgbTileAttrs[tile];
-                    break;
-                case PixelFetcher.SLEEP2: break;
-                case PixelFetcher.GET_TILE_LOW3:
-                    {
-                        let tileIndex = this.fetcherTileIndex;
+                        this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
+                        this.fetcherTileIndex = this.vram[0][tile];
+                        // this.fetcherTileAttrs = this.cgbTileAttrs[tile];
+                        break;
+                    case PixelFetcher.SLEEP2: break;
+                    case PixelFetcher.GET_TILE_LOW3:
+                        {
+                            let tileIndex = this.fetcherTileIndex;
 
-                        if (this.lcdControl.bgWindowTiledataSelect__4 === false)
-                            tileIndex = unTwo8b(tileIndex) + 256;
+                            if (this.lcdControl.bgWindowTiledataSelect__4 === false)
+                                tileIndex = unTwo8b(tileIndex) + 256;
 
-                        let tileY = this.fetcherTileY & 7;
-                        if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
-                        let tilesetAddr = (tileIndex * 16) + (tileY * 2) + 0;
+                            let tileY = this.fetcherTileY & 7;
+                            if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
+                            let tilesetAddr = (tileIndex * 16) + (tileY * 2) + 0;
 
-                        this.fetcherTileDataLow = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr];
-                    }
-                    break;
-                case PixelFetcher.SLEEP4: break;
-                case PixelFetcher.GET_TILE_HIGH5:
-                    {
-                        let tileIndex = this.fetcherTileIndex;
+                            this.fetcherTileDataLow = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr];
+                        }
+                        break;
+                    case PixelFetcher.SLEEP4: break;
+                    case PixelFetcher.GET_TILE_HIGH5:
+                        {
+                            let tileIndex = this.fetcherTileIndex;
 
-                        if (this.lcdControl.bgWindowTiledataSelect__4 === false)
-                            tileIndex = unTwo8b(tileIndex) + 256;
+                            if (this.lcdControl.bgWindowTiledataSelect__4 === false)
+                                tileIndex = unTwo8b(tileIndex) + 256;
 
-                        // Same as last time but increment tile address by 1
-                        let tileY = this.fetcherTileY & 7;
-                        if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
-                        let tilesetAddr = (tileIndex * 16) + (tileY * 2) + 1;
+                            // Same as last time but increment tile address by 1
+                            let tileY = this.fetcherTileY & 7;
+                            if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
+                            let tilesetAddr = (tileIndex * 16) + (tileY * 2) + 1;
 
-                        this.fetcherTileDataHigh = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr];
+                            this.fetcherTileDataHigh = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr];
 
+                            this.fetcherAttemptPush();
+                        }
+                        break;
+                    case PixelFetcher.PUSH6:
                         this.fetcherAttemptPush();
-                    }
-                    break;
-                case PixelFetcher.PUSH6:
-                    this.fetcherAttemptPush();
-                    break;
-                case PixelFetcher.PUSH7:
-                    this.fetcherAttemptPush();
-                    break;
-            }
-
-            this.fetcherStep++;
-            this.fetcherStep &= 7;
-
-            if (this.fetcherBgFifoPos > 0 && this.fetcherScreenX < 160) {
-                this.fetcherBgFifoPos--;
-
-                if (this.fetcherScreenX >= 0) {
-                    const imgIndex = ((this.lY * 160) + (this.fetcherScreenX)) * 4;
-
-                    let prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
-                    let palette = this.fetcherBgFifoPal;
-
-                    let finalColor = this.cgbBgPalette.shades[palette][prePalette];
-
-                    this.pre[this.fetcherScreenX] = prePalette;
-
-                    this.imageGameboy.data[imgIndex + 0] = finalColor[0];
-                    this.imageGameboy.data[imgIndex + 1] = finalColor[1];
-                    this.imageGameboy.data[imgIndex + 2] = finalColor[2];
+                        break;
+                    case PixelFetcher.PUSH7:
+                        this.fetcherAttemptPush();
+                        break;
                 }
 
-                this.fetcherScreenX++;
+
+                this.fetcherStep++;
+                this.fetcherStep &= 7;
+
+                if (this.fetcherBgFifoPos > 0 && this.fetcherScreenX < 160) {
+                    this.fetcherBgFifoPos--;
+
+                    if (this.fetcherScreenX >= 0) {
+                        const imgIndex = ((this.lY * 160) + (this.fetcherScreenX)) * 4;
+
+                        let prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
+                        let palette = this.fetcherBgFifoPal;
+
+                        let finalColor = this.cgbBgPalette.shades[palette][prePalette];
+
+                        this.pre[this.fetcherScreenX] = prePalette;
+                        this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos] ? true : false;
+
+                        this.imageGameboy.data[imgIndex + 0] = finalColor[0];
+                        this.imageGameboy.data[imgIndex + 1] = finalColor[1];
+                        this.imageGameboy.data[imgIndex + 2] = finalColor[2];
+                    }
+
+                    this.fetcherScreenX++;
+                }
             }
         }
     }
@@ -634,28 +643,31 @@ class GPU implements HWIO {
                     let lowBit = (this.fetcherTileDataLow & (1 << i));
                     let highBit = (this.fetcherTileDataHigh & (1 << i));
 
-                    this.fetcherBgFifoCol[this.fetcherBgFifoPos ^ 7] = (lowBit ? 1 : 0) + (highBit ? 2 : 0);
-                    this.fetcherBgFifoPos++;
+                    this.fetcherBgFifoCol[i ^ 7] = (lowBit ? 1 : 0) + (highBit ? 2 : 0);
+                    this.fetcherBgFifoObjPri[i ^ 7] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
                 }
             } else {
                 for (let i = 0; i < 8; i++) {
                     let lowBit = (this.fetcherTileDataLow & (1 << i));
                     let highBit = (this.fetcherTileDataHigh & (1 << i));
 
-                    this.fetcherBgFifoCol[this.fetcherBgFifoPos] = (lowBit ? 1 : 0) + (highBit ? 2 : 0);
-                    this.fetcherBgFifoPos++;
+                    this.fetcherBgFifoCol[i] = (lowBit ? 1 : 0) + (highBit ? 2 : 0);
+                    this.fetcherBgFifoObjPri[i] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
                 }
             }
+
+            this.fetcherBgFifoPos = 8;
         }
     }
 
     fetcherReset() {
+        this.fetcherStall = 5;
+        this.fetcherStall += this.scrX & 7;
         this.fetcherX = 0;
         this.fetcherBgFifoPos = 0;
         this.fetcherFirstTile = false;
         this.fetcherPushed = false;
         this.fetcherScreenX = -(this.scrX & 7);
-        this.fetcherDiscardPixels = this.scrX & 7;
         this.fetcherStep = 0;
     }
 
@@ -764,6 +776,30 @@ class GPU implements HWIO {
 
         this.lcdStatusConditionMet = false;
         this.lcdStatusFired = false;
+
+        this.fetcherCycles = 0;
+
+        this.fetcherStall = 0;
+
+        this.fetcherStep = PixelFetcher.SLEEP0;
+        this.fetcherTileIndex = 0;
+        this.fetcherTileAttrs = new CGBTileFlags();
+        this.fetcherX = 0;
+        this.fetcherScreenX = 0;
+
+        this.fetcherTileY = 0;
+
+        this.fetcherTileDataLow = 0;
+        this.fetcherTileDataHigh = 0;
+
+        this.fetcherBgFifoCol = new Uint8Array(8); // BG Color
+        this.fetcherBgFifoPal = 0;
+        this.fetcherBgFifoObjPri = new Uint8Array(8); // BG Sprite Priority
+        this.fetcherBgFifoBgPri = new Uint8Array(8); // BG Priotiy
+        this.fetcherBgFifoPos = 0;
+
+        this.fetcherFirstTile = false;
+        this.fetcherPushed = false;
     }
 
     writeOam(index: number, value: number) {
