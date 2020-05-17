@@ -432,9 +432,7 @@ class GPU implements HWIO {
                     {
                         this.fetcherCycles += cycles;
                         if (this.lineClock >= 252) {
-                            if (this.renderingThisFrame) {
-                                this.fetcherFlush();
-                            }
+                            this.fetcherFlush();
 
                             if (this.fetcherScreenX > 159 || !this.renderingThisFrame) {
                                 this.fetcherCycles = 0;
@@ -513,19 +511,37 @@ class GPU implements HWIO {
     fetcherWindowMode = false;
 
     fetcherFlush() {
-        this.fetcherAdvance(this.fetcherCycles);
-        this.fetcherCycles = 0;
+        if (this.renderingThisFrame) {
+            this.fetcherAdvance(this.fetcherCycles);
+            this.fetcherCycles = 0;
+        }
     }
 
-    fetcherAdvance(i: number) {
-        while (i > 0) {
-            i--;
+    fetcherAdvance(cycles: number) {
+        while (cycles > 0) {
+            cycles--;
 
             if (this.fetcherStall > 0) {
                 this.fetcherStall--;
+
+                if (this.fetcherStall === 4) {
+                    this.fetcherScreenX = -(this.scrX & 7);
+
+                    if (this.windowXpos < 7 && this.lY >= this.windowYpos) {
+                        this.fetcherScreenX = -(this.windowXpos & 7);
+                    }
+                }
             } else {
                 switch (this.fetcherStep) {
-                    case 0: break; // Sleep
+                    case 0:
+                        {
+                            if (
+                                !(this.lcdControl.enableWindow____5 &&
+                                    this.lY >= this.windowYpos) &&
+                                this.fetcherWindowMode)
+                                this.fetcherWindowMode = false;
+                        }
+                        break; // Sleep
                     case 1:
                         this.fetcherPushed = false;
 
@@ -535,7 +551,7 @@ class GPU implements HWIO {
                         if (this.fetcherWindowMode) {
                             this.fetcherTileY = this.fetcherWindowLine;
                             tileBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
-                            lineOffset = ((this.fetcherX - this.windowXpos) >> 3) + 1;
+                            lineOffset = ((this.fetcherX - (this.windowXpos - 7)) >> 3) & 31;
                         } else {
                             this.fetcherTileY = this.scrY + this.lY;
                             tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
@@ -589,62 +605,72 @@ class GPU implements HWIO {
                         break;
                 }
 
-                if (
-                    (this.fetcherScreenX === this.windowXpos - 7 ||
-                        this.windowXpos < 7) &&
-                    this.lcdControl.enableWindow____5 &&
-                    !this.fetcherWindowMode &&
-                    this.lY >= this.windowYpos
-                ) {
-                    if (!this.windowOnscreenYetThisFrame) {
-                        this.windowOnscreenYetThisFrame = true;
-                    } else {
-                        this.fetcherWindowLine++;
-                    }
-
-                    this.fetcherBgFifoPos = 0;
-                    this.fetcherStep = 0;
-                    this.fetcherWindowMode = true;
-                    this.fetcherX = this.fetcherScreenX;
-                }
-
                 this.fetcherStep++;
                 this.fetcherStep &= 7;
 
-                if (this.fetcherBgFifoPos > 0 && this.fetcherScreenX < 160) {
-                    this.fetcherBgFifoPos--;
+                if (this.fetcherScreenX < 160) {
+                    if (
+                        this.lcdControl.enableWindow____5 &&
+                        this.lY >= this.windowYpos
+                    ) {
+                        if ((this.fetcherScreenX === this.windowXpos - 7 ||
+                            this.windowXpos < 7) &&
+                            !this.fetcherWindowMode
+                        ) {
+                            this.fetcherWindowLine++;
 
-                    if (this.fetcherScreenX >= 0) {
-                        const imgIndex = ((this.lY * 160) + (this.fetcherScreenX)) * 4;
+                            if (!this.windowOnscreenYetThisFrame) {
+                                this.fetcherWindowLine = this.lY - this.windowYpos;
+                                this.windowOnscreenYetThisFrame = true;
+                            }
 
-                        let prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
-                        let palette = this.fetcherBgFifoPal;
-
-                        let finalColor = this.cgbBgPalette.shades[palette][prePalette];
-
-                        this.pre[this.fetcherScreenX] = prePalette;
-                        this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
-
-                        this.imageGameboy.data[imgIndex + 0] = finalColor[0];
-                        this.imageGameboy.data[imgIndex + 1] = finalColor[1];
-                        this.imageGameboy.data[imgIndex + 2] = finalColor[2];
+                            this.fetcherBgFifoPos = 0;
+                            this.fetcherStep = 0;
+                            this.fetcherWindowMode = true;
+                            this.fetcherX = this.fetcherScreenX;
+                        }
                     }
 
-                    this.fetcherScreenX++;
+                    if (this.fetcherBgFifoPos > 0) {
+                        this.fetcherBgFifoPos--;
+
+                        if (this.fetcherScreenX >= 0) {
+                            const imgIndex = ((this.lY * 160) + (this.fetcherScreenX)) * 4;
+
+                            let prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
+                            let palette = this.fetcherBgFifoPal;
+
+                            let finalColor = this.cgbBgPalette.shades[palette][prePalette];
+
+                            this.pre[this.fetcherScreenX] = prePalette;
+                            this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
+
+                            this.imageGameboy.data[imgIndex + 0] = finalColor[0];
+                            this.imageGameboy.data[imgIndex + 1] = finalColor[1];
+                            this.imageGameboy.data[imgIndex + 2] = finalColor[2];
+                        }
+
+                        this.fetcherScreenX++;
+                    }
                 }
             }
         }
     }
 
     fetcherReset() {
-        this.fetcherStall = 10;
+        if (!this.gb.cgb) {
+            this.fetcherStall = 8;
+        } else {
+            this.fetcherStall = 0;
+            this.fetcherScreenX = -(this.scrX & 7);
+        }
 
         this.fetcherX = 0;
         this.fetcherBgFifoPos = 0;
         this.fetcherFirstTile = false;
         this.fetcherPushed = false;
-        this.fetcherScreenX = -(this.scrX & 7);
         this.fetcherStep = 0;
+        this.fetcherCycles = 0;
         this.fetcherWindowMode = false;
     }
 
@@ -945,9 +971,26 @@ class GPU implements HWIO {
             case 0xFF46:
                 this.gb.dma.setupOamDma(value << 8);
                 break;
-            case 0xFF47: // Palette
-                this.fetcherFlush();
+            case 0xFF47: // BG Palette
+                const oldValue = this.dmgBgPalette;
                 this.dmgBgPalette = value;
+
+                // PPU time travel?????
+                if (this.fetcherCycles > 2) {
+                    this.fetcherAdvance(this.fetcherCycles - 2);
+                    this.fetcherCycles = 1;
+
+
+                    if (this.gb.cgb === false) {
+                        this.setDmgBgPalette(0, ((value | oldValue) >> 0) & 0b11);
+                        this.setDmgBgPalette(1, ((value | oldValue) >> 2) & 0b11);
+                        this.setDmgBgPalette(2, ((value | oldValue) >> 4) & 0b11);
+                        this.setDmgBgPalette(3, ((value | oldValue) >> 6) & 0b11);
+                    }
+
+                    this.fetcherAdvance(1);
+                }
+
                 if (this.gb.cgb === false) {
                     this.setDmgBgPalette(0, (value >> 0) & 0b11);
                     this.setDmgBgPalette(1, (value >> 2) & 0b11);
