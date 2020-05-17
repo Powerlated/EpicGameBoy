@@ -436,7 +436,7 @@ class GPU implements HWIO {
                                 this.fetcherFlush();
                             }
 
-                            if (this.fetcherScreenX > 159 || !this.renderingThisFrame || this.lineClock >= 252) {
+                            if (this.fetcherScreenX > 159 || !this.renderingThisFrame) {
                                 this.fetcherCycles = 0;
 
                                 // VRAM -> HBLANK
@@ -490,7 +490,6 @@ class GPU implements HWIO {
     }
 
     fetcherCycles = 0;
-
     fetcherStall = 0;
 
     fetcherStep: number = PixelFetcher.SLEEP0;
@@ -500,9 +499,7 @@ class GPU implements HWIO {
     fetcherScreenX = 0;
 
     fetcherTileY = 0;
-
-    fetcherTileDataLow = 0;
-    fetcherTileDataHigh = 0;
+    fetcherTileData = new Uint8Array(8);
 
     fetcherBgFifoCol = new Uint8Array(8); // BG Color
     fetcherBgFifoPal = 0;
@@ -528,8 +525,8 @@ class GPU implements HWIO {
                 this.fetcherStall--;
             } else {
                 switch (this.fetcherStep) {
-                    case PixelFetcher.SLEEP0: break;
-                    case PixelFetcher.GET_TILE1:
+                    case 0: break;
+                    case 1:
                         this.fetcherPushed = false;
 
                         if (this.fetcherWindowMode) {
@@ -558,27 +555,38 @@ class GPU implements HWIO {
                         this.fetcherX += 8;
                         // this.fetcherTileAttrs = this.cgbTileAttrs[tile];
                         break;
-                    case PixelFetcher.SLEEP2: break;
-                    case PixelFetcher.GET_TILE_LOW3:
+                    case 2: break;
+                    case 3:
                         {
                             let tileY = this.fetcherTileY & 7;
                             if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
-                            let tilesetAddr = (this.fetcherTileIndex * 16) + (tileY * 2) + 0;
 
-                            this.fetcherTileDataLow = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr + 0];
-                            this.fetcherTileDataHigh = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr + 1];
+                            this.fetcherTileData = this.tileset[this.fetcherTileAttrs.vramBank][this.fetcherTileIndex][tileY];
                         }
                         break;
-                    case PixelFetcher.SLEEP4: break;
-                    case PixelFetcher.GET_TILE_HIGH5:
-                        this.fetcherAttemptPush();
+                    case 4: break;
+                    case 5:
+                    case 6:
+                    case 7: // Attempt push
+                        if (this.fetcherPushed === false && this.fetcherBgFifoPos === 0) {
+                            this.fetcherPushed = true;
 
-                        break;
-                    case PixelFetcher.PUSH6:
-                        this.fetcherAttemptPush();
-                        break;
-                    case PixelFetcher.PUSH7:
-                        this.fetcherAttemptPush();
+                            this.fetcherBgFifoPal = this.fetcherTileAttrs.bgPalette;
+
+                            if (this.fetcherTileAttrs.xFlip) {
+                                for (let i = 0; i < 8; i++) {
+                                    this.fetcherBgFifoCol[i] = this.fetcherTileData[i];
+                                    this.fetcherBgFifoObjPri[i] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
+                                }
+                            } else {
+                                for (let i = 0; i < 8; i++) {
+                                    this.fetcherBgFifoCol[i] = this.fetcherTileData[i ^ 7];
+                                    this.fetcherBgFifoObjPri[i] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
+                                }
+                            }
+
+                            this.fetcherBgFifoPos = 8;
+                        }
                         break;
                 }
 
@@ -625,34 +633,6 @@ class GPU implements HWIO {
                     this.fetcherScreenX++;
                 }
             }
-        }
-    }
-
-    fetcherAttemptPush() {
-        if (this.fetcherPushed === false && this.fetcherBgFifoPos === 0) {
-            this.fetcherPushed = true;
-
-            this.fetcherBgFifoPal = this.fetcherTileAttrs.bgPalette;
-
-            if (this.fetcherTileAttrs.xFlip) {
-                for (let i = 0; i < 8; i++) {
-                    let lowBit = (this.fetcherTileDataLow & (1 << i));
-                    let highBit = (this.fetcherTileDataHigh & (1 << i));
-
-                    this.fetcherBgFifoCol[i ^ 7] = (lowBit ? 1 : 0) + (highBit ? 2 : 0);
-                    this.fetcherBgFifoObjPri[i ^ 7] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
-                }
-            } else {
-                for (let i = 0; i < 8; i++) {
-                    let lowBit = (this.fetcherTileDataLow & (1 << i));
-                    let highBit = (this.fetcherTileDataHigh & (1 << i));
-
-                    this.fetcherBgFifoCol[i] = (lowBit ? 1 : 0) + (highBit ? 2 : 0);
-                    this.fetcherBgFifoObjPri[i] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
-                }
-            }
-
-            this.fetcherBgFifoPos = 8;
         }
     }
 
@@ -785,9 +765,6 @@ class GPU implements HWIO {
         this.fetcherScreenX = 0;
 
         this.fetcherTileY = 0;
-
-        this.fetcherTileDataLow = 0;
-        this.fetcherTileDataHigh = 0;
 
         this.fetcherBgFifoCol = new Uint8Array(8); // BG Color
         this.fetcherBgFifoPal = 0;
