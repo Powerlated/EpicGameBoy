@@ -1311,6 +1311,28 @@ class GPU implements HWIO {
 
         state.PUT_8(this.fetcherWindowLine);
         state.PUT_BOOL(this.windowOnscreenYetThisFrame);
+
+        state.PUT_8(this.fetcherCycles);
+        state.PUT_8(this.fetcherStall);
+
+        state.PUT_16LE(this.fetcherStep);
+        state.PUT_16LE(this.fetcherTileIndex);
+        state.PUT_16LE(this.fetcherX);
+        state.PUT_16LE(this.fetcherScreenX);
+
+        state.PUT_8(this.fetcherTileY);
+        state.PUT_8ARRAY(this.fetcherTileData, 8);
+
+        state.PUT_8ARRAY(this.fetcherBgFifoCol, 8);
+        state.PUT_8(this.fetcherBgFifoPal);
+        state.PUT_8ARRAY(this.fetcherBgFifoObjPri, 8);
+        state.PUT_8ARRAY(this.fetcherBgFifoBgPri, 8);
+        state.PUT_8(this.fetcherBgFifoPos);
+
+        state.PUT_BOOL(this.fetcherFirstTile);
+        state.PUT_BOOL(this.fetcherPushed);
+
+        state.PUT_BOOL(this.fetcherWindowMode);
     }
 
     deserialize(state: Serializer) {
@@ -1390,6 +1412,28 @@ class GPU implements HWIO {
 
         this.fetcherWindowLine = state.GET_8();
         this.windowOnscreenYetThisFrame = state.GET_BOOL();
+
+        this.fetcherCycles = state.GET_8();
+        this.fetcherStall = state.GET_8();
+
+        this.fetcherStep = state.GET_16LE();
+        this.fetcherTileIndex = state.GET_16LE();
+        this.fetcherX = state.GET_16LE();
+        this.fetcherScreenX = state.GET_16LE();
+
+        this.fetcherTileY = state.GET_8();
+        this.fetcherTileData = state.GET_8ARRAY(8);
+
+        this.fetcherBgFifoCol = state.GET_8ARRAY(8);
+        this.fetcherBgFifoPal = state.GET_8();
+        this.fetcherBgFifoObjPri = state.GET_8ARRAY(8);
+        this.fetcherBgFifoBgPri = state.GET_8ARRAY(8);
+        this.fetcherBgFifoPos = state.GET_8();
+
+        this.fetcherFirstTile = state.GET_BOOL();
+        this.fetcherPushed = state.GET_BOOL();
+
+        this.fetcherWindowMode = state.GET_BOOL();
     }
 }
 
