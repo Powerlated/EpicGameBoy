@@ -430,43 +430,25 @@ class GPU implements HWIO {
                     break;
                 case LCDMode.VRAM: // Mode 3
                     {
-                        if (this.renderingThisFrame === true) {
-                            // Bit 0 of LCDC is used to manage priority in CGB mode
-                            // Delay window rendering based on its X position, and don't be too picky, it's only X position
-                            if (this.windowDrawn === false && this.lineClock >= this.windowXpos + 80) {
-
-                                /* 
-                                * Holy moly, this is needed becuase the window "remembers" where it was drawing when it is 
-                                * 
-                                *     A. Moved offscreen (i.e. X >= 160 || Y >= 144)
-                                *     B. Disabled entirely through bit 5 of LCD Control
-                                * 
-                                * only AFTER the window has already been enabled.
-                                */
-                                if (
-                                    this.lY === this.windowYpos &&
-                                    this.lcdControl.enableWindow____5 === true &&
-                                    this.windowOnscreenYetThisFrame === false &&
-                                    this.windowXpos < 167
-                                ) {
-                                    this.currentWindowLine = this.windowYpos - this.lY;
-                                    this.windowOnscreenYetThisFrame = true;
-                                }
-                            }
-                        }
                         this.fetcherCycles += cycles;
-                        if (this.lineClock >= 252 + this.fetcherStall) {
-                            this.fetcherFlush();
+                        if (this.lineClock >= 252) {
+                            if (this.renderingThisFrame) {
+                                this.fetcherFlush();
+                            }
 
-                            // VRAM -> HBLANK
-                            this.lcdStatus.mode = LCDMode.HBLANK;
-                            this.updateSTAT();
+                            if (this.fetcherScreenX > 159 || !this.renderingThisFrame) {
+                                this.fetcherCycles = 0;
 
-                            this.gb.dma.continueHdma();
+                                // VRAM -> HBLANK
+                                this.lcdStatus.mode = LCDMode.HBLANK;
+                                this.updateSTAT();
 
-                            if (this.renderingThisFrame === true) {
-                                if (this.lcdControl.spriteDisplay___1) {
-                                    this.renderSprites();
+                                this.gb.dma.continueHdma();
+
+                                if (this.renderingThisFrame === true) {
+                                    if (this.lcdControl.spriteDisplay___1) {
+                                        this.renderSprites();
+                                    }
                                 }
                             }
                         }
@@ -531,6 +513,8 @@ class GPU implements HWIO {
     fetcherFirstTile = false;
     fetcherPushed = false;
 
+    fetcherWindowMode = false;
+
     fetcherFlush() {
         this.fetcherAdvance(this.fetcherCycles);
         this.fetcherCycles = 0;
@@ -548,52 +532,47 @@ class GPU implements HWIO {
                     case PixelFetcher.GET_TILE1:
                         this.fetcherPushed = false;
 
-                        this.fetcherTileY = this.scrY + this.lY;
+                        if (this.fetcherWindowMode) {
+                            this.fetcherTileY = this.currentWindowLine;
+                            const tileBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
+                            const lineOffset = ((this.fetcherX - this.windowXpos) >> 3) + 1;
+                            const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
+                            const tile = tileBase + tileY + lineOffset;
 
-                        const tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
-                        const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
-                        const lineOffset = ((this.fetcherX + this.scrX) >> 3) & 31;
+                            this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
+                            this.fetcherTileIndex = this.vram[0][tile];
+                        } else {
+                            this.fetcherTileY = this.scrY + this.lY;
+                            const tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+                            const lineOffset = ((this.fetcherX + this.scrX) >> 3) & 31;
+                            const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
+                            const tile = tileBase + tileY + lineOffset;
+
+                            this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
+                            this.fetcherTileIndex = this.vram[0][tile];
+                        }
+
+                        if (this.lcdControl.bgWindowTiledataSelect__4 === false)
+                            this.fetcherTileIndex = unTwo8b(this.fetcherTileIndex) + 256;
 
                         this.fetcherX += 8;
-
-                        const tile = tileBase + tileY + lineOffset;
-
-                        this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
-                        this.fetcherTileIndex = this.vram[0][tile];
                         // this.fetcherTileAttrs = this.cgbTileAttrs[tile];
                         break;
                     case PixelFetcher.SLEEP2: break;
                     case PixelFetcher.GET_TILE_LOW3:
                         {
-                            let tileIndex = this.fetcherTileIndex;
-
-                            if (this.lcdControl.bgWindowTiledataSelect__4 === false)
-                                tileIndex = unTwo8b(tileIndex) + 256;
-
                             let tileY = this.fetcherTileY & 7;
                             if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
-                            let tilesetAddr = (tileIndex * 16) + (tileY * 2) + 0;
+                            let tilesetAddr = (this.fetcherTileIndex * 16) + (tileY * 2) + 0;
 
-                            this.fetcherTileDataLow = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr];
+                            this.fetcherTileDataLow = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr + 0];
+                            this.fetcherTileDataHigh = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr + 1];
                         }
                         break;
                     case PixelFetcher.SLEEP4: break;
                     case PixelFetcher.GET_TILE_HIGH5:
-                        {
-                            let tileIndex = this.fetcherTileIndex;
+                        this.fetcherAttemptPush();
 
-                            if (this.lcdControl.bgWindowTiledataSelect__4 === false)
-                                tileIndex = unTwo8b(tileIndex) + 256;
-
-                            // Same as last time but increment tile address by 1
-                            let tileY = this.fetcherTileY & 7;
-                            if (this.fetcherTileAttrs.yFlip) tileY ^= 7;
-                            let tilesetAddr = (tileIndex * 16) + (tileY * 2) + 1;
-
-                            this.fetcherTileDataHigh = this.vram[this.fetcherTileAttrs.vramBank][tilesetAddr];
-
-                            this.fetcherAttemptPush();
-                        }
                         break;
                     case PixelFetcher.PUSH6:
                         this.fetcherAttemptPush();
@@ -603,6 +582,23 @@ class GPU implements HWIO {
                         break;
                 }
 
+                if (
+                    this.lcdControl.enableWindow____5 &&
+                    !this.fetcherWindowMode &&
+                    this.fetcherScreenX === this.windowXpos - 7 &&
+                    this.lY >= this.windowYpos
+                ) {
+                    if (!this.windowOnscreenYetThisFrame) {
+                        this.windowOnscreenYetThisFrame = true;
+                    } else {
+                        this.currentWindowLine++;
+                    }
+
+                    this.fetcherBgFifoPos = 0;
+                    this.fetcherStep = 0;
+                    this.fetcherWindowMode = true;
+                    this.fetcherX = this.fetcherScreenX;
+                }
 
                 this.fetcherStep++;
                 this.fetcherStep &= 7;
@@ -662,13 +658,14 @@ class GPU implements HWIO {
 
     fetcherReset() {
         this.fetcherStall = 5;
-        this.fetcherStall += this.scrX & 7;
+
         this.fetcherX = 0;
         this.fetcherBgFifoPos = 0;
         this.fetcherFirstTile = false;
         this.fetcherPushed = false;
         this.fetcherScreenX = -(this.scrX & 7);
         this.fetcherStep = 0;
+        this.fetcherWindowMode = false;
     }
 
     updateSTAT() {
