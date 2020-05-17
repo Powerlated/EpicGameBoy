@@ -297,7 +297,7 @@ class GPU implements HWIO {
     lcdStatusFired = false;
 
     pre = new Uint8Array(160);
-    noSprites: boolean[] = new Array(160).fill(false);
+    noSprites = new Uint8Array(160);
 
     imageGameboy0 = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
     imageGameboy1 = new ImageData(new Uint8ClampedArray(160 * 144 * 4).fill(0xFF), 160, 144);
@@ -525,29 +525,28 @@ class GPU implements HWIO {
                 this.fetcherStall--;
             } else {
                 switch (this.fetcherStep) {
-                    case 0: break;
+                    case 0: break; // Sleep
                     case 1:
                         this.fetcherPushed = false;
 
+                        let tileBase: number;
+                        let lineOffset: number;
+
                         if (this.fetcherWindowMode) {
                             this.fetcherTileY = this.fetcherWindowLine;
-                            const tileBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
-                            const lineOffset = ((this.fetcherX - this.windowXpos) >> 3) + 1;
-                            const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
-                            const tile = tileBase + tileY + lineOffset;
-
-                            this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
-                            this.fetcherTileIndex = this.vram[0][tile];
+                            tileBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
+                            lineOffset = ((this.fetcherX - this.windowXpos) >> 3) + 1;
                         } else {
                             this.fetcherTileY = this.scrY + this.lY;
-                            const tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
-                            const lineOffset = ((this.fetcherX + this.scrX) >> 3) & 31;
-                            const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
-                            const tile = tileBase + tileY + lineOffset;
-
-                            this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
-                            this.fetcherTileIndex = this.vram[0][tile];
+                            tileBase = this.lcdControl.bgTilemapSelect_3 ? 0x1C00 : 0x1800;
+                            lineOffset = ((this.fetcherX + this.scrX) >> 3) & 31;
                         }
+
+                        const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
+                        const tile = tileBase + tileY + lineOffset;
+
+                        this.fetcherTileAttrs = this.cgbTileAttrs[tile - 0x1800];
+                        this.fetcherTileIndex = this.vram[0][tile];
 
                         if (this.lcdControl.bgWindowTiledataSelect__4 === false)
                             this.fetcherTileIndex = unTwo8b(this.fetcherTileIndex) + 256;
@@ -555,7 +554,7 @@ class GPU implements HWIO {
                         this.fetcherX += 8;
                         // this.fetcherTileAttrs = this.cgbTileAttrs[tile];
                         break;
-                    case 2: break;
+                    case 2: break; // Sleep
                     case 3:
                         {
                             let tileY = this.fetcherTileY & 7;
@@ -564,7 +563,7 @@ class GPU implements HWIO {
                             this.fetcherTileData = this.tileset[this.fetcherTileAttrs.vramBank][this.fetcherTileIndex][tileY];
                         }
                         break;
-                    case 4: break;
+                    case 4: break; // Sleep
                     case 5:
                     case 6:
                     case 7: // Attempt push
@@ -591,7 +590,8 @@ class GPU implements HWIO {
                 }
 
                 if (
-                    this.fetcherScreenX === this.windowXpos - 7 &&
+                    (this.fetcherScreenX === this.windowXpos - 7 ||
+                        this.windowXpos < 7) &&
                     this.lcdControl.enableWindow____5 &&
                     !this.fetcherWindowMode &&
                     this.lY >= this.windowYpos
@@ -623,7 +623,7 @@ class GPU implements HWIO {
                         let finalColor = this.cgbBgPalette.shades[palette][prePalette];
 
                         this.pre[this.fetcherScreenX] = prePalette;
-                        this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos] ? true : false;
+                        this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
 
                         this.imageGameboy.data[imgIndex + 0] = finalColor[0];
                         this.imageGameboy.data[imgIndex + 1] = finalColor[1];
@@ -734,7 +734,7 @@ class GPU implements HWIO {
         this.dmgObj1Palette = 0;
 
         this.pre = new Uint8Array(160);
-        this.noSprites = new Array(160).fill(false);
+        this.noSprites = new Uint8Array(160);
         this.imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
         this.fetcherWindowLine = 0;
