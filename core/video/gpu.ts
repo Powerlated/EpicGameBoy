@@ -309,7 +309,7 @@ class GPU implements HWIO {
 
     showBorders = false;
 
-    currentWindowLine = 0; // Which line of the window is currently rendering
+    fetcherWindowLine = 0; // Which line of the window is currently rendering
     windowOnscreenYetThisFrame = false; // Has the window been triggered this frame yet?
 
     lineClock: number = 0;
@@ -382,7 +382,7 @@ class GPU implements HWIO {
                                     }
                                 }
 
-                                this.currentWindowLine = 0;
+                                this.fetcherWindowLine = 0;
                                 this.windowOnscreenYetThisFrame = false;
 
                                 this.lcdStatus.mode = LCDMode.VBLANK;
@@ -436,7 +436,7 @@ class GPU implements HWIO {
                                 this.fetcherFlush();
                             }
 
-                            if (this.fetcherScreenX > 159 || !this.renderingThisFrame) {
+                            if (this.fetcherScreenX > 159 || !this.renderingThisFrame || this.lineClock >= 252) {
                                 this.fetcherCycles = 0;
 
                                 // VRAM -> HBLANK
@@ -533,7 +533,7 @@ class GPU implements HWIO {
                         this.fetcherPushed = false;
 
                         if (this.fetcherWindowMode) {
-                            this.fetcherTileY = this.currentWindowLine;
+                            this.fetcherTileY = this.fetcherWindowLine;
                             const tileBase = this.lcdControl.windowTilemapSelect___6 ? 0x1C00 : 0x1800;
                             const lineOffset = ((this.fetcherX - this.windowXpos) >> 3) + 1;
                             const tileY = ((this.fetcherTileY >> 3) << 5) & 1023;
@@ -583,15 +583,15 @@ class GPU implements HWIO {
                 }
 
                 if (
+                    this.fetcherScreenX === this.windowXpos - 7 &&
                     this.lcdControl.enableWindow____5 &&
                     !this.fetcherWindowMode &&
-                    this.fetcherScreenX === this.windowXpos - 7 &&
                     this.lY >= this.windowYpos
                 ) {
                     if (!this.windowOnscreenYetThisFrame) {
                         this.windowOnscreenYetThisFrame = true;
                     } else {
-                        this.currentWindowLine++;
+                        this.fetcherWindowLine++;
                     }
 
                     this.fetcherBgFifoPos = 0;
@@ -657,7 +657,7 @@ class GPU implements HWIO {
     }
 
     fetcherReset() {
-        this.fetcherStall = 5;
+        this.fetcherStall = 10;
 
         this.fetcherX = 0;
         this.fetcherBgFifoPos = 0;
@@ -757,7 +757,7 @@ class GPU implements HWIO {
         this.noSprites = new Array(160).fill(false);
         this.imageTileset = new ImageData(new Uint8ClampedArray(256 * 192 * 4).fill(0xFF), 256, 192);
 
-        this.currentWindowLine = 0;
+        this.fetcherWindowLine = 0;
         this.windowOnscreenYetThisFrame = false;
 
         this.lineClock = 0;
@@ -1332,7 +1332,7 @@ class GPU implements HWIO {
 
         state.PUT_16LE(this.lineClock);
 
-        state.PUT_8(this.currentWindowLine);
+        state.PUT_8(this.fetcherWindowLine);
         state.PUT_BOOL(this.windowOnscreenYetThisFrame);
     }
 
@@ -1411,7 +1411,7 @@ class GPU implements HWIO {
 
         this.lineClock = state.GET_16LE();
 
-        this.currentWindowLine = state.GET_8();
+        this.fetcherWindowLine = state.GET_8();
         this.windowOnscreenYetThisFrame = state.GET_BOOL();
     }
 }
