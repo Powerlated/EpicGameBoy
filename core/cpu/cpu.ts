@@ -71,9 +71,7 @@ class InterruptFlag {
         else
             this.numerical &= ~BIT_0;
 
-        if (!this.isIe) {
-            this.calcAvailable();
-        }
+        this.cpu.calculateAvailableInterrupts();
     }
     set lcdStat(i: boolean) {
         this._lcdStat = i;
@@ -82,9 +80,7 @@ class InterruptFlag {
         else
             this.numerical &= ~BIT_1;
 
-        if (!this.isIe) {
-            this.calcAvailable();
-        }
+        this.cpu.calculateAvailableInterrupts();
     }
     set timer(i: boolean) {
         this._timer = i;
@@ -93,9 +89,7 @@ class InterruptFlag {
         else
             this.numerical &= ~BIT_2;
 
-        if (!this.isIe) {
-            this.calcAvailable();
-        }
+        this.cpu.calculateAvailableInterrupts();
     }
     set serial(i: boolean) {
         this._serial = i;
@@ -104,9 +98,7 @@ class InterruptFlag {
         else
             this.numerical &= ~BIT_3;
 
-        if (!this.isIe) {
-            this.calcAvailable();
-        }
+        this.cpu.calculateAvailableInterrupts();
     }
     set joypad(i: boolean) {
         this._joypad = i;
@@ -115,26 +107,8 @@ class InterruptFlag {
         else
             this.numerical &= ~BIT_4;
 
-        if (!this.isIe) {
-            this.calcAvailable();
-        }
+        this.cpu.calculateAvailableInterrupts();
     };
-
-    calcAvailable() {
-        const joypad = this._joypad && this.cpu.ie._joypad;
-        const serial = this._serial && this.cpu.ie._serial;
-        const timer = this._timer && this.cpu.ie._timer;
-        const vblank = this._vblank && this.cpu.ie._vblank;
-        const lcdStat = this._lcdStat && this.cpu.ie._lcdStat;
-
-        this.cpu.joypadAvailable = joypad;
-        this.cpu.serialAvailable = serial;
-        this.cpu.timerAvailable = timer;
-        this.cpu.vblankAvailable = vblank;
-        this.cpu.lcdStatAvailable = lcdStat;
-
-        this.cpu.interruptAvailable = joypad || serial || timer || vblank || lcdStat;
-    }
 
     numerical = 0;
 
@@ -313,6 +287,22 @@ export default class CPU {
     timerAvailable = false;
     vblankAvailable = false;
     lcdStatAvailable = false;
+
+    calculateAvailableInterrupts() {
+        const joypad = this.if._joypad && this.ie._joypad;
+        const serial = this.if._serial && this.ie._serial;
+        const timer = this.if._timer && this.ie._timer;
+        const vblank = this.if._vblank && this.ie._vblank;
+        const lcdStat = this.if._lcdStat && this.ie._lcdStat;
+
+        this.joypadAvailable = joypad;
+        this.serialAvailable = serial;
+        this.timerAvailable = timer;
+        this.vblankAvailable = vblank;
+        this.lcdStatAvailable = lcdStat;
+
+        this.interruptAvailable = joypad || serial || timer || vblank || lcdStat;
+    }
 
     cycles = 0;
     pendingCycles = 0;
