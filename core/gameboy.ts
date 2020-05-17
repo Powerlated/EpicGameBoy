@@ -12,6 +12,7 @@ import { R16 } from './cpu/cpu_types';
 import { hex } from '../src/gameboy/tools/util';
 import { bitSetValue, bitGet } from './bit_constants';
 import { Serializer } from './serialize';
+import { SoundPlayer } from './sound/soundplayer';
 
 export default class GameBoy {
     constructor(cgb: boolean) {
@@ -31,6 +32,7 @@ export default class GameBoy {
                 this.soundChip.setMuted(false);
             } else if (this.millisUntilMuteAudio < 0) {
                 this.soundChip.setMuted(true);
+                this.audioDesynced = true;
             }
 
             if (this.millisUntilMuteAudio >= 0) {
@@ -52,13 +54,11 @@ export default class GameBoy {
     doubleSpeedShift = 1;
     prepareSpeedSwitch = false;
 
-
     speedMul = 1;
     speedIntervals: Array<number> = [];
     currentlyRunning = false;
     animationFrame = 0;
     millisUntilMuteAudio = 0;
-
     step(): number {
         return this.cpu.execute();
     }
@@ -69,6 +69,7 @@ export default class GameBoy {
         // The APU is ticked by the timer so it's the timer class
         this.gpu.tick(cyclesRan >> this.doubleSpeedShift);
         this.dma.tick(cyclesRan);
+        this.soundChip.tick(cyclesRan >> this.doubleSpeedShift);
     }
 
     speedStop() {
@@ -78,21 +79,31 @@ export default class GameBoy {
     }
 
     speed() {
+        this.soundChip.resetPlayer();
+
         this.cpu.debugging = false;
         this.animationFrame = requestAnimationFrame(this.run.bind(this));
         this.soundChip.setMuted(false);
         this.currentlyRunning = true;
     }
 
+    audioDesynced = false;
     lastTime = 0;
     run() {
+        if (this.audioDesynced) {
+            this.audioDesynced = false;
+
+            this.soundChip.resetPlayer();
+        }
+
         const now = performance.now();
         let deltaMs = now - this.lastTime;
         if (deltaMs > (1000 / 60)) deltaMs = (1000 / 60); // limit this for performance reasons
         this.lastTime = now;
 
+        // TODO: Put the slightly higher speed back in
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
-        let max = 4213.440 * deltaMs * this.speedMul;
+        let max = 4194.304 * deltaMs * this.speedMul;
 
         if (this.doubleSpeedShift) max <<= 1;
 
@@ -114,6 +125,10 @@ export default class GameBoy {
         this.animationFrame = requestAnimationFrame(this.run.bind(this));
 
         this.millisUntilMuteAudio = 100;
+
+        if (this.turbo) {
+            this.soundChip.resetPlayer();
+        }
     }
 
     frame() {
@@ -141,7 +156,7 @@ export default class GameBoy {
         this.soundChip.serialize(state);
         this.timer.serialize(state);
 
-        console.log(`Serialize: ${state.pos} bytes`)
+        console.log(`Serialize: ${state.pos} bytes`);
     }
 
     deserialize(id: number) {
@@ -150,7 +165,7 @@ export default class GameBoy {
         const state = this.state[id];
 
         if (this.bus.ext.romTitle !== state.id) {
-            console.log("Deserialize: Wrong game")
+            console.log("Deserialize: Wrong game");
             return;
         }
 
@@ -165,7 +180,16 @@ export default class GameBoy {
         this.gpu.deserialize(state);
         this.soundChip.deserialize(state);
         this.timer.deserialize(state);
+    }
 
+    turbo = false;
+    setTurbo(turbo: boolean) {
+        this.turbo = turbo;
+        if (turbo) {
+            this.speedMul = 10;
+        } else {
+            this.speedMul = 1;
+        }
     }
 
     reset() {

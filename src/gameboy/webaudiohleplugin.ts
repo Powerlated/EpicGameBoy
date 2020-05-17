@@ -237,8 +237,6 @@ export default class ToneJsAudioPlugin implements AudioPlugin {
             if (s.noise.updated) {
                 this.noisePan.pan.value = s.noise.pan;
 
-
-
                 const div = [8, 16, 32, 48, 64, 80, 96, 112][s.noise.divisorCode];
                 const rate = 4194304 / (div << s.noise.shiftClockFrequency);
 

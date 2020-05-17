@@ -237,7 +237,7 @@ window.speedMul = 10;
 function init() {
     let gb = new GameBoy(true);
     // Set the audio and video plugin
-    gb.soundChip.ap = new WebAudioPlugin();
+    // gb.soundChip.ap = new WebAudioHLEPlugin();
 
     let cGameboy = document.getElementById("gameboy");
     let cTileset = document.getElementById("tileset");
@@ -347,7 +347,7 @@ function init() {
         switch (e.key) {
             case "Enter": gb.joypad.start = true; break;
             case "\\": gb.joypad.select = true; break;
-            case "Tab": gb.speedMul = window.speedMul; break;
+            case "Tab": gb.setTurbo(true); break;
         }
     };
     document.onkeyup = function (e) {
@@ -380,7 +380,7 @@ function init() {
             case "Enter": gb.joypad.start = false; break;
             case "\\": gb.joypad.select = false; break;
 
-            case "Tab": gb.speedMul = 1; break;
+            case "Tab": gb.setTurbo(false); break;
         }
     };
 };
