@@ -6,6 +6,7 @@ import { HWIO } from "../memory/hwio";
 import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
 import { Serializer } from "../serialize";
 import { SoundPlayer, SAMPLE_RATE } from "./soundplayer";
+import { hex } from "../../src/gameboy/tools/util";
 
 // const PULSE_DUTY = [
 //     Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 1),
@@ -87,25 +88,27 @@ export default class SoundChip implements HWIO {
     soundRegisters = new Uint8Array(64).fill(0);
 
     advanceFrameSequencer() {
-        // 512Hz Frame Sequencer
-        switch (this.frameSequencerStep) {
-            case 0:
-            case 4:
-                this.frameSequencerLength();
-                break;
-            case 2:
-            case 6:
-                this.frameSequencerLength();
-                this.frameSequencerFrequencySweep();
-                break;
-            case 7:
-                this.frameSequencerVolumeEnvelope();
-                break;
-            default:
-                break;
-        }
+        if (this.enabled) {
+            // 512Hz Frame Sequencer
+            switch (this.frameSequencerStep) {
+                case 0:
+                case 4:
+                    this.frameSequencerLength();
+                    break;
+                case 2:
+                case 6:
+                    this.frameSequencerLength();
+                    this.frameSequencerFrequencySweep();
+                    break;
+                case 7:
+                    this.frameSequencerVolumeEnvelope();
+                    break;
+                default:
+                    break;
+            }
 
-        this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
+            this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
+        }
     }
 
     pulse1FreqTimer = 0;
@@ -142,37 +145,44 @@ export default class SoundChip implements HWIO {
     reloadNoisePeriod() { this.noiseFreqTimer = this.noisePeriod; }
 
     tick(cycles: number) {
-        this.pulse1FreqTimer -= cycles;
-        this.pulse2FreqTimer -= cycles;
-        this.waveFreqTimer -= cycles;
-        this.noiseFreqTimer -= cycles;
+        if (this.pulse1.enabled) {
+            this.pulse1FreqTimer -= cycles;
+            if (this.pulse1FreqTimer <= 0) {
+                this.pulse1FreqTimer += this.pulse1Period;
 
-        if (this.pulse1FreqTimer <= 0) {
-            this.pulse1FreqTimer += this.pulse1Period;
-
-            this.pulse1Pos++;
-            this.pulse1Pos &= 7;
+                this.pulse1Pos++;
+                this.pulse1Pos &= 7;
+            }
         }
 
-        if (this.pulse2FreqTimer <= 0) {
-            this.pulse2FreqTimer += this.pulse2Period;
+        if (this.pulse2.enabled) {
+            this.pulse2FreqTimer -= cycles;
+            if (this.pulse2FreqTimer <= 0) {
+                this.pulse2FreqTimer += this.pulse2Period;
 
-            this.pulse2Pos++;
-            this.pulse2Pos &= 7;
+                this.pulse2Pos++;
+                this.pulse2Pos &= 7;
+            }
         }
 
-        if (this.waveFreqTimer <= 0) {
-            this.waveFreqTimer += this.wavePeriod;
+        if (this.wave.enabled) {
+            this.waveFreqTimer -= cycles;
+            if (this.waveFreqTimer <= 0) {
+                this.waveFreqTimer += this.wavePeriod;
 
-            this.wavePos++;
-            this.wavePos &= 31;
+                this.wavePos++;
+                this.wavePos &= 31;
+            }
         }
 
-        if (this.noiseFreqTimer <= 0) {
-            this.noiseFreqTimer += this.noisePeriod;
+        if (this.noise.enabled) {
+            this.noiseFreqTimer -= cycles;
+            if (this.noiseFreqTimer <= 0) {
+                this.noiseFreqTimer += this.noisePeriod;
 
-            this.noisePos++;
-            this.noisePos &= 32767;
+                this.noisePos++;
+                this.noisePos &= 32767;
+            }
         }
 
         if (!this.gb.turbo) {
@@ -371,8 +381,6 @@ export default class SoundChip implements HWIO {
 
     writeHwio(addr: number, value: number) {
         if (this.enabled) {
-            this.soundRegisters[addr - 0xFF10] = value;
-
             switch (addr) {
                 // Pulse 1
                 case 0xFF10: // NR10
@@ -528,20 +536,6 @@ export default class SoundChip implements HWIO {
                     this.noise.lengthEnable = ((value >> 6) & 1) !== 0;
                     break;
 
-
-                case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33: case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
-                case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B: case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
-                    const BASE = 0xFF30;
-                    if (this.wave.waveTable[((addr - BASE) * 2) + 0] != (value >> 4)) {
-                        this.wave.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
-                        this.wave.waveTableUpdated = true;
-                    }
-                    if (this.wave.waveTable[((addr - BASE) * 2) + 1] != (value & 0xF)) {
-                        this.wave.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
-                        this.wave.waveTableUpdated = true;
-                    }
-                    break;
-
                 // Panning
                 case 0xFF25:
                     this.noise.outputRight = (((value >> 7) & 1) === 1);
@@ -557,13 +551,35 @@ export default class SoundChip implements HWIO {
 
                     break;
             }
+
+            if (addr >= 0xFF30 && addr <= 0xFF3F) {
+                const BASE = 0xFF30;
+                if (this.wave.enabled) {
+                    // console.log(this.wavePos);
+                    // console.log(`Addr: ${hex(((0xFF30 + (this.wavePos >> 1))), 4)} Value: ${hex(value, 2)}`);
+                    this.soundRegisters[(0xFF30 + (this.wavePos >> 1)) - 0xFF10] = value;
+                } else {
+                    this.soundRegisters[addr - 0xFF10] = value;
+                    if (this.wave.waveTable[((addr - BASE) * 2) + 0] != (value >> 4)) {
+                        this.wave.waveTable[((addr - BASE) * 2) + 0] = value >> 4;
+                        this.wave.waveTableUpdated = true;
+                    }
+                    if (this.wave.waveTable[((addr - BASE) * 2) + 1] != (value & 0xF)) {
+                        this.wave.waveTable[((addr - BASE) * 2) + 1] = value & 0xF;
+                        this.wave.waveTableUpdated = true;
+                    }
+                }
+            } else {
+                this.soundRegisters[addr - 0xFF10] = value;
+            }
         }
+
         if (addr === 0xFF26) {
             // Control
             if (((value >> 7) & 1) !== 0) {
                 // writeDebug("Enabled sound");
                 this.enabled = true;
-
+                this.frameSequencerStep = 0;
             } else {
                 // Disable and write zeros on everything upon main disabling
                 this.noise.enabled = false;
@@ -600,6 +616,13 @@ export default class SoundChip implements HWIO {
 
                 this.pulse1Pos = 0;
                 this.pulse2Pos = 0;
+                this.wavePos = 0;
+                this.noisePos = 0;
+
+                this.pulse1FreqTimer = 0;
+                this.pulse2FreqTimer = 0;
+                this.waveFreqTimer = 0;
+                this.noiseFreqTimer = 0;
 
                 for (let i = 0xFF10; i <= 0xFF25; i++) {
                     this.soundRegisters[i - 0xFF10] = 0;
@@ -615,7 +638,13 @@ export default class SoundChip implements HWIO {
 
             if (addr >= 0xFF27 && addr <= 0xFF2F) return 0xFF;
 
-            if (addr >= 0xFF30 && addr <= 0xFF3F && this.wave.dacEnabled) return 0xFF;
+            if (addr >= 0xFF30 && addr <= 0xFF3F) {
+                if (this.wave.enabled) {
+                    return this.soundRegisters[(0xFF30 + (this.wavePos >> 1)) - 0xFF10];
+                } else {
+                    return this.soundRegisters[addr - 0xFF10];
+                }
+            }
 
             if (addr === 0xFF26) { // NR52
                 i = 0;
