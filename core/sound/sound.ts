@@ -108,9 +108,6 @@ export default class SoundChip implements HWIO {
         this.frameSequencerStep++; this.frameSequencerStep &= 0b111;
     }
 
-    sampleRate = 44100;
-    emuClockRate = 4123119;
-
     pulse1FreqTimer = 0;
     pulse2FreqTimer = 0;
     waveFreqTimer = 0;
@@ -131,6 +128,9 @@ export default class SoundChip implements HWIO {
     wavePeriod = 0;
     noisePeriod = 0;
 
+    capacitor1 = 0;
+    capacitor2 = 0;
+
     calcPulse1Period() { this.pulse1Period = (2048 - ((this.pulse1.frequencyUpper << 8) | this.pulse1.frequencyLower)) * 4; }
     calcPulse2Period() { this.pulse2Period = (2048 - ((this.pulse2.frequencyUpper << 8) | this.pulse2.frequencyLower)) * 4; }
     calcWavePeriod() { this.wavePeriod = (2048 - ((this.wave.frequencyUpper << 8) | this.wave.frequencyLower)) * 2; }
@@ -140,9 +140,6 @@ export default class SoundChip implements HWIO {
     reloadPulse2Period() { this.pulse2FreqTimer = this.pulse2Period; }
     reloadWavePeriod() { this.waveFreqTimer = this.wavePeriod; }
     reloadNoisePeriod() { this.noiseFreqTimer = this.noisePeriod; }
-
-    capacitor1 = 0;
-    capacitor2 = 0;
 
     tick(cycles: number) {
         this.pulse1FreqTimer -= cycles;
@@ -178,78 +175,76 @@ export default class SoundChip implements HWIO {
             this.noisePos &= 32767;
         }
 
-        this.sampleTimer += cycles;
-        // Sample at 65536 Hz
-        if (this.sampleTimer >= (4194304 / SAMPLE_RATE)) {
-            this.sampleTimer -= (4194304 / SAMPLE_RATE);
+        if (!this.gb.turbo) {
+            this.sampleTimer += cycles;
+            // Sample at 65536 Hz
+            if (this.sampleTimer >= (4194304 / SAMPLE_RATE)) {
+                this.sampleTimer -= (4194304 / SAMPLE_RATE);
 
-            let in1 = 0;
-            let in2 = 0;
+                let in1 = 0;
+                let in2 = 0;
 
-            // Note: -1 value when disabled is the DAC DC offset
+                // Note: -1 value when disabled is the DAC DC offset
 
-            if (this.pulse1.dacEnabled) {
-                let pulse1 = PULSE_DUTY[this.pulse1.width][this.pulse1Pos];
-                pulse1 = this.pulse1.enabled ? DAC_TABLE[pulse1 * this.pulse1.volume] : -1;
+                if (this.pulse1.dacEnabled) {
+                    let pulse1 = PULSE_DUTY[this.pulse1.width][this.pulse1Pos];
+                    pulse1 = this.pulse1.enabled ? DAC_TABLE[pulse1 * this.pulse1.volume] : -1;
 
-                if (this.pulse1.outputLeft) in1 += pulse1;
-                if (this.pulse1.outputRight) in2 += pulse1;
-            }
+                    if (this.pulse1.outputLeft) in1 += pulse1;
+                    if (this.pulse1.outputRight) in2 += pulse1;
+                }
 
-            if (this.pulse2.dacEnabled) {
-                let pulse2 = PULSE_DUTY[this.pulse2.width][this.pulse2Pos];
-                pulse2 = this.pulse2.enabled ? DAC_TABLE[pulse2 * this.pulse2.volume] : -1;
-                if (this.pulse2.outputLeft) in1 += pulse2;
-                if (this.pulse2.outputRight) in2 += pulse2;
-            }
+                if (this.pulse2.dacEnabled) {
+                    let pulse2 = PULSE_DUTY[this.pulse2.width][this.pulse2Pos];
+                    pulse2 = this.pulse2.enabled ? DAC_TABLE[pulse2 * this.pulse2.volume] : -1;
+                    if (this.pulse2.outputLeft) in1 += pulse2;
+                    if (this.pulse2.outputRight) in2 += pulse2;
+                }
 
-            if (this.wave.dacEnabled) {
-                let wave = this.wave.waveTable[this.wavePos];
+                if (this.wave.dacEnabled) {
+                    let wave = this.wave.waveTable[this.wavePos];
 
-                wave >>= [4, 0, 1, 2][this.wave.volume];
-                wave = this.wave.enabled ? DAC_TABLE[wave] : -1;
+                    wave >>= [4, 0, 1, 2][this.wave.volume];
+                    wave = this.wave.enabled ? DAC_TABLE[wave] : -1;
 
-                if (this.wave.outputLeft) in1 += wave;
-                if (this.wave.outputRight) in2 += wave;
-            }
+                    if (this.wave.outputLeft) in1 += wave;
+                    if (this.wave.outputRight) in2 += wave;
+                }
 
-            if (this.noise.dacEnabled) {
-                let noise = this.noise.counterStep ? SEVEN_BIT_NOISE[this.noisePos] : FIFTEEN_BIT_NOISE[this.noisePos];
-                noise = this.noise.enabled ? DAC_TABLE[noise * this.noise.volume] : -1;
+                if (this.noise.dacEnabled) {
+                    let noise = this.noise.counterStep ? SEVEN_BIT_NOISE[this.noisePos] : FIFTEEN_BIT_NOISE[this.noisePos];
+                    noise = this.noise.enabled ? DAC_TABLE[noise * this.noise.volume] : -1;
 
-                if (this.noise.outputLeft) in1 += noise;
-                if (this.noise.outputRight) in2 += noise;
-            }
+                    if (this.noise.outputLeft) in1 += noise;
+                    if (this.noise.outputRight) in2 += noise;
+                }
 
-            let out1 = in1 - this.capacitor1;
-            let out2 = in2 - this.capacitor2;
+                let out1 = in1 - this.capacitor1;
+                let out2 = in2 - this.capacitor2;
 
-            this.audioQueueLeft[this.audioQueueAt] = (out1 / 4);
-            this.audioQueueRight[this.audioQueueAt] = (out2 / 4);
+                this.audioQueueLeft[this.audioQueueAt] = (out1 / 4);
+                this.audioQueueRight[this.audioQueueAt] = (out2 / 4);
 
-            this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
-            this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
+                this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
+                this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
 
-            this.audioQueueAt++;
+                this.audioQueueAt++;
 
-            if (this.audioQueueAt >= 16384) {
-                this.soundPlayer.queueAudio(
-                    this.audioQueueAt,
-                    this.audioQueueLeft,
-                    this.audioQueueRight,
-                    this.audioSec
-                );
-                this.audioSec += 0.0625;
-                this.audioQueueAt = 0;
+                if (this.audioQueueAt >= 16384) {
+                    this.soundPlayer.queueAudio(
+                        this.audioQueueLeft,
+                        this.audioQueueRight,
+                        (this.gb.slomo ? SAMPLE_RATE / 2 : SAMPLE_RATE)
+                    );
+                    this.audioQueueAt = 0;
+                }
             }
         }
     }
 
-    audioSec = 0;
     soundPlayer = new SoundPlayer();
 
     resetPlayer() {
-        this.audioSec = this.soundPlayer.ctx.currentTime + 0.0625;
         this.soundPlayer.reset();
     }
 
@@ -791,6 +786,25 @@ export default class SoundChip implements HWIO {
 
         state.PUT_8ARRAY(this.soundRegisters, 64);
 
+        state.PUT_16LE(this.pulse1FreqTimer);
+        state.PUT_16LE(this.pulse2FreqTimer);
+        state.PUT_16LE(this.waveFreqTimer);
+        state.PUT_16LE(this.noiseFreqTimer);
+
+        state.PUT_16LE(this.pulse1Pos);
+        state.PUT_16LE(this.pulse2Pos);
+        state.PUT_16LE(this.wavePos);
+        state.PUT_16LE(this.noisePos);
+
+        state.PUT_16LE(this.sampleTimer);
+
+        state.PUT_16LE(this.pulse1Period);
+        state.PUT_16LE(this.pulse2Period);
+        state.PUT_16LE(this.wavePeriod);
+        state.PUT_16LE(this.noisePeriod);
+
+        state.PUT_16LE(this.capacitor1);
+        state.PUT_16LE(this.capacitor2);
     }
 
     deserialize(state: Serializer) {
@@ -870,6 +884,22 @@ export default class SoundChip implements HWIO {
         this.noise.envelopeSweep = state.GET_8();
 
         this.soundRegisters = state.GET_8ARRAY(64);
+
+        this.pulse1FreqTimer = state.GET_16LE();
+        this.pulse2FreqTimer = state.GET_16LE();
+        this.waveFreqTimer = state.GET_16LE();
+        this.noiseFreqTimer = state.GET_16LE();
+        this.pulse1Pos = state.GET_16LE();
+        this.pulse2Pos = state.GET_16LE();
+        this.wavePos = state.GET_16LE();
+        this.noisePos = state.GET_16LE();
+        this.sampleTimer = state.GET_16LE();
+        this.pulse1Period = state.GET_16LE();
+        this.pulse2Period = state.GET_16LE();
+        this.wavePeriod = state.GET_16LE();
+        this.noisePeriod = state.GET_16LE();
+        this.capacitor1 = state.GET_16LE();
+        this.capacitor2 = state.GET_16LE();
 
         if (this.ap) {
             this.ap.noise(this);

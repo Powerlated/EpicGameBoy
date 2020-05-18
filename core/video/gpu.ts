@@ -233,6 +233,8 @@ enum PixelFetcher {
 }
 
 class GPU implements HWIO {
+    mode: LCDMode = 0;
+
     frameBlending = false;
 
     gb: GameBoy;
@@ -343,6 +345,11 @@ class GPU implements HWIO {
         }
     }
 
+    setMode(mode: LCDMode) {
+        this.mode = mode;
+        this.lcdStatus.mode = mode;
+    }
+
 
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     tick(cycles: number) {
@@ -351,7 +358,7 @@ class GPU implements HWIO {
 
         if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
-            switch (this.lcdStatus.mode) {
+            switch (this.mode) {
                 case LCDMode.HBLANK: // Mode 0
                     {
                         if (this.lineClock >= 456) {
@@ -385,14 +392,14 @@ class GPU implements HWIO {
                                 this.fetcherWindowLine = 0;
                                 this.windowOnscreenYetThisFrame = false;
 
-                                this.lcdStatus.mode = LCDMode.VBLANK;
+                                this.setMode(LCDMode.VBLANK);
                                 this.updateSTAT();
 
                                 this.totalFrameCount++;
                             }
                             else {
                                 // Enter back into OAM mode if not Vblank
-                                this.lcdStatus.mode = LCDMode.OAM;
+                                this.setMode(LCDMode.OAM);
                                 this.updateSTAT();
                             }
                         }
@@ -404,7 +411,7 @@ class GPU implements HWIO {
                             this.lineClock -= 456;
 
                             if (this.lY >= 152) {
-                                this.lcdStatus.mode = LCDMode.LINE153;
+                                this.setMode(LCDMode.LINE153);
                             }
 
                             this.lY++;
@@ -422,7 +429,7 @@ class GPU implements HWIO {
                                 this.scanOAM();
                             }
 
-                            this.lcdStatus.mode = LCDMode.VRAM;
+                            this.setMode(LCDMode.VRAM);
                             this.fetcherReset();
                             this.updateSTAT();
                         }
@@ -438,7 +445,7 @@ class GPU implements HWIO {
                                 this.fetcherCycles = 0;
 
                                 // VRAM -> HBLANK
-                                this.lcdStatus.mode = LCDMode.HBLANK;
+                                this.setMode(LCDMode.HBLANK);
                                 this.updateSTAT();
 
                                 this.gb.dma.continueHdma();
@@ -461,7 +468,7 @@ class GPU implements HWIO {
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
-                            this.lcdStatus.mode = LCDMode.OAM;
+                            this.setMode(LCDMode.OAM);
                             this.updateSTAT();
 
                             this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0 && this.vp !== null;
@@ -473,7 +480,7 @@ class GPU implements HWIO {
                         if (this.lineClock >= 76) {
                             this.lineClock -= 76;
 
-                            this.lcdStatus.mode = LCDMode.VRAM;
+                            this.setMode(LCDMode.VRAM);
                             // console.log("Exit Glitched OAM");
                         }
                     }
@@ -481,7 +488,7 @@ class GPU implements HWIO {
             }
         } else {
             this.lineClock = 0;
-            this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
+            this.setMode(LCDMode.GLITCHED_OAM);
             this.lY = 0;
             this.renderingThisFrame = false;
         }
@@ -509,6 +516,7 @@ class GPU implements HWIO {
     fetcherPushed = false;
 
     fetcherWindowMode = false;
+    fetcherImageIndex = 0;
 
     fetcherFlush() {
         if (this.renderingThisFrame) {
@@ -524,8 +532,10 @@ class GPU implements HWIO {
             if (this.fetcherStall > 0) {
                 this.fetcherStall--;
 
+                // On DMG
                 if (this.fetcherStall === 4) {
                     this.fetcherScreenX = -(this.scrX & 7);
+                    // console.log(`LY: ${this.lY} FetcherX: ${this.fetcherScreenX}`);
 
                     if (this.windowXpos < 7 && this.lY >= this.windowYpos) {
                         this.fetcherScreenX = -(this.windowXpos & 7);
@@ -635,19 +645,19 @@ class GPU implements HWIO {
                         this.fetcherBgFifoPos--;
 
                         if (this.fetcherScreenX >= 0) {
-                            const imgIndex = ((this.lY * 160) + (this.fetcherScreenX)) * 4;
+                            const prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
+                            const palette = this.fetcherBgFifoPal;
 
-                            let prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
-                            let palette = this.fetcherBgFifoPal;
-
-                            let finalColor = this.cgbBgPalette.shades[palette][prePalette];
+                            const finalColor = this.cgbBgPalette.shades[palette][prePalette];
 
                             this.pre[this.fetcherScreenX] = prePalette;
                             this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
 
-                            this.imageGameboy.data[imgIndex + 0] = finalColor[0];
-                            this.imageGameboy.data[imgIndex + 1] = finalColor[1];
-                            this.imageGameboy.data[imgIndex + 2] = finalColor[2];
+                            this.imageGameboy.data[this.fetcherImageIndex + 0] = finalColor[0];
+                            this.imageGameboy.data[this.fetcherImageIndex + 1] = finalColor[1];
+                            this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2];
+
+                            this.fetcherImageIndex += 4;
                         }
 
                         this.fetcherScreenX++;
@@ -672,6 +682,7 @@ class GPU implements HWIO {
         this.fetcherStep = 0;
         this.fetcherCycles = 0;
         this.fetcherWindowMode = false;
+        this.fetcherImageIndex = (this.lY * 160) * 4;
     }
 
     updateSTAT() {
@@ -736,7 +747,7 @@ class GPU implements HWIO {
         this.scrX = 0;
 
         this.lineClock = 0;
-        this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
+        this.setMode(LCDMode.GLITCHED_OAM);
         this.lY = 0;
 
         this.windowYpos = 0;
@@ -1039,9 +1050,11 @@ class GPU implements HWIO {
                 break;
             case 0xFF69: // CGB - Background Palette Data
                 if (this.gb.cgb === true) {
-                    if (this.cgbBgPalette.data[this.cgbBgPaletteIndex] !== value) {
-                        this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
-                        this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3, (this.cgbBgPaletteIndex >> 1) & 3);
+                    if (this.lcdStatus.mode !== LCDMode.VRAM) {
+                        if (this.cgbBgPalette.data[this.cgbBgPaletteIndex] !== value) {
+                            this.cgbBgPalette.data[this.cgbBgPaletteIndex] = value;
+                            this.cgbBgPalette.update(this.cgbBgPaletteIndex >> 3, (this.cgbBgPaletteIndex >> 1) & 3);
+                        }
                     }
 
                     if (this.cgbBgPaletteIndexAutoInc === true) {
@@ -1058,9 +1071,11 @@ class GPU implements HWIO {
                 break;
             case 0xFF6B: // CGB - Sprite Palette Data
                 if (this.gb.cgb === true) {
-                    if (this.cgbObjPalette.data[this.cgbObjPaletteIndex] !== value) {
-                        this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
-                        this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3, (this.cgbObjPaletteIndex >> 1) & 3);
+                    if (this.lcdStatus.mode !== LCDMode.VRAM) {
+                        if (this.cgbObjPalette.data[this.cgbObjPaletteIndex] !== value) {
+                            this.cgbObjPalette.data[this.cgbObjPaletteIndex] = value;
+                            this.cgbObjPalette.update(this.cgbObjPaletteIndex >> 3, (this.cgbObjPaletteIndex >> 1) & 3);
+                        }
                     }
 
                     if (this.cgbObjPaletteIndexAutoInc === true) {

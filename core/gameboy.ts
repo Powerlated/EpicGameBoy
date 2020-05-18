@@ -101,6 +101,8 @@ export default class GameBoy {
         // We're not using 4194.304 here because that matches up to ~59.7275 FPS, not 60.
         let max = 4194.304 * deltaMs * this.speedMul;
 
+        if (this.slomo) max /= 2;
+
         if (this.doubleSpeedShift) max <<= 1;
 
         let i = 0;
@@ -125,6 +127,13 @@ export default class GameBoy {
 
     frame() {
         const cyclesToRun = this.doubleSpeedShift ? 70224 * 2 : 70224;
+        for (let i = 0; i < cyclesToRun;) {
+            i += this.step();
+        }
+    }
+
+    scanline() {
+        const cyclesToRun = this.doubleSpeedShift ? 456 * 2 : 456;
         for (let i = 0; i < cyclesToRun;) {
             i += this.step();
         }
@@ -181,9 +190,14 @@ export default class GameBoy {
             this.speedMul = 10;
         } else {
             this.speedMul = 1;
-
             this.soundChip.resetPlayer();
         }
+    }
+
+    slomo = false;
+    setSlomo(slomo: boolean) {
+        this.slomo = slomo;
+        this.soundChip.resetPlayer();
     }
 
     reset() {

@@ -1,5 +1,8 @@
 
 export const SAMPLE_RATE = 262144;
+export const LATENCY = 16384;
+export const LATENCY_SEC = LATENCY / SAMPLE_RATE;
+
 export class SoundPlayer {
     constructor() {
         const AudioContext = window.AudioContext   // Normal browsers
@@ -36,17 +39,27 @@ export class SoundPlayer {
     ctx: AudioContext;
     sources: AudioBufferSourceNode[] = [];
 
-    queueAudio(inSamples: number, bufferLeft: Float32Array, bufferRight: Float32Array, time: number) {
-        let buffer = this.ctx.createBuffer(2, inSamples, SAMPLE_RATE);
+    sampleRate = SAMPLE_RATE;
+
+    queueAudio(bufferLeft: Float32Array, bufferRight: Float32Array, sampleRate: number) {
+        const length = Math.max(bufferLeft.length, bufferRight.length);
+        let buffer = this.ctx.createBuffer(2, length, sampleRate);
+
         buffer.copyToChannel(bufferLeft, 0);
         buffer.copyToChannel(bufferRight, 1);
+
         let bufferSource = this.ctx.createBufferSource();
         bufferSource.buffer = buffer;
         bufferSource.connect(this.ctx.destination);
-        bufferSource.start(time);
+        bufferSource.start(this.audioSec);
+
+        this.sampleRate = sampleRate;
+        this.audioSec += LATENCY / sampleRate;
 
         this.sources.push(bufferSource);
     }
+
+    audioSec = 0;
 
     reset() {
         // Stop all sounds
@@ -54,5 +67,7 @@ export class SoundPlayer {
             v.stop();
         });
         this.sources = [];
+
+        this.audioSec = this.ctx.currentTime + (LATENCY / this.sampleRate);
     }
 }

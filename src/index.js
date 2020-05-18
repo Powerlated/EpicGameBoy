@@ -347,6 +347,9 @@ function init() {
                 case "x": gb.joypad.a = true; break;
                 case "z": gb.joypad.b = true; break;
             }
+            switch (e.code.toLowerCase()) {
+                case "controlleft": gb.setSlomo(true); break;
+            }
         }
 
         switch (e.key) {
@@ -378,6 +381,9 @@ function init() {
 
                 case "x": gb.joypad.a = false; break;
                 case "z": gb.joypad.b = false; break;
+            }
+            switch (e.code.toLowerCase()) {
+                case "controlleft": gb.setSlomo(false); break;
             }
         }
 
