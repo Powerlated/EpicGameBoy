@@ -79,8 +79,6 @@ export default class GameBoy {
     }
 
     speed() {
-        this.soundChip.resetPlayer();
-
         this.cpu.debugging = false;
         this.animationFrame = requestAnimationFrame(this.run.bind(this));
         this.soundChip.setMuted(false);
@@ -90,15 +88,13 @@ export default class GameBoy {
     audioDesynced = false;
     lastTime = 0;
     run() {
-        if (this.audioDesynced) {
-            this.audioDesynced = false;
+        const now = performance.now();
+        let deltaMs = now - this.lastTime;
+        if (deltaMs > 20) {
+            deltaMs = 20; // limit this for performance reasons
 
             this.soundChip.resetPlayer();
         }
-
-        const now = performance.now();
-        let deltaMs = now - this.lastTime;
-        if (deltaMs > (1000 / 60)) deltaMs = (1000 / 60); // limit this for performance reasons
         this.lastTime = now;
 
         // TODO: Put the slightly higher speed back in
@@ -125,10 +121,6 @@ export default class GameBoy {
         this.animationFrame = requestAnimationFrame(this.run.bind(this));
 
         this.millisUntilMuteAudio = 100;
-
-        if (this.turbo) {
-            this.soundChip.resetPlayer();
-        }
     }
 
     frame() {
@@ -189,10 +181,14 @@ export default class GameBoy {
             this.speedMul = 10;
         } else {
             this.speedMul = 1;
+
+            this.soundChip.resetPlayer();
         }
     }
 
     reset() {
+        this.soundChip.resetPlayer();
+
         this.cpu.reset();
         this.gpu.reset();
         this.bus.reset();

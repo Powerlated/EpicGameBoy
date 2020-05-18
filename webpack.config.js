@@ -20,7 +20,7 @@ module.exports = {
             { from: './src/roms.js', },
             { from: './src/bootrom.js', },
             { from: './src/ProggyClean.ttf' },
-            { from: './src/index.css' }
+            { from: './src/index.css' },
         ]),
         new CircularDependencyPlugin({
             // exclude detection of files based on a RegExp

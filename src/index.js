@@ -5,6 +5,11 @@ function $(selector) {
     return document.querySelector(selector);
 }
 
+window.onerror = function(msg, url, linenumber) {
+    alert('Error message: '+msg+'\nURL: '+url+'\nLine Number: '+linenumber);
+    return true;
+}
+
 function loadRom(rom) {
     let raw = atob(ROMS_BASE64[rom]);
     let rawLength = raw.length;
@@ -416,3 +421,4 @@ init();
 window.onbeforeunload = e => {
     return "Are you sure you want to close Optime GB?";
 };
+

@@ -5,7 +5,7 @@ import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
 import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
 import { Serializer } from "../serialize";
-import { SoundPlayer } from "./soundplayer";
+import { SoundPlayer, SAMPLE_RATE } from "./soundplayer";
 
 const PULSE_DUTY = [
     Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 1),
@@ -123,6 +123,9 @@ export default class SoundChip implements HWIO {
     calcWavePeriod() { this.wavePeriod = (2048 - ((this.wave.frequencyUpper << 8) | this.wave.frequencyLower)) * 2; }
     calcNoisePeriod() { this.noisePeriod = ([8, 16, 32, 48, 64, 80, 96, 112][this.noise.divisorCode] << this.noise.shiftClockFrequency); }
 
+    capacitor1 = 0;
+    capacitor2 = 0;
+
     tick(cycles: number) {
         this.pulse1FreqTimer += cycles;
         this.pulse2FreqTimer += cycles;
@@ -158,26 +161,32 @@ export default class SoundChip implements HWIO {
 
         this.sampleTimer += cycles;
         // Sample at 65536 Hz
-        if (this.sampleTimer >= 64) {
-            this.sampleTimer -= 64;
+        if (this.sampleTimer >= (4194304 / SAMPLE_RATE)) {
+            this.sampleTimer -= (4194304 / SAMPLE_RATE);
 
-            let out1 = 0;
-            let out2 = 0;
+            const dcOffset = .05;
+
+            let in1 = 0;
+            let in2 = 0;
 
             if (this.pulse1.dacEnabled) {
                 let pulse1 = PULSE_DUTY[this.pulse1.width][this.pulse1Pos];
                 pulse1 *= (this.pulse1.volume / 15);
 
-                if (this.pulse1.outputLeft) out1 += pulse1;
-                if (this.pulse1.outputRight) out2 += pulse1;
+                pulse1 += dcOffset;
+
+                if (this.pulse1.outputLeft) in1 += pulse1;
+                if (this.pulse1.outputRight) in2 += pulse1;
             }
 
             if (this.pulse2.dacEnabled) {
                 let pulse2 = PULSE_DUTY[this.pulse2.width][this.pulse2Pos];
                 pulse2 *= (this.pulse2.volume / 15);
 
-                if (this.pulse2.outputLeft) out1 += pulse2;
-                if (this.pulse2.outputRight) out2 += pulse2;
+                pulse2 += dcOffset;
+
+                if (this.pulse2.outputLeft) in1 += pulse2;
+                if (this.pulse2.outputRight) in2 += pulse2;
             }
 
             if (this.wave.dacEnabled) {
@@ -186,31 +195,44 @@ export default class SoundChip implements HWIO {
                 wave >>= [4, 0, 1, 2][this.wave.volume];
                 wave /= 15;
 
-                if (this.wave.outputLeft) out1 += wave;
-                if (this.wave.outputRight) out2 += wave;
+                wave += dcOffset;
+
+                if (this.wave.outputLeft) in1 += wave;
+                if (this.wave.outputRight) in2 += wave;
             }
 
             if (this.noise.dacEnabled) {
                 let noise = this.noise.counterStep ? this.sevenBitNoise[this.noisePos] : this.fifteenBitNoise[this.noisePos];
                 noise *= (this.noise.volume / 15);
 
-                if (this.noise.outputLeft) out1 += noise;
-                if (this.noise.outputRight) out2 += noise;
+                noise += dcOffset;
+
+                if (this.noise.outputLeft) in1 += noise;
+                if (this.noise.outputRight) in2 += noise;
             }
+
+            const capacitorFactor = 0.999958 ** (4194304 / 65536); // DMG
+            // const capacitorFactor = 0.998943 ** (4194304 / 65536); // CGB / MGB
+
+            let out1 = in1 - this.capacitor1;
+            let out2 = in2 - this.capacitor2;
 
             this.audioQueueLeft[this.audioQueueAt] = (out1 / 4);
             this.audioQueueRight[this.audioQueueAt] = (out2 / 4);
 
+            this.capacitor1 = in1 - out1 * capacitorFactor;
+            this.capacitor2 = in2 - out2 * capacitorFactor;
+
             this.audioQueueAt++;
 
-            if (this.audioQueueAt >= 1024) {
+            if (this.audioQueueAt >= 4096) {
                 this.soundPlayer.queueAudio(
                     this.audioQueueAt,
                     this.audioQueueLeft,
                     this.audioQueueRight,
                     this.audioSec
                 );
-                this.audioSec += 0.015625;
+                this.audioSec += 0.0625;
                 this.audioQueueAt = 0;
             }
         }
@@ -219,7 +241,7 @@ export default class SoundChip implements HWIO {
     soundPlayer = new SoundPlayer();
 
     resetPlayer() {
-        this.audioSec = this.soundPlayer.ctx.currentTime + 0.03125;
+        this.audioSec = this.soundPlayer.ctx.currentTime + 0.0625;
         this.soundPlayer.reset();
     }
 
@@ -430,6 +452,7 @@ export default class SoundChip implements HWIO {
                     this.pulse1.lengthEnable = ((value >> 6) & 1) !== 0;
                     if (((value >> 7) & 1) !== 0) {
                         this.pulse1.trigger();
+                        this.frameSequencerFrequencySweep();
                         this.pulse1Pos = 0;
 
                         this.freqSweepEnabled = this.pulse1.freqSweepShift !== 0 || this.pulse1.freqSweepPeriod !== 0;
@@ -438,8 +461,8 @@ export default class SoundChip implements HWIO {
                         //     this.applyFrequencySweep();
                         // }
                     }
-                    this.pulse1.updated = true;
                     this.calcPulse1Period();
+                    this.pulse1.updated = true;
                     break;
 
                 // Pulse 2
