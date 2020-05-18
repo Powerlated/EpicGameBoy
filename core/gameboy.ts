@@ -309,7 +309,7 @@ export default class GameBoy {
         const copyrightPointer = 0x8190;
         for (let i = 0; i < 8; i++) {
             this.bus.write(copyrightPointer + (i * 2) + 0, copyrightSymbol[i]);
-            this.bus.write(copyrightPointer + (i * 2) + 1, copyrightSymbol[i]);
+            this.bus.write(copyrightPointer + (i * 2) + 1, 0);
         }
 
         // Write Nintendo logo tile map
@@ -334,10 +334,14 @@ export default class GameBoy {
                 upperFull = bitSetValue(upperFull, j, bitGet(upper, j >> 1));
             }
 
-            for (let j = 0; j < 4; j++) {
-                this.bus.write(logoTilesPointer + (i * 8) + j + 0, upperFull);
-                this.bus.write(logoTilesPointer + (i * 8) + j + 3, lowerFull);
-            }
+            this.bus.write(logoTilesPointer + (i * 8) + 0, upperFull);
+            this.bus.write(logoTilesPointer + (i * 8) + 1, 0);
+            this.bus.write(logoTilesPointer + (i * 8) + 2, upperFull);
+            this.bus.write(logoTilesPointer + (i * 8) + 3, 0);
+            this.bus.write(logoTilesPointer + (i * 8) + 4, lowerFull);
+            this.bus.write(logoTilesPointer + (i * 8) + 5, 0);
+            this.bus.write(logoTilesPointer + (i * 8) + 6, lowerFull);
+            this.bus.write(logoTilesPointer + (i * 8) + 7, 0);
         }
 
         // Tile for copyright symbol
