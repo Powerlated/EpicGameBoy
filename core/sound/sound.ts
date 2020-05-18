@@ -2,7 +2,7 @@ import GameBoy from "../gameboy";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
-import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
+import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0, BIT_4, BIT_5, BIT_6 } from "../bit_constants";
 import { Serializer } from "../serialize";
 import { SoundPlayer, SAMPLE_RATE, NORMAL_SAMPLE_RATE } from "./soundplayer";
 import { hex } from "../../src/gameboy/tools/util";
@@ -59,8 +59,6 @@ const SEVEN_BIT_NOISE = generateNoiseBuffer(true);
 const FIFTEEN_BIT_NOISE = generateNoiseBuffer(false);
 
 export default class SoundChip implements HWIO {
-
-
     constructor(gb: GameBoy) {
         this.gb = gb;
     }
@@ -105,20 +103,25 @@ export default class SoundChip implements HWIO {
         }
     }
 
-    pulse1FreqTimer = 0;
-    pulse2FreqTimer = 0;
-    waveFreqTimer = 0;
-    noiseFreqTimer = 0;
+    vinLeftEnable = false;
+    vinRightEnable = false;
+    leftMasterVol = 0;
+    rightMasterVol = 0;
+
+    pulse1Val = 0;
+    pulse2Val = 0;
+    waveVal = 0;
+    noiseVal = 0;
 
     pulse1Pos = 0;
     pulse2Pos = 0;
     wavePos = 0;
     noisePos = 0;
 
-    pulse1Val = 0;
-    pulse2Val = 0;
-    waveVal = 0;
-    noiseVal = 0;
+    pulse1FreqTimer = 0;
+    pulse2FreqTimer = 0;
+    waveFreqTimer = 0;
+    noiseFreqTimer = 0;
 
     sampleTimer = 0;
     audioQueueLeft = new Float32Array(16384);
@@ -343,6 +346,9 @@ export default class SoundChip implements HWIO {
                         if (this.noise_outputLeft) in1 += noise;
                         if (this.noise_outputRight) in2 += noise;
                     }
+
+                    in1 *= (this.leftMasterVol / 7);
+                    in2 *= (this.rightMasterVol / 7);
 
                     let out1 = in1 - this.capacitor1;
                     let out2 = in2 - this.capacitor2;
@@ -654,17 +660,24 @@ export default class SoundChip implements HWIO {
                     this.noise_lengthEnable = ((value >> 6) & 1) !== 0;
                     break;
 
+                case 0xFF24: // NR50
+                    this.vinLeftEnable = (value & BIT_7) !== 0;
+                    this.vinRightEnable = (value & BIT_3) !== 0;
+                    this.leftMasterVol = (value >> 4) & 0b111;
+                    this.rightMasterVol = (value >> 0) & 0b111;
+                    break;
+
                 // Panning
                 case 0xFF25:
-                    this.noise_outputRight = (((value >> 7) & 1) === 1);
-                    this.wave_outputRight = (((value >> 6) & 1) === 1);
-                    this.pulse2_outputRight = (((value >> 5) & 1) === 1);
-                    this.pulse1_outputRight = (((value >> 4) & 1) === 1);
+                    this.noise_outputRight = (value & BIT_7) !== 0;
+                    this.wave_outputRight = (value & BIT_6) !== 0;
+                    this.pulse2_outputRight = (value & BIT_5) !== 0;
+                    this.pulse1_outputRight = (value & BIT_4) !== 0;
 
-                    this.noise_outputLeft = (((value >> 3) & 1) === 1);
-                    this.wave_outputLeft = (((value >> 2) & 1) === 1);
-                    this.pulse2_outputLeft = (((value >> 1) & 1) === 1);
-                    this.pulse1_outputLeft = (((value >> 0) & 1) === 1);
+                    this.noise_outputLeft = (value & BIT_3) !== 0;
+                    this.wave_outputLeft = (value & BIT_2) !== 0;
+                    this.pulse2_outputLeft = (value & BIT_1) !== 0;
+                    this.pulse1_outputLeft = (value & BIT_0) !== 0;
 
 
                     break;
@@ -901,6 +914,11 @@ export default class SoundChip implements HWIO {
 
         this.pulse1Val = PULSE_DUTY[this.pulse1_width][this.pulse1Pos];
         this.pulse2Val = PULSE_DUTY[this.pulse2_width][this.pulse2Pos];
+
+        this.vinLeftEnable = false;
+        this.vinRightEnable = false;
+        this.leftMasterVol = 0;
+        this.rightMasterVol = 0;
     }
 
     private muted = false;
@@ -1008,6 +1026,16 @@ export default class SoundChip implements HWIO {
 
         state.PUT_16LE(this.capacitor1);
         state.PUT_16LE(this.capacitor2);
+
+        state.PUT_BOOL(this.vinLeftEnable);
+        state.PUT_BOOL(this.vinRightEnable);
+        state.PUT_8(this.leftMasterVol);
+        state.PUT_8(this.rightMasterVol);
+
+        state.PUT_8(this.pulse1Val);
+        state.PUT_8(this.pulse2Val);
+        state.PUT_8(this.waveVal);
+        state.PUT_8(this.noiseVal);
     }
 
     deserialize(state: Serializer) {
@@ -1098,6 +1126,15 @@ export default class SoundChip implements HWIO {
         this.noisePeriod = state.GET_16LE();
         this.capacitor1 = state.GET_16LE();
         this.capacitor2 = state.GET_16LE();
+
+        this.vinLeftEnable = state.GET_BOOL();
+        this.vinRightEnable = state.GET_BOOL();
+        this.leftMasterVol = state.GET_8();
+        this.rightMasterVol = state.GET_8();
+        this.pulse1Val = state.GET_8();
+        this.pulse2Val = state.GET_8();
+        this.waveVal = state.GET_8();
+        this.noiseVal = state.GET_8();
 
         if (this.ap) {
             this.ap.noise(this);
