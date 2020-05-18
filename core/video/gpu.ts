@@ -531,16 +531,6 @@ class GPU implements HWIO {
 
             if (this.fetcherStall > 0) {
                 this.fetcherStall--;
-
-                // On DMG
-                if (this.fetcherStall === 4) {
-                    this.fetcherScreenX = -(this.scrX & 7);
-                    // console.log(`LY: ${this.lY} FetcherX: ${this.fetcherScreenX}`);
-
-                    if (this.windowXpos < 7 && this.lY >= this.windowYpos) {
-                        this.fetcherScreenX = -(this.windowXpos & 7);
-                    }
-                }
             } else {
                 switch (this.fetcherStep) {
                     case 0:
@@ -589,7 +579,15 @@ class GPU implements HWIO {
                             this.fetcherTileData = this.tileset[this.fetcherTileAttrs.vramBank][this.fetcherTileIndex][tileY];
                         }
                         break;
-                    case 4: break; // Sleep
+                    case 4:
+                        if (this.fetcherX == 8) {
+                            if (this.fetcherWindowMode) {
+                                this.fetcherScreenX = -((this.windowXpos & 7) ^ 7);
+                            } else {
+                                this.fetcherScreenX = -(this.scrX & 7);
+                            }
+                        }
+                        break; // Sleep
                     case 5:
                     case 6:
                     case 7: // Attempt push
@@ -599,15 +597,13 @@ class GPU implements HWIO {
                             this.fetcherBgFifoPal = this.fetcherTileAttrs.bgPalette;
 
                             if (this.fetcherTileAttrs.xFlip) {
-                                for (let i = 0; i < 8; i++) {
-                                    this.fetcherBgFifoCol[i] = this.fetcherTileData[i];
-                                    this.fetcherBgFifoObjPri[i] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
-                                }
+                                this.fetcherBgFifoCol.set(this.fetcherTileData);
+                                this.fetcherBgFifoObjPri.fill(this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0)
                             } else {
-                                for (let i = 0; i < 8; i++) {
-                                    this.fetcherBgFifoCol[i] = this.fetcherTileData[i ^ 7];
-                                    this.fetcherBgFifoObjPri[i] = this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0;
-                                }
+                                this.fetcherBgFifoCol.set(this.fetcherTileData);
+                                this.fetcherBgFifoCol.reverse();
+                                this.fetcherBgFifoObjPri.fill(this.fetcherTileAttrs.ignoreSpritePriority ? 1 : 0)
+
                             }
 
                             this.fetcherBgFifoPos = 8;
