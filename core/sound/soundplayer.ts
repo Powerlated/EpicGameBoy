@@ -3,7 +3,7 @@ if (!AudioBuffer.prototype.copyToChannel) safariHax = true;
 
 export const NORMAL_SAMPLE_RATE = 262144;
 export const SAMPLE_RATE = safariHax ? 65536 : 262144;
-export const LATENCY = safariHax ? 4096 : 16384;
+export const LATENCY = safariHax ? 2048 : 8192;
 export const LATENCY_SEC = LATENCY / SAMPLE_RATE;
 
 export class SoundPlayer {
@@ -74,5 +74,6 @@ export class SoundPlayer {
         this.sources = [];
 
         this.audioSec = this.ctx.currentTime + (LATENCY / this.sampleRate);
+        // console.log(`Latency in seconds: ${(LATENCY / this.sampleRate)}`)
     }
 }

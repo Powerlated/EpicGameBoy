@@ -115,6 +115,11 @@ export default class SoundChip implements HWIO {
     wavePos = 0;
     noisePos = 0;
 
+    pulse1Val = 0;
+    pulse2Val = 0;
+    waveVal = 0;
+    noiseVal = 0;
+
     sampleTimer = 0;
     audioQueueLeft = new Float32Array(16384);
     audioQueueRight = new Float32Array(16384);
@@ -163,6 +168,7 @@ export default class SoundChip implements HWIO {
         if (this.pulse1_dacEnabled) {
             this.pulse1_enabled = true;
         }
+        this.clockPulse1FreqSweep = 0;
     }
     pulse1_getFrequencyHz(): number {
         const frequency = (this.pulse1_frequencyUpper << 8) | this.pulse1_frequencyLower;
@@ -249,108 +255,114 @@ export default class SoundChip implements HWIO {
     }
 
     tick(cycles: number) {
-        if (this.pulse1_enabled) {
-            this.pulse1FreqTimer -= cycles;
-            if (this.pulse1FreqTimer <= 0) {
-                this.pulse1FreqTimer += this.pulse1Period;
+        if (this.enabled) {
+            if (this.pulse1_enabled) {
+                this.pulse1FreqTimer -= cycles;
+                if (this.pulse1FreqTimer <= 0) {
+                    this.pulse1FreqTimer += this.pulse1Period;
 
-                this.pulse1Pos++;
-                this.pulse1Pos &= 7;
-            }
-        }
+                    this.pulse1Pos++;
+                    this.pulse1Pos &= 7;
 
-        if (this.pulse2_enabled) {
-            this.pulse2FreqTimer -= cycles;
-            if (this.pulse2FreqTimer <= 0) {
-                this.pulse2FreqTimer += this.pulse2Period;
-
-                this.pulse2Pos++;
-                this.pulse2Pos &= 7;
-            }
-        }
-
-        if (this.wave_enabled) {
-            this.waveFreqTimer -= cycles;
-            if (this.waveFreqTimer <= 0) {
-                this.waveFreqTimer += this.wavePeriod;
-
-                this.wavePos++;
-                this.wavePos &= 31;
-            }
-        }
-
-        if (this.noise_enabled) {
-            this.noiseFreqTimer -= cycles;
-            if (this.noiseFreqTimer <= 0) {
-                this.noiseFreqTimer += this.noisePeriod;
-
-                this.noisePos++;
-                this.noisePos &= 32767;
-            }
-        }
-
-        if (!this.gb.turbo) {
-            this.sampleTimer += cycles;
-            // Sample at 65536 Hz
-            if (this.sampleTimer >= (4194304 / SAMPLE_RATE)) {
-                this.sampleTimer -= (4194304 / SAMPLE_RATE);
-
-                let in1 = 0;
-                let in2 = 0;
-
-                // Note: -1 value when disabled is the DAC DC offset
-
-                if (this.pulse1_dacEnabled) {
-                    let pulse1 = PULSE_DUTY[this.pulse1_width][this.pulse1Pos];
-                    pulse1 = this.pulse1_enabled ? DAC_TABLE[pulse1 * this.pulse1_volume] : -1;
-
-                    if (this.pulse1_outputLeft) in1 += pulse1;
-                    if (this.pulse1_outputRight) in2 += pulse1;
+                    this.pulse1Val = PULSE_DUTY[this.pulse1_width][this.pulse1Pos];
                 }
+            }
 
-                if (this.pulse2_dacEnabled) {
-                    let pulse2 = PULSE_DUTY[this.pulse2_width][this.pulse2Pos];
-                    pulse2 = this.pulse2_enabled ? DAC_TABLE[pulse2 * this.pulse2_volume] : -1;
-                    if (this.pulse2_outputLeft) in1 += pulse2;
-                    if (this.pulse2_outputRight) in2 += pulse2;
+            if (this.pulse2_enabled) {
+                this.pulse2FreqTimer -= cycles;
+                if (this.pulse2FreqTimer <= 0) {
+                    this.pulse2FreqTimer += this.pulse2Period;
+
+                    this.pulse2Pos++;
+                    this.pulse2Pos &= 7;
+
+                    this.pulse2Val = PULSE_DUTY[this.pulse2_width][this.pulse2Pos];
                 }
+            }
 
-                if (this.wave_dacEnabled) {
-                    let wave = this.wave_waveTable[this.wavePos];
+            if (this.wave_enabled) {
+                this.waveFreqTimer -= cycles;
+                if (this.waveFreqTimer <= 0) {
+                    this.waveFreqTimer += this.wavePeriod;
 
-                    wave >>= [4, 0, 1, 2][this.wave_volume];
-                    wave = this.wave_enabled ? DAC_TABLE[wave] : -1;
+                    this.wavePos++;
+                    this.wavePos &= 31;
 
-                    if (this.wave_outputLeft) in1 += wave;
-                    if (this.wave_outputRight) in2 += wave;
+                    this.waveVal = this.wave_waveTable[this.wavePos];
                 }
+            }
 
-                if (this.noise_dacEnabled) {
-                    let noise = this.noise_counterStep ? SEVEN_BIT_NOISE[this.noisePos] : FIFTEEN_BIT_NOISE[this.noisePos];
-                    noise = this.noise_enabled ? DAC_TABLE[noise * this.noise_volume] : -1;
+            if (this.noise_enabled) {
+                this.noiseFreqTimer -= cycles;
+                if (this.noiseFreqTimer <= 0) {
+                    this.noiseFreqTimer += this.noisePeriod;
 
-                    if (this.noise_outputLeft) in1 += noise;
-                    if (this.noise_outputRight) in2 += noise;
+                    this.noisePos++;
+                    this.noisePos &= 32767;
+
+                    this.noiseVal = this.noise_counterStep ? SEVEN_BIT_NOISE[this.noisePos] : FIFTEEN_BIT_NOISE[this.noisePos];
                 }
+            }
 
-                let out1 = in1 - this.capacitor1;
-                let out2 = in2 - this.capacitor2;
+            if (!this.gb.turbo) {
+                this.sampleTimer += cycles;
+                // Sample at 65536 Hz
+                if (this.sampleTimer >= (4194304 / SAMPLE_RATE)) {
+                    this.sampleTimer -= (4194304 / SAMPLE_RATE);
 
-                this.audioQueueLeft[this.audioQueueAt] = (out1 / 4);
-                this.audioQueueRight[this.audioQueueAt] = (out2 / 4);
+                    let in1 = 0;
+                    let in2 = 0;
 
-                this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
-                this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
+                    // Note: -1 value when disabled is the DAC DC offset
 
-                this.audioQueueAt++;
+                    if (this.pulse1_dacEnabled) {
+                        let pulse1 = this.pulse1_enabled ? DAC_TABLE[this.pulse1Val * this.pulse1_volume] : -1;
 
-                if (this.audioQueueAt >= 16384 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
-                    this.soundPlayer.queueAudio(
-                        this.audioQueueLeft,
-                        this.audioQueueRight,
-                        (this.gb.slomo ? SAMPLE_RATE / 2 : SAMPLE_RATE)
-                    );
-                    this.audioQueueAt = 0;
+                        if (this.pulse1_outputLeft) in1 += pulse1;
+                        if (this.pulse1_outputRight) in2 += pulse1;
+                    }
+
+                    if (this.pulse2_dacEnabled) {
+                        let pulse2 = this.pulse1_enabled ? DAC_TABLE[this.pulse2Val * this.pulse2_volume] : -1;
+
+                        if (this.pulse2_outputLeft) in1 += pulse2;
+                        if (this.pulse2_outputRight) in2 += pulse2;
+                    }
+
+                    if (this.wave_dacEnabled) {
+                        let wave = this.waveVal >> [4, 0, 1, 2][this.wave_volume];
+                        wave = this.wave_enabled ? DAC_TABLE[wave] : -1;
+
+                        if (this.wave_outputLeft) in1 += wave;
+                        if (this.wave_outputRight) in2 += wave;
+                    }
+
+                    if (this.noise_dacEnabled) {
+                        let noise = this.noise_enabled ? DAC_TABLE[this.noiseVal * this.noise_volume] : -1;
+
+                        if (this.noise_outputLeft) in1 += noise;
+                        if (this.noise_outputRight) in2 += noise;
+                    }
+
+                    let out1 = in1 - this.capacitor1;
+                    let out2 = in2 - this.capacitor2;
+
+                    this.audioQueueLeft[this.audioQueueAt] = (out1 / 4);
+                    this.audioQueueRight[this.audioQueueAt] = (out2 / 4);
+
+                    this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
+                    this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
+
+                    this.audioQueueAt++;
+
+                    if (this.audioQueueAt >= 8192 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
+                        this.soundPlayer.queueAudio(
+                            this.audioQueueLeft,
+                            this.audioQueueRight,
+                            (this.gb.slomo ? SAMPLE_RATE / 2 : SAMPLE_RATE)
+                        );
+                        this.audioQueueAt = 0;
+                    }
                 }
             }
         }
@@ -495,6 +507,7 @@ export default class SoundChip implements HWIO {
                 case 0xFF11: // NR11
                     this.pulse1_width = value >> 6;
                     this.pulse1_lengthCounter = 64 - (value & 0b111111);
+                    this.pulse1Val = PULSE_DUTY[this.pulse1_width][this.pulse1Pos];
                     break;
                 case 0xFF12: // NR12
                     const newUp = ((value >> 3) & 1) === 1;
@@ -546,6 +559,7 @@ export default class SoundChip implements HWIO {
                 case 0xFF16: // NR21
                     this.pulse2_width = value >> 6;
                     this.pulse2_lengthCounter = 64 - (value & 0b111111);
+                    this.pulse2Val = PULSE_DUTY[this.pulse2_width][this.pulse2Pos];
                     break;
                 case 0xFF17: // NR22
                     {
@@ -879,6 +893,14 @@ export default class SoundChip implements HWIO {
         this.noise_shiftClockFrequency = 0;
         this.noise_counterStep = false;
         this.noise_envelopeSweep = 0;
+
+        this.pulse1Val = 0;
+        this.pulse2Val = 0;
+        this.waveVal = 0;
+        this.noiseVal = 0;
+
+        this.pulse1Val = PULSE_DUTY[this.pulse1_width][this.pulse1Pos];
+        this.pulse2Val = PULSE_DUTY[this.pulse2_width][this.pulse2Pos];
     }
 
     private muted = false;
