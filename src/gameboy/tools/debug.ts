@@ -114,14 +114,14 @@ function updateDebug() {
                 Serial Out: 
                 <span class="code">${displaySerial ? new TextDecoder().decode(new Uint8Array(gb.bus.serialOut.slice(0, 2560))) : ""}</span>
                 ------------------------------
-                Pulse 1 Frequency: ${gb.soundChip.pulse1.frequencyHz}
-                Pulse 2 Frequency: ${gb.soundChip.pulse2.frequencyHz}
-                Wave Frequency:${gb.soundChip.wave.frequencyHz}
-                Pulse 1 Volume: ${gb.soundChip.pulse1.volume}
-                Pulse 2 Volume: ${gb.soundChip.pulse2.volume}
-                Wave Volume:${gb.soundChip.wave.volume}
-                Pulse 1 Envelope: ${gb.soundChip.pulse1.volumeEnvelopeSweep}
-                Pulse 2 Envelope: ${gb.soundChip.pulse2.volumeEnvelopeSweep}
+                Pulse 1 Frequency: ${gb.soundChip.pulse1_getFrequencyHz()}
+                Pulse 2 Frequency: ${gb.soundChip.pulse2_getFrequencyHz()}
+                Wave Frequency:${gb.soundChip.wave_getFrequencyHz()}
+                Pulse 1 Volume: ${gb.soundChip.pulse1_volume}
+                Pulse 2 Volume: ${gb.soundChip.pulse2_volume}
+                Wave Volume:${gb.soundChip.wave_volume}
+                Pulse 1 Envelope: ${gb.soundChip.pulse1_volumeEnvelopeSweep}
+                Pulse 2 Envelope: ${gb.soundChip.pulse2_volumeEnvelopeSweep}
             `;
 
 
