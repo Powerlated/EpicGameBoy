@@ -1,7 +1,6 @@
 export interface BasicChannel {
     volume: number;
     enabled: boolean;
-    updated: boolean;
 }
 
 export class PulseChannel implements BasicChannel {
@@ -62,7 +61,6 @@ export class PulseChannel implements BasicChannel {
         if (this.dacEnabled) {
             this.enabled = true;
         }
-        this.updated = true;
     }
 }
 
@@ -85,8 +83,6 @@ export class WaveChannel implements BasicChannel {
 
     outputLeft = false;
     outputRight = false;
-
-    updated = false;
 
     get outputting(): boolean {
         return (this.outputLeft || this.outputRight) && this.frequencyHz !== 64;
@@ -117,7 +113,6 @@ export class WaveChannel implements BasicChannel {
         if (this.dacEnabled) {
             this.enabled = true;
         }
-        this.updated = true;
     }
 }
 
@@ -143,8 +138,6 @@ export class NoiseChannel implements BasicChannel {
     counterStep = false;
     envelopeSweep = 0;
 
-    updated = false;
-
     get outputting(): boolean {
         return this.outputLeft || this.outputRight;
     }
@@ -169,6 +162,5 @@ export class NoiseChannel implements BasicChannel {
             this.lengthCounter = 64;
         }
         this.volume = this.volumeEnvelopeStart;
-        this.updated = true;
     }
 }

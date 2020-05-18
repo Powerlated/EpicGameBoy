@@ -1,5 +1,5 @@
 
-export const SAMPLE_RATE = 65536;
+export const SAMPLE_RATE = 262144;
 export class SoundPlayer {
     constructor() {
         const AudioContext = window.AudioContext   // Normal browsers

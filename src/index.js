@@ -255,7 +255,7 @@ function init() {
     repeatDisassemble();
 
     showDebug();
-    loadDmgBootRom();
+    // loadDmgBootRom();
 
 
     // Handle input
