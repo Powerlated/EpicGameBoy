@@ -38,17 +38,14 @@ export class SoundPlayer {
 
     queueAudio(inSamples: number, bufferLeft: Float32Array, bufferRight: Float32Array, time: number) {
         let buffer = this.ctx.createBuffer(2, inSamples, SAMPLE_RATE);
-        let channel0 = buffer.getChannelData(0);
-        let channel1 = buffer.getChannelData(1);
-        for (let i = 0; i < inSamples; i++) {
-            channel0[i] = bufferLeft[i];
-            channel1[i] = bufferRight[i];
-        }
+        buffer.copyToChannel(bufferLeft, 0);
+        buffer.copyToChannel(bufferRight, 1);
         let bufferSource = this.ctx.createBufferSource();
-        this.sources.push(bufferSource);
         bufferSource.buffer = buffer;
         bufferSource.connect(this.ctx.destination);
         bufferSource.start(time);
+
+        this.sources.push(bufferSource);
     }
 
     reset() {

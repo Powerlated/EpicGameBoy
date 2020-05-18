@@ -122,8 +122,8 @@ export default class SoundChip implements HWIO {
     noisePos = 0;
 
     sampleTimer = 0;
-    audioQueueLeft = new Float32Array(262144);
-    audioQueueRight = new Float32Array(262144);
+    audioQueueLeft = new Float32Array(16384);
+    audioQueueRight = new Float32Array(16384);
     audioQueueAt = 0;
 
     pulse1Period = 0;
@@ -186,9 +186,11 @@ export default class SoundChip implements HWIO {
             let in1 = 0;
             let in2 = 0;
 
+            // Note: -1 value when disabled is the DAC DC offset
+
             if (this.pulse1.dacEnabled) {
                 let pulse1 = PULSE_DUTY[this.pulse1.width][this.pulse1Pos];
-                pulse1 = this.pulse1.enabled ? DAC_TABLE[pulse1 * this.pulse1.volume] : 0;
+                pulse1 = this.pulse1.enabled ? DAC_TABLE[pulse1 * this.pulse1.volume] : -1;
 
                 if (this.pulse1.outputLeft) in1 += pulse1;
                 if (this.pulse1.outputRight) in2 += pulse1;
@@ -196,7 +198,7 @@ export default class SoundChip implements HWIO {
 
             if (this.pulse2.dacEnabled) {
                 let pulse2 = PULSE_DUTY[this.pulse2.width][this.pulse2Pos];
-                pulse2 = this.pulse2.enabled ? DAC_TABLE[pulse2 * this.pulse2.volume] : 0;
+                pulse2 = this.pulse2.enabled ? DAC_TABLE[pulse2 * this.pulse2.volume] : -1;
                 if (this.pulse2.outputLeft) in1 += pulse2;
                 if (this.pulse2.outputRight) in2 += pulse2;
             }
@@ -205,7 +207,7 @@ export default class SoundChip implements HWIO {
                 let wave = this.wave.waveTable[this.wavePos];
 
                 wave >>= [4, 0, 1, 2][this.wave.volume];
-                wave = this.wave.enabled ? DAC_TABLE[wave] : 0;
+                wave = this.wave.enabled ? DAC_TABLE[wave] : -1;
 
                 if (this.wave.outputLeft) in1 += wave;
                 if (this.wave.outputRight) in2 += wave;
@@ -213,7 +215,7 @@ export default class SoundChip implements HWIO {
 
             if (this.noise.dacEnabled) {
                 let noise = this.noise.counterStep ? SEVEN_BIT_NOISE[this.noisePos] : FIFTEEN_BIT_NOISE[this.noisePos];
-                noise = this.noise.enabled ? DAC_TABLE[noise * this.noise.volume] : 0;
+                noise = this.noise.enabled ? DAC_TABLE[noise * this.noise.volume] : -1;
 
                 if (this.noise.outputLeft) in1 += noise;
                 if (this.noise.outputRight) in2 += noise;
