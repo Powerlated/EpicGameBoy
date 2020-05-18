@@ -4,7 +4,7 @@ import { AudioPlugin } from "./audioplugin";
 import { HWIO } from "../memory/hwio";
 import { BIT_7, BIT_3, BIT_2, BIT_1, BIT_0 } from "../bit_constants";
 import { Serializer } from "../serialize";
-import { SoundPlayer, SAMPLE_RATE } from "./soundplayer";
+import { SoundPlayer, SAMPLE_RATE, NORMAL_SAMPLE_RATE } from "./soundplayer";
 import { hex } from "../../src/gameboy/tools/util";
 
 // const PULSE_DUTY = [
@@ -344,7 +344,7 @@ export default class SoundChip implements HWIO {
 
                 this.audioQueueAt++;
 
-                if (this.audioQueueAt >= 16384) {
+                if (this.audioQueueAt >= 16384 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
                     this.soundPlayer.queueAudio(
                         this.audioQueueLeft,
                         this.audioQueueRight,

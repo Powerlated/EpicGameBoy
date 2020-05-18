@@ -1,9 +1,13 @@
+let safariHax = false;
+if (!AudioBuffer.prototype.copyToChannel) safariHax = true;
 
-export const SAMPLE_RATE = 262144;
-export const LATENCY = 16384;
+export const NORMAL_SAMPLE_RATE = 262144;
+export const SAMPLE_RATE = safariHax ? 65536 : 262144;
+export const LATENCY = safariHax ? 4096 : 16384;
 export const LATENCY_SEC = LATENCY / SAMPLE_RATE;
 
 export class SoundPlayer {
+
     constructor() {
         const AudioContext = window.AudioContext   // Normal browsers
             || (window as any).webkitAudioContext; // Sigh... Safari
@@ -25,10 +29,6 @@ export class SoundPlayer {
             } else if ((source as any).noteOn) {
                 (source as any).noteOn(0);
             }
-
-            // Remove events
-            document.removeEventListener('touchstart', fixAudioContext);
-            document.removeEventListener('touchend', fixAudioContext);
         };
         // iOS 6-8
         document.addEventListener('touchstart', fixAudioContext);
@@ -45,8 +45,13 @@ export class SoundPlayer {
         const length = Math.max(bufferLeft.length, bufferRight.length);
         let buffer = this.ctx.createBuffer(2, length, sampleRate);
 
-        buffer.copyToChannel(bufferLeft, 0);
-        buffer.copyToChannel(bufferRight, 1);
+        if (!safariHax) {
+            buffer.copyToChannel(bufferLeft, 0);
+            buffer.copyToChannel(bufferRight, 1);
+        } else {
+            buffer.getChannelData(0).set(bufferLeft);
+            buffer.getChannelData(1).set(bufferRight);
+        }
 
         let bufferSource = this.ctx.createBufferSource();
         bufferSource.buffer = buffer;
