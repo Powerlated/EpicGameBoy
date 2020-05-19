@@ -453,16 +453,18 @@ class GPU implements HWIO {
                                 if (this.mode3HwioWritten && !this.disableFetcher || this.exclusiveFetcher) {
                                     this.fetcherFlush();
                                 } else {
+                                    // console.log(this.lY)
+                                    // console.log("Scanline")
 
+                                    if (this.lY > this.windowYpos && this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
+                                        this.windowCurrentLine++;
+                                    }
                                     if (!this.windowOnscreenYetThisFrame && this.lcdControl.enableWindow____5 && this.windowXpos < 167 && this.lY >= this.windowYpos) {
                                         this.windowOnscreenYetThisFrame = true;
                                         this.windowCurrentLine = -(this.windowYpos - this.lY);
                                     }
-
                                     this.renderBgWindowScanline();
-                                    if (this.lY >= this.windowYpos && this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
-                                        this.windowCurrentLine++;
-                                    }
+
                                 }
                             }
 
