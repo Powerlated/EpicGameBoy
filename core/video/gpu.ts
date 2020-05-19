@@ -325,6 +325,11 @@ class GPU implements HWIO {
 
     vp: VideoPlugin | null = null;
 
+    // Use the scanline renderer only
+    disableFetcher = false;
+    // Use exclusively the fetcher
+    exclusiveFetcher = false;
+
     // Skip frames when turboing
     renderingThisFrame = false;
 
@@ -445,25 +450,27 @@ class GPU implements HWIO {
                         this.fetcherCycles += cycles;
                         if (this.lineClock >= 252) {
                             if (this.renderingThisFrame) {
-                                if (this.mode3HwioWritten) {
+                                if (this.mode3HwioWritten && !this.disableFetcher || this.exclusiveFetcher) {
                                     this.fetcherFlush();
                                 } else {
-                                    if (this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos && this.windowXpos < 167) {
-                                        // console.log("Window trigger");
-                                        if (this.windowOnscreenYetThisFrame) {
-                                            // console.log(`LY: ${this.lY} WL: ${this.windowCurrentLine}`);
-                                            this.windowCurrentLine++;
-                                        } else if (this.lY === this.windowYpos) {
-                                            // console.log(`Firstframe LY: ${this.lY}`);
-                                            this.windowOnscreenYetThisFrame = true;
-                                            this.windowCurrentLine = this.windowYpos - this.lY;
-                                        }
+                                    if (
+                                        this.lY === this.windowYpos &&
+                                        this.lcdControl.enableWindow____5 === true &&
+                                        this.windowOnscreenYetThisFrame === false &&
+                                        this.windowXpos < 167
+                                    ) {
+                                        this.windowCurrentLine = this.windowYpos - this.lY;
+                                        this.windowOnscreenYetThisFrame = true;
                                     }
+                                    
                                     this.renderBgWindowScanline();
+                                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
+                                        this.windowCurrentLine++;
+                                    }
                                 }
                             }
 
-                            if (this.fetcherScreenX > 159 || !this.mode3HwioWritten || !this.renderingThisFrame) {
+                            if (this.fetcherScreenX > 159 || (!this.mode3HwioWritten || !this.renderingThisFrame || this.disableFetcher)) {
                                 this.fetcherCycles = 0;
 
                                 // VRAM -> HBLANK
@@ -541,8 +548,10 @@ class GPU implements HWIO {
     fetcherImageIndex = 0;
 
     fetcherFlush() {
-        this.fetcherAdvance(this.fetcherCycles);
-        this.fetcherCycles = 0;
+        if (!this.disableFetcher) {
+            this.fetcherAdvance(this.fetcherCycles);
+            this.fetcherCycles = 0;
+        }
     }
 
     fetcherAdvance(cycles: number) {
@@ -644,7 +653,7 @@ class GPU implements HWIO {
                             !this.fetcherWindowMode
                         ) {
                             if (!this.windowOnscreenYetThisFrame) {
-                                this.windowCurrentLine = this.windowYpos - this.lY;
+                                this.windowCurrentLine = -(this.windowYpos - this.lY);
                                 this.windowOnscreenYetThisFrame = true;
                             } else {
                                 this.windowCurrentLine++;
