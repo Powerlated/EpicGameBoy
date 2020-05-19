@@ -103,10 +103,14 @@ export default class SoundChip implements HWIO {
         }
     }
 
+    nightcoreMode = false;
+
     vinLeftEnable = false;
     vinRightEnable = false;
     leftMasterVol = 0;
     rightMasterVol = 0;
+    leftMasterVolMul = 0;
+    rightMasterVolMul = 0;
 
     pulse1Val = 0;
     pulse2Val = 0;
@@ -136,10 +140,21 @@ export default class SoundChip implements HWIO {
     capacitor1 = 0;
     capacitor2 = 0;
 
-    calcPulse1Period() { this.pulse1Period = (2048 - ((this.pulse1_frequencyUpper << 8) | this.pulse1_frequencyLower)) * 4; }
-    calcPulse2Period() { this.pulse2Period = (2048 - ((this.pulse2_frequencyUpper << 8) | this.pulse2_frequencyLower)) * 4; }
-    calcWavePeriod() { this.wavePeriod = (2048 - ((this.wave_frequencyUpper << 8) | this.wave_frequencyLower)) * 2; }
-    calcNoisePeriod() { this.noisePeriod = ([8, 16, 32, 48, 64, 80, 96, 112][this.noise_divisorCode] << this.noise_shiftClockFrequency); }
+    calcPulse1Period() {
+        this.pulse1Period = (2048 - ((this.pulse1_frequencyUpper << 8) | this.pulse1_frequencyLower)) * 4;
+        if (this.nightcoreMode) this.pulse1Period *= 0.5;
+    }
+    calcPulse2Period() {
+        this.pulse2Period = (2048 - ((this.pulse2_frequencyUpper << 8) | this.pulse2_frequencyLower)) * 4;
+        if (this.nightcoreMode) this.pulse2Period *= 0.5;
+    }
+    calcWavePeriod() {
+        this.wavePeriod = (2048 - ((this.wave_frequencyUpper << 8) | this.wave_frequencyLower)) * 2;
+        if (this.nightcoreMode) this.wavePeriod *= 0.5;
+    }
+    calcNoisePeriod() {
+        this.noisePeriod = ([8, 16, 32, 48, 64, 80, 96, 112][this.noise_divisorCode] << this.noise_shiftClockFrequency);
+    }
 
     reloadPulse1Period() { this.pulse1FreqTimer = this.pulse1Period; }
     reloadPulse2Period() { this.pulse2FreqTimer = this.pulse2Period; }
@@ -352,14 +367,14 @@ export default class SoundChip implements HWIO {
                         if (this.noise_outputRight) in2 += noise;
                     }
 
-                    in1 *= (this.leftMasterVol / 7);
-                    in2 *= (this.rightMasterVol / 7);
+                    in1 *= this.leftMasterVolMul;
+                    in2 *= this.rightMasterVolMul;
 
                     let out1 = in1 - this.capacitor1;
                     let out2 = in2 - this.capacitor2;
 
-                    this.audioQueueLeft[this.audioQueueAt] = (out1 / 4);
-                    this.audioQueueRight[this.audioQueueAt] = (out2 / 4);
+                    this.audioQueueLeft[this.audioQueueAt] = (out1 * 0.25);
+                    this.audioQueueRight[this.audioQueueAt] = (out2 * 0.25);
 
                     this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
                     this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
@@ -660,6 +675,8 @@ export default class SoundChip implements HWIO {
                     this.vinRightEnable = (value & BIT_3) !== 0;
                     this.leftMasterVol = (value >> 4) & 0b111;
                     this.rightMasterVol = (value >> 0) & 0b111;
+                    this.leftMasterVolMul = this.leftMasterVol / 7;
+                    this.rightMasterVolMul = this.rightMasterVol / 7;
                     break;
 
                 // Panning
@@ -913,6 +930,8 @@ export default class SoundChip implements HWIO {
         this.vinRightEnable = false;
         this.leftMasterVol = 0;
         this.rightMasterVol = 0;
+        this.leftMasterVolMul = 0;
+        this.rightMasterVolMul = 0;
     }
 
     private muted = false;
@@ -1026,6 +1045,9 @@ export default class SoundChip implements HWIO {
         state.PUT_8(this.leftMasterVol);
         state.PUT_8(this.rightMasterVol);
 
+        state.PUT_8(this.leftMasterVolMul);
+        state.PUT_8(this.rightMasterVolMul);
+
         state.PUT_8(this.pulse1Val);
         state.PUT_8(this.pulse2Val);
         state.PUT_8(this.waveVal);
@@ -1125,6 +1147,10 @@ export default class SoundChip implements HWIO {
         this.vinRightEnable = state.GET_BOOL();
         this.leftMasterVol = state.GET_8();
         this.rightMasterVol = state.GET_8();
+
+        this.leftMasterVolMul = state.GET_8();
+        this.rightMasterVolMul = state.GET_8();
+
         this.pulse1Val = state.GET_8();
         this.pulse2Val = state.GET_8();
         this.waveVal = state.GET_8();

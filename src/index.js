@@ -171,6 +171,9 @@ $('#enableDebugger').addEventListener('change', function (e) {
         hideDebug();
     }
 });
+$('#nightcoreMode').addEventListener('change', function (e) {
+    gb.soundChip.nightcoreMode = e.target.checked
+});
 
 function showDebug() {
     window.globalDebug = true;
