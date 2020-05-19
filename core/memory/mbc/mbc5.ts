@@ -1,13 +1,12 @@
 import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
-import ExternalBus from "../externalbus";
 import { hex } from "../../../src/gameboy/tools/util";
 import { Serializer } from "../../serialize";
 
 export default class MBC5 extends MBCWithRAM implements MBC {
-    ext: ExternalBus;
+    ext: MemoryBus;
 
-    constructor(ext: ExternalBus) {
+    constructor(ext: MemoryBus) {
         super();
         this.ext = ext;
     }

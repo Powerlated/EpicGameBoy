@@ -1,7 +1,6 @@
 import MBC, { MBCWithRAM } from "./mbc";
 
 import MemoryBus from "../memorybus";
-import ExternalBus from "../externalbus";
 import { writeDebug } from "../../../src/gameboy/tools/debug";
 import { Serializer } from "../../serialize";
 
@@ -12,11 +11,11 @@ enum BankingMode {
 export default class MBC1 extends MBCWithRAM implements MBC {
     bankingMode = BankingMode.ROM;
 
-    ext: ExternalBus;
+    bus: MemoryBus;
 
-    constructor(ext: ExternalBus) {
+    constructor(bus: MemoryBus) {
         super();
-        this.ext = ext;
+        this.bus = bus;
     }
 
     read(addr: number): number {
@@ -46,7 +45,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
             this.romBank &= 0b11100000; // Erase 5 bits
             this.romBank |= (value & 0b00011111); // Whole 5 bits
 
-            this.romBank %= this.ext.romBanks;
+            this.romBank %= this.bus.romBanks;
         }
         // RAM Bank Number / Upper Bits of ROM Bank Number
         else if (addr >= 0x4000 && addr <= 0x5FFF) {
@@ -58,7 +57,7 @@ export default class MBC1 extends MBCWithRAM implements MBC {
                 this.romBank &= 0b00011111; // Erase high bits 
                 this.romBank |= (value << 5);
 
-                this.romBank %= this.ext.romBanks;
+                this.romBank %= this.bus.romBanks;
             }
         }
         // RAM Bank 00-03

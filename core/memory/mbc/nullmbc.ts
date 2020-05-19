@@ -1,15 +1,14 @@
 import MemoryBus from "../memorybus";
 import MBC from "./mbc";
-import ExternalBus from "../externalbus";
 import { Serializer } from "../../serialize";
 
 export default class NullMBC extends MBC implements MBC {
 
-    ext: ExternalBus;
+    bus: MemoryBus;
 
-    constructor(ext: ExternalBus) {
+    constructor(bus: MemoryBus) {
         super();
-        this.ext = ext;
+        this.bus = bus;
     }
 
     // Keep this 1 so MemoryBus will read ROM 0x4### correctly

@@ -18,7 +18,7 @@ export default class GameBoy {
     constructor(cgb: boolean) {
         writeDebug("New gameboy!");
         this.cgb = cgb;
-        setInterval(() => { this.bus.ext.saveGameSram(); }, 1000);
+        setInterval(() => { this.bus.saveGameSram(); }, 1000);
 
         /* 
         * Intervals run while out of the tab as opposed to animation frames, which are
@@ -142,7 +142,7 @@ export default class GameBoy {
     state: Serializer[] = [];
 
     serialize(id: number) {
-        this.state[id] = new Serializer(this.bus.ext.romTitle);
+        this.state[id] = new Serializer(this.bus.romTitle);
         const state = this.state[id];
 
         state.resetPos();
@@ -165,7 +165,7 @@ export default class GameBoy {
 
         const state = this.state[id];
 
-        if (this.bus.ext.romTitle !== state.id) {
+        if (this.bus.romTitle !== state.id) {
             console.log("Deserialize: Wrong game");
             return;
         }
@@ -300,7 +300,7 @@ export default class GameBoy {
         let logoData = new Uint8Array(48);
         const base = 0x104;
         for (let i = 0; i < 48; i++) {
-            let byte = this.bus.ext.romData[0][base + i];
+            let byte = this.bus.romData[0][base + i];
             logoData[i] = byte;
         }
 

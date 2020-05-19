@@ -1,15 +1,14 @@
 import MemoryBus from "../memorybus";
 import MBC, { MBCWithRAM } from "./mbc";
-import ExternalBus from "../externalbus";
 import { Serializer } from "../../serialize";
 
 export default class MBC3 extends MBCWithRAM implements MBC {
     selectRtc = false;
-    ext: ExternalBus;
+    bus: MemoryBus;
 
-    constructor(ext: ExternalBus) {
+    constructor(bus: MemoryBus) {
         super();
-        this.ext = ext;
+        this.bus = bus;
     }
 
     read(addr: number): number {
@@ -50,7 +49,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
             } else {
                 this.romBank = value & 0b11111111; // Whole byte
             }
-            this.romBank %= this.ext.romBanks;
+            this.romBank %= this.bus.romBanks;
             return;
         }
         else if (addr >= 0x4000 && addr <= 0x5FFF) {

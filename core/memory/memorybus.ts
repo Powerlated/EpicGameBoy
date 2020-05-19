@@ -7,12 +7,12 @@ import MBC3 from "./mbc/mbc3";
 import MBC, { MBCWithRAM } from "./mbc/mbc";
 import MBC1 from "./mbc/mbc1";
 import NullMBC from "./mbc/nullmbc";
-import ExternalBus from "./externalbus";
 import { writeDebug } from "../../src/gameboy/tools/debug";
 import { hex } from "../../src/gameboy/tools/util";
 import { JoypadRegister } from "../components/joypad";
 import MBC5 from "./mbc/mbc5";
 import { Serializer } from "../serialize";
+import { saveSram, loadSram } from "../../src/gameboy/localstorage";
 
 const VRAM_BEGIN = 0x8000;
 const VRAM_END = 0x9FFF;
@@ -26,11 +26,121 @@ const INTERRUPT_ENABLE_FLAGS_ADDR = 0xFFFF;
 class MemoryBus {
     constructor(gb: GameBoy) {
         this.gb = gb;
-        this.ext = new ExternalBus(this.gb);
+        this.mbc = new NullMBC(this);
     }
 
+    mbc: MBC | MBCWithRAM;
+    romBanks = 0;
+    romData: Uint8Array[] = [];
+
     gb: GameBoy;
-    ext: ExternalBus;
+
+    romTitle: string = "";
+
+    replaceRom(rom: Uint8Array) {
+        console.info("Replaced ROM");
+        // Zero out existing ROM
+        this.romData = [];
+        // Write new ROM in
+        rom.forEach((v, i) => {
+            const bank = i >> 14;
+            const bankAddr = i & 16383;
+            if (this.romData[bank] == undefined) {
+                this.romData[bank] = new Uint8Array(16384);
+            }
+            this.romData[bank][bankAddr] = v;
+        });
+        this.updateMBC();
+
+        const title = this.romData[0].slice(0x134, 0x143);
+        const titleDecoded = new TextDecoder("utf-8").decode(title);
+        console.log(titleDecoded);
+
+        this.romTitle = titleDecoded;
+
+        this.gb.cgb = (this.romData[0][0x143] & 0x80) !== 0 || this.romData[0][0x143] == 0xC0;
+        this.gb.reset();
+
+        const m = this.mbc as MBCWithRAM;
+        if (m instanceof MBCWithRAM) {
+            const sram = loadSram(this.romTitle);
+            if (sram) {
+                m.externalRam.forEach((v, i, a) => {
+                    a[i] = 0;
+                });
+                sram.forEach((v: number, i: number) => {
+                    m.externalRam[i] = v;
+                });
+                console.log(`Loaded SRAM for "${this.romTitle}"`);
+            } else {
+                console.log("Did not find save, not loading SRAM.");
+            }
+        }
+    }
+
+    saveGameSram() {
+        const m = this.mbc as MBCWithRAM;
+        if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
+            console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`);
+            saveSram(this.romTitle, m.externalRam);
+            m.externalRamDirtyBytes = 0;
+        }
+    }
+
+    updateMBC() {
+        switch (this.romData[0][0x147]) {
+            case 0x01: case 0x02: case 0x03:
+                this.mbc = new MBC1(this);
+                break;
+            case 0x05: case 0x06:
+                // this.mbc = new MBC2(this);
+                break;
+            case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13:
+                this.mbc = new MBC3(this);
+                break;
+            case 0x19: case 0x1A: case 0x1B: case 0x1B:
+            case 0x1C: case 0x1D: case 0x1E:
+                this.mbc = new MBC5(this);
+                break;
+            case 0x20:
+                // this.mbc = new MBC6(this);
+                break;
+            case 0x22:
+                // this.mbc = new MBC7(this);
+                break;
+            case 0x00: case 0x08:
+            case 0x09: case 0x0B:
+            case 0x0C: case 0x0D:
+            default:
+                this.mbc = new NullMBC(this);
+                break;
+        }
+        let banks = 0;
+        switch (this.romData[0][0x148]) {
+            case 0x00: banks = 2; break;
+            case 0x01: banks = 4; break;
+            case 0x02: banks = 8; break;
+            case 0x03: banks = 16; break;
+            case 0x04: banks = 32; break;
+            case 0x05: banks = 64; break;
+            case 0x06: banks = 128; break;
+            case 0x07: banks = 256; break;
+            case 0x08: banks = 512; break;
+            case 0x52: banks = 72; break;
+            case 0x53: banks = 80; break;
+            case 0x54: banks = 96; break;
+        }
+
+        if (this.mbc instanceof MBC5 && banks == 2) {
+            banks = 512;
+        }
+
+        this.romBanks = banks;
+
+
+        console.log("Banks: " + banks);
+        console.log(this.mbc);
+    }
 
     workRamBanks = new Array(8).fill(0).map(() => new Uint8Array(4096).fill(0));
     workRamBankIndex = 1;
@@ -41,7 +151,7 @@ class MemoryBus {
 
     loadSave(ram: Uint8Array) {
         console.info("Loaded Save");
-        const mbc = this.ext.mbc as MBCWithRAM;
+        const mbc = this.mbc as MBCWithRAM;
         if (mbc instanceof MBCWithRAM) {
             ram.forEach((v, i) => {
                 mbc.externalRam[i] = v;
@@ -95,15 +205,15 @@ class MemoryBus {
             }
         }
 
-        return this.ext.romData[0][addr];
+        return this.romData[0][addr];
     }
 
     private readRom0(addr: number): number {
-        return this.ext.romData[0][addr];
+        return this.romData[0][addr];
     }
 
     private readRomX(addr: number): number {
-        return this.ext.romData[this.ext.mbc.romBank][addr & 0x3FFF];
+        return this.romData[this.mbc.romBank][addr & 0x3FFF];
     }
 
     private readVram(addr: number): number {
@@ -111,7 +221,7 @@ class MemoryBus {
     }
 
     private readCartRam(addr: number): number {
-        return this.ext.mbc.read(addr);
+        return this.mbc.read(addr);
     }
 
     private readRam0(addr: number): number {
@@ -216,7 +326,7 @@ class MemoryBus {
 
 
     private writeMbc(addr: number, value: number): void {
-        this.ext.mbc.write(addr, value);
+        this.mbc.write(addr, value);
     }
 
     private writeVram(addr: number, value: number): void {
@@ -224,7 +334,7 @@ class MemoryBus {
     }
 
     private writeCartRam(addr: number, value: number): void {
-        this.ext.mbc.write(addr, value);
+        this.mbc.write(addr, value);
     }
 
     private writeRam0(addr: number, value: number): void {
@@ -329,7 +439,7 @@ class MemoryBus {
             a[i] = 0;
         });
 
-        this.ext.mbc.reset();
+        this.mbc.reset();
         this.workRamBankIndex = 1;
     }
 
@@ -349,7 +459,7 @@ class MemoryBus {
         state.PUT_BOOL(this.bootromEnabled);
         state.PUT_BOOL(this.bootromLoaded);
 
-        this.ext.mbc.serialize(state);
+        this.mbc.serialize(state);
     }
 
     deserialize(state: Serializer) {
@@ -368,7 +478,7 @@ class MemoryBus {
         this.bootromEnabled = state.GET_BOOL();
         this.bootromLoaded = state.GET_BOOL();
 
-        this.ext.mbc.deserialize(state);
+        this.mbc.deserialize(state);
     }
 }
 

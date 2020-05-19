@@ -20,7 +20,7 @@ function loadRom(rom) {
         array[i] = raw.charCodeAt(i);
     }
 
-    gb.bus.ext.replaceRom(array);
+    gb.bus.replaceRom(array);
 }
 
 function loadDmgBootRom() {
@@ -87,7 +87,7 @@ function download(filename, arr) {
 }
 
 function downloadSave() {
-    download(`${gb.bus.ext.romTitle}.sav`, gb.bus.ext.mbc.externalRam);
+    download(`${gb.bus.romTitle}.sav`, gb.bus.mbc.externalRam);
 }
 
 function downloadLog() {
@@ -212,7 +212,7 @@ $('#gameromInput').addEventListener('change', function () {
         var arrayBuffer = this.result;
         var array = new Uint8Array(arrayBuffer);
 
-        gb.bus.ext.replaceRom(array);
+        gb.bus.replaceRom(array);
         // cpu.khz()
         // gb.bus.gpu.frameExecute();
     };
@@ -410,7 +410,7 @@ function dropHandler(ev) {
         var arrayBuffer = this.result;
         var array = new Uint8Array(arrayBuffer);
 
-        gb.bus.ext.replaceRom(array);
+        gb.bus.replaceRom(array);
     };
     reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
 }
