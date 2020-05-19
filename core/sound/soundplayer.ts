@@ -59,7 +59,7 @@ export class SoundPlayer {
         bufferSource.start(this.audioSec);
 
         this.sampleRate = sampleRate;
-        this.audioSec += LATENCY / sampleRate;
+        this.audioSec += LATENCY / sampleRate / 2;
 
         this.sources.push(bufferSource);
     }

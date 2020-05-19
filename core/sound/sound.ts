@@ -366,7 +366,7 @@ export default class SoundChip implements HWIO {
 
                     this.audioQueueAt++;
 
-                    if (this.audioQueueAt >= 8192 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
+                    if (this.audioQueueAt >= 4096 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
                         this.soundPlayer.queueAudio(
                             this.audioQueueLeft,
                             this.audioQueueRight,
