@@ -381,12 +381,12 @@ export default class CPU {
         this.cycles += cycles;
         this.pendingCycles += cycles;
     }
-    // #endregion
 
     read_tick(addr: number): number {
         this.cycles += 4;
-        if (memTickRegions[addr >> 12]) {
-            this.gb.tick(4 + this.pendingCycles);
+        if (memTickRegions[addr >> 12] === true) {
+            this.gb.tick(this.pendingCycles);
+            this.gb.tick(4);
             this.pendingCycles = 0;
         } else {
             this.pendingCycles += 4;
@@ -405,8 +405,9 @@ export default class CPU {
 
     write_tick(addr: number, value: number): void {
         this.cycles += 4;
-        if (memTickRegions[addr >> 12]) {
-            this.gb.tick(4 + this.pendingCycles);
+        if (memTickRegions[addr >> 12] === true) {
+            this.gb.tick(this.pendingCycles);
+            this.gb.tick(4);
             this.pendingCycles = 0;
         } else {
             this.pendingCycles += 4;
