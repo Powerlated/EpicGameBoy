@@ -5,7 +5,8 @@ let firefoxHax = false;
 try {
     new AudioContext({ sampleRate: 262144 });
 } catch {
-    firefoxHax = true;
+    if (!safariHax)
+        firefoxHax = true;
 }
 
 export const NORMAL_SAMPLE_RATE = 262144;
