@@ -453,18 +453,14 @@ class GPU implements HWIO {
                                 if (this.mode3HwioWritten && !this.disableFetcher || this.exclusiveFetcher) {
                                     this.fetcherFlush();
                                 } else {
-                                    if (
-                                        this.lY === this.windowYpos &&
-                                        this.lcdControl.enableWindow____5 === true &&
-                                        this.windowOnscreenYetThisFrame === false &&
-                                        this.windowXpos < 167
-                                    ) {
-                                        this.windowCurrentLine = this.windowYpos - this.lY;
+
+                                    if (!this.windowOnscreenYetThisFrame && this.lcdControl.enableWindow____5 && this.windowXpos < 167 && this.lY >= this.windowYpos) {
                                         this.windowOnscreenYetThisFrame = true;
+                                        this.windowCurrentLine = -(this.windowYpos - this.lY);
                                     }
-                                    
+
                                     this.renderBgWindowScanline();
-                                    if (this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
+                                    if (this.lY >= this.windowYpos && this.lcdControl.enableWindow____5 === true && this.windowXpos < 167) {
                                         this.windowCurrentLine++;
                                     }
                                 }
@@ -842,6 +838,14 @@ class GPU implements HWIO {
                             this.imageGameboy.data[imgIndex + 1] = color[1];
                             this.imageGameboy.data[imgIndex + 2] = color[2];
 
+                            if (this.showBorders && (this.windowCurrentLine == 0 || pixel == 0)) {
+                                const blue = [0, 0, 0xFF];
+
+                                this.imageGameboy.data[imgIndex + 0] = blue[0];
+                                this.imageGameboy.data[imgIndex + 1] = blue[1];
+                                this.imageGameboy.data[imgIndex + 2] = blue[2];
+                            }
+
                             imgIndex += 4;
                             pixel++;
                         }
@@ -857,6 +861,14 @@ class GPU implements HWIO {
                             this.imageGameboy.data[imgIndex + 0] = color[0];
                             this.imageGameboy.data[imgIndex + 1] = color[1];
                             this.imageGameboy.data[imgIndex + 2] = color[2];
+
+                            if (this.showBorders && (this.windowCurrentLine == 0 || pixel == 0)) {
+                                const blue = [0, 0, 0xFF];
+
+                                this.imageGameboy.data[imgIndex + 0] = blue[0];
+                                this.imageGameboy.data[imgIndex + 1] = blue[1];
+                                this.imageGameboy.data[imgIndex + 2] = blue[2];
+                            }
 
                             imgIndex += 4;
                             pixel++;
