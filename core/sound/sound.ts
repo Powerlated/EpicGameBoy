@@ -38,7 +38,7 @@ function generateNoiseBuffer(sevenBit: boolean): Uint8Array {
 
         seed = (seed >> 1) | (bit << 14);
 
-        if (putBitBack == true) {
+        if (putBitBack === true) {
             seed &= ~BIT_7;
             seed |= (bit << 6);
         }
@@ -179,7 +179,7 @@ export default class SoundChip implements HWIO {
     pulse1_freqSweepShift = 0;
     pulse1_updated = true;
     pulse1_trigger() {
-        if (this.pulse1_lengthCounter === 0 || this.pulse1_lengthEnable == false) {
+        if (this.pulse1_lengthCounter === 0 || this.pulse1_lengthEnable === false) {
             this.pulse1_lengthCounter = 64;
         }
         this.pulse1_volume = this.pulse1_volumeEnvelopeStart;
@@ -213,7 +213,7 @@ export default class SoundChip implements HWIO {
     pulse2_outputRight = false;
     pulse2_updated = true;
     pulse2_trigger() {
-        if (this.pulse2_lengthCounter === 0 || this.pulse2_lengthEnable == false) {
+        if (this.pulse2_lengthCounter === 0 || this.pulse2_lengthEnable === false) {
             this.pulse2_lengthCounter = 64;
         }
         this.pulse2_volume = this.pulse2_volumeEnvelopeStart;
@@ -264,7 +264,7 @@ export default class SoundChip implements HWIO {
         if (this.noise_dacEnabled)
             this.noise_enabled = true;
 
-        if (this.noise_lengthCounter === 0 || this.noise_lengthEnable == false) {
+        if (this.noise_lengthCounter === 0 || this.noise_lengthEnable === false) {
             this.noise_lengthCounter = 64;
         }
         this.noise_volume = this.noise_volumeEnvelopeStart;
@@ -272,7 +272,7 @@ export default class SoundChip implements HWIO {
     }
 
     wave_trigger() {
-        if (this.wave_lengthCounter === 0 || this.wave_lengthEnable == false) {
+        if (this.wave_lengthCounter === 0 || this.wave_lengthEnable === false) {
             this.wave_lengthCounter = 256;
         }
         if (this.wave_dacEnabled) {
@@ -381,15 +381,36 @@ export default class SoundChip implements HWIO {
                     let out1 = in1 - this.capacitor1;
                     let out2 = in2 - this.capacitor2;
 
-                    this.audioQueueLeft[this.audioQueueAt] = (out1 * 0.25);
-                    this.audioQueueRight[this.audioQueueAt] = (out2 * 0.25);
+                    this.audioQueueLeft[this.audioQueueAt] = out1 * 0.25;
+                    this.audioQueueRight[this.audioQueueAt] = out2 * 0.25;
 
                     this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
                     this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
 
+
                     this.audioQueueAt++;
 
                     if (this.audioQueueAt >= 4096 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
+                        if (this.recordSamples) {
+                            const size = this.audioQueueAt;
+
+                            for (let i = 0; i < size; i++) {
+                                const out1_8bit = Math.floor(((this.audioQueueLeft[i] + 1) / 2) * 255);
+                                const out2_8bit = Math.floor(((this.audioQueueRight[i] + 1) / 2) * 255);
+
+                                // This is literally a C++ vector. In freaking TypeScript.
+                                // I need to reevaluate my life choices.
+                                if (this.recordBufferAt + 2 > this.recordBuffer.length) {
+                                    const oldBuf = this.recordBuffer;
+                                    this.recordBuffer = new Uint8ClampedArray(this.recordBufferAt * 2);
+                                    this.recordBuffer.set(oldBuf);
+                                }
+
+                                this.recordBuffer[this.recordBufferAt++] = out1_8bit;
+                                this.recordBuffer[this.recordBufferAt++] = out2_8bit;
+                            }
+                        }
+
                         this.soundPlayer.queueAudio(
                             this.audioQueueLeft,
                             this.audioQueueRight,
@@ -402,6 +423,100 @@ export default class SoundChip implements HWIO {
         }
     }
 
+    recordSamples = false;
+    recordBuffer = new Uint8ClampedArray(0);
+    recordBufferAt = 0;
+
+    recordToWav() {
+        // Allocate exactly enough for a WAV header
+        const wave = new Uint8Array(this.recordBufferAt + 44);
+
+        // RIFF header
+        wave[0] = 0x52;
+        wave[1] = 0x49;
+        wave[2] = 0x46;
+        wave[3] = 0x46;
+
+        const size = wave.length - 8;
+        wave[4] = (size >> 0) & 0xFF;
+        wave[5] = (size >> 8) & 0xFF;
+        wave[6] = (size >> 16) & 0xFF;
+        wave[7] = (size >> 24) & 0xFF;
+
+        // WAVE
+        wave[8] = 0x57;
+        wave[9] = 0x41;
+        wave[10] = 0x56;
+        wave[11] = 0x45;
+
+        // Subchunk1ID "fmt "
+        wave[12] = 0x66;
+        wave[13] = 0x6d;
+        wave[14] = 0x74;
+        wave[15] = 0x20;
+
+        // Subchunk1Size
+        wave[16] = 16;
+        wave[17] = 0;
+        wave[18] = 0;
+        wave[19] = 0;
+
+        // AudioFormat
+        wave[20] = 1;
+        wave[21] = 0;
+
+        // 2 channels
+        wave[22] = 2;
+        wave[23] = 0;
+
+        // Sample rate
+        wave[24] = (SAMPLE_RATE >> 0) & 0xFF;
+        wave[25] = (SAMPLE_RATE >> 8) & 0xFF;
+        wave[26] = (SAMPLE_RATE >> 16) & 0xFF;
+        wave[27] = (SAMPLE_RATE >> 24) & 0xFF;
+
+        // ByteRate
+        // SampleRate & NumChannels * BitsPerSample/8
+        const byteRate = SAMPLE_RATE * 2 * (8 / 8);
+        wave[28] = (byteRate >> 0) & 0xFF;
+        wave[29] = (byteRate >> 8) & 0xFF;
+        wave[30] = (byteRate >> 16) & 0xFF;
+        wave[31] = (byteRate >> 24) & 0xFF;
+
+        // BlockAlign
+        // NumChannels * BitsPerSample / 8
+        const blockAlign = 2 * (8 / 8);
+        wave[32] = (blockAlign >> 0) & 0xFF;
+        wave[33] = (blockAlign >> 8) & 0xFF;
+
+        // BitsPerSample
+        wave[34] = 8;
+        wave[35] = 0;
+
+        // Subchunk2ID "data"
+        wave[36] = 0x64;
+        wave[37] = 0x61;
+        wave[38] = 0x74;
+        wave[39] = 0x61;
+
+        // NumSamples * NumChannels * BitsPerSample/8
+        const subchunk2Size = this.recordBufferAt * 2 * (8 / 8);
+        wave[40] = (subchunk2Size >> 0) & 0xFF;
+        wave[41] = (subchunk2Size >> 8) & 0xFF;
+        wave[42] = (subchunk2Size >> 16) & 0xFF;
+        wave[43] = (subchunk2Size >> 24) & 0xFF;
+
+        for (let i = 0; i < this.recordBufferAt; i++) {
+            wave[44 + i] = this.recordBuffer[i];
+        }
+
+        let blob = new Blob([wave], { type: "application/octet-stream" });
+        let link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "OptimeGB-recording.wav";
+        link.click();
+    }
+
     soundPlayer = new SoundPlayer();
 
     resetPlayer() {
@@ -411,7 +526,7 @@ export default class SoundChip implements HWIO {
     private frameSequencerFrequencySweep() {
         // writeDebug("Frequency sweep")
         let actualPeriod = this.pulse1_freqSweepPeriod;
-        if (actualPeriod == 0) actualPeriod = 8;
+        if (actualPeriod === 0) actualPeriod = 8;
         if (this.clockPulse1FreqSweep > actualPeriod) {
             this.clockPulse1FreqSweep = 0;
             if (this.freqSweepEnabled === true) {
