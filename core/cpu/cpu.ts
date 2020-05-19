@@ -251,25 +251,6 @@ export interface Op {
     op: Function, type?: OperandType, type2?: OperandType, length: number;
 };
 
-const memTickRegions: boolean[] = [
-    false, // ROM0 - 0###
-    false, // ROM0 - 1###
-    false, // ROM0 - 2###
-    false, // ROM0 - 3###
-    false, // ROMX - 4###
-    false, // ROMX - 5###
-    false, // ROMX - 6###
-    false, // ROMX - 7###
-    true, // VRAM - 8###
-    true, // VRAM - 9###
-    false, // Cart RAM - A###
-    false, // Cart RAM - B###
-    false, // RAM0 - C###
-    false, // RAMX - D###
-    false, // Echo RAM0 - E###
-    true, // High Area - F###
-];
-
 export default class CPU {
     constructor(gb: GameBoy) {
         this.gb = gb;
@@ -384,13 +365,9 @@ export default class CPU {
 
     read_tick(addr: number): number {
         this.cycles += 4;
-        if (memTickRegions[addr >> 12] === true) {
-            this.gb.tick(this.pendingCycles);
-            this.gb.tick(4);
-            this.pendingCycles = 0;
-        } else {
-            this.pendingCycles += 4;
-        }
+
+        this.gb.tick(this.pendingCycles + 4);
+        this.pendingCycles = 0;
 
         return this.gb.bus.read(addr);
     }
@@ -405,13 +382,9 @@ export default class CPU {
 
     write_tick(addr: number, value: number): void {
         this.cycles += 4;
-        if (memTickRegions[addr >> 12] === true) {
-            this.gb.tick(this.pendingCycles);
-            this.gb.tick(4);
-            this.pendingCycles = 0;
-        } else {
-            this.pendingCycles += 4;
-        }
+        
+        this.gb.tick(this.pendingCycles + 4);
+        this.pendingCycles = 0;
 
         this.gb.bus.write(addr, value);
     }
