@@ -233,8 +233,6 @@ enum PixelFetcher {
 }
 
 class GPU implements HWIO {
-    mode: LCDMode = 0;
-
     frameBlending = false;
 
     gb: GameBoy;
@@ -353,12 +351,6 @@ class GPU implements HWIO {
         }
     }
 
-    setMode(mode: LCDMode) {
-        this.mode = mode;
-        this.lcdStatus.mode = mode;
-    }
-
-
     // Thanks for the timing logic, http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
     tick(cycles: number) {
         // THE GPU CLOCK DOES NOT RUN WHEN THE LCD IS DISABLED
@@ -366,7 +358,7 @@ class GPU implements HWIO {
 
         if (this.lcdControl.lcdDisplayEnable7 === true) {
             this.lineClock += cycles;
-            switch (this.mode) {
+            switch (this.lcdStatus.mode) {
                 case LCDMode.HBLANK: // Mode 0
                     {
                         if (this.lineClock >= 456) {
@@ -400,14 +392,14 @@ class GPU implements HWIO {
                                 this.windowCurrentLine = 0;
                                 this.windowOnscreenYetThisFrame = false;
 
-                                this.setMode(LCDMode.VBLANK);
+                                this.lcdStatus.mode = LCDMode.VBLANK;
                                 this.updateSTAT();
 
                                 this.totalFrameCount++;
                             }
                             else {
                                 // Enter back into OAM mode if not Vblank
-                                this.setMode(LCDMode.OAM);
+                                this.lcdStatus.mode = LCDMode.OAM;
                                 this.updateSTAT();
                             }
                         }
@@ -419,7 +411,7 @@ class GPU implements HWIO {
                             this.lineClock -= 456;
 
                             if (this.lY >= 152) {
-                                this.setMode(LCDMode.LINE153);
+                                this.lcdStatus.mode = LCDMode.LINE153;
                             }
 
                             this.lY++;
@@ -437,7 +429,7 @@ class GPU implements HWIO {
                                 this.scanOAM();
                             }
 
-                            this.setMode(LCDMode.VRAM);
+                            this.lcdStatus.mode = LCDMode.VRAM;
 
                             this.mode3HwioWritten = false;
                             this.fetcherReset();
@@ -472,7 +464,7 @@ class GPU implements HWIO {
                                 this.fetcherCycles = 0;
 
                                 // VRAM -> HBLANK
-                                this.setMode(LCDMode.HBLANK);
+                                this.lcdStatus.mode = LCDMode.HBLANK;
                                 this.updateSTAT();
 
                                 this.gb.dma.continueHdma();
@@ -495,7 +487,7 @@ class GPU implements HWIO {
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
-                            this.setMode(LCDMode.OAM);
+                            this.lcdStatus.mode = LCDMode.OAM;
                             this.updateSTAT();
 
                             this.renderingThisFrame = (this.totalFrameCount % this.gb.speedMul) === 0 && this.vp !== null;
@@ -507,7 +499,7 @@ class GPU implements HWIO {
                         if (this.lineClock >= 76) {
                             this.lineClock -= 76;
 
-                            this.setMode(LCDMode.VRAM);
+                            this.lcdStatus.mode = LCDMode.VRAM;
                             // console.log("Exit Glitched OAM");
                         }
                     }
@@ -515,7 +507,7 @@ class GPU implements HWIO {
             }
         } else {
             this.lineClock = 0;
-            this.setMode(LCDMode.GLITCHED_OAM);
+            this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
             this.lY = 0;
             this.renderingThisFrame = false;
         }
@@ -944,7 +936,7 @@ class GPU implements HWIO {
         this.scrX = 0;
 
         this.lineClock = 0;
-        this.setMode(LCDMode.GLITCHED_OAM);
+        this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
         this.lY = 0;
 
         this.windowYpos = 0;
@@ -1102,7 +1094,7 @@ class GPU implements HWIO {
     }
 
     checkMode3HwioWrite() {
-        if (this.mode === LCDMode.VRAM)
+        if (this.lcdStatus.mode === LCDMode.VRAM)
             this.mode3HwioWritten = true;
 
         this.fetcherFlush();
@@ -1189,7 +1181,6 @@ class GPU implements HWIO {
             case 0xFF47: // BG Palette
                 const oldValue = this.dmgBgPalette;
                 this.dmgBgPalette = value;
-                this.checkMode3HwioWrite();
 
                 // PPU time travel?????
                 if (this.fetcherCycles > 2) {
@@ -1213,6 +1204,7 @@ class GPU implements HWIO {
                     this.setDmgBgPalette(2, (value >> 4) & 0b11);
                     this.setDmgBgPalette(3, (value >> 6) & 0b11);
                 }
+                this.checkMode3HwioWrite();
                 break;
             case 0xFF48: // Palette OBJ 0
                 this.checkMode3HwioWrite();
@@ -1514,29 +1506,13 @@ class GPU implements HWIO {
         if (this.gb.cgb)
             for (let i = 0; i < 2048; i++) {
                 let attr = this.cgbTileAttrs[i];
-
-                state.PUT_8(attr.bgPalette);
-                state.PUT_8(attr.vramBank);
-                state.PUT_BOOL(attr.ignoreSpritePriority);
-                state.PUT_BOOL(attr.xFlip);
-                state.PUT_BOOL(attr.yFlip);
+                state.PUT_8(attr.getNumerical());
             }
 
-        state.PUT_BOOL(this.lcdControl.bgWindowEnable0);
-        state.PUT_BOOL(this.lcdControl.spriteDisplay___1);
-        state.PUT_BOOL(this.lcdControl.spriteSize______2);
-        state.PUT_BOOL(this.lcdControl.bgTilemapSelect_3);
-        state.PUT_BOOL(this.lcdControl.bgWindowTiledataSelect__4);
-        state.PUT_BOOL(this.lcdControl.enableWindow____5);
-        state.PUT_BOOL(this.lcdControl.windowTilemapSelect___6);
-        state.PUT_BOOL(this.lcdControl.lcdDisplayEnable7);
+        state.PUT_8(this.lcdControl.getNumerical());
 
         state.PUT_8(this.lcdStatus.mode);
-        state.PUT_BOOL(this.lcdStatus.coincidenceFlag_______2);
-        state.PUT_BOOL(this.lcdStatus.mode0HblankInterrupt__3);
-        state.PUT_BOOL(this.lcdStatus.mode1VblankInterrupt__4);
-        state.PUT_BOOL(this.lcdStatus.mode2OamInterrupt_____5);
-        state.PUT_BOOL(this.lcdStatus.lyCoincidenceInterrupt6);
+        state.PUT_8(this.lcdStatus.getNumerical());
 
         state.PUT_8(this.scrY);
         state.PUT_8(this.scrX);
@@ -1612,29 +1588,13 @@ class GPU implements HWIO {
         if (this.gb.cgb)
             for (let i = 0; i < 2048; i++) {
                 let attr = this.cgbTileAttrs[i];
-
-                attr.bgPalette = state.GET_8();
-                attr.vramBank = state.GET_8();
-                attr.ignoreSpritePriority = state.GET_BOOL();
-                attr.xFlip = state.GET_BOOL();
-                attr.yFlip = state.GET_BOOL();
+                attr.setNumerical(state.GET_8());
             }
 
-        this.lcdControl.bgWindowEnable0 = state.GET_BOOL();
-        this.lcdControl.spriteDisplay___1 = state.GET_BOOL();
-        this.lcdControl.spriteSize______2 = state.GET_BOOL();
-        this.lcdControl.bgTilemapSelect_3 = state.GET_BOOL();
-        this.lcdControl.bgWindowTiledataSelect__4 = state.GET_BOOL();
-        this.lcdControl.enableWindow____5 = state.GET_BOOL();
-        this.lcdControl.windowTilemapSelect___6 = state.GET_BOOL();
-        this.lcdControl.lcdDisplayEnable7 = state.GET_BOOL();
+        this.lcdControl.setNumerical(state.GET_8());
 
         this.lcdStatus.mode = state.GET_8();
-        this.lcdStatus.coincidenceFlag_______2 = state.GET_BOOL();
-        this.lcdStatus.mode0HblankInterrupt__3 = state.GET_BOOL();
-        this.lcdStatus.mode1VblankInterrupt__4 = state.GET_BOOL();
-        this.lcdStatus.mode2OamInterrupt_____5 = state.GET_BOOL();
-        this.lcdStatus.lyCoincidenceInterrupt6 = state.GET_BOOL();
+        this.lcdStatus.setNumerical(state.GET_8());
 
         this.scrY = state.GET_8();
         this.scrX = state.GET_8();
