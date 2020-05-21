@@ -54,15 +54,6 @@ export function LD_iN16_SP(this: number, cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0x08] = LD_iN16_SP;
 
 export function JP(this: number, cpu: CPU): number {
-    // If unconditional, don't check
-    if (this !== 0xC3) {
-        const cc: CC = (this & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
-    }
-
     const n16 = cpu.read16_tick(cpu.pc + 1);
     cpu.pc = n16 - 3;
 
@@ -70,21 +61,27 @@ export function JP(this: number, cpu: CPU): number {
     return 3;
 };
 UNPREFIXED_EXECUTORS[0xC3] = JP; // JP N16
-UNPREFIXED_EXECUTORS[0xC2] = JP; // JP NZ, N16
-UNPREFIXED_EXECUTORS[0xCA] = JP; // JP Z, N16
-UNPREFIXED_EXECUTORS[0xD2] = JP; // JP NC, N16
-UNPREFIXED_EXECUTORS[0xDA] = JP; // JP C, N16
+
+export function JP_CC(this: number, cpu: CPU): number {
+    const cc: CC = (this & 0b11000) >> 3;
+    if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
+    else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
+    else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
+    else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
+
+    const n16 = cpu.read16_tick(cpu.pc + 1);
+    cpu.pc = n16 - 3;
+
+    cpu.tick_addPending(4); // Branching takes 4 cycles
+    return 3;
+};
+UNPREFIXED_EXECUTORS[0xC2] = JP_CC; // JP NZ, N16
+UNPREFIXED_EXECUTORS[0xCA] = JP_CC; // JP Z, N16
+UNPREFIXED_EXECUTORS[0xD2] = JP_CC; // JP NC, N16
+UNPREFIXED_EXECUTORS[0xDA] = JP_CC; // JP C, N16
 
 /** CALL */
 export function CALL(this: number, cpu: CPU): number {
-    if (this !== 0xCD) {
-        const cc: CC = (this & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
-    }
-
     const n16 = cpu.read16_tick(cpu.pc + 1);
 
     cpu.tick_addPending(4); // Branching takes 4 cycles
@@ -105,10 +102,38 @@ export function CALL(this: number, cpu: CPU): number {
     return 3;
 };
 UNPREFIXED_EXECUTORS[0xCD] = CALL; // CALL N16
-UNPREFIXED_EXECUTORS[0xDC] = CALL; // CALL C, N16
-UNPREFIXED_EXECUTORS[0xD4] = CALL; // CALL NC, N16
-UNPREFIXED_EXECUTORS[0xCC] = CALL; // CALL Z, N16
-UNPREFIXED_EXECUTORS[0xC4] = CALL; // CALL NZ, N16
+
+export function CALL_CC(this: number, cpu: CPU): number {
+    const cc: CC = (this & 0b11000) >> 3;
+    if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
+    else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(8); return 3; }
+    else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
+    else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(8); return 3; }
+
+    const n16 = cpu.read16_tick(cpu.pc + 1);
+
+    cpu.tick_addPending(4); // Branching takes 4 cycles
+
+    const pcUpperByte = ((cpu.pc + 3) & 0xFFFF) >> 8;
+    const pcLowerByte = ((cpu.pc + 3) & 0xFFFF) & 0xFF;
+
+    // console.info(`Calling 0x${u16.toString(16)} from 0x${cpu.pc.toString(16)}`);
+
+    cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
+    cpu.write_tick(cpu.reg.sp, pcUpperByte);
+    cpu.reg.sp = (cpu.reg.sp - 1) & 0xFFFF;
+    cpu.write_tick(cpu.reg.sp, pcLowerByte);
+
+    cpu.pc = n16 - 3;
+
+
+    return 3;
+};
+
+UNPREFIXED_EXECUTORS[0xDC] = CALL_CC; // CALL C, N16
+UNPREFIXED_EXECUTORS[0xD4] = CALL_CC; // CALL NC, N16
+UNPREFIXED_EXECUTORS[0xCC] = CALL_CC; // CALL Z, N16
+UNPREFIXED_EXECUTORS[0xC4] = CALL_CC; // CALL NZ, N16
 
 /** Interrupts */
 export function STOP(this: number, cpu: CPU): number {
@@ -250,14 +275,6 @@ UNPREFIXED_EXECUTORS[0xFE] = CP_A_N8;  // CP A, N8
 
 
 export function JR(this: number, cpu: CPU): number {
-    if (this !== 0x18) {
-        const cc: CC = (this & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
-    }
-
     const b1 = cpu.read_tick(cpu.pc + 1);
     cpu.pc += unTwo8b(b1);
 
@@ -268,11 +285,26 @@ export function JR(this: number, cpu: CPU): number {
 
 /** JR */
 UNPREFIXED_EXECUTORS[0x18] = JR;  // JR E8
-UNPREFIXED_EXECUTORS[0x20] = JR;  // JR NZ, E8
-UNPREFIXED_EXECUTORS[0x28] = JR;  // JR Z, E8
-UNPREFIXED_EXECUTORS[0x30] = JR;  // JR NC, E8
-UNPREFIXED_EXECUTORS[0x38] = JR;  // JR C, E8
 
+export function JR_CC(this: number, cpu: CPU): number {
+        const cc: CC = (this & 0b11000) >> 3;
+        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
+        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
+        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
+        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
+
+    const b1 = cpu.read_tick(cpu.pc + 1);
+    cpu.pc += unTwo8b(b1);
+
+    cpu.tick_addPending(4); // Branching takes 4 cycles
+
+    return 2;
+};
+
+UNPREFIXED_EXECUTORS[0x20] = JR_CC;  // JR NZ, E8
+UNPREFIXED_EXECUTORS[0x28] = JR_CC;  // JR Z, E8
+UNPREFIXED_EXECUTORS[0x30] = JR_CC;  // JR NC, E8
+UNPREFIXED_EXECUTORS[0x38] = JR_CC;  // JR C, E8
 
 /** Arithmetic */
 export function ADD_A_N8(this: number, cpu: CPU): number {
@@ -991,19 +1023,8 @@ export function CCF(this: number, cpu: CPU): number {  // CCF
 };
 
 
-
 /** RET */
 export function RET(this: number, cpu: CPU): number {
-    if (this !== 0xC9) {
-        cpu.tick_addPending(4); // Branch decision?
-
-        const cc: CC = (this & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { return 1; }
-        if (cc === CC.Z && !cpu.reg._f.zero) { return 1; }
-        if (cc === CC.NC && cpu.reg._f.carry) { return 1; }
-        if (cc === CC.C && !cpu.reg._f.carry) { return 1; }
-    }
-
     cpu.pc = cpu.pop_tick() - 1;
 
     cpu.tick_addPending(4); // Branching takes 4 cycles
@@ -1011,11 +1032,28 @@ export function RET(this: number, cpu: CPU): number {
     return 1;
 };
 UNPREFIXED_EXECUTORS[0xC9] = RET;  // RET
-UNPREFIXED_EXECUTORS[0xD8] = RET;  // RET C
-UNPREFIXED_EXECUTORS[0xD0] = RET;  // RET NC
-UNPREFIXED_EXECUTORS[0xC8] = RET;  // RET Z
-UNPREFIXED_EXECUTORS[0xC0] = RET;  // RET NZ
 
+/** RET */
+export function RET_CC(this: number, cpu: CPU): number {
+    cpu.tick_addPending(4); // Branch decision?
+
+    const cc: CC = (this & 0b11000) >> 3;
+    if (cc === CC.NZ && cpu.reg._f.zero) { return 1; }
+    if (cc === CC.Z && !cpu.reg._f.zero) { return 1; }
+    if (cc === CC.NC && cpu.reg._f.carry) { return 1; }
+    if (cc === CC.C && !cpu.reg._f.carry) { return 1; }
+
+    cpu.pc = cpu.pop_tick() - 1;
+
+    cpu.tick_addPending(4); // Branching takes 4 cycles
+
+    return 1;
+};
+
+UNPREFIXED_EXECUTORS[0xD8] = RET_CC;  // RET C
+UNPREFIXED_EXECUTORS[0xD0] = RET_CC;  // RET NC
+UNPREFIXED_EXECUTORS[0xC8] = RET_CC;  // RET Z
+UNPREFIXED_EXECUTORS[0xC0] = RET_CC;  // RET NZ
 
 /** Reset Vectors */
 export function RST(this: number, cpu: CPU): number {
