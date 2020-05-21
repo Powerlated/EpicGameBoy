@@ -374,6 +374,7 @@ class GPU implements HWIO {
                             // If we're at LCDCy = 144, enter Vblank
                             // THIS NEEDS TO BE 144, THAT IS PROPER TIMING!
                             if (this.lY >= 144) {
+
                                 // Fire the Vblank interrupt
                                 this.gb.cpu.if.vblank = true;
                                 // Draw to the canvas
@@ -480,10 +481,11 @@ class GPU implements HWIO {
                     break;
                 case LCDMode.LINE153:
                     {
-                        this.updateSTAT();
-
                         // LY returns to top early at line 153
-                        this.lY = 0;
+                        if (this.lineClock >= 4 && this.lY !== 0) {
+                            this.lY = 0;
+                            this.updateSTAT();
+                        }
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
 
@@ -496,17 +498,16 @@ class GPU implements HWIO {
                     break;
                 case LCDMode.GLITCHED_OAM:
                     {
-                        if (this.lineClock >= 76) {
-                            this.lineClock -= 76;
-
+                        if (this.lineClock >= 72) {
                             this.lcdStatus.mode = LCDMode.VRAM;
+
                             // console.log("Exit Glitched OAM");
                         }
                     }
                     break;
             }
         } else {
-            this.lineClock = 0;
+            this.lineClock = 4;
             this.lcdStatus.mode = LCDMode.GLITCHED_OAM;
             this.lY = 0;
             this.renderingThisFrame = false;
@@ -668,9 +669,15 @@ class GPU implements HWIO {
                             this.pre[this.fetcherScreenX] = prePalette;
                             this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
 
-                            this.imageGameboy.data[this.fetcherImageIndex + 0] = finalColor[0];
-                            this.imageGameboy.data[this.fetcherImageIndex + 1] = finalColor[1];
-                            this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2];
+                            if (this.lcdControl.bgWindowEnable0) {
+                                this.imageGameboy.data[this.fetcherImageIndex + 0] = finalColor[0];
+                                this.imageGameboy.data[this.fetcherImageIndex + 1] = finalColor[1];
+                                this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2];
+                            } else {
+                                this.imageGameboy.data[this.fetcherImageIndex + 0] = 0xFF;
+                                this.imageGameboy.data[this.fetcherImageIndex + 2] = 0xFF;
+                                this.imageGameboy.data[this.fetcherImageIndex + 1] = 0xFF;
+                            }
 
                             this.fetcherImageIndex += 4;
                         }
@@ -701,6 +708,9 @@ class GPU implements HWIO {
     }
 
     renderBgWindowScanline() {
+        const windowOnScanline = this.lcdControl.enableWindow____5 &&
+            this.lY >= this.windowYpos &&
+            this.windowXpos < 167;
         if (this.gb.cgb || this.lcdControl.bgWindowEnable0) {
             {
                 // This is the Y value within a tile
@@ -720,8 +730,7 @@ class GPU implements HWIO {
 
                 let imgIndex = 160 * 4 * (this.lY);
 
-                const xPos = this.windowXpos - 7; // Get the real X position of the window
-                const endAt = this.lcdControl.enableWindow____5 && this.lY >= this.windowYpos && xPos <= 160 ? xPos : 160;
+                const endAt = windowOnScanline ? this.windowXpos - 7 : 160;
 
                 let pixel = -x;
 
@@ -791,11 +800,7 @@ class GPU implements HWIO {
                 }
             }
 
-            if (
-                this.lcdControl.enableWindow____5 &&
-                this.lY >= this.windowYpos &&
-                this.windowXpos < 167
-            ) {
+            if (windowOnScanline) {
                 const mapBase = this.lcdControl.windowTilemapSelect___6 ? 1024 : 0;
                 const mapIndex = ((this.windowCurrentLine >> 3) << 5) & 1023;
                 let mapOffset = mapBase + mapIndex; // 1023   // CORRECT 0x1800

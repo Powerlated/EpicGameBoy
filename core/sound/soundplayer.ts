@@ -62,9 +62,17 @@ export class SoundPlayer {
         }
 
         let bufferSource = this.ctx.createBufferSource();
+
+        bufferSource.onended = () => { this.sources.shift(); };
+
         bufferSource.buffer = buffer;
         bufferSource.connect(this.ctx.destination);
         bufferSource.start(this.audioSec);
+
+        if (this.audioSec <= this.ctx.currentTime + 0.02) {
+            // Reset time if close to buffer underrun
+            this.audioSec = this.ctx.currentTime + 0.06;
+        }
 
         this.sampleRate = sampleRate;
         this.audioSec += LATENCY / sampleRate / 2;
@@ -82,7 +90,7 @@ export class SoundPlayer {
         this.sources = [];
 
         // 50 ms buffer
-        this.audioSec = this.ctx.currentTime + 0.05;
+        this.audioSec = this.ctx.currentTime + 0.06;
         // console.log(`Latency in seconds: ${(LATENCY / this.sampleRate)}`)
     }
 }

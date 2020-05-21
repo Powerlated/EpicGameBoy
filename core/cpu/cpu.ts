@@ -481,7 +481,7 @@ export default class CPU {
         }
 
         // If the CPU is HALTed and there are requested interrupts, unHALT
-        if (this.interruptAvailable) {
+        if (this.interruptAvailable === true) {
             if (this.ime === true) {
 
                 if (this.halted) this.tick_addPending(4);

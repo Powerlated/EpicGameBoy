@@ -1,7 +1,7 @@
 
 
 import { unTwo8b, hexN, hexN_LC, pad, hex } from "./util";
-import { LD_A_iFF00plusN8, RST, ADD_A_N8, ADC_A_N8, SUB_A_N8, SBC_A_N8, AND_A_N8, XOR_A_N8, OR_A_N8, CP_A_N8, ADD_A_R8, ADC_A_R8, SUB_A_R8, SBC_A_R8, AND_A_R8, XOR_A_R8, OR_A_R8, CP_A_R8, LD_R8_R8, LD_R8_N8, LD_iHLdec_A, LD_iHLinc_A, LD_iFF00plusC_A, LD_A_iFF00plusC, LD_iFF00plusN8_A, LD_A_iN16, LD_iN16_SP, LD_A_iHLinc, LD_iN16_A, JP_HL, ADD_HL_R16, LD_HL_SPplusE8, RETI, JP, CALL, RET, JR, PUSH_R16, POP_R16, LD_R16_N16, HALT, RLCA, RRCA, RRA, RLA } from "../../../core/cpu/unprefixed_executors";
+import { LD_A_iFF00plusN8, RST, ADD_A_N8, ADC_A_N8, SUB_A_N8, SBC_A_N8, AND_A_N8, XOR_A_N8, OR_A_N8, CP_A_N8, ADD_A_R8, ADC_A_R8, SUB_A_R8, SBC_A_R8, AND_A_R8, XOR_A_R8, OR_A_R8, CP_A_R8, LD_R8_R8, LD_R8_N8, LD_iHLdec_A, LD_iHLinc_A, LD_iFF00plusC_A, LD_A_iFF00plusC, LD_iFF00plusN8_A, LD_A_iN16, LD_iN16_SP, LD_A_iHLinc, LD_iN16_A, JP_HL, ADD_HL_R16, LD_HL_SPplusE8, RETI, JP, CALL_CC, RET, JR, PUSH_R16, POP_R16, LD_R16_N16, HALT, RLCA, RRCA, RRA, RLA } from "../../../core/cpu/unprefixed_executors";
 import Decoder from "../../../core/cpu/legacy_decoder";
 import CPU, { OperandType, Op } from "../../../core/cpu/cpu";
 import { R8, R16, CC } from "../../../core/cpu/cpu_types";
@@ -36,7 +36,7 @@ export default class Disassembler {
     static isControlFlow = (ins: Op) => {
         switch (ins.op) {
             case JP:
-            case CALL:
+            case CALL_CC:
             case JP_HL:
             case RET:
             case RETI:
@@ -51,7 +51,7 @@ export default class Disassembler {
     static willJumpTo = (ins: Op, pcTriplet: Uint8Array, cpu: CPU): number => {
         switch (ins.op) {
             case JP:
-            case CALL:
+            case CALL_CC:
                 return pcTriplet[1] | pcTriplet[2] << 8;
             case JP_HL:
                 return cpu.reg[R16.HL];

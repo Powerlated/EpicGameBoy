@@ -90,10 +90,8 @@ export default class GameBoy {
     run() {
         const now = performance.now();
         let deltaMs = now - this.lastTime;
-        if (deltaMs > 20) {
-            deltaMs = 20; // limit this for performance reasons
-
-            this.soundChip.resetPlayer();
+        if (deltaMs > 17) {
+            deltaMs = 17; // limit this for performance reasons
         }
         this.lastTime = now;
 
@@ -112,11 +110,11 @@ export default class GameBoy {
                     this.speedStop();
                     return;
                 }
-                i += this.step();
+                i += this.cpu.execute();
             }
         } else {
             while (i < max) {
-                i += this.step();
+                i += this.cpu.execute();
             }
         }
 
@@ -222,11 +220,7 @@ export default class GameBoy {
 
             // Games check A for 0x11 to detect a CGB
             if (this.cgb) {
-                this.cpu.reg[R16.AF] = 0x1180;
-                this.cpu.reg[R16.BC] = 0x0000;
-                this.cpu.reg[R16.DE] = 0xFF56;
-                this.cpu.reg[R16.HL] = 0x000D;
-                this.cpu.reg.sp = 0xFFFE;
+                this.cgbBootrom();
             } else {
                 this.dmgBootrom();
             }
@@ -352,6 +346,16 @@ export default class GameBoy {
         this.bus.write(0xFF0F, 0xE1);
 
         this.timer.internal = 0xABC8;
+    }
+
+    cgbBootrom() {
+        this.cpu.reg[R16.AF] = 0x1180;
+        this.cpu.reg[R16.BC] = 0x0000;
+        this.cpu.reg[R16.DE] = 0xFF56;
+        this.cpu.reg[R16.HL] = 0x000D;
+        this.cpu.reg.sp = 0xFFFE;
+
+        this.gpu.cgbBgPaletteIndexAutoInc = true;
     }
 }
 
