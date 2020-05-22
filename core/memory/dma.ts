@@ -11,12 +11,6 @@ export class DMAController implements HWIO {
 
     gb: GameBoy;
 
-    newDmaSourceLow = 0;
-    newDmaSourceHigh = 0;
-
-    newDmaDestLow = 0;
-    newDmaDestHigh = 0;
-
     newDmaLength = 0;
     hDmaRemaining = 0;
     hDmaSourceAt = 0;
@@ -76,10 +70,6 @@ export class DMAController implements HWIO {
     }
 
     reset() {
-        this.newDmaSourceLow = 0;
-        this.newDmaSourceHigh = 0;
-        this.newDmaDestLow = 0;
-        this.newDmaDestHigh = 0;
         this.newDmaLength = 0;
         this.hDmaRemaining = 0;
         this.hDmaSourceAt = 0;
@@ -112,17 +102,10 @@ export class DMAController implements HWIO {
     readHwio(addr: number) {
         switch (addr) {
             case 0xFF51:
-                if (this.gb.cgb) return this.newDmaSourceHigh;
-                break;
             case 0xFF52:
-                if (this.gb.cgb) return this.newDmaSourceLow;
-                break;
             case 0xFF53:
-                if (this.gb.cgb) return this.newDmaDestHigh;
-                break;
             case 0xFF54:
-                if (this.gb.cgb) return 0xFF;
-                break;
+                return 0xFF;
             case 0xFF55:
                 if (this.gb.cgb) {
                     if (this.hDmaCompleted || this.gDmaCompleted) {
@@ -143,32 +126,24 @@ export class DMAController implements HWIO {
                 if (this.gb.cgb) {
                     this.hDmaSourceAt &= 0x00FF;
                     this.hDmaSourceAt |= (value << 8);
-
-                    this.newDmaSourceHigh = value;
                 }
                 break;
             case 0xFF52:
                 if (this.gb.cgb) {
                     this.hDmaSourceAt &= 0xFF00;
                     this.hDmaSourceAt |= (value & 0xF0);
-
-                    this.newDmaSourceLow = value & 0xF0;
                 }
                 break;
             case 0xFF53:
                 if (this.gb.cgb) {
                     this.hDmaDestAt &= 0x00FF;
                     this.hDmaDestAt |= ((value & 0x1F) << 8);
-
-                    this.newDmaDestHigh = value & 0x1F;
                 }
                 break;
             case 0xFF54:
                 if (this.gb.cgb) {
                     this.hDmaDestAt &= 0xFF00;
                     this.hDmaDestAt |= (value & 0xF0);
-
-                    this.newDmaDestLow = value & 0xF0;
                 }
                 break;
             case 0xFF55:
@@ -199,10 +174,6 @@ export class DMAController implements HWIO {
     }
 
     serialize(state: Serializer) {
-        state.PUT_16LE(this.newDmaSourceLow);
-        state.PUT_16LE(this.newDmaSourceHigh);
-        state.PUT_16LE(this.newDmaDestLow);
-        state.PUT_16LE(this.newDmaDestHigh);
         state.PUT_16LE(this.newDmaLength);
         state.PUT_16LE(this.hDmaRemaining);
         state.PUT_16LE(this.hDmaSourceAt);
@@ -217,10 +188,6 @@ export class DMAController implements HWIO {
     }
 
     deserialize(state: Serializer) {
-        this.newDmaSourceLow = state.GET_16LE();
-        this.newDmaSourceHigh = state.GET_16LE();
-        this.newDmaDestLow = state.GET_16LE();
-        this.newDmaDestHigh = state.GET_16LE();
         this.newDmaLength = state.GET_16LE();
         this.hDmaRemaining = state.GET_16LE();
         this.hDmaSourceAt = state.GET_16LE();
