@@ -78,6 +78,13 @@ class MemoryBus {
         }
     }
 
+    yankGamePak() {
+        this.mbc = new NullMBC(this);
+        this.mbc.romBank = 1;
+        this.romData[0] = new Uint8Array(0x4000).fill(0xFF);
+        this.romData[1] = new Uint8Array(0x4000).fill(0xFF);
+    }
+
     saveGameSram() {
         const m = this.mbc as MBCWithRAM;
         if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
