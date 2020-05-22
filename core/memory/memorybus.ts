@@ -296,6 +296,8 @@ class MemoryBus {
                 return this.gb.gpu.readHwio(addr); // CGB Palette Data
             } else if (addr === 0xFF6C) {
                 return this.gb.gpu.readHwio(addr); // FF6C undocumented
+            } else if (addr >= 0xFF76 && addr <= 0xFF77) { // PCM12, PCM34
+                this.gb.soundChip.readHwio(addr);
             }
         }
         return 0xFF;

@@ -5,10 +5,10 @@ function $(selector) {
     return document.querySelector(selector);
 }
 
-window.onerror = function(msg, url, linenumber) {
-    alert('Error message: '+msg+'\nURL: '+url+'\nLine Number: '+linenumber);
+window.onerror = function (msg, url, linenumber) {
+    alert('Error message: ' + msg + '\nURL: ' + url + '\nLine Number: ' + linenumber);
     return true;
-}
+};
 
 function loadRom(rom) {
     let raw = atob(ROMS_BASE64[rom]);
@@ -123,6 +123,15 @@ $('#drawTileset').addEventListener('change', function (e) {
 
 }, false);
 
+$('#volume-slider').addEventListener('change', e => {
+    gb.soundChip.soundPlayer.gain.gain.value = e.target.value / 100;
+});
+
+$('#ch1').addEventListener('change', e => { gb.soundChip.enable1Out = e.target.checked; });
+$('#ch2').addEventListener('change', e => { gb.soundChip.enable2Out = e.target.checked; });
+$('#ch3').addEventListener('change', e => { gb.soundChip.enable3Out = e.target.checked; });
+$('#ch4').addEventListener('change', e => { gb.soundChip.enable4Out = e.target.checked; });
+
 // Draw tileset by default
 function startDrawingTiles() {
     drawTilesetInterval = setInterval(() => {
@@ -172,7 +181,7 @@ $('#enableDebugger').addEventListener('change', function (e) {
     }
 });
 $('#nightcoreMode').addEventListener('change', function (e) {
-    gb.soundChip.nightcoreMode = e.target.checked
+    gb.soundChip.nightcoreMode = e.target.checked;
 });
 
 function showDebug() {

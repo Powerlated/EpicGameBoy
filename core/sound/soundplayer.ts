@@ -42,7 +42,12 @@ export class SoundPlayer {
         document.addEventListener('touchstart', fixAudioContext);
         // iOS 9
         document.addEventListener('touchend', fixAudioContext);
+
+        this.gain = this.ctx.createGain();
+        this.gain.connect(this.ctx.destination);
     }
+
+    gain: GainNode;
 
     ctx: AudioContext;
     sources: AudioBufferSourceNode[] = [];
@@ -66,7 +71,7 @@ export class SoundPlayer {
         bufferSource.onended = () => { this.sources.shift(); };
 
         bufferSource.buffer = buffer;
-        bufferSource.connect(this.ctx.destination);
+        bufferSource.connect(this.gain);
         bufferSource.start(this.audioSec);
 
         if (this.audioSec <= this.ctx.currentTime + 0.02) {
