@@ -198,6 +198,20 @@ export default class GameBoy {
         this.soundChip.resetPlayer();
     }
 
+    attemptSpeedSwitch() {
+        if (this.prepareSpeedSwitch) {
+            if (this.doubleSpeedShift) {
+                this.doubleSpeedShift = 0;
+            } else {
+                this.doubleSpeedShift = 1;
+            }
+            for (let i = 0; i < 512; i++) {
+                this.cpu.tick(16);
+            }
+            this.timer.internal = 0;
+        }
+    }
+
     reset() {
         this.soundChip.resetPlayer();
 

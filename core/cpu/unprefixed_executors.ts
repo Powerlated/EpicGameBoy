@@ -137,12 +137,12 @@ UNPREFIXED_EXECUTORS[0xC4] = CALL_CC; // CALL NZ, N16
 
 /** Interrupts */
 export function STOP(this: number, cpu: CPU): number {
-    if (cpu.gb.prepareSpeedSwitch) {
-        if (cpu.gb.doubleSpeedShift) {
-            cpu.gb.doubleSpeedShift = 0;
-        } else {
-            cpu.gb.doubleSpeedShift = 1;
-        }
+    const b1 = cpu.read_tick(cpu.pc + 1);
+    if (b1 !== 0) {
+        console.log("Corrupted stop executed");
+        cpu.invalidOpcodeExecuted = true;
+    } else {
+        cpu.gb.attemptSpeedSwitch();
     }
     return 2;
 };
@@ -287,11 +287,11 @@ export function JR(this: number, cpu: CPU): number {
 UNPREFIXED_EXECUTORS[0x18] = JR;  // JR E8
 
 export function JR_CC(this: number, cpu: CPU): number {
-        const cc: CC = (this & 0b11000) >> 3;
-        if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
-        else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
-        else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
-        else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
+    const cc: CC = (this & 0b11000) >> 3;
+    if (cc === CC.NZ && cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
+    else if (cc === CC.Z && !cpu.reg._f.zero) { cpu.tick_addPending(4); return 2; }
+    else if (cc === CC.NC && cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
+    else if (cc === CC.C && !cpu.reg._f.carry) { cpu.tick_addPending(4); return 2; }
 
     const b1 = cpu.read_tick(cpu.pc + 1);
     cpu.pc += unTwo8b(b1);
