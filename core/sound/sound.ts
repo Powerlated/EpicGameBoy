@@ -309,7 +309,7 @@ export default class SoundChip implements HWIO {
                 if (this.sampleTimer >= SAMPLE_TIME_MAX) {
                     this.sampleTimer -= SAMPLE_TIME_MAX;
 
-                    if (this.pulse1Period !== 0)
+                    if (this.pulse1Period > 0)
                         while (this.pulse1FreqTimer <= 0) {
                             this.pulse1FreqTimer += this.pulse1Period;
 
@@ -318,7 +318,7 @@ export default class SoundChip implements HWIO {
 
                             this.updatePulse1Val();
                         }
-                    if (this.pulse2Period !== 0)
+                    if (this.pulse2Period > 0)
                         while (this.pulse2FreqTimer <= 0) {
                             this.pulse2FreqTimer += this.pulse2Period;
 
@@ -327,7 +327,7 @@ export default class SoundChip implements HWIO {
 
                             this.updatePulse2Val();
                         }
-                    if (this.wavePeriod !== 0)
+                    if (this.wavePeriod > 0)
                         while (this.waveFreqTimer <= 0) {
                             this.waveFreqTimer += this.wavePeriod;
 
@@ -336,7 +336,7 @@ export default class SoundChip implements HWIO {
 
                             this.updateWaveVal();
                         }
-                    if (this.noisePeriod !== 0)
+                    if (this.noisePeriod > 0)
                         while (this.noiseFreqTimer <= 0) {
                             this.noiseFreqTimer += this.noisePeriod;
 
