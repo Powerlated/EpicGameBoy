@@ -672,7 +672,7 @@ class GPU implements HWIO {
                             if (this.lcdControl.bgWindowEnable0) {
                                 this.imageGameboy.data[this.fetcherImageIndex + 0] = finalColor[0];
                                 this.imageGameboy.data[this.fetcherImageIndex + 1] = finalColor[1];
-                                this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2];
+                                this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2]; 
                             } else {
                                 this.imageGameboy.data[this.fetcherImageIndex + 0] = 0xFF;
                                 this.imageGameboy.data[this.fetcherImageIndex + 2] = 0xFF;
@@ -1160,7 +1160,8 @@ class GPU implements HWIO {
     writeHwio(addr: number, value: number) {
         switch (addr) {
             case 0xFF40: // LCD Control
-                this.checkMode3HwioWrite();
+                if (this.lcdControl.getNumerical() !== value)
+                    this.checkMode3HwioWrite();
                 this.lcdControl.setNumerical(value);
                 break;
             case 0xFF41: // LCDC Status
@@ -1168,11 +1169,13 @@ class GPU implements HWIO {
                 this.updateSTAT();
                 break;
             case 0xFF42:
-                this.checkMode3HwioWrite();
+                if (this.scrY !== value)
+                    this.checkMode3HwioWrite();
                 this.scrY = value;
                 break;
             case 0xFF43:
-                this.checkMode3HwioWrite();
+                if (this.scrX !== value)
+                    this.checkMode3HwioWrite();
                 this.scrX = value;
                 break;
             case 0xFF44: break;
@@ -1185,34 +1188,38 @@ class GPU implements HWIO {
                 break;
             case 0xFF47: // BG Palette
                 const oldValue = this.dmgBgPalette;
-                this.dmgBgPalette = value;
+                if (oldValue !== value) {
 
-                // PPU time travel?????
-                if (this.fetcherCycles > 2) {
-                    this.fetcherAdvance(this.fetcherCycles - 2);
-                    this.fetcherCycles = 1;
+                    this.dmgBgPalette = value;
+
+                    // PPU time travel?????
+                    if (this.fetcherCycles > 2) {
+                        this.fetcherAdvance(this.fetcherCycles - 2);
+                        this.fetcherCycles = 1;
 
 
-                    if (this.gb.cgb === false) {
-                        this.setDmgBgPalette(0, ((value | oldValue) >> 0) & 0b11);
-                        this.setDmgBgPalette(1, ((value | oldValue) >> 2) & 0b11);
-                        this.setDmgBgPalette(2, ((value | oldValue) >> 4) & 0b11);
-                        this.setDmgBgPalette(3, ((value | oldValue) >> 6) & 0b11);
+                        if (this.gb.cgb === false) {
+                            this.setDmgBgPalette(0, ((value | oldValue) >> 0) & 0b11);
+                            this.setDmgBgPalette(1, ((value | oldValue) >> 2) & 0b11);
+                            this.setDmgBgPalette(2, ((value | oldValue) >> 4) & 0b11);
+                            this.setDmgBgPalette(3, ((value | oldValue) >> 6) & 0b11);
+                        }
+
+                        this.fetcherAdvance(1);
                     }
 
-                    this.fetcherAdvance(1);
+                    if (this.gb.cgb === false) {
+                        this.setDmgBgPalette(0, (value >> 0) & 0b11);
+                        this.setDmgBgPalette(1, (value >> 2) & 0b11);
+                        this.setDmgBgPalette(2, (value >> 4) & 0b11);
+                        this.setDmgBgPalette(3, (value >> 6) & 0b11);
+                    }
+                    this.checkMode3HwioWrite();
                 }
-
-                if (this.gb.cgb === false) {
-                    this.setDmgBgPalette(0, (value >> 0) & 0b11);
-                    this.setDmgBgPalette(1, (value >> 2) & 0b11);
-                    this.setDmgBgPalette(2, (value >> 4) & 0b11);
-                    this.setDmgBgPalette(3, (value >> 6) & 0b11);
-                }
-                this.checkMode3HwioWrite();
                 break;
             case 0xFF48: // Palette OBJ 0
-                this.checkMode3HwioWrite();
+                if (this.dmgObj0Palette !== value)
+                    this.checkMode3HwioWrite();
                 this.dmgObj0Palette = value;
                 if (this.gb.cgb === false) {
                     this.setDmgObjPalette(0, (value >> 0) & 0b11);
@@ -1222,7 +1229,8 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF49: // Palette OBJ 1
-                this.checkMode3HwioWrite();
+                if (this.dmgObj1Palette !== value)
+                    this.checkMode3HwioWrite();
                 this.dmgObj1Palette = value;
                 if (this.gb.cgb === false) {
                     this.setDmgObjPalette(4, (value >> 0) & 0b11);
@@ -1232,11 +1240,13 @@ class GPU implements HWIO {
                 }
                 break;
             case 0xFF4A: // Window Y Position
-                this.checkMode3HwioWrite();
+                if (this.windowYpos !== value)
+                    this.checkMode3HwioWrite();
                 this.windowYpos = value;
                 break;
             case 0xFF4B: // Window X Position
-                this.checkMode3HwioWrite();
+                if (this.windowXpos !== value)
+                    this.checkMode3HwioWrite();
                 this.windowXpos = value;
                 break;
             case 0xFF4F: // CGB - VRAM Bank
