@@ -323,8 +323,6 @@ class GPU implements HWIO {
 
     vp: VideoPlugin | null = null;
 
-    // Use the scanline renderer only
-    disableFetcher = false;
     // Use exclusively the fetcher
     exclusiveFetcher = false;
 
@@ -442,8 +440,8 @@ class GPU implements HWIO {
                     {
                         this.fetcherCycles += cycles;
                         if (this.lineClock >= 252) {
-                            if (this.renderingThisFrame) {
-                                if (this.mode3HwioWritten && !this.disableFetcher || this.exclusiveFetcher) {
+                            if (this.renderingThisFrame || this.exclusiveFetcher) {
+                                if (this.mode3HwioWritten || this.exclusiveFetcher) {
                                     this.fetcherFlush();
                                 } else {
                                     // console.log(this.lY)
@@ -461,7 +459,7 @@ class GPU implements HWIO {
                                 }
                             }
 
-                            if (this.fetcherScreenX > 159 || (!this.mode3HwioWritten || !this.renderingThisFrame || this.disableFetcher)) {
+                            if (this.fetcherScreenX > 159 || (!this.mode3HwioWritten || !this.renderingThisFrame)) {
                                 this.fetcherCycles = 0;
 
                                 // VRAM -> HBLANK
@@ -539,13 +537,12 @@ class GPU implements HWIO {
     fetcherImageIndex = 0;
 
     fetcherFlush() {
-        if (!this.disableFetcher) {
-            this.fetcherAdvance(this.fetcherCycles);
-            this.fetcherCycles = 0;
-        }
+        this.fetcherAdvance(this.fetcherCycles);
+        this.fetcherCycles = 0;
     }
 
     fetcherAdvance(cycles: number) {
+        const popPixels = this.lcdControl.bgWindowEnable0 || this.gb.cgb;
         while (cycles > 0) {
             cycles--;
 
@@ -661,18 +658,18 @@ class GPU implements HWIO {
                         this.fetcherBgFifoPos--;
 
                         if (this.fetcherScreenX >= 0) {
-                            const prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
-                            const palette = this.fetcherBgFifoPal;
+                            if (popPixels) {
+                                const prePalette = this.fetcherBgFifoCol[this.fetcherBgFifoPos];
+                                const palette = this.fetcherBgFifoPal;
 
-                            const finalColor = this.cgbBgPalette.shades[palette][prePalette];
+                                const finalColor = this.cgbBgPalette.shades[palette][prePalette];
 
-                            this.pre[this.fetcherScreenX] = prePalette;
-                            this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
+                                this.pre[this.fetcherScreenX] = prePalette;
+                                this.noSprites[this.fetcherScreenX] = this.fetcherBgFifoObjPri[this.fetcherBgFifoPos];
 
-                            if (this.lcdControl.bgWindowEnable0) {
                                 this.imageGameboy.data[this.fetcherImageIndex + 0] = finalColor[0];
                                 this.imageGameboy.data[this.fetcherImageIndex + 1] = finalColor[1];
-                                this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2]; 
+                                this.imageGameboy.data[this.fetcherImageIndex + 2] = finalColor[2];
                             } else {
                                 this.imageGameboy.data[this.fetcherImageIndex + 0] = 0xFF;
                                 this.imageGameboy.data[this.fetcherImageIndex + 2] = 0xFF;
@@ -681,7 +678,6 @@ class GPU implements HWIO {
 
                             this.fetcherImageIndex += 4;
                         }
-
                         this.fetcherScreenX++;
                     }
                 }
@@ -732,7 +728,8 @@ class GPU implements HWIO {
 
                 const endAt = windowOnScanline ? this.windowXpos - 7 : 160;
 
-                let pixel = -x;
+                let pixel = 0;
+                let tileX = x;
 
                 let bgDone = false;
                 while (!bgDone) {
@@ -749,50 +746,27 @@ class GPU implements HWIO {
                     let adjY = attr.yFlip ? y ^ 7 : y;
                     let tileRow = this.tileset[attr.vramBank][tile][adjY];
 
-                    if (!attr.xFlip) {
-                        for (let i = 0; i < 8; i++) {
-                            if (pixel >= endAt) {
-                                bgDone = true;
-                                break;
-                            }
-                            if (pixel >= 0) {
-                                let prePalette = tileRow[i];
-                                let color = palette[prePalette];
+                    if (attr.xFlip) tileRow = new Uint8Array(tileRow).reverse();
 
-                                this.pre[pixel] = prePalette;
-                                this.noSprites[pixel] = attr.ignoreSpritePriority ? 1 : 0;
-
-                                this.imageGameboy.data[imgIndex + 0] = color[0];
-                                this.imageGameboy.data[imgIndex + 1] = color[1];
-                                this.imageGameboy.data[imgIndex + 2] = color[2];
-
-                                imgIndex += 4;
-                            }
-                            pixel++;
+                    for (; tileX < 8; tileX++) {
+                        if (pixel >= endAt) {
+                            bgDone = true;
+                            break;
                         }
-                    } else {
-                        for (let i = 7; i >= 0; i--) {
-                            if (pixel >= endAt) {
-                                bgDone = true;
-                                break;
-                            }
-                            if (pixel >= 0) {
-                                let prePalette = tileRow[i];
-                                let color = palette[prePalette];
+                        let prePalette = tileRow[tileX];
+                        let color = palette[prePalette];
 
-                                this.pre[pixel] = prePalette;
-                                this.noSprites[pixel] = attr.ignoreSpritePriority ? 1 : 0;
+                        this.pre[pixel] = prePalette;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority ? 1 : 0;
 
-                                this.imageGameboy.data[imgIndex + 0] = color[0];
-                                this.imageGameboy.data[imgIndex + 1] = color[1];
-                                this.imageGameboy.data[imgIndex + 2] = color[2];
+                        this.imageGameboy.data[imgIndex + 0] = color[0];
+                        this.imageGameboy.data[imgIndex + 1] = color[1];
+                        this.imageGameboy.data[imgIndex + 2] = color[2];
 
-                                imgIndex += 4;
-                            }
-                            pixel++;
-                        }
+                        imgIndex += 4;
+                        pixel++;
                     }
-
+                    tileX = 0;
 
                     // When this tile ends, read another
                     lineOffset++;
@@ -824,55 +798,32 @@ class GPU implements HWIO {
                     let adjY = attr.yFlip ? y ^ 7 : y;
                     let tileRow = this.tileset[attr.vramBank][tile][adjY];
 
-                    if (!attr.xFlip) {
-                        for (let i = 0; i < 8; i++) {
-                            if (pixel >= 160) return;
-                            let prePalette = tileRow[i];
-                            let color = palette[prePalette];
+                    if (attr.xFlip) tileRow = new Uint8Array(tileRow).reverse();
 
-                            this.pre[pixel] = prePalette;
-                            this.noSprites[pixel] = attr.ignoreSpritePriority ? 1 : 0;
+                    for (let tileX = 0; tileX < 8; tileX++) {
+                        if (pixel >= 160) return;
+                        let prePalette = tileRow[tileX];
+                        let color = palette[prePalette];
 
-                            this.imageGameboy.data[imgIndex + 0] = color[0];
-                            this.imageGameboy.data[imgIndex + 1] = color[1];
-                            this.imageGameboy.data[imgIndex + 2] = color[2];
+                        this.pre[pixel] = prePalette;
+                        this.noSprites[pixel] = attr.ignoreSpritePriority ? 1 : 0;
 
-                            if (this.showBorders && (this.windowCurrentLine == 0 || pixel == 0)) {
-                                const blue = [0, 0, 0xFF];
+                        this.imageGameboy.data[imgIndex + 0] = color[0];
+                        this.imageGameboy.data[imgIndex + 1] = color[1];
+                        this.imageGameboy.data[imgIndex + 2] = color[2];
 
-                                this.imageGameboy.data[imgIndex + 0] = blue[0];
-                                this.imageGameboy.data[imgIndex + 1] = blue[1];
-                                this.imageGameboy.data[imgIndex + 2] = blue[2];
-                            }
+                        if (this.showBorders && (this.windowCurrentLine == 0 || pixel == 0)) {
+                            const blue = [0, 0, 0xFF];
 
-                            imgIndex += 4;
-                            pixel++;
+                            this.imageGameboy.data[imgIndex + 0] = blue[0];
+                            this.imageGameboy.data[imgIndex + 1] = blue[1];
+                            this.imageGameboy.data[imgIndex + 2] = blue[2];
                         }
-                    } else {
-                        for (let i = 7; i >= 0; i--) {
-                            if (pixel >= 160) return;
-                            let prePalette = tileRow[i];
-                            let color = palette[prePalette];
 
-                            this.pre[pixel] = prePalette;
-                            this.noSprites[pixel] = attr.ignoreSpritePriority ? 1 : 0;
-
-                            this.imageGameboy.data[imgIndex + 0] = color[0];
-                            this.imageGameboy.data[imgIndex + 1] = color[1];
-                            this.imageGameboy.data[imgIndex + 2] = color[2];
-
-                            if (this.showBorders && (this.windowCurrentLine == 0 || pixel == 0)) {
-                                const blue = [0, 0, 0xFF];
-
-                                this.imageGameboy.data[imgIndex + 0] = blue[0];
-                                this.imageGameboy.data[imgIndex + 1] = blue[1];
-                                this.imageGameboy.data[imgIndex + 2] = blue[2];
-                            }
-
-                            imgIndex += 4;
-                            pixel++;
-                        }
+                        imgIndex += 4;
+                        pixel++;
                     }
+
                     mapOffset++;
                 }
             }
