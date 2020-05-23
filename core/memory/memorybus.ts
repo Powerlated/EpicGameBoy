@@ -41,6 +41,7 @@ class MemoryBus {
         console.info("Replaced ROM");
         // Zero out existing ROM
         this.romData = [];
+        let banks = 0;
         // Write new ROM in
         rom.forEach((v, i) => {
             const bank = i >> 14;
@@ -49,52 +50,13 @@ class MemoryBus {
                 this.romData[bank] = new Uint8Array(16384);
             }
             this.romData[bank][bankAddr] = v;
+            if (bank >= banks) banks++;
         });
-        this.updateMBC();
+        // Round up to the next power of 2
+        banks = Math.pow(2, Math.ceil(Math.log(banks) / Math.log(2)));
+        console.log(`Banks: ${banks}`);
+        this.romBanks = banks;
 
-        const title = this.romData[0].slice(0x134, 0x143);
-        const titleDecoded = new TextDecoder("utf-8").decode(title);
-        console.log(titleDecoded);
-
-        this.romTitle = titleDecoded;
-
-        this.gb.cgb = (this.romData[0][0x143] & 0x80) !== 0 || this.romData[0][0x143] == 0xC0;
-        this.gb.reset();
-
-        const m = this.mbc as MBCWithRAM;
-        if (m instanceof MBCWithRAM) {
-            const sram = loadSram(this.romTitle);
-            if (sram) {
-                m.externalRam.forEach((v, i, a) => {
-                    a[i] = 0;
-                });
-                sram.forEach((v: number, i: number) => {
-                    m.externalRam[i] = v;
-                });
-                console.log(`Loaded SRAM for "${this.romTitle}"`);
-            } else {
-                console.log("Did not find save, not loading SRAM.");
-            }
-        }
-    }
-
-    yankGamePak() {
-        this.mbc = new NullMBC(this);
-        this.mbc.romBank = 1;
-        this.romData[0] = new Uint8Array(0x4000).fill(0xFF);
-        this.romData[1] = new Uint8Array(0x4000).fill(0xFF);
-    }
-
-    saveGameSram() {
-        const m = this.mbc as MBCWithRAM;
-        if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
-            console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`);
-            saveSram(this.romTitle, m.externalRam);
-            m.externalRamDirtyBytes = 0;
-        }
-    }
-
-    updateMBC() {
         switch (this.romData[0][0x147]) {
             case 0x01: case 0x02: case 0x03:
                 this.mbc = new MBC1(this);
@@ -122,31 +84,49 @@ class MemoryBus {
                 this.mbc = new NullMBC(this);
                 break;
         }
-        let banks = 0;
-        switch (this.romData[0][0x148]) {
-            case 0x00: banks = 2; break;
-            case 0x01: banks = 4; break;
-            case 0x02: banks = 8; break;
-            case 0x03: banks = 16; break;
-            case 0x04: banks = 32; break;
-            case 0x05: banks = 64; break;
-            case 0x06: banks = 128; break;
-            case 0x07: banks = 256; break;
-            case 0x08: banks = 512; break;
-            case 0x52: banks = 72; break;
-            case 0x53: banks = 80; break;
-            case 0x54: banks = 96; break;
+
+        const title = this.romData[0].slice(0x134, 0x143);
+        const titleDecoded = new TextDecoder("utf-8").decode(title);
+        console.log(titleDecoded);
+
+        this.romTitle = titleDecoded;
+
+        this.gb.cgb = (this.romData[0][0x143] & 0x80) !== 0 || this.romData[0][0x143] == 0xC0;
+        this.gb.reset();
+
+        const m = this.mbc as MBCWithRAM;
+        if (m instanceof MBCWithRAM) {
+            const sram = loadSram(this.romTitle);
+            if (sram) {
+                m.externalRam.forEach((v, i, a) => {
+                    a[i] = 0;
+                });
+                sram.forEach((v: number, i: number) => {
+                    m.externalRam[i] = v;
+                });
+                console.log(`Loaded SRAM for "${this.romTitle}"`);
+            } else {
+                console.log("Did not find save, not loading SRAM.");
+            }
         }
 
-        if (this.mbc instanceof MBC5 && banks == 2) {
-            banks = 512;
+
+    }
+
+    yankGamePak() {
+        this.mbc = new NullMBC(this);
+        this.mbc.romBank = 1;
+        this.romData[0] = new Uint8Array(0x4000).fill(0xFF);
+        this.romData[1] = new Uint8Array(0x4000).fill(0xFF);
+    }
+
+    saveGameSram() {
+        const m = this.mbc as MBCWithRAM;
+        if (m instanceof MBCWithRAM && m.externalRamDirtyBytes > 0) {
+            console.log(`Flushing SRAM: ${m.externalRamDirtyBytes} dirty bytes`);
+            saveSram(this.romTitle, m.externalRam);
+            m.externalRamDirtyBytes = 0;
         }
-
-        this.romBanks = banks;
-
-
-        console.log("Banks: " + banks);
-        console.log(this.mbc);
     }
 
     workRamBanks = new Array(8).fill(0).map(() => new Uint8Array(4096).fill(0));
