@@ -36,6 +36,10 @@ document.onkeydown = function (e) {
 
     if (e.getModifierState("Shift")) {
         switch (e.key) {
+            case "M":
+                toggleDarkMode();
+                e.preventDefault()
+                break;
             case "D":
                 $('#enableDebugger').click();
                 e.preventDefault();
@@ -465,3 +469,6 @@ window.onbeforeunload = e => {
     return "Are you sure you want to close Optime GB?";
 };
 
+function toggleDarkMode() {
+    $('html').classList.toggle('dark-mode')
+}

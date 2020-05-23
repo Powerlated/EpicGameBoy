@@ -194,11 +194,11 @@ export default class Disassembler {
                 >${line}</span>`;
         };
 
-        const CURRENT_LINE_COLOR = "lime";
-        const JUMP_TO_COLOR = "cyan";
-        const BREAKPOINT_COLOR = "indianred";
+        const CURRENT_LINE_CLASS = "disasm-current-line";
+        const JUMP_TO_CLASS = "disasm-jump-to";
+        const BREAKPOINT_CLASS = "disasm-breakpoint";
 
-        const BREAKPOINT_CODE = `style='background-color: ${BREAKPOINT_COLOR}'`;
+        const BREAKPOINT_CODE = `class='${BREAKPOINT_CLASS}'`;
         const BREAKPOINT_GENERATE = () => cpu.breakpoints[disasmPc] ? BREAKPOINT_CODE : "";
 
         const LOGBACK_INSTRUCTIONS = 16;
@@ -245,8 +245,8 @@ export default class Disassembler {
             const disAsmLineHtml = buildLine(`
                 <span
                     ${BREAKPOINT_GENERATE()}
-                    ${i === 0 ? `style='background-color: ${CURRENT_LINE_COLOR}'` : ""}
-                    ${nextOpWillJumpTo === disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
+                    ${i === 0 ? `class='${CURRENT_LINE_CLASS}'` : ""}
+                    ${nextOpWillJumpTo === disasmPc ? `class='${JUMP_TO_CLASS}'` : ""}
                 >
                     ${disasmLine}
                 </span>`);
@@ -265,7 +265,7 @@ export default class Disassembler {
                 const disAsmLineHtml = buildLine(`
                     <span 
                         ${BREAKPOINT_GENERATE()}
-                        ${nextOpWillJumpTo === disasmPc ? `style='background-color: ${JUMP_TO_COLOR}'` : ""}
+                        ${nextOpWillJumpTo === disasmPc ? `class='${JUMP_TO_CLASS}'` : ""}
                     >
                         ${Disassembler.disassembledLines[disasmPc]}
                     </span>`);
@@ -290,7 +290,7 @@ export default class Disassembler {
             disassembly.unshift(BLANK_LINE);
         }
 
-        const HOVER_BG = `onMouseOver="this.style.backgroundColor='#AAA'" onMouseOut="this.style.backgroundColor='rgba(0, 0, 0, 0)'"`;
+        const HOVER_BG = `onMouseOver="this.classList.add('disasm-hover')" onMouseOut="this.classList.remove('disasm-hover')"`;
 
         // Add wrapper to each one
         disassembly = disassembly.map((v, i, a) => {

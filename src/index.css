@@ -148,36 +148,33 @@ body {
     background-color: #AAA
 }
 
-/* @media (prefers-color-scheme: dark) { */
-    html {
-        color: rgb(226, 226, 226);
-        background-color: rgb(27, 41, 41)
-    }
+.dark-mode {
+    color: rgb(226, 226, 226);
+    background-color: rgb(27, 41, 41)
+}
 
-    .interactive {
-        background-color: rgb(44, 66, 66)
-    }
+.dark-mode .interactive {
+    background-color: rgb(44, 66, 66)
+}
 
-    .disasm-breakpoint {
-        background-color: darkred
-    }
-    
-    .disasm-current-line {
-        background-color: green
-    }
-    
-    .disasm-jump-to {
-        background-color: blue;
-    }
+.dark-mode .disasm-breakpoint {
+    background-color: darkred
+}
 
-    .disasm-hover {
-        background-color: #555
-    }
-    
-    button {
-        background-color: rgb(27, 41, 41);
-        border-color: rgb(42, 59, 59);
-        color: rgb(226, 226, 226);
-    }
+.dark-mode .disasm-current-line {
+    background-color: green
+}
 
-/* } */
+.dark-mode .disasm-jump-to {
+    background-color: blue;
+}
+
+.dark-mode .disasm-hover {
+    background-color: #555
+}
+
+.dark-mode button {
+    background-color: rgb(27, 41, 41);
+    border-color: rgb(42, 59, 59);
+    color: rgb(226, 226, 226);
+}
