@@ -6,56 +6,57 @@
 </head>
 
 <body id="drop_zone">
-    <h2 style="margin-bottom: 0">Game Boy Emulator</h2>
+    
+    <div id="main-container">
+        <h2 style="margin: 0">Game Boy Emulator</h2>
+        <div id="panels">
+            <p class="panel debug" id="debug">
 
-    <div id="panels">
-        <p class="panel debug" id="debug">
+            </p>
+            <!-- <b>Disassembly</b>  -->
+            <span class="panel code debug" id="disassembly-output">
 
-        </p>
-        <!-- <b>Disassembly</b>  -->
-        <span class="panel code debug" id="disassembly-output">
+            </span>
 
-        </span>
+            <div class="panel">
+                <span class="code" id="breakpoints"></span>
 
-        <div class="panel">
-            <span class="code" id="breakpoints"></span>
+                <canvas class="debug" id="tileset" width="256" height="192"></canvas>
+                <div class="hidden"><canvas class="debug" id="memory-map" width="256" height="256"></canvas></div>
 
-            <canvas class="debug" id="tileset" width="256" height="192"></canvas>
-            <div class="hidden"><canvas class="debug" id="memory-map" width="256" height="256"></canvas></div>
-
-            <div id="palette" class="debug" style="display: none">
-                <label>Palette</label>
-                <div class="palette-container">
-                    <span class="palette-square" id="palette0-bg"></span>
-                    <span class="palette-square" id="palette1-bg"></span>
-                    <span class="palette-square" id="palette2-bg"></span>
-                    <span class="palette-square" id="palette3-bg"></span>
+                <div id="palette" class="debug" style="display: none">
+                    <label>Palette</label>
+                    <div class="palette-container">
+                        <span class="palette-square" id="palette0-bg"></span>
+                        <span class="palette-square" id="palette1-bg"></span>
+                        <span class="palette-square" id="palette2-bg"></span>
+                        <span class="palette-square" id="palette3-bg"></span>
+                    </div>
+                    <div class="palette-container">
+                        <span class="palette-square" id="palette0-obj0"></span>
+                        <span class="palette-square" id="palette1-obj0"></span>
+                        <span class="palette-square" id="palette2-obj0"></span>
+                        <span class="palette-square" id="palette3-obj0"></span>
+                    </div>
+                    <div class="palette-container">
+                        <span class="palette-square" id="palette0-obj1"></span>
+                        <span class="palette-square" id="palette1-obj1"></span>
+                        <span class="palette-square" id="palette2-obj1"></span>
+                        <span class="palette-square" id="palette3-obj1"></span>
+                    </div>
                 </div>
-                <div class="palette-container">
-                    <span class="palette-square" id="palette0-obj0"></span>
-                    <span class="palette-square" id="palette1-obj0"></span>
-                    <span class="palette-square" id="palette2-obj0"></span>
-                    <span class="palette-square" id="palette3-obj0"></span>
-                </div>
-                <div class="palette-container">
-                    <span class="palette-square" id="palette0-obj1"></span>
-                    <span class="palette-square" id="palette1-obj1"></span>
-                    <span class="palette-square" id="palette2-obj1"></span>
-                    <span class="palette-square" id="palette3-obj1"></span>
+
+                <canvas id="gameboy" width="160" height="144"></canvas>
+
+                <div>
+                    <br>
+                    <label for="big-screen">Big Screen</label>
+                    <input id="big-screen" autocomplete="off" type="checkbox" />
                 </div>
             </div>
 
-            <canvas id="gameboy" width="160" height="144"></canvas>
-
-            <div>
-                <br>
-                <label for="big-screen">Big Screen</label>
-                <input id="big-screen" autocomplete="off" type="checkbox" />
-            </div>
         </div>
-
     </div>
-
 
     <div class="interactive">
         <div class="interactive-panel">

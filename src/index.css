@@ -3,6 +3,10 @@ html {
     font-weight: 500;
 }
 
+body {
+    margin: 0
+}
+
 @font-face {
     font-family: ProggyClean;
     src: url(ProggyClean.ttf);
@@ -28,6 +32,10 @@ html {
 .panel {
     display: flex;
     flex-direction: column;
+}
+
+#main-container {
+    padding: 8px
 }
 
 #panels>* {
@@ -114,6 +122,8 @@ html {
 .interactive {
     display: flex;
     flex-direction: row;
+    padding: 16px;
+    bottom: 0
 }
 
 .shortcuts {
@@ -121,3 +131,53 @@ html {
     display: flex;
     flex-direction: column;
 }
+
+.disasm-breakpoint {
+    background-color: indianred
+}
+
+.disasm-current-line {
+    background-color: lime
+}
+
+.disasm-jump-to {
+    background-color: cyan;
+}
+
+.disasm-hover {
+    background-color: #AAA
+}
+
+/* @media (prefers-color-scheme: dark) { */
+    html {
+        color: rgb(226, 226, 226);
+        background-color: rgb(27, 41, 41)
+    }
+
+    .interactive {
+        background-color: rgb(44, 66, 66)
+    }
+
+    .disasm-breakpoint {
+        background-color: darkred
+    }
+    
+    .disasm-current-line {
+        background-color: green
+    }
+    
+    .disasm-jump-to {
+        background-color: blue;
+    }
+
+    .disasm-hover {
+        background-color: #555
+    }
+    
+    button {
+        background-color: rgb(27, 41, 41);
+        border-color: rgb(42, 59, 59);
+        color: rgb(226, 226, 226);
+    }
+
+/* } */

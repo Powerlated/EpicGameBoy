@@ -5,6 +5,187 @@ function $(selector) {
     return document.querySelector(selector);
 }
 
+
+/** @type {GameBoy} */
+const gb = new GameBoy(true);
+// Set the audio and video plugin
+// gb.soundChip.ap = new WebAudioHLEPlugin();
+
+let cGameboy = document.getElementById("gameboy");
+let cTileset = document.getElementById("tileset");
+gb.gpu.vp = new CanvasVideoPlugin(cGameboy, cTileset);
+
+window.gb = gb;
+loadRom('pokeyellow');
+startDebugging();
+
+repeatDisassemble();
+
+showDebug();
+// loadDmgBootRom();
+
+
+// Handle input
+let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
+
+document.onkeydown = function (e) {
+    if (e.key === "s") {
+        gb.step();
+        e.preventDefault();
+    }
+
+    if (e.getModifierState("Shift")) {
+        switch (e.key) {
+            case "D":
+                $('#enableDebugger').click();
+                e.preventDefault();
+                break;
+            case "T":
+                $('#drawTileset').click();
+                e.preventDefault();
+                break;
+            case "F":
+                gb.gpu.frameBlending = !gb.gpu.frameBlending;
+                e.preventDefault();
+                break;
+            case "B":
+                $('#big-screen').click();
+                e.preventDefault();
+                break;
+            case "F1":
+                gb.serialize(1);
+                e.preventDefault();
+                break;
+            case "F2":
+                gb.serialize(2);
+                e.preventDefault();
+                break;
+            case "F3":
+                gb.serialize(3);
+                e.preventDefault();
+                break;
+            case "F4":
+                gb.serialize(4);
+                e.preventDefault();
+                break;
+        }
+    } else {
+        switch (e.key) {
+            case "F1":
+                gb.deserialize(1);
+                e.preventDefault();
+                break;
+            case "F2":
+                gb.deserialize(2);
+                e.preventDefault();
+                break;
+            case "F3":
+                gb.deserialize(3);
+                e.preventDefault();
+                break;
+            case "F4":
+                gb.deserialize(4);
+                e.preventDefault();
+                break;
+            case "F5":
+                $('#ch1').click();
+                e.preventDefault();
+                break;
+            case "F6":
+                $('#ch2').click();
+                e.preventDefault();
+                break;
+            case "F7":
+                $('#ch3').click();
+                e.preventDefault();
+                break;
+            case "F8":
+                $('#ch4').click();
+                e.preventDefault();
+                break;
+        }
+    }
+
+    if (e.getModifierState("Control")) {
+        if (e.key === "r") {
+            if (confirm('Are you sure you want to reset the emulated Game Boy?') === true)
+                $('#reset-button').click();
+            e.preventDefault();
+        }
+    }
+
+    if (block.includes(e.key)) {
+        e.preventDefault();
+    }
+
+    if (window.altControls) {
+        switch (e.key.toLowerCase()) {
+            case "a": gb.joypad.left = true; break;
+            case "w": gb.joypad.up = true; break;
+            case "d": gb.joypad.right = true; break;
+            case "s": gb.joypad.down = true; break;
+
+            case "k": gb.joypad.a = true; break;
+            case "j": gb.joypad.b = true; break;
+        }
+    } else {
+        switch (e.key.toLowerCase()) {
+            case "arrowleft": gb.joypad.left = true; break;
+            case "arrowup": gb.joypad.up = true; break;
+            case "arrowright": gb.joypad.right = true; break;
+            case "arrowdown": gb.joypad.down = true; break;
+
+            case "x": gb.joypad.a = true; break;
+            case "z": gb.joypad.b = true; break;
+        }
+        switch (e.code.toLowerCase()) {
+            case "controlleft": gb.setSlomo(true); break;
+        }
+    }
+
+    switch (e.key) {
+        case "Enter": gb.joypad.start = true; break;
+        case "\\": gb.joypad.select = true; break;
+        case "Tab": gb.setTurbo(true); break;
+    }
+};
+document.onkeyup = function (e) {
+    if (block.includes(e.key))
+        e.preventDefault();
+
+    if (window.altControls) {
+        switch (e.key.toLowerCase()) {
+            case "a": gb.joypad.left = false; break;
+            case "w": gb.joypad.up = false; break;
+            case "d": gb.joypad.right = false; break;
+            case "s": gb.joypad.down = false; break;
+
+            case "k": gb.joypad.a = false; break;
+            case "j": gb.joypad.b = false; break;
+        }
+    } else {
+        switch (e.key.toLowerCase()) {
+            case "arrowleft": gb.joypad.left = false; break;
+            case "arrowup": gb.joypad.up = false; break;
+            case "arrowright": gb.joypad.right = false; break;
+            case "arrowdown": gb.joypad.down = false; break;
+
+            case "x": gb.joypad.a = false; break;
+            case "z": gb.joypad.b = false; break;
+        }
+        switch (e.code.toLowerCase()) {
+            case "controlleft": gb.setSlomo(false); break;
+        }
+    }
+
+    switch (e.key) {
+        case "Enter": gb.joypad.start = false; break;
+        case "\\": gb.joypad.select = false; break;
+
+        case "Tab": gb.setTurbo(false); break;
+    }
+};
+
 window.onerror = function (msg, url, linenumber) {
     alert('Error message: ' + msg + '\nURL: ' + url + '\nLine Number: ' + linenumber);
     return true;
@@ -251,201 +432,26 @@ function repeatDisassemble() {
 // Set the turbo (TAB) speed multiplier
 window.speedMul = 10;
 
-function init() {
-    let gb = new GameBoy(true);
-    // Set the audio and video plugin
-    // gb.soundChip.ap = new WebAudioHLEPlugin();
-
-    let cGameboy = document.getElementById("gameboy");
-    let cTileset = document.getElementById("tileset");
-    gb.gpu.vp = new CanvasVideoPlugin(cGameboy, cTileset);
-
-    window.gb = gb;
-    loadRom('pokeyellow');
-    startDebugging();
-
-    repeatDisassemble();
-
-    showDebug();
-    // loadDmgBootRom();
-
-
-    // Handle input
-    let block = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "\\", "z", "x", "Tab"];
-
-    document.onkeydown = function (e) {
-        if (e.key === "s") {
-            gb.step();
-            e.preventDefault();
-        }
-
-        if (e.getModifierState("Shift")) {
-            switch (e.key) {
-                case "D":
-                    $('#enableDebugger').click();
-                    e.preventDefault();
-                    break;
-                case "T":
-                    $('#drawTileset').click();
-                    e.preventDefault();
-                    break;
-                case "F":
-                    gb.gpu.frameBlending = !gb.gpu.frameBlending;
-                    e.preventDefault();
-                    break;
-                case "B":
-                    $('#big-screen').click();
-                    e.preventDefault();
-                    break;
-                case "F1":
-                    gb.serialize(1);
-                    e.preventDefault();
-                    break;
-                case "F2":
-                    gb.serialize(2);
-                    e.preventDefault();
-                    break;
-                case "F3":
-                    gb.serialize(3);
-                    e.preventDefault();
-                    break;
-                case "F4":
-                    gb.serialize(4);
-                    e.preventDefault();
-                    break;
-            }
-        } else {
-            switch (e.key) {
-                case "F1":
-                    gb.deserialize(1);
-                    e.preventDefault();
-                    break;
-                case "F2":
-                    gb.deserialize(2);
-                    e.preventDefault();
-                    break;
-                case "F3":
-                    gb.deserialize(3);
-                    e.preventDefault();
-                    break;
-                case "F4":
-                    gb.deserialize(4);
-                    e.preventDefault();
-                    break;
-                case "F5":
-                    $('#ch1').click()
-                    e.preventDefault();
-                    break;
-                case "F6":
-                    $('#ch2').click()
-                    e.preventDefault();
-                    break;
-                case "F7":
-                    $('#ch3').click()
-                    e.preventDefault();
-                    break;
-                case "F8":
-                    $('#ch4').click()
-                    e.preventDefault();
-                    break;
-            }
-        }
-
-        if (e.getModifierState("Control")) {
-            if (e.key === "r") {
-                if (confirm('Are you sure you want to reset the emulated Game Boy?') === true)
-                    $('#reset-button').click();
-                e.preventDefault();
-            }
-        }
-
-        if (block.includes(e.key)) {
-            e.preventDefault();
-        }
-
-        if (window.altControls) {
-            switch (e.key.toLowerCase()) {
-                case "a": gb.joypad.left = true; break;
-                case "w": gb.joypad.up = true; break;
-                case "d": gb.joypad.right = true; break;
-                case "s": gb.joypad.down = true; break;
-
-                case "k": gb.joypad.a = true; break;
-                case "j": gb.joypad.b = true; break;
-            }
-        } else {
-            switch (e.key.toLowerCase()) {
-                case "arrowleft": gb.joypad.left = true; break;
-                case "arrowup": gb.joypad.up = true; break;
-                case "arrowright": gb.joypad.right = true; break;
-                case "arrowdown": gb.joypad.down = true; break;
-
-                case "x": gb.joypad.a = true; break;
-                case "z": gb.joypad.b = true; break;
-            }
-            switch (e.code.toLowerCase()) {
-                case "controlleft": gb.setSlomo(true); break;
-            }
-        }
-
-        switch (e.key) {
-            case "Enter": gb.joypad.start = true; break;
-            case "\\": gb.joypad.select = true; break;
-            case "Tab": gb.setTurbo(true); break;
-        }
-    };
-    document.onkeyup = function (e) {
-        if (block.includes(e.key))
-            e.preventDefault();
-
-        if (window.altControls) {
-            switch (e.key.toLowerCase()) {
-                case "a": gb.joypad.left = false; break;
-                case "w": gb.joypad.up = false; break;
-                case "d": gb.joypad.right = false; break;
-                case "s": gb.joypad.down = false; break;
-
-                case "k": gb.joypad.a = false; break;
-                case "j": gb.joypad.b = false; break;
-            }
-        } else {
-            switch (e.key.toLowerCase()) {
-                case "arrowleft": gb.joypad.left = false; break;
-                case "arrowup": gb.joypad.up = false; break;
-                case "arrowright": gb.joypad.right = false; break;
-                case "arrowdown": gb.joypad.down = false; break;
-
-                case "x": gb.joypad.a = false; break;
-                case "z": gb.joypad.b = false; break;
-            }
-            switch (e.code.toLowerCase()) {
-                case "controlleft": gb.setSlomo(false); break;
-            }
-        }
-
-        switch (e.key) {
-            case "Enter": gb.joypad.start = false; break;
-            case "\\": gb.joypad.select = false; break;
-
-            case "Tab": gb.setTurbo(false); break;
-        }
-    };
-};
-
+/**
+ * 
+ * @param {DragEvent} ev 
+ */
 function dropHandler(ev) {
-    console.log('File(s) dropped');
+    if (ev.dataTransfer.files[0] instanceof Blob) {
+        console.log('File(s) dropped');
 
-    // Prevent default behavior (Prevent file from being opened)
-    ev.preventDefault();
+        // Prevent default behavior (Prevent file from being opened)
+        ev.preventDefault();
 
-    var reader = new FileReader();
-    reader.onload = function () {
-        var arrayBuffer = this.result;
-        var array = new Uint8Array(arrayBuffer);
+        var reader = new FileReader();
+        reader.onload = function () {
+            var arrayBuffer = this.result;
+            var array = new Uint8Array(arrayBuffer);
 
-        gb.bus.replaceRom(array);
-    };
-    reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
+            gb.bus.replaceRom(array);
+        };
+        reader.readAsArrayBuffer(ev.dataTransfer.files[0]);
+    }
 }
 
 function dragoverHandler(ev) {
@@ -454,11 +460,6 @@ function dragoverHandler(ev) {
 
 window.addEventListener('drop', dropHandler);
 window.addEventListener('dragover', dragoverHandler);
-
-
-
-init();
-
 
 window.onbeforeunload = e => {
     return "Are you sure you want to close Optime GB?";
