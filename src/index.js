@@ -280,52 +280,76 @@ function init() {
         }
 
         if (e.getModifierState("Shift")) {
-            if (e.key === "D") {
-                $('#enableDebugger').click();
-                e.preventDefault();
-            }
-            else if (e.key === "T") {
-                $('#drawTileset').click();
-                e.preventDefault();
-            }
-            else if (e.key === "F") {
-                gb.gpu.frameBlending = !gb.gpu.frameBlending;
-                e.preventDefault();
-            }
-            else if (e.key === "B") {
-                $('#big-screen').click();
-                e.preventDefault();
-            }
-            else if (e.key === "F1") {
-                gb.serialize(1);
-                e.preventDefault();
-            } else if (e.key === "F2") {
-                gb.serialize(2);
-                e.preventDefault();
-            } else if (e.key === "F3") {
-                gb.serialize(3);
-                e.preventDefault();
-            } else if (e.key === "F4") {
-                gb.serialize(4);
-                e.preventDefault();
+            switch (e.key) {
+                case "D":
+                    $('#enableDebugger').click();
+                    e.preventDefault();
+                    break;
+                case "T":
+                    $('#drawTileset').click();
+                    e.preventDefault();
+                    break;
+                case "F":
+                    gb.gpu.frameBlending = !gb.gpu.frameBlending;
+                    e.preventDefault();
+                    break;
+                case "B":
+                    $('#big-screen').click();
+                    e.preventDefault();
+                    break;
+                case "F1":
+                    gb.serialize(1);
+                    e.preventDefault();
+                    break;
+                case "F2":
+                    gb.serialize(2);
+                    e.preventDefault();
+                    break;
+                case "F3":
+                    gb.serialize(3);
+                    e.preventDefault();
+                    break;
+                case "F4":
+                    gb.serialize(4);
+                    e.preventDefault();
+                    break;
             }
         } else {
-            if (e.key === "F1") {
-                gb.deserialize(1);
-                e.preventDefault();
-            } else if (e.key === "F2") {
-                gb.deserialize(2);
-                e.preventDefault();
-            } else if (e.key === "F3") {
-                gb.deserialize(3);
-                e.preventDefault();
-            } else if (e.key === "F4") {
-                gb.deserialize(4);
-                e.preventDefault();
+            switch (e.key) {
+                case "F1":
+                    gb.deserialize(1);
+                    e.preventDefault();
+                    break;
+                case "F2":
+                    gb.deserialize(2);
+                    e.preventDefault();
+                    break;
+                case "F3":
+                    gb.deserialize(3);
+                    e.preventDefault();
+                    break;
+                case "F4":
+                    gb.deserialize(4);
+                    e.preventDefault();
+                    break;
+                case "F5":
+                    $('#ch1').click()
+                    e.preventDefault();
+                    break;
+                case "F6":
+                    $('#ch2').click()
+                    e.preventDefault();
+                    break;
+                case "F7":
+                    $('#ch3').click()
+                    e.preventDefault();
+                    break;
+                case "F8":
+                    $('#ch4').click()
+                    e.preventDefault();
+                    break;
             }
         }
-
-
 
         if (e.getModifierState("Control")) {
             if (e.key === "r") {
