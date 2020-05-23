@@ -304,8 +304,8 @@ export default class SoundChip implements HWIO {
     }
 
     fastForwardPulse1() {
-        if (this.pulse1Period > 0)
-            while (this.pulse1FreqTimer <= 0) {
+        if (this.pulse1Period > 0) {
+            while (this.pulse1FreqTimer < 0) {
                 this.pulse1FreqTimer += this.pulse1Period;
 
                 this.pulse1Pos++;
@@ -313,10 +313,12 @@ export default class SoundChip implements HWIO {
 
                 this.updatePulse1Val();
             }
+
+        }
     }
     fastForwardPulse2() {
-        if (this.pulse2Period > 0)
-            while (this.pulse2FreqTimer <= 0) {
+        if (this.pulse2Period > 0) {
+            while (this.pulse2FreqTimer < 0) {
                 this.pulse2FreqTimer += this.pulse2Period;
 
                 this.pulse2Pos++;
@@ -324,10 +326,11 @@ export default class SoundChip implements HWIO {
 
                 this.updatePulse2Val();
             }
+        }
     }
     fastForwardWave() {
-        if (this.wavePeriod > 0)
-            while (this.waveFreqTimer <= 0) {
+        if (this.wavePeriod > 0) {
+            while (this.waveFreqTimer < 0) {
                 this.waveFreqTimer += this.wavePeriod;
 
                 this.wavePos++;
@@ -335,10 +338,11 @@ export default class SoundChip implements HWIO {
 
                 this.updateWaveVal();
             }
+        }
     }
     fastForwardNoise() {
-        if (this.noisePeriod > 0)
-            while (this.noiseFreqTimer <= 0) {
+        if (this.noisePeriod > 0) {
+            while (this.noiseFreqTimer < 0) {
                 this.noiseFreqTimer += this.noisePeriod;
 
                 this.noisePos++;
@@ -346,6 +350,7 @@ export default class SoundChip implements HWIO {
 
                 this.updateNoiseVal();
             }
+        }
     }
 
     tick(cycles: number) {
@@ -361,10 +366,6 @@ export default class SoundChip implements HWIO {
                 if (this.sampleTimer >= SAMPLE_TIME_MAX) {
                     this.sampleTimer -= SAMPLE_TIME_MAX;
 
-                    this.fastForwardPulse1();
-                    this.fastForwardPulse2();
-                    this.fastForwardWave();
-                    this.fastForwardNoise();
 
                     let in1 = 0;
                     let in2 = 0;
@@ -372,18 +373,22 @@ export default class SoundChip implements HWIO {
                     // Note: -1 value when disabled is the DAC DC offset
 
                     if (this.pulse1_dacEnabled && this.enable1Out) {
+                        this.fastForwardPulse1();
                         if (this.pulse1_outputLeft) in1 += DAC_TABLE[this.pulse1Val];
                         if (this.pulse1_outputRight) in2 += DAC_TABLE[this.pulse1Val];
                     }
                     if (this.pulse2_dacEnabled && this.enable2Out) {
+                        this.fastForwardPulse2();
                         if (this.pulse2_outputLeft) in1 += DAC_TABLE[this.pulse2Val];
                         if (this.pulse2_outputRight) in2 += DAC_TABLE[this.pulse2Val];
                     }
                     if (this.wave_dacEnabled && this.enable3Out) {
+                        this.fastForwardWave();
                         if (this.wave_outputLeft) in1 += DAC_TABLE[this.waveVal];
                         if (this.wave_outputRight) in2 += DAC_TABLE[this.waveVal];
                     }
                     if (this.noise_dacEnabled && this.enable4Out) {
+                        this.fastForwardNoise();
                         if (this.noise_outputLeft) in1 += DAC_TABLE[this.noiseVal];
                         if (this.noise_outputRight) in2 += DAC_TABLE[this.noiseVal];
                     }
