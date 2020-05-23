@@ -123,7 +123,7 @@ $('#drawTileset').addEventListener('change', function (e) {
 
 }, false);
 
-$('#volume-slider').addEventListener('change', e => {
+$('#volume-slider').addEventListener('input', e => {
     gb.soundChip.soundPlayer.gain.gain.value = e.target.value / 100;
 });
 
