@@ -317,10 +317,6 @@ class GPU implements HWIO {
 
     lineClock: number = 0;
 
-    // Have events happened this scanline yet? - for internal tracking
-    bgDrawn = false;
-    windowDrawn = false;
-
     vp: VideoPlugin | null = null;
 
     // Use exclusively the fetcher
@@ -361,11 +357,6 @@ class GPU implements HWIO {
                     {
                         if (this.lineClock >= 456) {
                             this.lineClock -= 456;
-
-                            // Reset scanline specific flags
-                            this.bgDrawn = false;
-                            this.windowDrawn = false;
-                            // this.mode3CyclesOffset = 0;
 
                             this.lY++;
 
@@ -426,12 +417,12 @@ class GPU implements HWIO {
 
                             if (this.renderingThisFrame === true) {
                                 this.scanOAM();
+                                this.fetcherReset();
                             }
 
                             this.lcdStatus.mode = LCDMode.VRAM;
 
                             this.mode3HwioWritten = false;
-                            this.fetcherReset();
                             this.updateSTAT();
                         }
                     }
@@ -923,10 +914,6 @@ class GPU implements HWIO {
         this.windowOnscreenYetThisFrame = false;
 
         this.lineClock = 0;
-
-        this.bgDrawn = false;
-        this.windowDrawn = false;
-        // this.mode3CyclesOffset = 0;
 
         this.lcdStatusMode0 = false;
         this.lcdStatusMode1 = false;
