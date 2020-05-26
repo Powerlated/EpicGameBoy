@@ -86,14 +86,17 @@ export default class SoundChip implements HWIO {
                 case 0:
                 case 4:
                     this.frameSequencerLength();
+                    this.update();
                     break;
                 case 2:
                 case 6:
                     this.frameSequencerLength();
                     this.frameSequencerFrequencySweep();
+                    this.update();
                     break;
                 case 7:
                     this.frameSequencerVolumeEnvelope();
+                    this.update();
                     break;
                 default:
                     break;
@@ -353,88 +356,104 @@ export default class SoundChip implements HWIO {
         }
     }
 
+    pendingCycles = 0;
     tick(cycles: number) {
-        if (this.enabled) {
-            if (this.pulse1_enabled) this.pulse1FreqTimer -= cycles;
-            if (this.pulse2_enabled) this.pulse2FreqTimer -= cycles;
-            if (this.wave_enabled) this.waveFreqTimer -= cycles;
-            if (this.noise_enabled) this.noiseFreqTimer -= cycles;
+        this.pendingCycles += cycles;
 
-            if (!this.gb.turbo) {
-                this.sampleTimer += cycles;
-                // Sample at 65536 Hz
-                if (this.sampleTimer >= SAMPLE_TIME_MAX) {
-                    this.sampleTimer -= SAMPLE_TIME_MAX;
+        // The wave sample is visible to the CPU, so it's gotta be updated immediately
+    }
 
+    update() {
+        this.fastForwardSound(this.pendingCycles & (0xFFFFFFFF & ~(0b1111)));
+        this.pendingCycles &= 0b1111;
+    }
 
-                    let in1 = 0;
-                    let in2 = 0;
+    fastForwardSound(runCycles: number) {
+        while (runCycles > 0) {
+            runCycles -= SAMPLE_TIME_MAX;
+            const cycles = SAMPLE_TIME_MAX;
+            if (this.enabled) {
+                if (this.pulse1_enabled) this.pulse1FreqTimer -= cycles;
+                if (this.pulse2_enabled) this.pulse2FreqTimer -= cycles;
+                if (this.wave_enabled) this.waveFreqTimer -= cycles;
+                if (this.noise_enabled) this.noiseFreqTimer -= cycles;
 
-                    // Note: -1 value when disabled is the DAC DC offset
-
-                    if (this.pulse1_dacEnabled && this.enable1Out) {
-                        this.fastForwardPulse1();
-                        if (this.pulse1_outputLeft) in1 += DAC_TABLE[this.pulse1Val];
-                        if (this.pulse1_outputRight) in2 += DAC_TABLE[this.pulse1Val];
-                    }
-                    if (this.pulse2_dacEnabled && this.enable2Out) {
-                        this.fastForwardPulse2();
-                        if (this.pulse2_outputLeft) in1 += DAC_TABLE[this.pulse2Val];
-                        if (this.pulse2_outputRight) in2 += DAC_TABLE[this.pulse2Val];
-                    }
-                    if (this.wave_dacEnabled && this.enable3Out) {
-                        this.fastForwardWave();
-                        if (this.wave_outputLeft) in1 += DAC_TABLE[this.waveVal];
-                        if (this.wave_outputRight) in2 += DAC_TABLE[this.waveVal];
-                    }
-                    if (this.noise_dacEnabled && this.enable4Out) {
-                        this.fastForwardNoise();
-                        if (this.noise_outputLeft) in1 += DAC_TABLE[this.noiseVal];
-                        if (this.noise_outputRight) in2 += DAC_TABLE[this.noiseVal];
-                    }
-
-                    in1 *= this.leftMasterVolMul;
-                    in2 *= this.rightMasterVolMul;
-
-                    let out1 = in1 - this.capacitor1;
-                    let out2 = in2 - this.capacitor2;
-
-                    this.audioQueueLeft[this.audioQueueAt] = out1 * 0.25;
-                    this.audioQueueRight[this.audioQueueAt] = out2 * 0.25;
-
-                    this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
-                    this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
+                if (!this.gb.turbo) {
+                    this.sampleTimer += cycles;
+                    // Sample at 65536 Hz
+                    if (this.sampleTimer >= SAMPLE_TIME_MAX) {
+                        this.sampleTimer -= SAMPLE_TIME_MAX;
 
 
-                    this.audioQueueAt++;
+                        let in1 = 0;
+                        let in2 = 0;
 
-                    if (this.audioQueueAt >= 4096 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
-                        if (this.recordSamples) {
-                            const size = this.audioQueueAt;
+                        // Note: -1 value when disabled is the DAC DC offset
 
-                            for (let i = 0; i < size; i++) {
-                                const out1_8bit = Math.floor(((this.audioQueueLeft[i] + 1) / 2) * 255);
-                                const out2_8bit = Math.floor(((this.audioQueueRight[i] + 1) / 2) * 255);
-
-                                // This is literally a C++ vector. In freaking TypeScript.
-                                // I need to reevaluate my life choices.
-                                if (this.recordBufferAt + 2 > this.recordBuffer.length) {
-                                    const oldBuf = this.recordBuffer;
-                                    this.recordBuffer = new Uint8ClampedArray(this.recordBufferAt * 2);
-                                    this.recordBuffer.set(oldBuf);
-                                }
-
-                                this.recordBuffer[this.recordBufferAt++] = out1_8bit;
-                                this.recordBuffer[this.recordBufferAt++] = out2_8bit;
-                            }
+                        if (this.pulse1_dacEnabled && this.enable1Out) {
+                            this.fastForwardPulse1();
+                            if (this.pulse1_outputLeft) in1 += DAC_TABLE[this.pulse1Val];
+                            if (this.pulse1_outputRight) in2 += DAC_TABLE[this.pulse1Val];
+                        }
+                        if (this.pulse2_dacEnabled && this.enable2Out) {
+                            this.fastForwardPulse2();
+                            if (this.pulse2_outputLeft) in1 += DAC_TABLE[this.pulse2Val];
+                            if (this.pulse2_outputRight) in2 += DAC_TABLE[this.pulse2Val];
+                        }
+                        if (this.wave_dacEnabled && this.enable3Out) {
+                            this.fastForwardWave();
+                            if (this.wave_outputLeft) in1 += DAC_TABLE[this.waveVal];
+                            if (this.wave_outputRight) in2 += DAC_TABLE[this.waveVal];
+                        }
+                        if (this.noise_dacEnabled && this.enable4Out) {
+                            this.fastForwardNoise();
+                            if (this.noise_outputLeft) in1 += DAC_TABLE[this.noiseVal];
+                            if (this.noise_outputRight) in2 += DAC_TABLE[this.noiseVal];
                         }
 
-                        this.soundPlayer.queueAudio(
-                            this.audioQueueLeft,
-                            this.audioQueueRight,
-                            (this.gb.slomo ? SAMPLE_RATE / 2 : SAMPLE_RATE)
-                        );
-                        this.audioQueueAt = 0;
+                        in1 *= this.leftMasterVolMul;
+                        in2 *= this.rightMasterVolMul;
+
+                        let out1 = in1 - this.capacitor1;
+                        let out2 = in2 - this.capacitor2;
+
+                        this.audioQueueLeft[this.audioQueueAt] = out1 * 0.25;
+                        this.audioQueueRight[this.audioQueueAt] = out2 * 0.25;
+
+                        this.capacitor1 = in1 - out1 * CAPACITOR_FACTOR;
+                        this.capacitor2 = in2 - out2 * CAPACITOR_FACTOR;
+
+
+                        this.audioQueueAt++;
+
+                        if (this.audioQueueAt >= 4096 / (NORMAL_SAMPLE_RATE / SAMPLE_RATE)) {
+                            if (this.recordSamples) {
+                                const size = this.audioQueueAt;
+
+                                for (let i = 0; i < size; i++) {
+                                    const out1_8bit = Math.floor(((this.audioQueueLeft[i] + 1) / 2) * 255);
+                                    const out2_8bit = Math.floor(((this.audioQueueRight[i] + 1) / 2) * 255);
+
+                                    // This is literally a C++ vector. In freaking TypeScript.
+                                    // I need to reevaluate my life choices.
+                                    if (this.recordBufferAt + 2 > this.recordBuffer.length) {
+                                        const oldBuf = this.recordBuffer;
+                                        this.recordBuffer = new Uint8ClampedArray(this.recordBufferAt * 2);
+                                        this.recordBuffer.set(oldBuf);
+                                    }
+
+                                    this.recordBuffer[this.recordBufferAt++] = out1_8bit;
+                                    this.recordBuffer[this.recordBufferAt++] = out2_8bit;
+                                }
+                            }
+
+                            this.soundPlayer.queueAudio(
+                                this.audioQueueLeft,
+                                this.audioQueueRight,
+                                (this.gb.slomo ? SAMPLE_RATE / 2 : SAMPLE_RATE)
+                            );
+                            this.audioQueueAt = 0;
+                        }
                     }
                 }
             }
@@ -934,6 +953,8 @@ export default class SoundChip implements HWIO {
                 this.enabled = false;
             }
         }
+
+        this.update();
     }
 
     readHwio(addr: number): number {
