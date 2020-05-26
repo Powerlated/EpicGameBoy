@@ -164,125 +164,6 @@ class MemoryBus {
         }
     }
 
-    private readFunc = [
-        this.readRom0br.bind(this), // ROM0 - 0###
-        this.readRom0.bind(this), // ROM0 - 1###
-        this.readRom0.bind(this), // ROM0 - 2###
-        this.readRom0.bind(this), // ROM0 - 3###
-        this.readRomX.bind(this), // ROMX - 4###
-        this.readRomX.bind(this), // ROMX - 5###
-        this.readRomX.bind(this), // ROMX - 6###
-        this.readRomX.bind(this), // ROMX - 7###
-        this.readVram.bind(this), // VRAM - 8###
-        this.readVram.bind(this), // VRAM - 9###
-        this.readCartRam.bind(this), // Cart RAM - A###
-        this.readCartRam.bind(this), // Cart RAM - B###
-        this.readRam0.bind(this), // RAM0 - C###
-        this.readRamX.bind(this), // RAMX - D###
-        this.readRam0.bind(this), // Echo RAM0 - E###
-        this.readHigh.bind(this), // High Area - F###
-    ];
-
-    private readRom0br(addr: number): number {
-        if (this.bootromEnabled === true && addr < 0x100) {
-            if (addr >= 0x0000 && addr < 0x100) {
-                return this.bootrom[addr];
-            } else {
-                return 0xFF;
-            }
-        }
-
-        return this.romData[0][addr];
-    }
-
-    private readRom0(addr: number): number {
-        return this.romData[0][addr];
-    }
-
-    private readRomX(addr: number): number {
-        return this.romData[this.mbc.romBank][addr & 0x3FFF];
-    }
-
-    private readVram(addr: number): number {
-        return this.gb.gpu.read(addr);
-    }
-
-    private readCartRam(addr: number): number {
-        return this.mbc.read(addr);
-    }
-
-    private readRam0(addr: number): number {
-        return this.workRamBanks[0][addr & 0xFFF];
-    }
-
-    private readRamX(addr: number): number {
-        return this.workRamBanks[this.workRamBankIndex][addr & 0xFFF];
-    }
-
-    private readHigh(addr: number): number {
-        if (addr >= 0xF000 && addr <= 0xFDFF) {
-            return this.readRamX(addr);
-        }
-
-        // Read from OAM
-        else if (addr >= 0xFE00 && addr <= 0xFE9F) {
-            return this.gb.gpu.readOam(addr);
-        }
-
-        // Read from High RAM
-        else if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            return this.highRam[addr - 0xFF80];
-        }
-
-        // GET Interrupt enable flags
-        else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            return this.gb.cpu.ie.getNumerical();
-        }
-
-        // Hardware I/O registers
-        else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            switch (addr) {
-                case 0xFF4D: // KEY1
-                    if (this.gb.cgb) {
-                        const bit7 = (this.gb.doubleSpeedShift ? 1 : 0) << 7;
-                        const bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0);
-                        return bit7 | bit0;
-                    }
-                    break;
-                case 0xFF50:
-                    return 0xFF;
-                case 0xFF70:
-                    if (this.gb.cgb) {
-                        return this.workRamBankIndex;
-                    }
-                    return 0xFF;
-            }
-
-            if (addr === 0xFF00) {
-                return this.gb.joypad.readHwio(addr); // Joypad
-            } else if (addr >= 0xFF01 && addr <= 0xFF02) {
-                return this.gb.serial.readHwio(addr); // Serial
-            } else if (addr >= 0xFF03 && addr <= 0xFF07) {
-                return this.gb.timer.readHwio(addr); // Timer
-            } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-                return this.gb.cpu.if.numerical; // IF
-            } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
-                return this.gb.soundChip.readHwio(addr); // Sound Chip
-            } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
-                return this.gb.gpu.readHwio(addr); // DMG/CGB PPU Registers
-            } else if (addr >= 0xFF51 && addr <= 0xFF55) {
-                return this.gb.dma.readHwio(addr); // DMA
-            } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
-                return this.gb.gpu.readHwio(addr); // CGB Palette Data
-            } else if (addr === 0xFF6C) {
-                return this.gb.gpu.readHwio(addr); // FF6C undocumented
-            } else if (addr >= 0xFF76 && addr <= 0xFF77) { // PCM12, PCM34
-                return this.gb.soundChip.readHwio(addr);
-            }
-        }
-        return 0xFF;
-    }
-
     read(addr: number): number {
         addr &= 0xFFFF;
 
@@ -291,122 +172,201 @@ class MemoryBus {
             return cheat;
         }
 
-        return this.readFunc[addr >> 12](addr);
-    }
-
-    private writeFunc = [
-        this.writeMbc.bind(this), // ROM0 - 0###
-        this.writeMbc.bind(this), // ROM0 - 1###
-        this.writeMbc.bind(this), // ROM0 - 2###
-        this.writeMbc.bind(this), // ROM0 - 3###
-        this.writeMbc.bind(this), // ROMX - 4###
-        this.writeMbc.bind(this), // ROMX - 5###
-        this.writeMbc.bind(this), // ROMX - 6###
-        this.writeMbc.bind(this), // ROMX - 7###
-        this.writeVram.bind(this), // VRAM - 8###
-        this.writeVram.bind(this), // VRAM - 9###
-        this.writeCartRam.bind(this), // Cart RAM - A###
-        this.writeCartRam.bind(this), // Cart RAM - B###
-        this.writeRam0.bind(this), // RAM0 - C###
-        this.writeRamX.bind(this), // RAMX - D###
-        this.writeRam0.bind(this), // Echo RAM0 - E###
-        this.writeHigh.bind(this), // High Area - F###
-    ];
-
-
-    private writeMbc(addr: number, value: number): void {
-        this.mbc.write(addr, value);
-    }
-
-    private writeVram(addr: number, value: number): void {
-        this.gb.gpu.write(addr, value);
-    }
-
-    private writeCartRam(addr: number, value: number): void {
-        this.mbc.write(addr, value);
-    }
-
-    private writeRam0(addr: number, value: number): void {
-        this.workRamBanks[0][addr & 0xFFF] = value;
-    }
-
-    private writeRamX(addr: number, value: number): void {
-        this.workRamBanks[this.workRamBankIndex][addr & 0xFFF] = value;
-    }
-
-    private writeHigh(addr: number, value: number): void {
-        if (addr >= 0xF000 && addr <= 0xFDFF) {
-            this.writeRamX(addr, value);
-        }
-
-        // Write to High RAM
-        else if (addr >= 0xFF80 && addr <= 0xFFFE) {
-            this.highRam[addr - 0xFF80] = value;
-        }
-
-        // SET Interrupt request flags
-        else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-            this.gb.cpu.if.setNumerical(value);
-        }
-
-        // SET Interrupt enable flags
-        else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
-            this.gb.cpu.ie.setNumerical(value);
-        }
-
-        // Write to OAM
-        else if (addr >= 0xFE00 && addr <= 0xFE9F) {
-            this.gb.gpu.writeOam(addr, value);
-            // writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
-        }
-
-        // Hardware I/O registers
-        else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
-            switch (addr) {
-                case 0xFF4D: // KEY1
-                    if (this.gb.cgb) {
-                        this.gb.prepareSpeedSwitch = (value & 1) === 1;
+        switch (addr >> 12) {
+            case 0x0: // ROM0 + Boot ROM - 0####
+                if (this.bootromEnabled === true && addr < 0x100) {
+                    if (addr >= 0x0000 && addr < 0x100) {
+                        return this.bootrom[addr];
+                    } else {
+                        return 0xFF;
                     }
-                    break;
-                case 0xFF50:
-                    if ((value & 1) === 1) {
-                        writeDebug("Disabled bootrom by write to 0xFF50");
-                        this.bootromEnabled = false;
-                    }
-                    break;
-                case 0xFF70:
-                    if (this.gb.cgb) {
-                        if (value === 0) value = 1;
-                        this.workRamBankIndex = value & 0b111;
-                    }
-                    break;
-            }
+                }
 
-            if (addr === 0xFF00) {
-                this.gb.joypad.writeHwio(addr, value);
-            } else if (addr >= 0xFF01 && addr <= 0xFF02) {
-                this.gb.serial.writeHwio(addr, value);
-            } else if (addr >= 0xFF03 && addr <= 0xFF07) {
-                this.gb.timer.writeHwio(addr, value);
-            } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
-                this.gb.cpu.if.setNumerical(value);
-            } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
-                this.gb.soundChip.writeHwio(addr, value);
-            } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
-                this.gb.gpu.writeHwio(addr, value);
-            } else if (addr >= 0xFF51 && addr <= 0xFF55) {
-                this.gb.dma.writeHwio(addr, value);
-            } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
-                this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
-            } else if (addr === 0xFF6C) {
-                this.gb.gpu.writeHwio(addr, value); // FF6C undocumented
-            }
+                return this.romData[0][addr];
+            case 0x1: // ROM0 - 1###
+            case 0x2: // ROM0 - 2###
+            case 0x3: // ROM0 - 3###
+                return this.romData[0][addr];
+            case 0x4: // ROMX - 4###
+            case 0x5: // ROMX - 5###
+            case 0x6: // ROMX - 6###
+            case 0x7: // ROMX - 7###
+                return this.romData[this.mbc.romBank][addr & 0x3FFF];
+            case 0x8: // VRAM - 8###
+            case 0x9: // VRAM - 9###
+                return this.gb.gpu.read(addr);
+            case 0xA: // Cart RAM - A###
+            case 0xB: // Cart RAM - B###
+                return this.mbc.read(addr);
+            case 0xC: // RAM0 - C###
+            case 0xE: // Echo RAM0 - E###
+                return this.workRamBanks[0][addr & 0xFFF];
+            case 0xD: // RAMX - D###
+                return this.workRamBanks[this.workRamBankIndex][addr & 0xFFF];
+            case 0xF: // Echo RAMX / HWIO / High Page - F###
+                if (addr >= 0xF000 && addr <= 0xFDFF) {
+                    return this.workRamBanks[this.workRamBankIndex][addr & 0xFFF];
+                }
+
+                // Read from OAM
+                else if (addr >= 0xFE00 && addr <= 0xFE9F) {
+                    return this.gb.gpu.readOam(addr);
+                }
+
+                // Read from High RAM
+                else if (addr >= 0xFF80 && addr <= 0xFFFE) {
+                    return this.highRam[addr - 0xFF80];
+                }
+
+                // GET Interrupt enable flags
+                else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
+                    return this.gb.cpu.ie.getNumerical();
+                }
+
+                // Hardware I/O registers
+                else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
+                    switch (addr) {
+                        case 0xFF4D: // KEY1
+                            if (this.gb.cgb) {
+                                const bit7 = (this.gb.doubleSpeedShift ? 1 : 0) << 7;
+                                const bit0 = (this.gb.prepareSpeedSwitch ? 1 : 0);
+                                return bit7 | bit0;
+                            }
+                            break;
+                        case 0xFF50:
+                            return 0xFF;
+                        case 0xFF70:
+                            if (this.gb.cgb) {
+                                return this.workRamBankIndex;
+                            }
+                            return 0xFF;
+                    }
+
+                    if (addr === 0xFF00) {
+                        return this.gb.joypad.readHwio(addr); // Joypad
+                    } else if (addr >= 0xFF01 && addr <= 0xFF02) {
+                        return this.gb.serial.readHwio(addr); // Serial
+                    } else if (addr >= 0xFF03 && addr <= 0xFF07) {
+                        return this.gb.timer.readHwio(addr); // Timer
+                    } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+                        return this.gb.cpu.if.numerical; // IF
+                    } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
+                        return this.gb.soundChip.readHwio(addr); // Sound Chip
+                    } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
+                        return this.gb.gpu.readHwio(addr); // DMG/CGB PPU Registers
+                    } else if (addr >= 0xFF51 && addr <= 0xFF55) {
+                        return this.gb.dma.readHwio(addr); // DMA
+                    } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
+                        return this.gb.gpu.readHwio(addr); // CGB Palette Data
+                    } else if (addr === 0xFF6C) {
+                        return this.gb.gpu.readHwio(addr); // FF6C undocumented
+                    } else if (addr >= 0xFF76 && addr <= 0xFF77) { // PCM12, PCM34
+                        return this.gb.soundChip.readHwio(addr);
+                    }
+                }
+                return 0xFF;
         }
+
+        return 0xFF;
     }
 
     write(addr: number, value: number): void {
-        addr &= 0xFFFF;
-        this.writeFunc[addr >> 12](addr, value);
+        switch (addr >> 12) {
+            case 0x0: // ROM0 + Boot ROM - 0####
+            case 0x1: // ROM0 - 1###
+            case 0x2: // ROM0 - 2###
+            case 0x3: // ROM0 - 3###
+            case 0x4: // ROMX - 4###
+            case 0x5: // ROMX - 5###
+            case 0x6: // ROMX - 6###
+            case 0x7: // ROMX - 7###
+                this.mbc.write(addr, value);
+                return;
+            case 0x8: // VRAM - 8###
+            case 0x9: // VRAM - 9###
+                this.gb.gpu.write(addr, value);
+                return;
+            case 0xA: // Cart RAM - A###
+            case 0xB: // Cart RAM - B###
+                this.mbc.write(addr, value);
+                return;
+            case 0xC: // RAM0 - C###
+            case 0xE: // Echo RAM0 - E###
+                this.workRamBanks[0][addr & 0xFFF] = value;
+                return;
+            case 0xD: // RAMX - D###
+                this.workRamBanks[this.workRamBankIndex][addr & 0xFFF] = value;
+                return;
+            case 0xF: // Echo RAMX / HWIO / High Page - F###
+                if (addr >= 0xF000 && addr <= 0xFDFF) {
+                    this.workRamBanks[this.workRamBankIndex][addr & 0xFFF] = value;
+                }
+
+                // Write to High RAM
+                else if (addr >= 0xFF80 && addr <= 0xFFFE) {
+                    this.highRam[addr - 0xFF80] = value;
+                }
+
+                // SET Interrupt request flags
+                else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+                    this.gb.cpu.if.setNumerical(value);
+                }
+
+                // SET Interrupt enable flags
+                else if (addr === INTERRUPT_ENABLE_FLAGS_ADDR) {
+                    this.gb.cpu.ie.setNumerical(value);
+                }
+
+                // Write to OAM
+                else if (addr >= 0xFE00 && addr <= 0xFE9F) {
+                    this.gb.gpu.writeOam(addr, value);
+                    // writeDebug(`OAM Write: ${hex(value, 2)} @ ${hex(addr, 4)}`);
+                }
+
+                // Hardware I/O registers
+                else if (addr >= HWIO_BEGIN && addr <= HWIO_END) {
+                    switch (addr) {
+                        case 0xFF4D: // KEY1
+                            if (this.gb.cgb) {
+                                this.gb.prepareSpeedSwitch = (value & 1) === 1;
+                            }
+                            break;
+                        case 0xFF50:
+                            if ((value & 1) === 1) {
+                                writeDebug("Disabled bootrom by write to 0xFF50");
+                                this.bootromEnabled = false;
+                            }
+                            break;
+                        case 0xFF70:
+                            if (this.gb.cgb) {
+                                if (value === 0) value = 1;
+                                this.workRamBankIndex = value & 0b111;
+                            }
+                            break;
+                    }
+
+                    if (addr === 0xFF00) {
+                        this.gb.joypad.writeHwio(addr, value);
+                    } else if (addr >= 0xFF01 && addr <= 0xFF02) {
+                        this.gb.serial.writeHwio(addr, value);
+                    } else if (addr >= 0xFF03 && addr <= 0xFF07) {
+                        this.gb.timer.writeHwio(addr, value);
+                    } else if (addr === INTERRUPT_REQUEST_FLAGS_ADDR) {
+                        this.gb.cpu.if.setNumerical(value);
+                    } else if (addr >= 0xFF10 && addr <= 0xFF3F) {
+                        this.gb.soundChip.writeHwio(addr, value);
+                    } else if (addr >= 0xFF40 && addr <= 0xFF4F) {
+                        this.gb.gpu.writeHwio(addr, value);
+                    } else if (addr >= 0xFF51 && addr <= 0xFF55) {
+                        this.gb.dma.writeHwio(addr, value);
+                    } else if (addr >= 0xFF68 && addr <= 0xFF6B) {
+                        this.gb.gpu.writeHwio(addr, value); // CGB Palette Data
+                    } else if (addr === 0xFF6C) {
+                        this.gb.gpu.writeHwio(addr, value); // FF6C undocumented
+                    }
+                }
+                return;
+        }
     }
 
     readMem16(addr: number) {
