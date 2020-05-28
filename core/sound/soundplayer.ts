@@ -10,7 +10,7 @@ try {
 }
 
 export const NORMAL_SAMPLE_RATE = 262144;
-export const SAMPLE_RATE = firefoxHax ? 131072 : (safariHax ? 65536 : 262144);
+export const SAMPLE_RATE = firefoxHax ? 131072 : (safariHax ? 65536 : NORMAL_SAMPLE_RATE);
 export const LATENCY = firefoxHax ? 4096 : (safariHax ? 2048 : 8192);
 export const LATENCY_SEC = LATENCY / SAMPLE_RATE;
 

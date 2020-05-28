@@ -138,16 +138,16 @@ export default class Timer implements HWIO {
     }
 
     deserialize(state: Serializer) {
-        this.counter = state.GET_8()
-        this.modulo = state.GET_8()
-        this.speed = state.GET_8()
-        this.running = state.GET_BOOL()
+        this.counter = state.GET_8();
+        this.modulo = state.GET_8();
+        this.speed = state.GET_8();
+        this.running = state.GET_BOOL();
 
-        this.internal = state.GET_16LE()
+        this.internal = state.GET_16LE();
 
-        this.previousTimerCondition = state.GET_BOOL()
-        this.previousFrameSequencerCondition = state.GET_BOOL()
+        this.previousTimerCondition = state.GET_BOOL();
+        this.previousFrameSequencerCondition = state.GET_BOOL();
 
-        this.queueReload = state.GET_BOOL()
+        this.queueReload = state.GET_BOOL();
     }
 }

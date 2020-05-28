@@ -178,3 +178,7 @@ body {
     border-color: rgb(42, 59, 59);
     color: rgb(226, 226, 226);
 }
+
+.dark-mode #gameboy {
+    filter: sepia(.4)
+}

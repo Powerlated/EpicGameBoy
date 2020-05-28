@@ -678,7 +678,11 @@ class GPU implements HWIO {
 
     fetcherReset() {
         if (!this.gb.cgb) {
-            this.fetcherStall = 8;
+            if (this.lY == 0) {
+                this.fetcherStall = 4;
+            } else {
+                this.fetcherStall = 8;
+            }
         } else {
             this.fetcherStall = 4;
             this.fetcherScreenX = -(this.scrX & 7);

@@ -129,8 +129,8 @@ document.onkeydown = function (e) {
             case "d": gb.joypad.right = true; break;
             case "s": gb.joypad.down = true; break;
 
-            case "k": gb.joypad.a = true; break;
-            case "j": gb.joypad.b = true; break;
+            case "l": gb.joypad.a = true; break;
+            case "k": gb.joypad.b = true; break;
         }
     } else {
         switch (e.key.toLowerCase()) {
@@ -164,8 +164,8 @@ document.onkeyup = function (e) {
             case "d": gb.joypad.right = false; break;
             case "s": gb.joypad.down = false; break;
 
-            case "k": gb.joypad.a = false; break;
-            case "j": gb.joypad.b = false; break;
+            case "l": gb.joypad.a = false; break;
+            case "k": gb.joypad.b = false; break;
         }
     } else {
         switch (e.key.toLowerCase()) {

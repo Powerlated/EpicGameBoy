@@ -60,15 +60,17 @@ export default class GameBoy {
     animationFrame = 0;
     millisUntilMuteAudio = 0;
     step(): number {
-        return this.cpu.execute();
+        const cyclesRan = this.cpu.execute();
+        return cyclesRan;
     }
 
     tick(cyclesRan: number) {
         // Timer runs at double speed as well, so use the unmodified value for timer
         this.timer.tick(cyclesRan);
+        this.dma.tick(cyclesRan);
+        
         // The APU is ticked by the timer so it's the timer class
         this.gpu.tick(cyclesRan >> this.doubleSpeedShift);
-        this.dma.tick(cyclesRan);
         this.soundChip.tick(cyclesRan >> this.doubleSpeedShift);
     }
 
@@ -110,11 +112,11 @@ export default class GameBoy {
                     this.speedStop();
                     return;
                 }
-                i += this.cpu.execute();
+                i += this.step();
             }
         } else {
             while (i < max) {
-                i += this.cpu.execute();
+                i += this.step();
             }
         }
 

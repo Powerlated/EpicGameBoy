@@ -478,14 +478,32 @@ UNPREFIXED_EXECUTORS[0x7D] = function LD_A_L(cpu) { cpu.reg[R8.A] = cpu.reg[R8.L
 UNPREFIXED_EXECUTORS[0x7E] = function LD_A_iHL(cpu) { cpu.reg[R8.A] = cpu.reg[R8.iHL]; return 1; };
 UNPREFIXED_EXECUTORS[0x7F] = function LD_A_A(cpu) { cpu.reg[R8.A] = cpu.reg[R8.A]; return 1; };
 
-UNPREFIXED_EXECUTORS[0xF5] = PUSH_R16;  // PUSH AF 
+function get_reg16(cpu: CPU, r: number): number {
+    switch (r) {
+        case 0: return cpu.reg[R16.BC];
+        case 1: return cpu.reg[R16.DE];
+        case 2: return cpu.reg[R16.HL];
+        case 3: return cpu.reg[R16.AF];
+    }
+    return 0;
+}
+
+function set_reg16(cpu: CPU, r: number, n: number): void {
+    switch (r) {
+        case 0: cpu.reg[R16.BC] = n; return;
+        case 1: cpu.reg[R16.DE] = n; return;
+        case 2: cpu.reg[R16.HL] = n; return;
+        case 3: cpu.reg[R16.AF] = n; return;
+    }
+}
+
 UNPREFIXED_EXECUTORS[0xC5] = PUSH_R16;  // PUSH BC
 UNPREFIXED_EXECUTORS[0xD5] = PUSH_R16;  // PUSH DE
 UNPREFIXED_EXECUTORS[0xE5] = PUSH_R16;  // PUSH HL
+UNPREFIXED_EXECUTORS[0xF5] = PUSH_R16;  // PUSH AF 
 /** PUSH R16 */
 export function PUSH_R16(this: number, cpu: CPU): number {
-    const target = [R16.BC, R16.DE, R16.HL, R16.AF][(this & 0b110000) >> 4];
-    cpu.push_tick(cpu.reg[target]);
+    cpu.push_tick(get_reg16(cpu, (this & 0b110000) >> 4));
     return 1;
 };
 
@@ -495,8 +513,7 @@ UNPREFIXED_EXECUTORS[0xE1] = POP_R16;  // POP HL
 UNPREFIXED_EXECUTORS[0xF1] = POP_R16;  // POP AF 
 /** POP R16 */
 export function POP_R16(this: number, cpu: CPU): number {
-    const target = [R16.BC, R16.DE, R16.HL, R16.AF][(this & 0b110000) >> 4];
-    cpu.reg[target] = cpu.pop_tick();
+    set_reg16(cpu, (this & 0b110000) >> 4, cpu.pop_tick());
     return 1;
 };
 
@@ -1091,7 +1108,7 @@ UNPREFIXED_EXECUTORS[0x29] = ADD_HL_R16; // ADD HL, HL
 UNPREFIXED_EXECUTORS[0x39] = ADD_HL_R16; // ADD HL, SP
 /** ADD HL, R16 */
 export function ADD_HL_R16(this: number, cpu: CPU): number {
-    const r16Value = cpu.reg[[R16.BC, R16.DE, R16.HL, R16.SP][this >> 4]]
+    const r16Value = cpu.reg[[R16.BC, R16.DE, R16.HL, R16.SP][this >> 4]];
 
     const hl = cpu.reg[R16.HL];
     const newValue = r16Value + hl;
