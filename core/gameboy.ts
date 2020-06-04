@@ -310,7 +310,7 @@ export default class GameBoy {
         let logoData = new Uint8Array(48);
         const base = 0x104;
         for (let i = 0; i < 48; i++) {
-            let byte = this.bus.romData[0][base + i];
+            let byte = this.bus.romData[base + i];
             logoData[i] = byte;
         }
 

@@ -3,9 +3,7 @@ import { hex } from "../../../src/gameboy/tools/util";
 import { Serializer } from "../../serialize";
 
 export default interface MBC {
-
     bus: MemoryBus;
-    romBank: number;
 
     read(addr: number): number;
     write(addr: number, value: number): void;
@@ -19,9 +17,15 @@ export default interface MBC {
 
 export default class MBC {
     romBank = 0;
+    romOffset = 0;
+
     static romBankSize = 16384;
     static ramBankSize = 8192;
-}
+
+    updateRomOffset() {
+        this.romOffset = this.romBank * 0x4000;
+    }
+} 
 
 export class MBCWithRAM extends MBC {
     ramBank = 0;

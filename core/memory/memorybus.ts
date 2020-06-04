@@ -31,7 +31,7 @@ class MemoryBus {
 
     mbc: MBC | MBCWithRAM;
     romBanks = 0;
-    romData: Uint8Array[] = [];
+    romData: Uint8Array = new Uint8Array(32768);
 
     gb: GameBoy;
 
@@ -40,24 +40,24 @@ class MemoryBus {
     replaceRom(rom: Uint8Array) {
         console.info("Replaced ROM");
         // Zero out existing ROM
-        this.romData = [];
-        let banks = 0;
         // Write new ROM in
-        rom.forEach((v, i) => {
-            const bank = i >> 14;
-            const bankAddr = i & 16383;
-            if (this.romData[bank] == undefined) {
-                this.romData[bank] = new Uint8Array(16384);
+        let size = Math.pow(2, Math.ceil(Math.log(rom.length) / Math.log(2)));
+        let newRom = new Uint8Array(size);
+        for (let i = 0; i < size; i++) {
+            if (i < rom.length) {
+                newRom[i] = rom[i];
+            } else {
+                newRom[i] = 0;
             }
-            this.romData[bank][bankAddr] = v;
-            if (bank >= banks) banks++;
-        });
+        }
+        this.romData = newRom;
+        let banks = newRom.length / 0x4000;
         // Round up to the next power of 2
         banks = Math.pow(2, Math.ceil(Math.log(banks) / Math.log(2)));
         console.log(`Banks: ${banks}`);
         this.romBanks = banks;
 
-        switch (this.romData[0][0x147]) {
+        switch (this.romData[0x147]) {
             case 0x01: case 0x02: case 0x03:
                 this.mbc = new MBC1(this);
                 break;
@@ -85,13 +85,13 @@ class MemoryBus {
                 break;
         }
 
-        const title = this.romData[0].slice(0x134, 0x143);
+        const title = this.romData.slice(0x134, 0x143);
         const titleDecoded = new TextDecoder("utf-8").decode(title);
         console.log(titleDecoded);
 
         this.romTitle = titleDecoded;
 
-        this.gb.cgb = (this.romData[0][0x143] & 0x80) !== 0 || this.romData[0][0x143] == 0xC0;
+        this.gb.cgb = (this.romData[0x143] & 0x80) !== 0 || this.romData[0x143] == 0xC0;
         this.gb.reset();
 
         const m = this.mbc as MBCWithRAM;
@@ -116,8 +116,7 @@ class MemoryBus {
     yankGamePak() {
         this.mbc = new NullMBC(this);
         this.mbc.romBank = 1;
-        this.romData[0] = new Uint8Array(0x4000).fill(0xFF);
-        this.romData[1] = new Uint8Array(0x4000).fill(0xFF);
+        this.romData = new Uint8Array(0x8000).fill(0xFF);
     }
 
     saveGameSram() {
@@ -182,16 +181,16 @@ class MemoryBus {
                     }
                 }
 
-                return this.romData[0][addr];
+                return this.romData[addr];
             case 0x1: // ROM0 - 1###
             case 0x2: // ROM0 - 2###
             case 0x3: // ROM0 - 3###
-                return this.romData[0][addr];
+                return this.romData[addr];
             case 0x4: // ROMX - 4###
             case 0x5: // ROMX - 5###
             case 0x6: // ROMX - 6###
             case 0x7: // ROMX - 7###
-                return this.romData[this.mbc.romBank][addr & 0x3FFF];
+                return this.romData[this.mbc.romOffset + (addr & 0x3FFF)];
             case 0x8: // VRAM - 8###
             case 0x9: // VRAM - 9###
                 return this.gb.gpu.read(addr);

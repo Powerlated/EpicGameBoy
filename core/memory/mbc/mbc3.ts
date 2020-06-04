@@ -50,6 +50,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
                 this.romBank = value & 0b11111111; // Whole byte
             }
             this.romBank %= this.bus.romBanks;
+            this.updateRomOffset();
             return;
         }
         else if (addr >= 0x4000 && addr <= 0x5FFF) {
@@ -71,6 +72,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
 
     reset() {
         this.romBank = 1;
+        this.updateRomOffset();
     }
 
     serialize(state: Serializer) {
@@ -89,5 +91,7 @@ export default class MBC3 extends MBCWithRAM implements MBC {
         this.ramBank = state.GET_32LE();
 
         this.selectRtc = state.GET_BOOL();
+    
+        this.updateRomOffset();
     }
 }

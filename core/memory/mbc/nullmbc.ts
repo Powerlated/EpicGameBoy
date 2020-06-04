@@ -9,10 +9,9 @@ export default class NullMBC extends MBC implements MBC {
     constructor(bus: MemoryBus) {
         super();
         this.bus = bus;
+        this.romBank = 1;
+        this.updateRomOffset();
     }
-
-    // Keep this 1 so MemoryBus will read ROM 0x4### correctly
-    romBank = 1;
 
     // Pass reads straight through with no MBC, however, one address line is missing
     read(addr: number): number {
