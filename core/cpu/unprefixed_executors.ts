@@ -141,7 +141,8 @@ export function STOP(this: number, cpu: CPU): number {
     const b1 = cpu.read_tick(cpu.pc + 1);
     if (b1 !== 0) {
         console.log("Corrupted stop executed");
-        cpu.invalidOpcodeExecuted = true;
+        cpu.ime = false;
+        cpu.halted = true;
     } else {
         cpu.gb.attemptSpeedSwitch();
     }
@@ -1098,7 +1099,8 @@ UNPREFIXED_EXECUTORS[0xFC] = INVALID;
 UNPREFIXED_EXECUTORS[0xFD] = INVALID;
 export function INVALID(this: number, cpu: CPU): number {
     cpu.pc--;
-    cpu.invalidOpcodeExecuted = true;
+    cpu.ime = false;
+    cpu.halted = true;
     return 1;
 };
 

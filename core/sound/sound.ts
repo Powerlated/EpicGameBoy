@@ -24,10 +24,6 @@ const PULSE_DUTY = [
 const CAPACITOR_FACTOR = 0.999958 ** (4194304 / SAMPLE_RATE); // DMG
 // const CAPACITOR_FACTOR = 0.998943 ** (4194304 / SAMPLE_RATE); // CGB / MGB
 
-const DAC_TABLE = new Float32Array(16);
-for (let i = 0; i < 16; i++) {
-    DAC_TABLE[i] = ((i / 15) * 2) - 1;
-}
 
 function generateNoiseBuffer(sevenBit: boolean): Uint8Array {
     let seed = 0xFF;
@@ -352,8 +348,8 @@ export default class SoundChip implements HWIO {
                                     x++;
                                 }
                             }
-                            if (this.pulse1_outputLeft) in1 += DAC_TABLE[this.pulse1Val];
-                            if (this.pulse1_outputRight) in2 += DAC_TABLE[this.pulse1Val];
+                            if (this.pulse1_outputLeft) in1 += ((this.pulse1Val / 15) * 2) - 1;
+                            if (this.pulse1_outputRight) in2 += ((this.pulse1Val / 15) * 2) - 1;
                         }
                         if (this.pulse2_dacEnabled && this.enable2Out) {
                             if (this.pulse2Period > 0) {
@@ -366,8 +362,8 @@ export default class SoundChip implements HWIO {
                                     this.updatePulse2Val();
                                 }
                             }
-                            if (this.pulse2_outputLeft) in1 += DAC_TABLE[this.pulse2Val];
-                            if (this.pulse2_outputRight) in2 += DAC_TABLE[this.pulse2Val];
+                            if (this.pulse2_outputLeft) in1 += ((this.pulse2Val / 15) * 2) - 1;
+                            if (this.pulse2_outputRight) in2 += ((this.pulse2Val / 15) * 2) - 1;
                         }
                         if (this.wave_dacEnabled && this.enable3Out) {
                             if (this.wavePeriod > 0) {
@@ -380,8 +376,8 @@ export default class SoundChip implements HWIO {
                                     this.updateWaveVal();
                                 }
                             }
-                            if (this.wave_outputLeft) in1 += DAC_TABLE[this.waveVal];
-                            if (this.wave_outputRight) in2 += DAC_TABLE[this.waveVal];
+                            if (this.wave_outputLeft) in1 += ((this.waveVal / 15) * 2) - 1;
+                            if (this.wave_outputRight) in2 += ((this.waveVal / 15) * 2) - 1;
                         }
                         if (this.noise_dacEnabled && this.enable4Out) {
                             if (this.noisePeriod > 0) {
@@ -394,8 +390,8 @@ export default class SoundChip implements HWIO {
                                     this.updateNoiseVal();
                                 }
                             }
-                            if (this.noise_outputLeft) in1 += DAC_TABLE[this.noiseVal];
-                            if (this.noise_outputRight) in2 += DAC_TABLE[this.noiseVal];
+                            if (this.noise_outputLeft) in1 += ((this.noiseVal / 15) * 2) - 1;
+                            if (this.noise_outputRight) in2 += ((this.noiseVal / 15) * 2) - 1;
                         }
 
                         in1 *= this.leftMasterVolMul;

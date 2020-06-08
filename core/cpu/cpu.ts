@@ -289,7 +289,6 @@ export default class CPU {
     pendingCycles = 0;
     halted = false;
     haltBug = false;
-    invalidOpcodeExecuted = false;
     pc: number = 0x0000;
     scheduleEnableInterruptsForNextTick = false;
     totalI = 0;
@@ -337,7 +336,6 @@ export default class CPU {
         this.haltBug = false;
         this.halted = false;
         this.scheduleEnableInterruptsForNextTick = false;
-        this.invalidOpcodeExecuted = false;
 
         this.ie = new InterruptFlag(this, true);
         this.if = new InterruptFlag(this, false);
@@ -402,10 +400,6 @@ export default class CPU {
         //     this.stepDebug();
 
         if (this.halted === false) {
-            if (this.invalidOpcodeExecuted === true) {
-                this.tick(4);
-                return 4;
-            }
             if (this.scheduleEnableInterruptsForNextTick === true) {
                 this.scheduleEnableInterruptsForNextTick = false;
                 this.ime = true;
@@ -654,7 +648,6 @@ export default class CPU {
         state.PUT_32LE(this.pendingCycles);
         state.PUT_BOOL(this.halted);
         state.PUT_BOOL(this.haltBug);
-        state.PUT_BOOL(this.invalidOpcodeExecuted);
         state.PUT_16LE(this.pc);
         state.PUT_BOOL(this.scheduleEnableInterruptsForNextTick);
         state.PUT_32LE(this.totalI);
@@ -706,7 +699,6 @@ export default class CPU {
         this.pendingCycles = state.GET_32LE();
         this.halted = state.GET_BOOL();
         this.haltBug = state.GET_BOOL();
-        this.invalidOpcodeExecuted = state.GET_BOOL();
         this.pc = state.GET_16LE();
         this.scheduleEnableInterruptsForNextTick = state.GET_BOOL();
         this.totalI = state.GET_32LE();
