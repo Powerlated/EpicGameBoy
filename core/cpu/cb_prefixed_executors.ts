@@ -7,17 +7,17 @@ export default CB_PREFIXED_EXECUTORS;
 
 export function RLC_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
     const leftmostBit = (value & 0b10000000) >> 7;
     const newValue = ((value << 1) | leftmostBit) & 0xFF;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value & 128) !== 0;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = (value & 128) !== 0;
 
     return 2;
 };
@@ -25,17 +25,17 @@ export function RLC_R8(this: number, cpu: CPU): number {
 // RRC r8
 export function RRC_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
     const rightmostBit = (value & 1) << 7;
     const newValue = ((value >> 1) | rightmostBit) & 0xFF;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value & 1) !== 0;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -43,18 +43,18 @@ export function RRC_R8(this: number, cpu: CPU): number {
 // RL r8
 export function RL_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
-    const carryMask = cpu.reg._f.carry ? 1 : 0;
+    const carryMask = cpu.carry ? 1 : 0;
 
     const newValue = ((value << 1) | carryMask) & 0xFF;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value & 128) !== 0;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = (value & 128) !== 0;
 
     return 2;
 };
@@ -62,18 +62,18 @@ export function RL_R8(this: number, cpu: CPU): number {
 // RR r8
 export function RR_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
-    const carryMask = cpu.reg._f.carry ? 128 : 0;
+    const carryMask = cpu.carry ? 128 : 0;
 
     const newValue = ((value >> 1) | carryMask) & 0xFF;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value & 1) !== 0;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -81,17 +81,17 @@ export function RR_R8(this: number, cpu: CPU): number {
 // SLA r8
 export function SLA_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
     const newValue = (value << 1) & 0xFF;
     const didOverflow = (value >> 7) !== 0;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = didOverflow;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = didOverflow;
 
     return 2;
 };
@@ -99,17 +99,17 @@ export function SLA_R8(this: number, cpu: CPU): number {
 // SRA r8
 export function SRA_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
     const leftmostBit = value & 0b10000000;
     const newValue = (value >> 1) | leftmostBit;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value & 1) !== 0;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -117,17 +117,17 @@ export function SRA_R8(this: number, cpu: CPU): number {
 // SWAP r8
 export function SWAP_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
     const lowerNybble = value & 0b00001111;
     const upperNybble = (value >> 4) & 0b00001111;
 
-    cpu.reg[t] = (lowerNybble << 4) | upperNybble;
+    cpu[t] = (lowerNybble << 4) | upperNybble;
 
-    cpu.reg._f.zero = value === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = false;
+    cpu.zero = value === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = false;
 
     return 2;
 };
@@ -135,16 +135,16 @@ export function SWAP_R8(this: number, cpu: CPU): number {
 // SRL r8
 export function SRL_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
-    const value = cpu.reg[t];
+    const value = cpu[t];
 
     const newValue = value >> 1;
 
-    cpu.reg[t] = newValue;
+    cpu[t] = newValue;
 
-    cpu.reg._f.zero = newValue === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = false;
-    cpu.reg._f.carry = (value & 1) !== 0;
+    cpu.zero = newValue === 0;
+    cpu.negative = false;
+    cpu.half_carry = false;
+    cpu.carry = (value & 1) !== 0;
 
     return 2;
 };
@@ -154,9 +154,9 @@ export function BIT_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
     const bit = (this & 0b111000) >> 3;
 
-    cpu.reg._f.zero = (cpu.reg[t] & (1 << bit)) === 0;
-    cpu.reg._f.negative = false;
-    cpu.reg._f.half_carry = true;
+    cpu.zero = (cpu[t] & (1 << bit)) === 0;
+    cpu.negative = false;
+    cpu.half_carry = true;
 
     return 2;
 };
@@ -166,10 +166,10 @@ export function RES_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
     const bit = (this & 0b111000) >> 3;
 
-    const value = cpu.reg[t];
+    const value = cpu[t];
     const mask = 0b1 << bit;
 
-    cpu.reg[t] = value & ~(mask);
+    cpu[t] = value & ~(mask);
 
     return 2;
 };
@@ -179,10 +179,10 @@ export function SET_R8(this: number, cpu: CPU): number {
     const t: R8 = this & 0b111;
     const bit = (this & 0b111000) >> 3;
 
-    const value = cpu.reg[t];
+    const value = cpu[t];
     const mask = 0b1 << bit;
 
-    cpu.reg[t] = value | mask;;
+    cpu[t] = value | mask;;
 
     return 2;
 };

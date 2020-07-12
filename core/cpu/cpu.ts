@@ -138,109 +138,6 @@ export const TIMER_OVERFLOW_VECTOR = 0x50;
 export const SERIAL_LINK_VECTOR = 0x58;
 export const JOYPAD_PRESS_VECTOR = 0x60;
 
-class Registers {
-    cpu: CPU;
-
-    _f = {
-        zero: false,
-        negative: false,
-        half_carry: false,
-        carry: false
-    };
-
-    get f() {
-        let flagN = 0;
-
-        if (this._f.zero) flagN |= BIT_7;
-        if (this._f.negative) flagN |= BIT_6;
-        if (this._f.half_carry) flagN |= BIT_5;
-        if (this._f.carry) flagN |= BIT_4;
-
-        return flagN;
-    }
-
-    set f(i: number) {
-        this._f.zero = (i & BIT_7) !== 0;
-        this._f.negative = (i & BIT_6) !== 0;
-        this._f.half_carry = (i & BIT_5) !== 0;
-        this._f.carry = (i & BIT_4) !== 0;
-    }
-
-    sp = 0;
-
-    /*
-    * R8 internal magic numbers
-    * 
-    * A: 
-    * B: 0x0
-    * C: 0x1
-    * D: 0x2
-    * E: 0x3
-    * H: 0x4
-    * L: 0x5
-    * (HL): 0x6
-    * A: 0x7
-    * 
-    */
-    0x0 = 0;
-    0x1 = 0;
-    0x2 = 0;
-    0x3 = 0;
-    0x4 = 0;
-    0x5 = 0;
-    get 0x6(): number { return this.cpu.read_tick(this.cpu.reg[R16.HL]); }
-    set 0x6(i: number) { this.cpu.write_tick(this.cpu.reg[R16.HL], i); }
-    0x7 = 0;
-
-    /*
-    * R16 internal magic numbers:
-    *
-    * AF: 0x10
-    * BC: 0x11
-    * DE: 0x12
-    * HL: 0x13
-    * SP: 0x14
-    */
-    get 0x10() {
-        return this[R8.A] << 8 | this.cpu.reg.f;
-    }
-    get 0x11() {
-        return this[R8.B] << 8 | this[R8.C];
-    }
-    get 0x12() {
-        return this[R8.D] << 8 | this[R8.E];
-    }
-    get 0x13() {
-        return this[R8.H] << 8 | this[R8.L];
-    }
-    get 0x14() {
-        return this.cpu.reg.sp;
-    }
-    set 0x10(i: number) {
-        this[R8.A] = i >> 8;
-        this.cpu.reg.f = i & 0xFF;
-    }
-    set 0x11(i: number) {
-        this[R8.B] = i >> 8;
-        this[R8.C] = i & 0xFF;
-    }
-    set 0x12(i: number) {
-        this[R8.D] = i >> 8;
-        this[R8.E] = i & 0xFF;
-    }
-    set 0x13(i: number) {
-        this[R8.H] = i >> 8;
-        this[R8.L] = i & 0xFF;
-    }
-    set 0x14(i: number) {
-        this.cpu.reg.sp = i;
-    }
-
-    constructor(cpu: CPU) {
-        this.cpu = cpu;
-    }
-}
-
 export type OperandType = R8 | R16 | CC | number;
 
 export interface OpFunction {
@@ -292,7 +189,6 @@ export default class CPU {
     pc: number = 0x0000;
     scheduleEnableInterruptsForNextTick = false;
     totalI = 0;
-    reg = new Registers(this);
 
     gb: GameBoy;
 
@@ -325,9 +221,106 @@ export default class CPU {
     minDebug = false;
     jumpLog: string[] = [];
 
+    zero = false;
+    negative = false;
+    half_carry = false;
+    carry = false;
+
+    get f() {
+        let flagN = 0;
+
+        if (this.zero) flagN |= BIT_7;
+        if (this.negative) flagN |= BIT_6;
+        if (this.half_carry) flagN |= BIT_5;
+        if (this.carry) flagN |= BIT_4;
+
+        return flagN;
+    }
+
+    set f(i: number) {
+        this.zero = (i & BIT_7) !== 0;
+        this.negative = (i & BIT_6) !== 0;
+        this.half_carry = (i & BIT_5) !== 0;
+        this.carry = (i & BIT_4) !== 0;
+    }
+
+    sp = 0;
+
+    /*
+    * R8 internal magic numbers
+    * 
+    * A: 
+    * B: 0x0
+    * C: 0x1
+    * D: 0x2
+    * E: 0x3
+    * H: 0x4
+    * L: 0x5
+    * (HL): 0x6
+    * A: 0x7
+    * 
+    */
+    0x0 = 0;
+    0x1 = 0;
+    0x2 = 0;
+    0x3 = 0;
+    0x4 = 0;
+    0x5 = 0;
+    get 0x6(): number { return this.read_tick(this[R16.HL]); }
+    set 0x6(i: number) { this.write_tick(this[R16.HL], i); }
+    0x7 = 0;
+
+    /*
+    * R16 internal magic numbers:
+    *
+    * AF: 0x10
+    * BC: 0x11
+    * DE: 0x12
+    * HL: 0x13
+    * SP: 0x14
+    */
+    get 0x10() {
+        return this[R8.A] << 8 | this.f;
+    }
+    get 0x11() {
+        return this[R8.B] << 8 | this[R8.C];
+    }
+    get 0x12() {
+        return this[R8.D] << 8 | this[R8.E];
+    }
+    get 0x13() {
+        return this[R8.H] << 8 | this[R8.L];
+    }
+    get 0x14() {
+        return this.sp;
+    }
+    set 0x10(i: number) {
+        this[R8.A] = i >> 8;
+        this.f = i & 0xFF;
+    }
+    set 0x11(i: number) {
+        this[R8.B] = i >> 8;
+        this[R8.C] = i & 0xFF;
+    }
+    set 0x12(i: number) {
+        this[R8.D] = i >> 8;
+        this[R8.E] = i & 0xFF;
+    }
+    set 0x13(i: number) {
+        this[R8.H] = i >> 8;
+        this[R8.L] = i & 0xFF;
+    }
+    set 0x14(i: number) {
+        this.sp = i;
+    }
 
     reset() {
-        this.reg = new Registers(this);
+        this[R16.AF] = 0;
+        this[R16.BC] = 0;
+        this[R16.DE] = 0;
+        this[R16.HL] = 0;
+        this[R16.SP] = 0;
+
         this.totalI = 0;
         this.time = 0;
         this.pc = 0;
@@ -380,7 +373,7 @@ export default class CPU {
 
     write_tick(addr: number, value: number): void {
         this.cycles += 4;
-        
+
         this.gb.tick(this.pendingCycles + 4);
         this.pendingCycles = 0;
 
@@ -486,8 +479,8 @@ export default class CPU {
                 const pcUpper = this.pc >> 8;
                 const pcLower = this.pc & 0xFF;
 
-                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-                this.write_tick(this.reg.sp, pcUpper);
+                this.sp = (this.sp - 1) & 0xFFFF;
+                this.write_tick(this.sp, pcUpper);
 
                 // If servicing any interrupt, disable the master flag
                 this.ime = false;
@@ -522,8 +515,8 @@ export default class CPU {
                     vector = JOYPAD_PRESS_VECTOR;
                 }
 
-                this.reg.sp = (this.reg.sp - 1) & 0xFFFF;
-                this.write_tick(this.reg.sp, pcLower);
+                this.sp = (this.sp - 1) & 0xFFFF;
+                this.write_tick(this.sp, pcLower);
 
                 // Setting PC takes 1 M-cycle
                 this.tick_addPending(4);
@@ -585,16 +578,16 @@ export default class CPU {
 
         if (this.logging) {
 
-            const flags = `${this.reg._f.zero ? 'Z' : '-'}${this.reg._f.negative ? 'N' : '-'}${this.reg._f.half_carry ? 'H' : '-'}${this.reg._f.carry ? 'C' : '-'}`;
+            const flags = `${this.zero ? 'Z' : '-'}${this.negative ? 'N' : '-'}${this.half_carry ? 'H' : '-'}${this.carry ? 'C' : '-'}`;
 
             // this.log.push(`A:${hexN(this._r.a, 2)} F:${flags} BC:${hexN(this._r.bc, 4)} DE:${hexN_LC(this._r.de, 4)} HL:${hexN_LC(this._r.hl, 4)
             // } SP:${hexN_LC(this._r.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles})`);
 
             /*
-            this.log.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg[R16.BC], 4)} DE:${hexN_LC(this.reg[R16.DE], 4)} HL:${hexN_LC(this.reg[R16.HL], 4)
-                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)}`); */
-            this.fullLog.push(`A:${hexN(this.reg[R8.A], 2)} F:${flags} BC:${hexN(this.reg[R16.BC], 4)} DE:${hexN_LC(this.reg[R16.DE], 4)} HL:${hexN_LC(this.reg[R16.HL], 4)
-                } SP:${hexN_LC(this.reg.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${Disassembler.disassembleOp(ins, pcTriplet, this, this.pc)}`);
+            this.log.push(`A:${hexN(this[R8.A], 2)} F:${flags} BC:${hexN(this[R16.BC], 4)} DE:${hexN_LC(this[R16.DE], 4)} HL:${hexN_LC(this[R16.HL], 4)
+                } SP:${hexN_LC(this.sp, 4)} PC:${hexN_LC(this.pc, 4)}`); */
+            this.fullLog.push(`A:${hexN(this[R8.A], 2)} F:${flags} BC:${hexN(this[R16.BC], 4)} DE:${hexN_LC(this[R16.DE], 4)} HL:${hexN_LC(this[R16.HL], 4)
+                } SP:${hexN_LC(this.sp, 4)} PC:${hexN_LC(this.pc, 4)} (cy: ${this.cycles}) |[00]0x${hexN_LC(this.pc, 4)}: ${Disassembler.disassembleOp(ins, pcTriplet, this, this.pc)}`);
         }
     }
 
@@ -633,13 +626,13 @@ export default class CPU {
     push_tick(n16: number): void {
         this.tick(4);
 
-        this.reg.sp = (this.reg.sp - 2) & 0xFFFF;
-        this.write16_tick(this.reg.sp, n16);
+        this.sp = (this.sp - 2) & 0xFFFF;
+        this.write16_tick(this.sp, n16);
     };
 
     pop_tick(): number {
-        const value = this.read16_tick(this.reg.sp);
-        this.reg.sp = (this.reg.sp + 2) & 0xFFFF;
+        const value = this.read16_tick(this.sp);
+        this.sp = (this.sp + 2) & 0xFFFF;
         return value;
     }
 
@@ -652,20 +645,20 @@ export default class CPU {
         state.PUT_BOOL(this.scheduleEnableInterruptsForNextTick);
         state.PUT_32LE(this.totalI);
 
-        state.PUT_16LE(this.reg.sp);
+        state.PUT_16LE(this.sp);
 
-        state.PUT_8(this.reg[R8.A]);
-        state.PUT_8(this.reg[R8.B]);
-        state.PUT_8(this.reg[R8.C]);
-        state.PUT_8(this.reg[R8.D]);
-        state.PUT_8(this.reg[R8.E]);
-        state.PUT_8(this.reg[R8.H]);
-        state.PUT_8(this.reg[R8.L]);
+        state.PUT_8(this[R8.A]);
+        state.PUT_8(this[R8.B]);
+        state.PUT_8(this[R8.C]);
+        state.PUT_8(this[R8.D]);
+        state.PUT_8(this[R8.E]);
+        state.PUT_8(this[R8.H]);
+        state.PUT_8(this[R8.L]);
 
-        state.PUT_BOOL(this.reg._f.carry);
-        state.PUT_BOOL(this.reg._f.half_carry);
-        state.PUT_BOOL(this.reg._f.negative);
-        state.PUT_BOOL(this.reg._f.zero);
+        state.PUT_BOOL(this.carry);
+        state.PUT_BOOL(this.half_carry);
+        state.PUT_BOOL(this.negative);
+        state.PUT_BOOL(this.zero);
 
         state.PUT_BOOL(this.ime);
 
@@ -703,20 +696,20 @@ export default class CPU {
         this.scheduleEnableInterruptsForNextTick = state.GET_BOOL();
         this.totalI = state.GET_32LE();
 
-        this.reg.sp = state.GET_16LE();
+        this.sp = state.GET_16LE();
 
-        this.reg[R8.A] = state.GET_8();
-        this.reg[R8.B] = state.GET_8();
-        this.reg[R8.C] = state.GET_8();
-        this.reg[R8.D] = state.GET_8();
-        this.reg[R8.E] = state.GET_8();
-        this.reg[R8.H] = state.GET_8();
-        this.reg[R8.L] = state.GET_8();
+        this[R8.A] = state.GET_8();
+        this[R8.B] = state.GET_8();
+        this[R8.C] = state.GET_8();
+        this[R8.D] = state.GET_8();
+        this[R8.E] = state.GET_8();
+        this[R8.H] = state.GET_8();
+        this[R8.L] = state.GET_8();
 
-        this.reg._f.carry = state.GET_BOOL();
-        this.reg._f.half_carry = state.GET_BOOL();
-        this.reg._f.negative = state.GET_BOOL();
-        this.reg._f.zero = state.GET_BOOL();
+        this.carry = state.GET_BOOL();
+        this.half_carry = state.GET_BOOL();
+        this.negative = state.GET_BOOL();
+        this.zero = state.GET_BOOL();
 
         this.ime = state.GET_BOOL();
 

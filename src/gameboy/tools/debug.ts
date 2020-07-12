@@ -87,16 +87,16 @@ function updateDebug() {
                 IME/E/R: ${gb.cpu.ime}/${e.vblank ? "V" : "-"}${e.lcdStat ? "L" : "-"}${e.timer ? "T" : "-"}${e.serial ? "S" : "-"}${e.joypad ? "J" : "-"} (${hex(e.numerical, 2)})/${r.vblank ? "V" : "-"}${r.lcdStat ? "L" : "-"}${r.timer ? "T" : "-"}${r.serial ? "S" : "-"}${r.joypad ? "J" : "-"} (${hex(r.numerical, 2)})
 
                 PC: ${hex(cpu.pc, 4)}
-                Flags: ${cpu.reg._f.zero ? "Z" : "-"}${cpu.reg._f.negative ? "N" : "-"}${cpu.reg._f.half_carry ? "H" : "-"}${cpu.reg._f.carry ? "C" : "-"}
+                Flags: ${cpu.zero ? "Z" : "-"}${cpu.negative ? "N" : "-"}${cpu.half_carry ? "H" : "-"}${cpu.carry ? "C" : "-"}
         
                 <span class="code">
-                SP: ${hex(cpu.reg.sp, 4)} ${cpu.reg.sp.toString(2)} [${hex(gb.bus.readMem16(cpu.reg.sp), 4)}]
+                SP: ${hex(cpu.sp, 4)} ${cpu.sp.toString(2)} [${hex(gb.bus.readMem16(cpu.sp), 4)}]
 
-                AF: ${hex(cpu.reg[R16.AF], 4)} ${pad(cpu.reg[R8.A].toString(2), 8, '0')} ${pad(cpu.reg.f.toString(2), 8, '0')} 
-                BC: ${hex(cpu.reg[R16.BC], 4)} ${pad(cpu.reg[R8.B].toString(2), 8, '0')} ${pad(cpu.reg[R8.C].toString(2), 8, '0')}
-                DE: ${hex(cpu.reg[R16.DE], 4)} ${pad(cpu.reg[R8.D].toString(2), 8, '0')} ${pad(cpu.reg[R8.E].toString(2), 8, '0')}
-                HL: ${hex(cpu.reg[R16.HL], 4)} ${pad(cpu.reg[R8.H].toString(2), 8, '0')} ${pad(cpu.reg[R8.L].toString(2), 8, '0')}
-                [HL]: ${hex(gb.bus.read(cpu.reg[R16.HL]), 2)}
+                AF: ${hex(cpu[R16.AF], 4)} ${pad(cpu[R8.A].toString(2), 8, '0')} ${pad(cpu.f.toString(2), 8, '0')} 
+                BC: ${hex(cpu[R16.BC], 4)} ${pad(cpu[R8.B].toString(2), 8, '0')} ${pad(cpu[R8.C].toString(2), 8, '0')}
+                DE: ${hex(cpu[R16.DE], 4)} ${pad(cpu[R8.D].toString(2), 8, '0')} ${pad(cpu[R8.E].toString(2), 8, '0')}
+                HL: ${hex(cpu[R16.HL], 4)} ${pad(cpu[R8.H].toString(2), 8, '0')} ${pad(cpu[R8.L].toString(2), 8, '0')}
+                [HL]: ${hex(gb.bus.read(cpu[R16.HL]), 2)}
                 </span>------------------------------
                 Scroll X/Y: ${gpu.scrX}/${gpu.scrY}
                 Window X/Y: ${gpu.windowXpos}/${gpu.windowYpos}

@@ -286,11 +286,11 @@ export default class GameBoy {
     }
 
     dmgBootrom() {
-        this.cpu.reg[R16.AF] = 0x01B0;
-        this.cpu.reg[R16.BC] = 0x0013;
-        this.cpu.reg[R16.DE] = 0x00D8;
-        this.cpu.reg[R16.HL] = 0x014D;
-        this.cpu.reg.sp = 0xFFFE;
+        this.cpu[R16.AF] = 0x01B0;
+        this.cpu[R16.BC] = 0x0013;
+        this.cpu[R16.DE] = 0x00D8;
+        this.cpu[R16.HL] = 0x014D;
+        this.cpu.sp = 0xFFFE;
 
         // Clear VRAM
         const vramPointer = 0x8000;
@@ -365,11 +365,11 @@ export default class GameBoy {
     }
 
     cgbBootrom() {
-        this.cpu.reg[R16.AF] = 0x1180;
-        this.cpu.reg[R16.BC] = 0x0000;
-        this.cpu.reg[R16.DE] = 0xFF56;
-        this.cpu.reg[R16.HL] = 0x000D;
-        this.cpu.reg.sp = 0xFFFE;
+        this.cpu[R16.AF] = 0x1180;
+        this.cpu[R16.BC] = 0x0000;
+        this.cpu[R16.DE] = 0xFF56;
+        this.cpu[R16.HL] = 0x000D;
+        this.cpu.sp = 0xFFFE;
 
         this.gpu.cgbBgPaletteIndexAutoInc = true;
     }

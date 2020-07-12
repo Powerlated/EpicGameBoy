@@ -128,6 +128,18 @@ export class OAMEntry {
     }
 }
 
+// const RGB_5_TO_8 = generate5To8Table();
+const RGB_5_TO_8 = [0, 5, 8, 11, 16, 22, 28, 36, 43, 51, 59, 67, 77, 87, 97, 107, 119, 130, 141, 153, 166, 177, 188, 200, 209, 221, 230, 238, 245, 249, 252, 255];
+// const RGB_5_TO_8 = [0, 2, 5, 10, 15, 20, 26, 32, 38, 45, 52, 60, 68, 76, 84, 92, 101, 110, 119, 128, 138, 148, 158, 168, 178, 189, 199, 210, 221, 232, 244, 255];
+
+function generate5To8Table() {
+    let rgb5to8Table = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+        rgb5to8Table[i] = i * (255 / 31);
+    }
+    return rgb5to8Table;
+}
+
 class CGBPaletteData {
     data = new Uint8Array(64).fill(0xFF);
 
@@ -138,15 +150,9 @@ class CGBPaletteData {
         new Uint8Array(3),
     ]);
 
-    rgb5to8Table = new Uint8Array(32);
-
     constructor() {
-        for (let i = 0; i < 32; i++) {
-            this.rgb5to8Table[i] = i * (255 / 31);
-        }
         this.updateAll();
     }
-
 
     update(pal: number, col: number) {
         const b0 = this.data[(pal * 8) + (col * 2) + 0];
@@ -158,9 +164,9 @@ class CGBPaletteData {
         const g = ((rgb555 >> 5) & 31);
         const b = ((rgb555 >> 10) & 31);
 
-        this.shades[pal][col][0] = this.rgb5to8Table[r];
-        this.shades[pal][col][1] = this.rgb5to8Table[g];
-        this.shades[pal][col][2] = this.rgb5to8Table[b];
+        this.shades[pal][col][0] = RGB_5_TO_8[r];
+        this.shades[pal][col][1] = RGB_5_TO_8[g];
+        this.shades[pal][col][2] = RGB_5_TO_8[b];
     }
 
     updateAll() {
